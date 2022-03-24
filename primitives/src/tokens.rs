@@ -30,6 +30,12 @@ pub const KAR: CurrencyId = 107;
 pub const ACA: CurrencyId = 108;
 pub const LKSM: CurrencyId = 109;
 pub const LDOT: CurrencyId = 110;
+pub const SDN: CurrencyId = 111;
+pub const MOVR: CurrencyId = 112;
+pub const PHA: CurrencyId = 113;
+pub const KMA: CurrencyId = 114;
+pub const KINT: CurrencyId = 115;
+pub const KBTC: CurrencyId = 116;
 
 // Ethereum ecosystem
 pub const EUSDT: CurrencyId = 201;
@@ -92,6 +98,12 @@ pub const CDOT_8_15: CurrencyId = 200080015;
 // | Heiko     | SKSM         | N/A                |
 // | Heiko     | CKSM         | N/A                |
 // | Heiko     | LKSM         | N/A                |
+// | Heiko     | MOVR         | N/A                |
+// | Heiko     | SDN          | N/A                |
+// | Heiko     | PHA          | N/A                |
+// | Heiko     | KMA          | N/A                |
+// | Heiko     | KINT         | N/A                |
+// | Heiko     | KBTC         | N/A                |
 // | Heiko     | PHKO         | N/A                |
 // | Heiko     | PKSM         | N/A                |
 // | Heiko     | PUSDT        | N/A                |

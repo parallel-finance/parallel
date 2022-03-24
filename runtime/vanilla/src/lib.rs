@@ -48,7 +48,7 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{EUSDC, EUSDT, HKO, KAR, KSM, KUSD, LKSM, SKSM},
+    tokens::{EUSDC, EUSDT, HKO, KAR, KBTC, KINT, KSM, KUSD, LKSM, MOVR, PHA, SKSM},
     Index, *,
 };
 use sp_api::impl_runtime_apis;
@@ -363,6 +363,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(b"HKO".to_vec()),
                 ),
             )),
+            // Karura
             KAR => Some(MultiLocation::new(
                 1,
                 X2(
@@ -382,6 +383,31 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 X2(
                     Parachain(paras::karura::ID),
                     GeneralKey(paras::karura::LKSM_KEY.to_vec()),
+                ),
+            )),
+            // Moonriver
+            MOVR => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::moonriver::ID),
+                    PalletInstance(paras::moonriver::MOVR_KEY),
+                ),
+            )),
+            // Khala
+            PHA => Some(MultiLocation::new(1, X1(Parachain(paras::khala::ID)))),
+            // Kintsugi
+            KINT => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::kintsugi::ID),
+                    GeneralKey(paras::kintsugi::KINT_KEY.to_vec()),
+                ),
+            )),
+            KBTC => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::kintsugi::ID),
+                    GeneralKey(paras::kintsugi::KBTC_KEY.to_vec()),
                 ),
             )),
             _ => None,
@@ -416,6 +442,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 0,
                 interior: X1(GeneralKey(key)),
             } if key == b"HKO".to_vec() => Some(HKO),
+            // Karura
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
@@ -428,6 +455,29 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
             } if id == paras::karura::ID && key == paras::karura::LKSM_KEY.to_vec() => Some(LKSM),
+            // Moonriver
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), PalletInstance(key)),
+            } if id == paras::moonriver::ID && key == paras::moonriver::MOVR_KEY => Some(MOVR),
+            // Khala
+            MultiLocation {
+                parents: 1,
+                interior: X1(Parachain(id)),
+            } if id == paras::khala::ID => Some(PHA),
+            // Kintsugi
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::kintsugi::ID && key == paras::kintsugi::KINT_KEY.to_vec() => {
+                Some(KINT)
+            }
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::kintsugi::ID && key == paras::kintsugi::KBTC_KEY.to_vec() => {
+                Some(KBTC)
+            }
             _ => None,
         }
     }
@@ -1029,6 +1079,7 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 400
     );
+    // Karura
     pub KarPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
@@ -1042,6 +1093,37 @@ parameter_types! {
             X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::LKSM_KEY.to_vec())),
         ).into(),
         ksm_per_second()
+    );
+    // Moonriver
+    pub MovrPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::moonriver::ID), PalletInstance(paras::moonriver::MOVR_KEY)),
+        ).into(),
+        ksm_per_second() * 3
+    );
+    // Khala
+    pub PhaPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X1(Parachain(paras::khala::ID)),
+        ).into(),
+        ksm_per_second() * 400
+    );
+    // Kintsugi
+    pub KintPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::kintsugi::ID), GeneralKey(paras::kintsugi::KINT_KEY.to_vec())),
+        ).into(),
+        ksm_per_second() * 400
+    );
+    pub KbtcPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::kintsugi::ID), GeneralKey(paras::kintsugi::KBTC_KEY.to_vec())),
+        ).into(),
+        ksm_per_second() / 1_500_000
     );
 }
 
@@ -1080,9 +1162,17 @@ pub type Trader = (
     FixedRateOfFungible<SKSMPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<HkoPerSecond, ToTreasury>,
     FixedRateOfFungible<HkoPerSecondOfCanonicalLocation, ToTreasury>,
+    // Karura
     FixedRateOfFungible<KusdPerSecond, ToTreasury>,
     FixedRateOfFungible<KarPerSecond, ToTreasury>,
     FixedRateOfFungible<LKSMPerSecond, ToTreasury>,
+    // Moonriver
+    FixedRateOfFungible<MovrPerSecond, ToTreasury>,
+    // Khala
+    FixedRateOfFungible<PhaPerSecond, ToTreasury>,
+    // Kintsugi
+    FixedRateOfFungible<KintPerSecond, ToTreasury>,
+    FixedRateOfFungible<KbtcPerSecond, ToTreasury>,
 );
 
 pub struct XcmConfig;
