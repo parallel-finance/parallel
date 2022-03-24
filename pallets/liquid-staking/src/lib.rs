@@ -1178,11 +1178,11 @@ pub mod pallet {
                 let amount = Self::staking_ledger_cap()
                     .saturating_sub(bonded)
                     .min(new_avg_bonded.saturating_sub(bonded));
-                if !amount.is_zero() && amount.saturating_add(bonded) >= T::MinNominatorBond::get()
-                {
-                    distributions.push((index, amount));
-                    remain = remain.saturating_sub(amount);
+                if amount.is_zero() || bonded.saturating_add(amount) < T::MinNominatorBond::get() {
+                    continue;
                 }
+                distributions.push((index, amount));
+                remain = remain.saturating_sub(amount);
             }
 
             for (index, amount) in distributions.into_iter() {
@@ -1245,7 +1245,7 @@ pub mod pallet {
                     .map(|&index| (index, Self::bonded_of(index), Self::unbonding_of(index)))
                     .collect();
 
-            amounts.sort_by(|a, b| b.2.cmp(&a.2));
+            amounts.sort_by(|a, b| a.2.cmp(&b.2));
 
             let mut distributions: Vec<(DerivativeIndex, BalanceOf<T>)> = vec![];
             let mut remain = total_amount;
