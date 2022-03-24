@@ -82,6 +82,34 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
+    pub fn set_total_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+        self.total_stake_amount.free = self
+            .total_stake_amount
+            .free
+            .checked_sub(&amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        self.total_stake_amount.reserved = self
+            .total_stake_amount
+            .reserved
+            .checked_add(&amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        Ok(())
+    }
+
+    pub fn remove_total_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+        self.total_stake_amount.reserved = self
+            .total_stake_amount
+            .reserved
+            .checked_sub(&amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        self.total_stake_amount.free = self
+            .total_stake_amount
+            .free
+            .checked_add(&amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        Ok(())
+    }
+
     pub fn update_total_unstake_amount(
         &mut self,
         amount: Balance,
@@ -104,6 +132,34 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
                     .ok_or(ArithmeticError::Underflow)?;
             }
         }
+        Ok(())
+    }
+
+    pub fn set_total_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+        self.total_unstake_amount.free = self
+            .total_unstake_amount
+            .free
+            .checked_sub(&amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        self.total_unstake_amount.reserved = self
+            .total_unstake_amount
+            .reserved
+            .checked_add(&amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        Ok(())
+    }
+
+    pub fn remove_total_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+        self.total_unstake_amount.reserved = self
+            .total_unstake_amount
+            .reserved
+            .checked_sub(&amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        self.total_unstake_amount.free = self
+            .total_unstake_amount
+            .free
+            .checked_add(&amount)
+            .ok_or(ArithmeticError::Overflow)?;
         Ok(())
     }
 

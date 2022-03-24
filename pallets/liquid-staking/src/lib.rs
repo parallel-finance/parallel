@@ -799,9 +799,11 @@ pub mod pallet {
 
         /// Get total unclaimed
         pub fn get_total_unclaimed(staking_currency: AssetIdOf<T>) -> BalanceOf<T> {
+            let matching_pool = Self::matching_pool();
             T::Assets::reducible_balance(staking_currency, &Self::account_id(), false)
                 .saturating_sub(Self::total_reserves())
-                .saturating_sub(Self::matching_pool().total_stake_amount.free)
+                .saturating_sub(matching_pool.total_stake_amount.free)
+                .saturating_sub(matching_pool.total_stake_amount.reserved)
         }
 
         /// Derivative of parachain's account
@@ -889,6 +891,9 @@ pub mod pallet {
                 &amount,
             );
 
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.set_total_stake_amount_lock(amount)
+            })?;
             let staking_currency = Self::staking_currency()?;
             let derivative_account_id = Self::derivative_sovereign_account_id(derivative_index);
             let query_id = T::XCM::do_bond(
@@ -944,6 +949,9 @@ pub mod pallet {
                 &amount,
             );
 
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.set_total_stake_amount_lock(amount)
+            })?;
             let query_id = T::XCM::do_bond_extra(
                 amount,
                 Self::derivative_sovereign_account_id(derivative_index),
@@ -994,6 +1002,9 @@ pub mod pallet {
                 &amount,
             );
 
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.set_total_unstake_amount_lock(amount)
+            })?;
             let query_id = T::XCM::do_unbond(
                 amount,
                 Self::staking_currency()?,
@@ -1037,6 +1048,9 @@ pub mod pallet {
                 &amount,
             );
 
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.set_total_stake_amount_lock(amount)
+            })?;
             let query_id = T::XCM::do_rebond(
                 amount,
                 Self::staking_currency()?,
@@ -1317,6 +1331,7 @@ pub mod pallet {
                     );
                     StakingLedgers::<T>::insert(derivative_index, staking_ledger);
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                        p.remove_total_stake_amount_lock(amount)?;
                         p.update_total_stake_amount(amount, Subtraction)?;
                         p.clear();
                         Ok(())
@@ -1332,6 +1347,7 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                        p.remove_total_stake_amount_lock(amount)?;
                         p.update_total_stake_amount(amount, Subtraction)?;
                         p.clear();
                         Ok(())
@@ -1348,6 +1364,7 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                        p.remove_total_unstake_amount_lock(amount)?;
                         p.update_total_unstake_amount(amount, Subtraction)?;
                         p.clear();
                         Ok(())
@@ -1362,6 +1379,7 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                        p.remove_total_stake_amount_lock(amount)?;
                         p.update_total_stake_amount(amount, Subtraction)?;
                         p.clear();
                         Ok(())
@@ -1399,7 +1417,9 @@ pub mod pallet {
             let new_exchange_rate = Rate::checked_from_rational(
                 total_bonded
                     .checked_add(matching_ledger.total_stake_amount.free)
+                    .and_then(|r| r.checked_add(matching_ledger.total_stake_amount.reserved))
                     .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount.free))
+                    .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount.reserved))
                     .ok_or(ArithmeticError::Overflow)?,
                 issuance,
             )
