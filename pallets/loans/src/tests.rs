@@ -134,7 +134,7 @@ fn mint_must_return_err_when_overflows_occur() {
             Origin::root(),
             DOT,
             Market {
-                cap: u128::MAX,
+                supply_cap: u128::MAX,
                 ..ACTIVE_MARKET_MOCK
             },
         )
@@ -274,6 +274,23 @@ fn borrow_allowed_works() {
         );
         // Borrow 100 DOT is ok
         assert_ok!(Loans::borrow_allowed(DOT, &ALICE, 100));
+
+        // Set borrow limit to 10
+        assert_ok!(Loans::force_update_market(
+            Origin::root(),
+            DOT,
+            Market {
+                borrow_cap: 10,
+                ..ACTIVE_MARKET_MOCK
+            },
+        ));
+        // Borrow 10 DOT is ok
+        assert_ok!(Loans::borrow_allowed(DOT, &ALICE, 10));
+        // Borrow 11 DOT should cause BorrowLimitExceeded
+        assert_noop!(
+            Loans::borrow_allowed(DOT, &ALICE, 11),
+            Error::<Test>::BorrowCapacityExceeded
+        );
     })
 }
 

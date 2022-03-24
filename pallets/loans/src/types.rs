@@ -58,8 +58,10 @@ pub struct Market<Balance> {
     pub rate_model: InterestRateModel,
     /// Current market state
     pub state: MarketState,
-    /// Upper bound of market capacity
-    pub cap: Balance,
+    /// Upper bound of supplying
+    pub supply_cap: Balance,
+    /// Upper bound of borrowing
+    pub borrow_cap: Balance,
     /// Ptoken asset id
     pub ptoken_id: CurrencyId,
 }
