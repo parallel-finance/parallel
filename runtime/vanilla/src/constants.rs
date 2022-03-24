@@ -94,6 +94,9 @@ pub mod fee {
 
 /// Parachains-related
 pub mod paras {
+    pub mod statemine {
+        pub const ID: u32 = 1000;
+    }
 
     pub mod karura {
         pub const ID: u32 = 2000;
@@ -121,5 +124,7 @@ pub mod paras {
 
     pub mod kintsugi {
         pub const ID: u32 = 2092;
+        pub const KBTC_KEY: &[u8] = &[0, 11];
+        pub const KINT_KEY: &[u8] = &[0, 12];
     }
 }
