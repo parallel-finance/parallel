@@ -353,6 +353,7 @@ fn test_transact_unbond_work() {
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(1000f64),));
 
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
@@ -474,6 +475,7 @@ fn test_transact_rebond_work() {
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(1000f64),));
 
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
@@ -698,8 +700,8 @@ fn test_on_initialize_work() {
             LiquidStaking::matching_pool(),
             MatchingLedger {
                 total_stake_amount: ReservableAmount {
-                    free: total_stake_amount,
-                    reserved: 0
+                    free: 0,
+                    reserved: total_stake_amount
                 },
                 total_unstake_amount: Default::default(),
             }
