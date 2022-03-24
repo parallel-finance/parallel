@@ -17,6 +17,7 @@
 //! Provide low slippage and low fees when trading stablecoins
 
 #![cfg_attr(not(feature = "std"), no_std)]
+pub use pallet::*;
 
 extern crate alloc;
 
@@ -38,8 +39,6 @@ use frame_support::{
 use primitives::{Balance, ConvertToBigUint, CurrencyId, AMM};
 use sp_runtime::{ArithmeticError, DispatchError};
 use sp_std::result::Result;
-
-pub use pallet::*;
 
 use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 
