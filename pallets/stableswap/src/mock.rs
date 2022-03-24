@@ -3,7 +3,7 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     construct_runtime, parameter_types, traits::Everything, traits::SortedMembers, PalletId,
 };
-use frame_system::{self as system, EnsureRoot};
+use frame_system::{self as system, Config, EnsureRoot};
 use primitives::{tokens, Balance, CurrencyId, Ratio};
 use scale_info::TypeInfo;
 use sp_core::H256;
@@ -54,7 +54,7 @@ parameter_types! {
     pub const SS58Prefix: u8 = 42;
 }
 
-impl frame_system::pallet::Config for Test {
+impl Config for Test {
     type BaseCallFilter = Everything;
     type BlockWeights = ();
     type BlockLength = ();
@@ -198,7 +198,7 @@ impl pallet_currency_adapter::Config for Test {
 construct_runtime!(
     pub enum Test where
         Block = Block,
-        NodeBlock =Block,
+        NodeBlock = Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
