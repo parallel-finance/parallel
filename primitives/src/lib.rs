@@ -105,6 +105,9 @@ pub type DerivativeIndex = u16;
 
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
+// DAOFi id of a payment stream
+pub type StreamId = u128;
+
 pub use cumulus_primitives_core::ParaId;
 use num_bigint::{BigUint, ToBigUint};
 

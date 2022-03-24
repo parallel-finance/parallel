@@ -2807,6 +2807,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-payroll",
  "pallet-preimage",
  "pallet-prices",
  "pallet-proxy",
@@ -3555,6 +3556,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-payroll",
  "pallet-preimage",
  "pallet-prices",
  "pallet-proxy",
@@ -5931,6 +5933,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-payroll"
+version = "1.7.8"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "orml-oracle",
+ "orml-traits",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-currency-adapter",
+ "pallet-prices",
+ "pallet-timestamp",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-preimage"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.17#22d40c761a985482f93bbbea5ba4199bdba74f8e"
@@ -6524,6 +6550,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-payroll",
  "pallet-preimage",
  "pallet-prices",
  "pallet-proxy",
@@ -11724,6 +11751,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-payroll",
  "pallet-preimage",
  "pallet-prices",
  "pallet-proxy",
