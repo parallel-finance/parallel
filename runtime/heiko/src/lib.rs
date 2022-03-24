@@ -70,7 +70,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{EUSDC, EUSDT, HKO, KAR, KSM, KUSD, LKSM, SKSM},
+    tokens::{EUSDC, EUSDT, HKO, KAR, KSM, KUSD, LKSM, MOVR, SKSM},
     Index, *,
 };
 use scale_info::TypeInfo;
@@ -368,6 +368,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(b"HKO".to_vec()),
                 ),
             )),
+            // Karura
             KAR => Some(MultiLocation::new(
                 1,
                 X2(
@@ -387,6 +388,14 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 X2(
                     Parachain(paras::karura::ID),
                     GeneralKey(paras::karura::LKSM_KEY.to_vec()),
+                ),
+            )),
+            // Moonriver
+            MOVR => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::moonriver::ID),
+                    PalletInstance(paras::moonriver::MOVR_KEY),
                 ),
             )),
             _ => None,
@@ -421,6 +430,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 0,
                 interior: X1(GeneralKey(key)),
             } if key == b"HKO".to_vec() => Some(HKO),
+            // Karura
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
@@ -433,6 +443,11 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
             } if id == paras::karura::ID && key == paras::karura::LKSM_KEY.to_vec() => Some(LKSM),
+            // Moonriver
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), PalletInstance(key)),
+            } if id == paras::moonriver::ID && key == paras::moonriver::MOVR_KEY => Some(MOVR),
             _ => None,
         }
     }
@@ -1027,6 +1042,7 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 30
     );
+    // Karura
     pub KusdPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
@@ -1047,6 +1063,14 @@ parameter_types! {
             X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::LKSM_KEY.to_vec())),
         ).into(),
         ksm_per_second()
+    );
+    // Moonriver
+    pub MovrPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::moonriver::ID), PalletInstance(paras::moonriver::MOVR_KEY)),
+        ).into(),
+        ksm_per_second() * 3
     );
 }
 
@@ -1085,9 +1109,12 @@ pub type Trader = (
     FixedRateOfFungible<SKSMPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<HkoPerSecond, ToTreasury>,
     FixedRateOfFungible<HkoPerSecondOfCanonicalLocation, ToTreasury>,
+    // Karura
     FixedRateOfFungible<KusdPerSecond, ToTreasury>,
     FixedRateOfFungible<KarPerSecond, ToTreasury>,
     FixedRateOfFungible<LKSMPerSecond, ToTreasury>,
+    // Moonriver
+    FixedRateOfFungible<MovrPerSecond, ToTreasury>,
 );
 
 pub struct XcmConfig;

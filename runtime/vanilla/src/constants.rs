@@ -101,4 +101,9 @@ pub mod paras {
         pub const KUSD_KEY: &[u8] = &[0, 129];
         pub const LKSM_KEY: &[u8] = &[0, 131];
     }
+
+    pub mod moonriver {
+        pub const ID: u32 = 2023;
+        pub const MOVR_KEY: u8 = 10;
+    }
 }
