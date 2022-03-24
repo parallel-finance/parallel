@@ -1181,12 +1181,12 @@ pub mod pallet {
 
             let mut idx = 0_usize;
             while !remain.is_zero() && idx < distributions.len() {
-                let (_, mut amount, bonded) = &mut distributions[idx];
+                let (_, amount, bonded) = &mut distributions[idx];
                 let extra = bonded
-                    .saturating_sub(amount)
+                    .saturating_sub(*amount)
                     .saturating_sub(T::MinNominatorBond::get())
                     .min(remain);
-                amount = amount.saturating_add(extra);
+                amount.saturating_add(extra);
                 remain = remain.saturating_sub(extra);
                 idx += 1;
             }
@@ -1199,7 +1199,37 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_multi_rebond(amount: BalanceOf<T>) -> DispatchResult {
+        fn do_multi_rebond(total_amount: BalanceOf<T>) -> DispatchResult {
+            let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>, BalanceOf<T>)> =
+                T::DerivativeIndexList::get()
+                    .iter()
+                    .map(|&index| (index, Self::bonded_of(index), Self::unbonding_of(index)))
+                    .collect();
+
+            amounts.sort_by(|a, b| b.1.cmp(&a.1));
+
+            let mut distributions: Vec<(DerivativeIndex, BalanceOf<T>)> = vec![];
+            let mut remain = total_amount;
+
+            for (index, bonded, unbonding) in amounts.into_iter() {
+                if remain.is_zero() || unbonding.is_zero() {
+                    break;
+                }
+                let amount = Self::staking_ledger_cap()
+                    .saturating_sub(bonded)
+                    .min(unbonding)
+                    .min(remain);
+                if amount.is_zero() {
+                    continue;
+                }
+                distributions.push((index, amount));
+                remain = remain.saturating_sub(amount);
+            }
+
+            for (index, amount) in distributions.into_iter() {
+                Self::do_rebond(index, amount)?;
+            }
+
             Ok(())
         }
 
@@ -1208,6 +1238,7 @@ pub mod pallet {
             for derivative_index in StakingLedgers::<T>::iter_keys() {
                 Self::do_withdraw_unbonded(derivative_index, num_slashing_spans)?;
             }
+
             Ok(())
         }
 
