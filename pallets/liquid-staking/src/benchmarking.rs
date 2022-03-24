@@ -338,7 +338,7 @@ benchmarks! {
         let real_stake = STAKE_AMOUNT - xcm_fee - reserve;
         assert_eq!(EraStartBlock::<T>::get(), 0u32.into());
         assert_eq!(CurrentEra::<T>::get(), 1);
-        assert_last_event::<T>(Event::<T>::NewEra(1, real_stake-UNBOND_AMOUNT, UNBOND_AMOUNT, 0).into());
+        assert_last_event::<T>(Event::<T>::NewEra(1).into());
     }
 
     force_advance_era {
@@ -366,7 +366,7 @@ benchmarks! {
         let real_stake = STAKE_AMOUNT - xcm_fee - reserve;
         assert_eq!(EraStartBlock::<T>::get(), 0u32.into());
         assert_eq!(CurrentEra::<T>::get(), 1);
-        assert_last_event::<T>(Event::<T>::NewEra(1, real_stake-UNBOND_AMOUNT, UNBOND_AMOUNT, 0).into());
+        assert_last_event::<T>(Event::<T>::NewEra(1).into());
     }
 }
 

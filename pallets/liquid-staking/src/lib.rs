@@ -210,8 +210,12 @@ pub mod pallet {
         /// [account_id, amount]
         ClaimedFor(T::AccountId, BalanceOf<T>),
         /// New era
-        /// [era_index, bond_amount, rebond_amount, unbond_amount]
-        NewEra(EraIndex, BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
+        /// [era_index]
+        NewEra(EraIndex),
+        /// Matching stakes & unstakes for optimizing operations to be done
+        /// on relay chain
+        /// [bond_amount, rebond_amount, unbond_amount]
+        Matching(BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -1455,33 +1459,37 @@ pub mod pallet {
             EraStartBlock::<T>::put(T::RelayChainBlockNumberProvider::current_block_number());
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
-            let unbonding_amount = Self::get_total_unbonding();
-            let (bond_amount, rebond_amount, unbond_amount) =
-                Self::matching_pool().matching(unbonding_amount)?;
-            Self::do_multi_bond(bond_amount, RewardDestination::Staked)?;
-            Self::do_multi_rebond(rebond_amount)?;
-
-            Self::do_multi_unbond(unbond_amount)?;
-
-            Self::do_multi_withdraw_unbonded(T::NumSlashingSpans::get())?;
-
-            Self::do_update_exchange_rate()?;
-
             log::trace!(
                 target: "liquidStaking::do_advance_era",
-                "offset: {:?}, bond_amount: {:?}, rebond_amount: {:?}, unbond_amount: {:?}",
+                "offset: {:?}",
                 &offset,
-                &bond_amount,
-                &rebond_amount,
-                &unbond_amount,
             );
 
-            Self::deposit_event(Event::<T>::NewEra(
-                Self::current_era(),
-                bond_amount,
-                rebond_amount,
-                unbond_amount,
-            ));
+            Self::deposit_event(Event::<T>::NewEra(Self::current_era()));
+
+            // ignore error
+            let _ = || -> DispatchResult {
+                let unbonding_amount = Self::get_total_unbonding();
+                let (bond_amount, rebond_amount, unbond_amount) =
+                    Self::matching_pool().matching(unbonding_amount)?;
+                Self::do_multi_bond(bond_amount, RewardDestination::Staked)?;
+                Self::do_multi_rebond(rebond_amount)?;
+
+                Self::do_multi_unbond(unbond_amount)?;
+
+                Self::do_multi_withdraw_unbonded(T::NumSlashingSpans::get())?;
+
+                Self::do_update_exchange_rate()?;
+
+                Self::deposit_event(Event::<T>::Matching(
+                    bond_amount,
+                    rebond_amount,
+                    unbond_amount,
+                ));
+
+                Ok(())
+            }();
+
             Ok(())
         }
 
