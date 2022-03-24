@@ -1167,7 +1167,7 @@ pub mod pallet {
                 .iter()
                 .map(|&index| (index, Self::bonded_of(index)))
                 .collect();
-            let num_ledgers = amounts.len() as BalanceOf<T>;
+            let new_avg_bonded = new_total_bonded.saturating_div(amounts.len() as BalanceOf<T>);
 
             amounts.sort_by(|a, b| a.1.cmp(&b.1));
 
@@ -1178,11 +1178,9 @@ pub mod pallet {
                 if remain.is_zero() {
                     break;
                 }
-                let amount = Self::staking_ledger_cap().saturating_sub(bonded).min(
-                    new_total_bonded
-                        .saturating_div(num_ledgers)
-                        .saturating_sub(bonded),
-                );
+                let amount = Self::staking_ledger_cap()
+                    .saturating_sub(bonded)
+                    .min(new_avg_bonded.saturating_sub(bonded));
                 if !amount.is_zero() && amount.saturating_add(bonded) >= T::MinNominatorBond::get()
                 {
                     distributions.push((index, amount));
