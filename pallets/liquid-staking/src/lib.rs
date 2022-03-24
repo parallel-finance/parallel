@@ -1147,9 +1147,17 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_multi_bond(
-            amount: BalanceOf<T>,
+            total_amount: BalanceOf<T>,
             payee: RewardDestination<T::AccountId>,
         ) -> DispatchResult {
+            let total_bonded = Self::get_total_bonded();
+            let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
+                .iter()
+                .map(|&index| (index, Self::bonded_of(index)))
+                .collect();
+
+            amounts.sort_by(|a, b| a.1.cmp(&a.1));
+
             Ok(())
         }
 
@@ -1206,13 +1214,13 @@ pub mod pallet {
                     .map(|&index| (index, Self::bonded_of(index), Self::unbonding_of(index)))
                     .collect();
 
-            amounts.sort_by(|a, b| b.1.cmp(&a.1));
+            amounts.sort_by(|a, b| b.2.cmp(&a.2));
 
             let mut distributions: Vec<(DerivativeIndex, BalanceOf<T>)> = vec![];
             let mut remain = total_amount;
 
             for (index, bonded, unbonding) in amounts.into_iter() {
-                if remain.is_zero() || unbonding.is_zero() {
+                if remain.is_zero() {
                     break;
                 }
                 let amount = Self::staking_ledger_cap()
