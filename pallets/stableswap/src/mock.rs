@@ -1,6 +1,8 @@
 use crate as pallet_stableswap;
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{parameter_types, traits::Everything, traits::SortedMembers, PalletId};
+use frame_support::{
+    construct_runtime, parameter_types, traits::Everything, traits::SortedMembers, PalletId,
+};
 use frame_system::{self as system, EnsureRoot};
 use primitives::{tokens, Balance, CurrencyId, Ratio};
 use scale_info::TypeInfo;
@@ -47,50 +49,6 @@ pub const SDOT: CurrencyId = tokens::SDOT;
 pub const SAMPLE_LP_TOKEN: CurrencyId = 42;
 pub const SAMPLE_LP_TOKEN_2: CurrencyId = 43;
 
-impl sp_std::fmt::Display for AccountId {
-    fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<u64> for AccountId {
-    fn from(account_id: u64) -> Self {
-        Self(account_id)
-    }
-}
-
-frame_support::construct_runtime!(
-    pub enum Test where
-        Block = Block,
-        NodeBlock =Block,
-        UncheckedExtrinsic = UncheckedExtrinsic,
-    {
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        DefaultStableSwap: pallet_stableswap::{Pallet, Call, Storage, Event<T>},
-        DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
-        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
-        CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
-    }
-);
-
-parameter_types! {
-    pub const ExistentialDeposit: Balance = 1;
-    pub const MaxLocks: u32 = 50;
-}
-
-impl pallet_balances::Config for Test {
-    type MaxLocks = MaxLocks;
-    type Balance = Balance;
-    type Event = Event;
-    type DustRemoval = ();
-    type MaxReserves = ();
-    type ReserveIdentifier = [u8; 8];
-    type ExistentialDeposit = ExistentialDeposit;
-    type AccountStore = System;
-    type WeightInfo = ();
-}
-
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub const SS58Prefix: u8 = 42;
@@ -121,6 +79,35 @@ impl frame_system::pallet::Config for Test {
     type SS58Prefix = SS58Prefix;
     type OnSetCode = ();
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+}
+
+impl sp_std::fmt::Display for AccountId {
+    fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<u64> for AccountId {
+    fn from(account_id: u64) -> Self {
+        Self(account_id)
+    }
+}
+
+parameter_types! {
+    pub const ExistentialDeposit: Balance = 1;
+    pub const MaxLocks: u32 = 50;
+}
+
+impl pallet_balances::Config for Test {
+    type MaxLocks = MaxLocks;
+    type Balance = Balance;
+    type Event = Event;
+    type DustRemoval = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
+    type ExistentialDeposit = ExistentialDeposit;
+    type AccountStore = System;
+    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -208,6 +195,20 @@ impl pallet_currency_adapter::Config for Test {
     type GetNativeCurrencyId = NativeCurrencyId;
 }
 
+construct_runtime!(
+    pub enum Test where
+        Block = Block,
+        NodeBlock =Block,
+        UncheckedExtrinsic = UncheckedExtrinsic,
+    {
+        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+        Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
+        DefaultStableSwap: pallet_stableswap::{Pallet, Call, Storage, Event<T>},
+        DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
+        CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
+    }
+);
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::default()

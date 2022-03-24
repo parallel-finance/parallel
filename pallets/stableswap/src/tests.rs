@@ -1,4 +1,3 @@
-use super::*;
 use crate::mock::*;
 use frame_support::assert_ok;
 use frame_system::RawOrigin;
