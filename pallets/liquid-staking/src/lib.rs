@@ -805,7 +805,7 @@ pub mod pallet {
         pub fn get_total_unclaimed(staking_currency: AssetIdOf<T>) -> BalanceOf<T> {
             T::Assets::reducible_balance(staking_currency, &Self::account_id(), false)
                 .saturating_sub(Self::total_reserves())
-                .saturating_sub(Self::matching_pool().total_stake_amount)
+                .saturating_sub(Self::matching_pool().total_stake_amount.free)
         }
 
         /// Derivative of parachain's account
@@ -1401,8 +1401,8 @@ pub mod pallet {
             }
             let new_exchange_rate = Rate::checked_from_rational(
                 total_bonded
-                    .checked_add(matching_ledger.total_stake_amount)
-                    .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount))
+                    .checked_add(matching_ledger.total_stake_amount.free)
+                    .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount.free))
                     .ok_or(ArithmeticError::Overflow)?,
                 issuance,
             )

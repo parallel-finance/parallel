@@ -1,6 +1,6 @@
 use crate::{
     mock::*,
-    types::{MatchingLedger, StakingLedger, UnlockChunk, XcmRequest},
+    types::{MatchingLedger, ReservableAmount, StakingLedger, UnlockChunk, XcmRequest},
     *,
 };
 
@@ -29,8 +29,11 @@ fn stake_should_work() {
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
-                total_stake_amount: ksm(9.95f64),
-                total_unstake_amount: 0,
+                total_stake_amount: ReservableAmount {
+                    free: ksm(9.95f64),
+                    reserved: 0
+                },
+                total_unstake_amount: Default::default(),
             }
         );
 
@@ -65,8 +68,8 @@ fn stake_should_work() {
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
-                total_stake_amount: 0,
-                total_unstake_amount: 0,
+                total_stake_amount: Default::default(),
+                total_unstake_amount: Default::default(),
             }
         );
         let derivative_index = <Test as Config>::DerivativeIndex::get();
@@ -123,8 +126,14 @@ fn unstake_should_work() {
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
-                total_stake_amount: ksm(9.95f64),
-                total_unstake_amount: ksm(6f64),
+                total_stake_amount: ReservableAmount {
+                    free: ksm(9.95f64),
+                    reserved: 0
+                },
+                total_unstake_amount: ReservableAmount {
+                    free: ksm(6f64),
+                    reserved: 0
+                }
             }
         );
 
@@ -150,8 +159,8 @@ fn unstake_should_work() {
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
-                total_stake_amount: 0,
-                total_unstake_amount: 0,
+                total_stake_amount: Default::default(),
+                total_unstake_amount: Default::default(),
             }
         );
 
@@ -688,8 +697,11 @@ fn test_on_initialize_work() {
         assert_eq!(
             LiquidStaking::matching_pool(),
             MatchingLedger {
-                total_stake_amount,
-                total_unstake_amount: 0,
+                total_stake_amount: ReservableAmount {
+                    free: total_stake_amount,
+                    reserved: 0
+                },
+                total_unstake_amount: Default::default(),
             }
         );
 

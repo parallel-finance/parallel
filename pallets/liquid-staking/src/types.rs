@@ -7,13 +7,19 @@ use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, ArithmeticError, DispatchError, FixedPointOperand, RuntimeDebug};
 use sp_std::{cmp::Ordering, result::Result, vec, vec::Vec};
 
+#[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct ReservableAmount<Balance> {
+    pub free: Balance,
+    pub reserved: Balance,
+}
+
 /// The matching pool's total stake & unstake amount in one era
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct MatchingLedger<Balance: BalanceT> {
+pub struct MatchingLedger<Balance> {
     /// The total stake amount in one era
-    pub total_stake_amount: Balance,
+    pub total_stake_amount: ReservableAmount<Balance>,
     /// The total unstake amount in one era
-    pub total_unstake_amount: Balance,
+    pub total_unstake_amount: ReservableAmount<Balance>,
 }
 
 impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
@@ -29,16 +35,18 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         use Ordering::*;
 
         let (bond_amount, rebond_amount, unbond_amount) = if matches!(
-            self.total_stake_amount.cmp(&self.total_unstake_amount),
+            self.total_stake_amount
+                .free
+                .cmp(&self.total_unstake_amount.free),
             Less | Equal
         ) {
             (
                 Zero::zero(),
                 Zero::zero(),
-                self.total_unstake_amount - self.total_stake_amount,
+                self.total_unstake_amount.free - self.total_stake_amount.free,
             )
         } else {
-            let amount = self.total_stake_amount - self.total_unstake_amount;
+            let amount = self.total_stake_amount.free - self.total_unstake_amount.free;
             if amount < unbonding_amount {
                 (Zero::zero(), amount, Zero::zero())
             } else {
@@ -57,14 +65,16 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         use ArithmeticKind::*;
         match kind {
             Addition => {
-                self.total_stake_amount = self
+                self.total_stake_amount.free = self
                     .total_stake_amount
+                    .free
                     .checked_add(&amount)
                     .ok_or(ArithmeticError::Overflow)?;
             }
             Subtraction => {
-                self.total_stake_amount = self
+                self.total_stake_amount.free = self
                     .total_stake_amount
+                    .free
                     .checked_sub(&amount)
                     .ok_or(ArithmeticError::Underflow)?;
             }
@@ -80,14 +90,16 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         use ArithmeticKind::*;
         match kind {
             Addition => {
-                self.total_unstake_amount = self
+                self.total_unstake_amount.free = self
                     .total_unstake_amount
+                    .free
                     .checked_add(&amount)
                     .ok_or(ArithmeticError::Overflow)?;
             }
             Subtraction => {
-                self.total_unstake_amount = self
+                self.total_unstake_amount.free = self
                     .total_unstake_amount
+                    .free
                     .checked_sub(&amount)
                     .ok_or(ArithmeticError::Underflow)?;
             }
@@ -96,12 +108,12 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
     }
 
     pub fn clear(&mut self) {
-        if self.total_stake_amount != self.total_unstake_amount {
+        if self.total_stake_amount.free != self.total_unstake_amount.free {
             return;
         }
 
-        self.total_stake_amount = Zero::zero();
-        self.total_unstake_amount = Zero::zero();
+        self.total_stake_amount.free = Zero::zero();
+        self.total_unstake_amount.free = Zero::zero();
     }
 }
 
