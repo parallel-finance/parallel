@@ -32,6 +32,9 @@ pub const LKSM: CurrencyId = 109;
 pub const LDOT: CurrencyId = 110;
 pub const SDN: CurrencyId = 111;
 pub const MOVR: CurrencyId = 112;
+pub const PHA: CurrencyId = 113;
+pub const KMA: CurrencyId = 114;
+pub const KINT: CurrencyId = 115;
 
 // Ethereum ecosystem
 pub const EUSDT: CurrencyId = 201;

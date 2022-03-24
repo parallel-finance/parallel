@@ -106,4 +106,20 @@ pub mod paras {
         pub const ID: u32 = 2023;
         pub const MOVR_KEY: u8 = 10;
     }
+
+    pub mod khala {
+        pub const ID: u32 = 2004;
+    }
+
+    pub mod shiden {
+        pub const ID: u32 = 2007;
+    }
+
+    pub mod calamari {
+        pub const ID: u32 = 2084;
+    }
+
+    pub mod kintsugi {
+        pub const ID: u32 = 2092;
+    }
 }
