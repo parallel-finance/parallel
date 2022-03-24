@@ -99,6 +99,9 @@ pub const CDOT_8_15: CurrencyId = 200080015;
 // | Heiko     | LKSM         | N/A                |
 // | Heiko     | MOVR         | N/A                |
 // | Heiko     | SDN          | N/A                |
+// | Heiko     | PHA          | N/A                |
+// | Heiko     | KMA          | N/A                |
+// | Heiko     | KINT         | N/A                |
 // | Heiko     | PHKO         | N/A                |
 // | Heiko     | PKSM         | N/A                |
 // | Heiko     | PUSDT        | N/A                |
