@@ -1183,7 +1183,8 @@ pub mod pallet {
                         .saturating_div(num_ledgers)
                         .saturating_sub(bonded),
                 );
-                if !amount.is_zero() {
+                if !amount.is_zero() && amount.saturating_add(bonded) >= T::MinNominatorBond::get()
+                {
                     distributions.push((index, amount));
                     remain = remain.saturating_sub(amount);
                 }
