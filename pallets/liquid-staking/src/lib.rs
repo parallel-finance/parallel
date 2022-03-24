@@ -27,6 +27,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod migrations;
 pub mod types;
 pub mod weights;
 
@@ -89,6 +90,14 @@ pub mod pallet {
     #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
+
+    /// Utility type for managing upgrades/migrations.
+    #[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+    pub enum Versions {
+        V1,
+        V2,
+        V3,
+    }
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_utility::Config + pallet_xcm::Config {
@@ -320,6 +329,16 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn is_updated)]
     pub type IsUpdated<T: Config> = StorageMap<_, Twox64Concat, DerivativeIndex, bool, ValueQuery>;
+
+    /// DefaultVersion is using for initialize the StorageVersion
+    #[pallet::type_value]
+    pub(super) fn DefaultVersion<T: Config>() -> Versions {
+        Versions::V2
+    }
+    /// Storage version of the pallet.
+    #[pallet::storage]
+    pub(crate) type StorageVersion<T: Config> =
+        StorageValue<_, Versions, ValueQuery, DefaultVersion<T>>;
 
     #[derive(Default)]
     #[pallet::genesis_config]

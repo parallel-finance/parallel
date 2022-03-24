@@ -1827,7 +1827,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    LoansMigrationV2,
+    (LoansMigrationV2, LiquidStakingMigrationV3),
 >;
 
 // Migration for loans pallet to add borrow limit in market.
@@ -1846,6 +1846,25 @@ impl OnRuntimeUpgrade for LoansMigrationV2 {
     #[cfg(feature = "try-runtime")]
     fn post_upgrade() -> Result<(), &'static str> {
         pallet_loans::migrations::v2::post_migrate::<Runtime>()
+    }
+}
+
+// Migration for liquid staking pallet to add multiple ledgers support
+pub struct LiquidStakingMigrationV3;
+
+impl OnRuntimeUpgrade for LiquidStakingMigrationV3 {
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        pallet_liquid_staking::migrations::v3::migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn pre_upgrade() -> Result<(), &'static str> {
+        pallet_liquid_staking::migrations::v3::pre_migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn post_upgrade() -> Result<(), &'static str> {
+        pallet_liquid_staking::migrations::v3::post_migrate::<Runtime>()
     }
 }
 
