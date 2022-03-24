@@ -57,32 +57,43 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok((bond_amount, rebond_amount, unbond_amount))
     }
 
-    pub fn update_total_stake_amount(
-        &mut self,
-        amount: Balance,
-        kind: ArithmeticKind,
-    ) -> DispatchResult {
-        use ArithmeticKind::*;
-        match kind {
-            Addition => {
-                self.total_stake_amount.free = self
-                    .total_stake_amount
-                    .free
-                    .checked_add(&amount)
-                    .ok_or(ArithmeticError::Overflow)?;
-            }
-            Subtraction => {
-                self.total_stake_amount.free = self
-                    .total_stake_amount
-                    .free
-                    .checked_sub(&amount)
-                    .ok_or(ArithmeticError::Underflow)?;
-            }
-        }
+    pub fn add_stake_amount(&mut self, amount: Balance) -> DispatchResult {
+        self.total_stake_amount.free = self
+            .total_stake_amount
+            .free
+            .checked_add(&amount)
+            .ok_or(ArithmeticError::Overflow)?;
         Ok(())
     }
 
-    pub fn set_total_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+    pub fn sub_stake_amount(&mut self, amount: Balance) -> DispatchResult {
+        self.total_stake_amount.free = self
+            .total_stake_amount
+            .free
+            .checked_sub(&amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        Ok(())
+    }
+
+    pub fn add_unstake_amount(&mut self, amount: Balance) -> DispatchResult {
+        self.total_unstake_amount.free = self
+            .total_unstake_amount
+            .free
+            .checked_add(&amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        Ok(())
+    }
+
+    pub fn sub_unstake_amount(&mut self, amount: Balance) -> DispatchResult {
+        self.total_unstake_amount.free = self
+            .total_unstake_amount
+            .free
+            .checked_sub(&amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        Ok(())
+    }
+
+    pub fn set_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
         self.total_stake_amount.free = self
             .total_stake_amount
             .free
@@ -96,7 +107,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    pub fn remove_total_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+    pub fn remove_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
         self.total_stake_amount.reserved = self
             .total_stake_amount
             .reserved
@@ -110,32 +121,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    pub fn update_total_unstake_amount(
-        &mut self,
-        amount: Balance,
-        kind: ArithmeticKind,
-    ) -> DispatchResult {
-        use ArithmeticKind::*;
-        match kind {
-            Addition => {
-                self.total_unstake_amount.free = self
-                    .total_unstake_amount
-                    .free
-                    .checked_add(&amount)
-                    .ok_or(ArithmeticError::Overflow)?;
-            }
-            Subtraction => {
-                self.total_unstake_amount.free = self
-                    .total_unstake_amount
-                    .free
-                    .checked_sub(&amount)
-                    .ok_or(ArithmeticError::Underflow)?;
-            }
-        }
-        Ok(())
-    }
-
-    pub fn set_total_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+    pub fn set_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
         self.total_unstake_amount.free = self
             .total_unstake_amount
             .free
@@ -149,7 +135,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    pub fn remove_total_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+    pub fn remove_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
         self.total_unstake_amount.reserved = self
             .total_unstake_amount
             .reserved

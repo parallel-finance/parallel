@@ -405,9 +405,7 @@ pub mod pallet {
                 &reserves
             );
 
-            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.update_total_stake_amount(amount, ArithmeticKind::Addition)
-            })?;
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult { p.add_stake_amount(amount) })?;
             TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
@@ -468,9 +466,7 @@ pub mod pallet {
                 &liquid_amount,
             );
 
-            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.update_total_unstake_amount(amount, ArithmeticKind::Addition)
-            })?;
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult { p.add_unstake_amount(amount) })?;
 
             Self::deposit_event(Event::<T>::Unstaked(who, liquid_amount, amount));
             Ok(().into())
@@ -915,7 +911,7 @@ pub mod pallet {
             );
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.set_total_stake_amount_lock(amount)
+                p.set_stake_amount_lock(amount)
             })?;
             let staking_currency = Self::staking_currency()?;
             let derivative_account_id = Self::derivative_sovereign_account_id(derivative_index);
@@ -973,7 +969,7 @@ pub mod pallet {
             );
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.set_total_stake_amount_lock(amount)
+                p.set_stake_amount_lock(amount)
             })?;
             let query_id = T::XCM::do_bond_extra(
                 amount,
@@ -1026,7 +1022,7 @@ pub mod pallet {
             );
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.set_total_unstake_amount_lock(amount)
+                p.set_unstake_amount_lock(amount)
             })?;
             let query_id = T::XCM::do_unbond(
                 amount,
@@ -1072,7 +1068,7 @@ pub mod pallet {
             );
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.set_total_stake_amount_lock(amount)
+                p.set_stake_amount_lock(amount)
             })?;
             let query_id = T::XCM::do_rebond(
                 amount,
@@ -1354,8 +1350,8 @@ pub mod pallet {
                     );
                     StakingLedgers::<T>::insert(derivative_index, staking_ledger);
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.remove_total_stake_amount_lock(amount)?;
-                        p.update_total_stake_amount(amount, Subtraction)?;
+                        p.remove_stake_amount_lock(amount)?;
+                        p.sub_stake_amount(amount)?;
                         p.clear();
                         Ok(())
                     })?;
@@ -1370,8 +1366,8 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.remove_total_stake_amount_lock(amount)?;
-                        p.update_total_stake_amount(amount, Subtraction)?;
+                        p.remove_stake_amount_lock(amount)?;
+                        p.sub_stake_amount(amount)?;
                         p.clear();
                         Ok(())
                     })?;
@@ -1387,8 +1383,8 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.remove_total_unstake_amount_lock(amount)?;
-                        p.update_total_unstake_amount(amount, Subtraction)?;
+                        p.remove_unstake_amount_lock(amount)?;
+                        p.sub_unstake_amount(amount)?;
                         p.clear();
                         Ok(())
                     })?;
@@ -1402,8 +1398,8 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.remove_total_stake_amount_lock(amount)?;
-                        p.update_total_stake_amount(amount, Subtraction)?;
+                        p.remove_stake_amount_lock(amount)?;
+                        p.sub_stake_amount(amount)?;
                         p.clear();
                         Ok(())
                     })?;
