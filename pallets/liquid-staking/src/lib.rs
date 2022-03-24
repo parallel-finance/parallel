@@ -1477,10 +1477,7 @@ pub mod pallet {
 
         fn ensure_market_cap(amount: BalanceOf<T>) -> DispatchResult {
             ensure!(
-                Self::get_total_bonded()
-                    .saturating_add(Self::get_total_unbonding())
-                    .saturating_add(amount)
-                    <= Self::get_market_cap(),
+                Self::get_total_bonded().saturating_add(amount) <= Self::get_market_cap(),
                 Error::<T>::CapExceeded
             );
             Ok(())
@@ -1491,9 +1488,7 @@ pub mod pallet {
             amount: BalanceOf<T>,
         ) -> DispatchResult {
             ensure!(
-                Self::bonded_of(derivative_index)
-                    .saturating_add(Self::unbonding_of(derivative_index))
-                    .saturating_add(amount)
+                Self::bonded_of(derivative_index).saturating_add(amount)
                     <= Self::staking_ledger_cap(),
                 Error::<T>::CapExceeded
             );
