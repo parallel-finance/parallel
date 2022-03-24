@@ -542,7 +542,6 @@ impl pallet_loans::Config for Runtime {
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const DerivativeIndex: u16 = 0;
     pub const EraLength: BlockNumber = 6 * 4 * 3600 / 6;
     pub const MinStake: Balance = 10_000_000_000; // 1DOT
     pub const MinUnstake: Balance = 5_000_000_000; // 0.5sDOT
@@ -565,7 +564,6 @@ impl pallet_liquid_staking::Config for Runtime {
     type Assets = Assets;
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type DerivativeIndex = DerivativeIndex;
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
     type StakingCurrency = StakingCurrency;

@@ -390,7 +390,6 @@ impl BlockNumberProvider for RelayChainBlockNumberProvider {
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const DerivativeIndex: u16 = 0;
     pub const EraLength: BlockNumber = 10;
     pub SelfParaId: ParaId = para_a_id();
     pub const MinStake: Balance = 0;
@@ -415,7 +414,6 @@ impl crate::Config for Test {
     type WeightInfo = ();
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type DerivativeIndex = DerivativeIndex;
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
     type Assets = Assets;

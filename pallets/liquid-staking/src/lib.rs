@@ -121,10 +121,6 @@ pub mod pallet {
         #[pallet::constant]
         type SelfParaId: Get<ParaId>;
 
-        /// Derivative index
-        #[pallet::constant]
-        type DerivativeIndex: Get<DerivativeIndex>;
-
         /// Derivative index list
         #[pallet::constant]
         type DerivativeIndexList: Get<Vec<DerivativeIndex>>;

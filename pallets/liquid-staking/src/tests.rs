@@ -72,7 +72,7 @@ fn stake_should_work() {
                 total_unstake_amount: Default::default(),
             }
         );
-        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let derivative_index = 0u16;
         assert_eq!(
             StakingLedgers::<Test>::get(&0).unwrap(),
             StakingLedger {
@@ -164,7 +164,7 @@ fn unstake_should_work() {
             }
         );
 
-        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let derivative_index = 0u16;
         assert_eq!(
             StakingLedgers::<Test>::get(&0).unwrap(),
             StakingLedger {
@@ -280,7 +280,7 @@ fn test_matching_should_work() {
 #[test]
 fn test_transact_bond_work() {
     TestNet::reset();
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(2000f64),));
         assert_ok!(LiquidStaking::bond(
@@ -314,7 +314,7 @@ fn test_transact_bond_work() {
 #[test]
 fn test_transact_bond_extra_work() {
     TestNet::reset();
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(4000f64),));
 
@@ -350,7 +350,7 @@ fn test_transact_bond_extra_work() {
 #[test]
 fn test_transact_unbond_work() {
     TestNet::reset();
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
 
@@ -393,7 +393,7 @@ fn test_transact_unbond_work() {
 #[test]
 fn test_transact_withdraw_unbonded_work() {
     TestNet::reset();
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
         assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(2000f64),));
@@ -471,7 +471,7 @@ fn test_transact_withdraw_unbonded_work() {
 #[test]
 fn test_transact_rebond_work() {
     TestNet::reset();
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
 
@@ -523,7 +523,7 @@ fn test_transact_rebond_work() {
 #[test]
 fn test_transact_nominate_work() {
     TestNet::reset();
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(4000f64),));
 
@@ -565,7 +565,7 @@ fn test_transact_nominate_work() {
 fn test_transfer_bond() {
     TestNet::reset();
     let xcm_transfer_amount = ksm(10f64);
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(2000f64),));
         assert_ok!(LiquidStaking::bond(
@@ -643,7 +643,7 @@ fn claim_for_should_work() {
             Error::<Test>::NothingToClaim
         );
 
-        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let derivative_index = 0u16;
         with_transaction(|| {
             assert_ok!(LiquidStaking::do_advance_era(4));
             TransactionOutcome::Commit(0)
@@ -677,7 +677,7 @@ fn claim_for_should_work() {
 #[test]
 fn test_on_initialize_work() {
     new_test_ext().execute_with(|| {
-        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let derivative_index = 0u16;
         let xcm_fees = XcmFees::get();
         let reserve_factor = LiquidStaking::reserve_factor();
 
@@ -728,7 +728,7 @@ fn test_on_initialize_work() {
 #[test]
 fn test_force_set_staking_ledger_work() {
     new_test_ext().execute_with(|| {
-        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let derivative_index = 0u16;
         let bond_amount = 100;
         let bond_extra_amount = 50;
         let mut staking_ledger = <StakingLedger<AccountId, BalanceOf<Test>>>::new(
@@ -804,7 +804,7 @@ fn test_force_set_current_era_work() {
 #[test]
 fn test_force_notification_received_work() {
     new_test_ext().execute_with(|| {
-        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let derivative_index = 0u16;
         let bond_amount = ksm(10f64);
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(20f64),));
 
