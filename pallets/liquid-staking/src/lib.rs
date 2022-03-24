@@ -1351,7 +1351,7 @@ pub mod pallet {
             staking_ledger: StakingLedger<T::AccountId, BalanceOf<T>>,
             proof_bytes: Vec<Vec<u8>>,
         ) -> bool {
-            let key = Self::get_underlying_key(derivative_index);
+            let key = Self::get_staking_ledger_key(derivative_index);
             let value = staking_ledger.borrow().encode();
 
             let relay_root = T::RelayChainValidationDataProvider::current_storage_root();
@@ -1367,7 +1367,7 @@ pub mod pallet {
             false
         }
 
-        fn get_underlying_key(derivative_index: DerivativeIndex) -> Vec<u8> {
+        fn get_staking_ledger_key(derivative_index: DerivativeIndex) -> Vec<u8> {
             let storage_prefix = storage_prefix("Staking".as_bytes(), "Ledger".as_bytes());
             let key = Self::derivative_sovereign_account_id(derivative_index);
             let key_hashed = key.borrow().using_encoded(Blake2_128Concat::hash);

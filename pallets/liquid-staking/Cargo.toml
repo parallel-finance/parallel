@@ -52,7 +52,7 @@ parachain-info                  = { git = 'https://github.com/paritytech/cumulus
 
 orml-xcm-support = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 orml-xtokens     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
-hex = "0.4.3"
+hex = '0.4.3'
 
 [features]
 default            = ['std']

@@ -852,10 +852,9 @@ fn test_storage_proof_approach_should_work() {
 }
 
 #[test]
-fn test_verify_trie_prrof_work() {
+fn test_verify_trie_proof_work() {
     type LayoutV1 = sp_trie::LayoutV1<BlakeTwo256>;
-    let r = ROOT_HASH;
-    let relay_root = sp_core::hash::H256::from_slice(&hex::decode(r).unwrap());
+    let relay_root = sp_core::hash::H256::from_slice(&hex::decode(ROOT_HASH).unwrap());
     let key = hex::decode(MOCK_KEY).unwrap();
     let value = hex::decode(MOCK_DATA).unwrap();
     let relay_proof = StorageProof::new(get_mock_proof_bytes());
