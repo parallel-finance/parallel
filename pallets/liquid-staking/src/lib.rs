@@ -64,7 +64,7 @@ pub mod pallet {
     use pallet_xcm::ensure_response;
     use sp_runtime::{
         traits::{AccountIdConversion, BlockNumberProvider, CheckedDiv, CheckedSub, StaticLookup},
-        ArithmeticError, FixedPointNumber, TransactionOutcome,
+        ArithmeticError, FixedPointNumber, FixedU128, TransactionOutcome,
     };
     use sp_std::{boxed::Box, result::Result, vec::Vec};
 
@@ -1154,7 +1154,47 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_multi_unbond(amount: BalanceOf<T>) -> DispatchResult {
+        fn do_multi_unbond(total_amount: BalanceOf<T>) -> DispatchResult {
+            let total_bonded = Self::get_total_bonded();
+            let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
+                .iter()
+                .map(|&index| (index, Self::bonded_of(index)))
+                .collect();
+
+            amounts.sort_by(|a, b| b.1.cmp(&a.1));
+
+            let mut distributions: Vec<(DerivativeIndex, BalanceOf<T>, BalanceOf<T>)> = vec![];
+            let mut remain = total_amount;
+
+            for (index, bonded) in amounts.into_iter() {
+                if remain.is_zero() {
+                    break;
+                }
+                let share = Ratio::from_rational(bonded, total_bonded);
+                let amount = share.mul_floor(total_amount);
+                if amount.is_zero() || bonded.saturating_sub(amount) < T::MinNominatorBond::get() {
+                    continue;
+                }
+                distributions.push((index, amount, bonded));
+                remain = remain.saturating_sub(amount);
+            }
+
+            let mut idx = 0_usize;
+            while !remain.is_zero() && idx < distributions.len() {
+                let (_, mut amount, bonded) = &mut distributions[idx];
+                let extra = bonded
+                    .saturating_sub(amount)
+                    .saturating_sub(T::MinNominatorBond::get())
+                    .min(remain);
+                amount = amount.saturating_add(extra);
+                remain = remain.saturating_sub(extra);
+                idx += 1;
+            }
+
+            for (index, amount, _) in distributions.into_iter() {
+                Self::do_unbond(index, amount)?;
+            }
+
             Ok(())
         }
 
@@ -1165,6 +1205,9 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_multi_withdraw_unbonded(num_slashing_spans: u32) -> DispatchResult {
+            for derivative_index in StakingLedgers::<T>::iter_keys() {
+                Self::do_withdraw_unbonded(derivative_index, num_slashing_spans)?;
+            }
             Ok(())
         }
 
