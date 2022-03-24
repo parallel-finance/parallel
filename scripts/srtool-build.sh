@@ -6,7 +6,7 @@ cd $DIR/../
 
 set -xe
 
-RUSTC_VERSION=1.53.0;
+RUSTC_VERSION=1.57.0;
 PACKAGE=${PACKAGE:-vanilla-runtime};
 BUILD_OPTS=$BUILD_OPTS;
 
