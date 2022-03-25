@@ -607,7 +607,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
-    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
+    type RelayChainValidationDataProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
 }
@@ -1638,10 +1638,10 @@ parameter_types! {
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
 
-pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
+pub struct RelayChainValidationDataProvider<T>(sp_std::marker::PhantomData<T>);
 
 impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
-    for RelayChainBlockNumberProvider<T>
+    for RelayChainValidationDataProvider<T>
 {
     type BlockNumber = primitives::BlockNumber;
 
@@ -1649,6 +1649,14 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
         cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
             .map(|d| d.relay_parent_number)
             .unwrap_or_default()
+    }
+}
+
+impl<T: cumulus_pallet_parachain_system::Config> ValidationDataProvider
+    for RelayChainValidationDataProvider<T>
+{
+    fn validation_data() -> Option<PersistedValidationData> {
+        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
     }
 }
 
@@ -1674,7 +1682,7 @@ impl pallet_crowdloans::Config for Runtime {
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
     type XCM = XcmHelper;
-    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
+    type RelayChainBlockNumberProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = CrowdloansAutomatorsMembership;
 }
 

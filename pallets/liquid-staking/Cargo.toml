@@ -19,6 +19,7 @@ pallet-xcm-helper  = { path = '../xcm-helper', default-features = false }
 scale-info         = { version = '1.0', default-features = false, features = ['derive'] }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
+sp-trie            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 xcm                = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17', default-features = false }
 
 # parallel pallets
@@ -33,6 +34,7 @@ pallet-timestamp = { git = 'https://github.com/paritytech/substrate.git', branch
 serde            = { version = '1.0.136' }
 sp-core          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
 sp-io            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
+sp-state-machine = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
 
 kusama-runtime              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17', features = ['runtime-benchmarks'] }
 polkadot-core-primitives    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17' }
@@ -50,6 +52,7 @@ parachain-info                  = { git = 'https://github.com/paritytech/cumulus
 
 orml-xcm-support = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 orml-xtokens     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
+hex = '0.4.3'
 
 [features]
 default            = ['std']
@@ -61,6 +64,7 @@ std                = [
   'frame-benchmarking/std',
   'sp-runtime/std',
   'sp-std/std',
+  'sp-trie/std',
   'primitives/std',
   'pallet-assets/std',
   'xcm/std',

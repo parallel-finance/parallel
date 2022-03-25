@@ -13,11 +13,13 @@ use primitives::{
     ump::RewardDestination,
     Balance, Rate, Ratio,
 };
+use sp_runtime::traits::BlakeTwo256;
 use sp_runtime::{
     traits::{One, Zero},
     MultiAddress::Id,
     TransactionOutcome,
 };
+use sp_trie::StorageProof;
 use xcm_simulator::TestExt;
 
 #[test]
@@ -680,7 +682,7 @@ fn test_on_initialize_work() {
         // 1.2 on_initialize_bond
         let total_era_blocknumbers = <Test as Config>::EraLength::get();
         assert_eq!(total_era_blocknumbers, 10);
-        RelayChainBlockNumberProvider::set(total_era_blocknumbers);
+        RelayChainValidationDataProvider::set(total_era_blocknumbers);
         LiquidStaking::on_initialize(System::block_number());
         assert_eq!(EraStartBlock::<Test>::get(), total_era_blocknumbers);
         assert_eq!(CurrentEra::<Test>::get(), 1);
@@ -714,7 +716,7 @@ fn test_on_initialize_work() {
 }
 
 #[test]
-fn test_force_set_staking_ledger_work() {
+fn test_set_staking_ledger_work() {
     new_test_ext().execute_with(|| {
         let derivative_index = <Test as Config>::DerivativeIndex::get();
         let bond_amount = 100;
@@ -724,10 +726,11 @@ fn test_force_set_staking_ledger_work() {
             bond_amount,
         );
         assert_noop!(
-            LiquidStaking::force_set_staking_ledger(
+            LiquidStaking::set_staking_ledger(
                 Origin::signed(ALICE),
                 derivative_index,
-                staking_ledger.clone()
+                staking_ledger.clone(),
+                get_mock_proof_bytes()
             ),
             Error::<Test>::NotBonded
         );
@@ -737,36 +740,39 @@ fn test_force_set_staking_ledger_work() {
             staking_ledger.clone()
         );
         staking_ledger.bond_extra(bond_extra_amount);
-        assert_ok!(LiquidStaking::force_set_staking_ledger(
+        assert_noop!(
+            LiquidStaking::set_staking_ledger(
+                Origin::signed(ALICE),
+                derivative_index,
+                staking_ledger.clone(),
+                get_mock_proof_bytes()
+            ),
+            Error::<Test>::InvalidProof
+        );
+        LiquidStaking::on_initialize(1);
+        assert_ok!(LiquidStaking::set_staking_ledger(
             Origin::signed(ALICE),
             derivative_index,
-            staking_ledger.clone()
+            get_mock_staking_ledger(derivative_index),
+            get_mock_proof_bytes()
         ));
 
         assert_noop!(
-            LiquidStaking::force_set_staking_ledger(
+            LiquidStaking::set_staking_ledger(
                 Origin::signed(ALICE),
                 derivative_index,
-                staking_ledger.clone()
+                staking_ledger.clone(),
+                get_mock_proof_bytes()
             ),
             Error::<Test>::StakingLedgerLocked
         );
 
         LiquidStaking::on_finalize(1);
-
-        assert_ok!(LiquidStaking::force_set_staking_ledger(
-            Origin::signed(ALICE),
-            derivative_index,
-            staking_ledger.clone()
-        ));
-
-        let new_staking_ledger = <StakingLedger<AccountId, BalanceOf<Test>>>::new(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            bond_amount + bond_extra_amount,
-        );
         assert_eq!(
-            LiquidStaking::staking_ledgers(derivative_index).unwrap(),
-            new_staking_ledger
+            LiquidStaking::staking_ledgers(derivative_index)
+                .unwrap()
+                .total,
+            MOCK_LEDGER_AMOUNT
         );
     })
 }
@@ -824,5 +830,53 @@ fn test_force_notification_received_work() {
             Response::ExecutionResult(None),
         ));
         assert_eq!(XcmRequests::<Test>::get(query_id), None);
+    })
+}
+
+#[test]
+fn test_storage_proof_approach_should_work() {
+    let relay_root = sp_core::hash::H256::from_slice(&hex::decode(ROOT_HASH).unwrap());
+    let key = hex::decode(MOCK_KEY).unwrap();
+    let value = hex::decode(MOCK_DATA).unwrap();
+    let relay_proof = StorageProof::new(get_mock_proof_bytes());
+    let result = sp_state_machine::read_proof_check::<BlakeTwo256, _>(
+        relay_root,
+        relay_proof.clone(),
+        [key.clone()],
+    )
+    .unwrap();
+    assert_eq!(
+        result.into_iter().collect::<Vec<_>>(),
+        vec![(key, Some(value))],
+    );
+}
+
+#[test]
+fn test_verify_trie_proof_work() {
+    type LayoutV1 = sp_trie::LayoutV1<BlakeTwo256>;
+    let relay_root = sp_core::hash::H256::from_slice(&hex::decode(ROOT_HASH).unwrap());
+    let key = hex::decode(MOCK_KEY).unwrap();
+    let value = hex::decode(MOCK_DATA).unwrap();
+    let relay_proof = StorageProof::new(get_mock_proof_bytes());
+    let db = relay_proof.into_memory_db();
+    let result = sp_trie::read_trie_value::<LayoutV1, _>(&db, &relay_root, &key)
+        .unwrap()
+        .unwrap();
+    assert_eq!(result, value);
+}
+
+#[test]
+fn test_verify_merkle_proof_work() {
+    new_test_ext().execute_with(|| {
+        use codec::Encode;
+        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let staking_ledger = get_mock_staking_ledger(derivative_index);
+        assert_eq!(hex::encode(&staking_ledger.encode()), MOCK_DATA);
+        LiquidStaking::on_initialize(1);
+        assert!(LiquidStaking::verify_merkle_proof(
+            derivative_index,
+            staking_ledger,
+            get_mock_proof_bytes()
+        ));
     })
 }

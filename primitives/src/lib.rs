@@ -108,7 +108,7 @@ pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 // DAOFi id of a payment stream
 pub type StreamId = u128;
 
-pub use cumulus_primitives_core::ParaId;
+pub use cumulus_primitives_core::{ParaId, PersistedValidationData};
 use num_bigint::{BigUint, ToBigUint};
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
@@ -191,4 +191,9 @@ impl ConvertToBigUint for u128 {
     fn get_big_uint(&self) -> BigUint {
         self.to_biguint().unwrap()
     }
+}
+
+/// Get relaychain validation data
+pub trait ValidationDataProvider {
+    fn validation_data() -> Option<PersistedValidationData>;
 }
