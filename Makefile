@@ -140,6 +140,7 @@ launch: shutdown
 	docker image pull parallelfinance/liquidation-client:latest
 	docker image pull parallelfinance/nominate-client:latest
 	docker image pull parallelfinance/oracle-client:latest
+	docker image pull parallelfinance/heiko-dapp:latest
 	docker image pull parallelfinance/parallel-dapp:latest
 	parachain-launch generate $(LAUNCH_CONFIG_YAML) \
 		&& (cp -r keystore* output || true) \
