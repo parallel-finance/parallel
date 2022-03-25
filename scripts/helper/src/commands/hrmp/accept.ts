@@ -1,4 +1,4 @@
-import { createXcm, getApi, getRelayApi, nextNonce, sovereignAccountOf } from '../../utils'
+import { createXcm, getApi, getRelayApi, nextNonce, sovereignRelayOf } from '../../utils'
 import { Command, CreateCommandParameters, program } from '@caporal/core'
 import { Keyring } from '@polkadot/api'
 
@@ -38,7 +38,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
                 interior: 'Here'
               }
             },
-            createXcm(encoded, sovereignAccountOf(target.valueOf() as number))
+            createXcm(encoded, sovereignRelayOf(target.valueOf() as number))
           )
         )
         .signAndSend(signer, { nonce: await nextNonce(api, signer) })

@@ -34,9 +34,14 @@ export const chainHeight = async (api: ApiPromise): Promise<number> => {
 export const createAddress = (id: string): string =>
   encodeAddress(u8aConcat(stringToU8a(`modl${id}`), EMPTY_U8A_32).subarray(0, 32))
 
-export const sovereignAccountOf = (paraId: number): string =>
+export const sovereignRelayOf = (paraId: number): string =>
   encodeAddress(
     u8aConcat(stringToU8a('para'), bnToU8a(paraId, 32, true), EMPTY_U8A_32).subarray(0, 32)
+  )
+
+export const sovereignParaOf = (paraId: number): string =>
+  encodeAddress(
+    u8aConcat(stringToU8a('sibl'), bnToU8a(paraId, 32, true), EMPTY_U8A_32).subarray(0, 32)
   )
 
 export const subAccountId = (address: string, index: number): string => {

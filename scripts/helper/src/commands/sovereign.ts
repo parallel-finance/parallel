@@ -1,4 +1,4 @@
-import { sovereignAccountOf } from '../utils'
+import { sovereignParaOf, sovereignRelayOf } from '../utils'
 import { Command, CreateCommandParameters, program } from '@caporal/core'
 
 export default function ({ createCommand }: CreateCommandParameters): Command {
@@ -6,11 +6,20 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
     .argument('<parachain-id>', 'parachain id', {
       validator: program.NUMBER
     })
+    .option('-s,--sibling [boolean]', 'sibling mode', {
+      validator: program.BOOLEAN,
+      default: false
+    })
     .action(actionParameters => {
       const {
         logger,
-        args: { parachainId }
+        args: { parachainId },
+        options: { sibling }
       } = actionParameters
-      logger.info(sovereignAccountOf(parachainId.valueOf() as number))
+      logger.info(
+        sibling
+          ? sovereignParaOf(parachainId.valueOf() as number)
+          : sovereignRelayOf(parachainId.valueOf() as number)
+      )
     })
 }
