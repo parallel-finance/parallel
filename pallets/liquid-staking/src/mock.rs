@@ -17,8 +17,8 @@ use polkadot_parachain::primitives::{IsSystem, Sibling};
 
 use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::{
-    currency::MultiCurrencyAdapter, tokens::*, Balance, EraIndex, Hash, ParaId, Rate, Ratio,
-    StorageRootProvider,
+    currency::MultiCurrencyAdapter, tokens::*, Balance, EraIndex, ParaId, PersistedValidationData,
+    Rate, Ratio, ValidationDataProvider,
 };
 use sp_core::H256;
 use sp_runtime::{
@@ -390,9 +390,16 @@ impl BlockNumberProvider for RelayChainValidationDataProvider {
     }
 }
 
-impl StorageRootProvider for RelayChainValidationDataProvider {
-    fn current_storage_root() -> Hash {
-        sp_core::hash::H256::from_slice(&hex::decode(ROOT_HASH).unwrap())
+impl ValidationDataProvider for RelayChainValidationDataProvider {
+    fn validation_data() -> Option<PersistedValidationData> {
+        Some(PersistedValidationData {
+            parent_head: Default::default(),
+            relay_parent_number: 100,
+            relay_parent_storage_root: sp_core::hash::H256::from_slice(
+                &hex::decode(ROOT_HASH).unwrap(),
+            ),
+            max_pov_size: Default::default(),
+        })
     }
 }
 

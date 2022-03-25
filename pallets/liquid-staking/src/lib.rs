@@ -35,8 +35,8 @@ extern crate primitives;
 
 use frame_support::traits::{fungibles::InspectMetadata, tokens::Balance as BalanceT, Get};
 use primitives::{
-    ExchangeRateProvider, LiquidStakingConvert, LiquidStakingCurrenciesProvider, Rate,
-    StorageRootProvider,
+    ExchangeRateProvider, LiquidStakingConvert, LiquidStakingCurrenciesProvider,
+    PersistedValidationData, Rate, ValidationDataProvider,
 };
 use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
 
@@ -170,9 +170,9 @@ pub mod pallet {
         #[pallet::constant]
         type NumSlashingSpans: Get<u32>;
 
-        /// The relay's BlockNumber provider
-        type RelayChainValidationDataProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>
-            + StorageRootProvider;
+        /// The relay's validation data provider
+        type RelayChainValidationDataProvider: ValidationDataProvider
+            + BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
@@ -263,6 +263,10 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn validation_data)]
+    pub type ValidationData<T: Config> = StorageValue<_, PersistedValidationData, OptionQuery>;
 
     /// Fraction of reward currently set aside for reserves.
     #[pallet::storage]
@@ -757,13 +761,18 @@ pub mod pallet {
             let relaychain_block_number =
                 T::RelayChainValidationDataProvider::current_block_number();
             let offset = Self::offset(relaychain_block_number);
+            let validation_data = T::RelayChainValidationDataProvider::validation_data();
             log::trace!(
                 target: "liquidStaking::on_initialize",
-                "relaychain_block_number: {:?}, block_number: {:?}, advance_offset: {:?}",
-                &relaychain_block_number,
+                "validation_data: {:?}, block_number: {:?}, advance_offset: {:?}",
+                &validation_data,
                 &block_number,
                 &offset
             );
+            if let Some(data) = validation_data {
+                ValidationData::<T>::put(data);
+            }
+
             if offset.is_zero() {
                 return <T as Config>::WeightInfo::on_initialize();
             }
@@ -1354,12 +1363,22 @@ pub mod pallet {
             let key = Self::get_staking_ledger_key(derivative_index);
             let value = staking_ledger.borrow().encode();
 
-            let relay_root = T::RelayChainValidationDataProvider::current_storage_root();
+            let validation_data = Self::validation_data();
+            log::trace!(
+                target: "liquidStaking::verify_merkle_proof",
+                "validation_data: {:?}",
+                &validation_data,
+            );
+            if validation_data.is_none() {
+                return false;
+            }
+
+            let validation_data = validation_data.expect("Could not be none, qed;");
             let relay_proof = StorageProof::new(proof_bytes);
             let db = relay_proof.into_memory_db();
             if let Ok(Some(result)) = sp_trie::read_trie_value::<sp_trie::LayoutV1<BlakeTwo256>, _>(
                 &db,
-                &relay_root,
+                &validation_data.relay_parent_storage_root,
                 &key,
             ) {
                 return result == value;

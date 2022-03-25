@@ -1578,13 +1578,11 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
     }
 }
 
-impl<T: cumulus_pallet_parachain_system::Config> StorageRootProvider
+impl<T: cumulus_pallet_parachain_system::Config> ValidationDataProvider
     for RelayChainValidationDataProvider<T>
 {
-    fn current_storage_root() -> Hash {
+    fn validation_data() -> Option<PersistedValidationData> {
         cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
-            .map(|d| d.relay_parent_storage_root)
-            .unwrap_or_default()
     }
 }
 
