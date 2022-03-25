@@ -255,7 +255,7 @@ pub mod pallet {
         StakingLedgerLocked,
         /// Not withdrawn unbonded yet
         NotWithdrawn,
-        /// The merkle prrof is invalid
+        /// The merkle proof is invalid
         InvalidProof,
     }
 
@@ -1369,7 +1369,7 @@ pub mod pallet {
             let validation_data = validation_data.expect("Could not be none, qed;");
             log::trace!(
                 target: "liquidStaking::verify_merkle_proof",
-                "relay_parent_number: {:?},relay_parent_storage_root: {:?}",
+                "relay_parent_number: {:?}, relay_parent_storage_root: {:?}",
                 &validation_data.relay_parent_number, &validation_data.relay_parent_storage_root,
             );
             let relay_proof = StorageProof::new(proof_bytes);

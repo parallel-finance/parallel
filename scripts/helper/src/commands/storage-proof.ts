@@ -35,7 +35,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       const relayBlockHash = await relayApi.rpc.chain.getBlockHash()
       console.log('relaychain block hash: ' + relayBlockHash.toString())
 
-      const staking_address = 'JBh7nK81VPFHBgZdd2R5sasicKTvRWFzLgpUd59jYchWmqn'
+      const staking_address = 'EgPaU9rG6nxwQ4k1HTDzUS9acjig14r1hBM3V9JERrgviHU'
       const accountBytes = decodeAddress(staking_address)
       const storageKey = u8aToHex(
         new Uint8Array([
