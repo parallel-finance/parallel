@@ -44,6 +44,7 @@ use xcm::{latest::prelude::*, DoubleEncoded};
 use xcm_executor::traits::InvertLocation;
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+pub type CallIdOf<T> = <T as pallet_xcm::Config>::Call;
 pub type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 pub type BalanceOf<T> =
@@ -94,6 +95,9 @@ pub mod pallet {
         /// The origin which can update reserve_factor, xcm_fees etc
         type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
+        /// The origin which can call XCM helper functions
+        type XCMOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
         /// Weight information
         type WeightInfo: WeightInfo;
     }
@@ -103,6 +107,10 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// Xcm fee and weight updated
         XcmWeightFeeUpdated(XcmWeightFeeMisc<Weight, BalanceOf<T>>),
+        /// Xcm Withdraw
+        XCMWithdrawDone,
+        /// Xcm Contribute
+        XCMContributeDone,
     }
 
     #[pallet::storage]
@@ -111,8 +119,9 @@ pub mod pallet {
         StorageMap<_, Twox64Concat, XcmCall, XcmWeightFeeMisc<Weight, BalanceOf<T>>, ValueQuery>;
 
     #[pallet::pallet]
+    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
-    pub struct Pallet<T>(_);
+    pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::error]
     pub enum Error<T> {
@@ -148,6 +157,41 @@ pub mod pallet {
 
             XcmWeightFee::<T>::mutate(xcm_call, |v| *v = xcm_weight_fee_misc);
             Self::deposit_event(Event::<T>::XcmWeightFeeUpdated(xcm_weight_fee_misc));
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn withdraw(
+            origin: OriginFor<T>,
+            para_id: ParaId,
+            relay_currency: AssetIdOf<T>,
+            para_account_id: AccountIdOf<T>,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            T::XCMOrigin::ensure_origin(origin)?;
+
+            Self::do_withdraw(para_id, relay_currency, para_account_id, *notify)?;
+
+            Self::deposit_event(Event::<T>::XCMWithdrawDone);
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn contribute(
+            origin: OriginFor<T>,
+            para_id: ParaId,
+            relay_currency: AssetIdOf<T>,
+            amount: BalanceOf<T>,
+            who: AccountIdOf<T>,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            T::XCMOrigin::ensure_origin(origin)?;
+
+            Self::do_contribute(para_id, relay_currency, amount, &who, *notify)?;
+
+            Self::deposit_event(Event::<T>::XCMContributeDone);
             Ok(().into())
         }
     }

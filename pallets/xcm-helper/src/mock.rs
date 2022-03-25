@@ -371,6 +371,7 @@ impl crate::Config for Test {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Test>;
+    type XCMOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
 }
 
