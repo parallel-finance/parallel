@@ -761,15 +761,14 @@ pub mod pallet {
             let relaychain_block_number =
                 T::RelayChainValidationDataProvider::current_block_number();
             let offset = Self::offset(relaychain_block_number);
-            let validation_data = T::RelayChainValidationDataProvider::validation_data();
             log::trace!(
                 target: "liquidStaking::on_initialize",
-                "validation_data: {:?}, block_number: {:?}, advance_offset: {:?}",
-                &validation_data,
+                "relaychain_block_number: {:?}, block_number: {:?}, advance_offset: {:?}",
+                &relaychain_block_number,
                 &block_number,
                 &offset
             );
-            if let Some(data) = validation_data {
+            if let Some(data) = T::RelayChainValidationDataProvider::validation_data() {
                 ValidationData::<T>::put(data);
             }
 
@@ -1364,16 +1363,15 @@ pub mod pallet {
             let value = staking_ledger.borrow().encode();
 
             let validation_data = Self::validation_data();
-            log::trace!(
-                target: "liquidStaking::verify_merkle_proof",
-                "validation_data: {:?}",
-                &validation_data,
-            );
             if validation_data.is_none() {
                 return false;
             }
-
             let validation_data = validation_data.expect("Could not be none, qed;");
+            log::trace!(
+                target: "liquidStaking::verify_merkle_proof",
+                "relay_parent_number: {:?},relay_parent_storage_root: {:?}",
+                &validation_data.relay_parent_number, &validation_data.relay_parent_storage_root,
+            );
             let relay_proof = StorageProof::new(proof_bytes);
             let db = relay_proof.into_memory_db();
             if let Ok(Some(result)) = sp_trie::read_trie_value::<sp_trie::LayoutV1<BlakeTwo256>, _>(
