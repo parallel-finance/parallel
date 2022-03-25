@@ -7,7 +7,7 @@ import {
   createAddress,
   nextNonce,
   sleep,
-  sovereignAccountOf,
+  sovereignRelayOf,
   subAccountId,
   exec
 } from '../utils'
@@ -156,7 +156,7 @@ async function relay({ logger, options: { relayWs, network } }: ActionParameters
   if (relayAsset && relayAsset.balances.length) {
     call.push(
       ...relayAsset.balances.map(([, balance]) =>
-        api.tx.balances.transfer(sovereignAccountOf(config.paraId), balance)
+        api.tx.balances.transfer(sovereignRelayOf(config.paraId), balance)
       )
     )
   }
