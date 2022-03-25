@@ -57,7 +57,7 @@ fn initial_set_up<
         true,
         1,
     )
-    .ok();
+    .unwrap();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
         KSM,
@@ -69,7 +69,7 @@ fn initial_set_up<
     .unwrap();
 
     pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), SKSM, account_id, true, 1)
-        .ok();
+        .unwrap();
 
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
@@ -182,11 +182,18 @@ benchmarks! {
     //         0u64,
     //         Response::ExecutionResult(None)
     //     ).unwrap();
-    //     let staking_ledger = <StakingLedger<T::AccountId, BalanceOf<T>>>::new(
-    //         LiquidStaking::<T>::derivative_sovereign_account_id(0),
-    //         BOND_AMOUNT,
-    //     );
-    // }: _(SystemOrigin::Root, 0u16,  staking_ledger.clone(), vec![])
+    //     let staking_ledger = get_mock_staking_ledger::<T>(0);
+    //     let proof = get_mock_proof_bytes();
+    //     let data = PersistedValidationData {
+    //         parent_head: Default::default(),
+    //         relay_parent_number: 100,
+    //         relay_parent_storage_root: sp_core::hash::H256::from_slice(
+    //             &hex::decode(ROOT_HASH).unwrap(),
+    //         ),
+    //         max_pov_size: Default::default(),
+    //     };
+    //     ValidationData::<T>::put(data);
+    // }: _(SystemOrigin::Root, 0u16,  staking_ledger.clone(), proof)
     // verify {
     //     assert_last_event::<T>(Event::<T>::StakingLedgerUpdated(0, staking_ledger).into());
     // }
