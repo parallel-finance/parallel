@@ -57,7 +57,7 @@ fn initial_set_up<
         true,
         1,
     )
-    .unwrap();
+    .ok();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
         KSM,
@@ -69,7 +69,7 @@ fn initial_set_up<
     .unwrap();
 
     pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), SKSM, account_id, true, 1)
-        .unwrap();
+        .ok();
 
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),

@@ -23,10 +23,11 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       const api = await getApi(paraWs.toString())
 
       const block_hash = await api.rpc.chain.getBlockHash()
-      console.log("parachain block hash: "+block_hash.toString());
+      console.log('parachain block hash: ' + block_hash.toString())
 
-      const validationDataOp =
-        (await api.query.liquidStaking.validationData.at(block_hash.toString())) as unknown as Option<PersistedValidationData>
+      const validationDataOp = (await api.query.liquidStaking.validationData.at(
+        block_hash.toString()
+      )) as unknown as Option<PersistedValidationData>
       const validationData = validationDataOp.unwrap()
 
       // const relayParentNumber = validationData.relayParentNumber
