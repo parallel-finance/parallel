@@ -10,10 +10,10 @@ import { Option } from '@polkadot/types'
 export default function ({ createCommand }: CreateCommandParameters): Command {
   return createCommand('Fetch Relaychain Ledger and update to Parachain')
     .option('-r, --relay-ws [url]', 'the relaychain API endpoint', {
-      default: 'wss://cj-dev-relay-rpc.parallel.fi'
+      default: 'ws://127.0.0.1:9944'
     })
     .option('-p, --para-ws [url]', 'the parachain API endpoint', {
-      default: 'wss://cj-dev-rpc.parallel.fi'
+      default: 'ws://127.0.0.1:9948'
     })
     .action(async actionParameters => {
       const {
