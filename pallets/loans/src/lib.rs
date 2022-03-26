@@ -80,6 +80,10 @@ type BalanceOf<T> =
 pub enum Versions {
     V1,
     V2,
+    V3,
+    V4,
+    V5,
+    V6,
 }
 
 #[frame_support::pallet]
@@ -333,7 +337,7 @@ pub mod pallet {
     /// DefaultVersion is using for initialize the StorageVersion
     #[pallet::type_value]
     pub(super) fn DefaultVersion<T: Config>() -> Versions {
-        Versions::V1
+        Versions::V2
     }
     /// Storage version of the pallet.
     #[pallet::storage]
