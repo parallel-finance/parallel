@@ -264,6 +264,11 @@ pub mod pallet {
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
 
+    /// ValidationData of previous block
+    ///
+    /// This is needed since validation data from cumulus_pallet_parachain_system
+    /// will be updated in set_validation_data Inherent which happens before external
+    /// extrinsics
     #[pallet::storage]
     #[pallet::getter(fn validation_data)]
     pub type ValidationData<T: Config> = StorageValue<_, PersistedValidationData, OptionQuery>;
@@ -733,19 +738,15 @@ pub mod pallet {
                     !Self::is_updated(derivative_index),
                     Error::<T>::StakingLedgerLocked
                 );
+                ensure!(
+                    Self::verify_merkle_proof(derivative_index, &staking_ledger, proof_bytes,),
+                    Error::<T>::InvalidProof
+                );
                 log::trace!(
                     target: "liquidStaking::set_staking_ledger",
                     "index: {:?}, staking_ledger: {:?}",
                     &derivative_index,
                     &staking_ledger,
-                );
-                ensure!(
-                    Self::verify_merkle_proof(
-                        derivative_index,
-                        staking_ledger.clone(),
-                        proof_bytes,
-                    ),
-                    Error::<T>::InvalidProof
                 );
                 *ledger = staking_ledger;
                 Ok(())
@@ -771,7 +772,6 @@ pub mod pallet {
             if let Some(data) = T::RelayChainValidationDataProvider::validation_data() {
                 ValidationData::<T>::put(data);
             }
-
             if offset.is_zero() {
                 return <T as Config>::WeightInfo::on_initialize();
             }
@@ -1354,9 +1354,9 @@ pub mod pallet {
             })
         }
 
-        pub fn verify_merkle_proof(
+        pub(crate) fn verify_merkle_proof(
             derivative_index: DerivativeIndex,
-            staking_ledger: StakingLedger<T::AccountId, BalanceOf<T>>,
+            staking_ledger: &StakingLedger<T::AccountId, BalanceOf<T>>,
             proof_bytes: Vec<Vec<u8>>,
         ) -> bool {
             let key = Self::get_staking_ledger_key(derivative_index);
@@ -1366,17 +1366,21 @@ pub mod pallet {
             if validation_data.is_none() {
                 return false;
             }
-            let validation_data = validation_data.expect("Could not be none, qed;");
+            let PersistedValidationData {
+                relay_parent_number,
+                relay_parent_storage_root,
+                ..
+            } = validation_data.expect("Could not be none, qed;");
             log::trace!(
                 target: "liquidStaking::verify_merkle_proof",
                 "relay_parent_number: {:?}, relay_parent_storage_root: {:?}",
-                &validation_data.relay_parent_number, &validation_data.relay_parent_storage_root,
+                &relay_parent_number, &relay_parent_storage_root,
             );
             let relay_proof = StorageProof::new(proof_bytes);
             let db = relay_proof.into_memory_db();
             if let Ok(Some(result)) = sp_trie::read_trie_value::<sp_trie::LayoutV1<BlakeTwo256>, _>(
                 &db,
-                &validation_data.relay_parent_storage_root,
+                &relay_parent_storage_root,
                 &key,
             ) {
                 return result == value;

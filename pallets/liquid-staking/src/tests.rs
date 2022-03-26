@@ -875,7 +875,7 @@ fn test_verify_merkle_proof_work() {
         LiquidStaking::on_initialize(1);
         assert!(LiquidStaking::verify_merkle_proof(
             derivative_index,
-            staking_ledger,
+            &staking_ledger,
             get_mock_proof_bytes()
         ));
     })
