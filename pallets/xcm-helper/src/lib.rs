@@ -111,6 +111,18 @@ pub mod pallet {
         XCMWithdrawDone,
         /// Xcm Contribute
         XCMContributeDone,
+        /// XCMBonded
+        XCMBonded,
+        /// XCMBondedExtra
+        XCMBondedExtra,
+        /// XCMUnBonded
+        XCMUnBonded,
+        /// XCMReBonded
+        XCMReBonded,
+        /// XCMWithdrawUnBonded
+        XCMWithdrawUnBonded,
+        /// XCMNominated
+        XCMNominated,
     }
 
     #[pallet::storage]
@@ -192,6 +204,118 @@ pub mod pallet {
             Self::do_contribute(para_id, relay_currency, amount, &who, *notify)?;
 
             Self::deposit_event(Event::<T>::XCMContributeDone);
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn bond(
+            origin: OriginFor<T>,
+            value: BalanceOf<T>,
+            payee: RewardDestination<AccountIdOf<T>>,
+            stash: AccountIdOf<T>,
+            relay_currency: AssetIdOf<T>,
+            index: u16,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            T::XCMOrigin::ensure_origin(origin)?;
+
+            Self::do_bond(value, payee, stash, relay_currency, index, *notify)?;
+
+            Self::deposit_event(Event::<T>::XCMBonded);
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn bond_extra(
+            origin: OriginFor<T>,
+            value: BalanceOf<T>,
+            stash: AccountIdOf<T>,
+            relay_currency: AssetIdOf<T>,
+            index: u16,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            T::XCMOrigin::ensure_origin(origin)?;
+
+            Self::do_bond_extra(value, stash, relay_currency, index, *notify)?;
+
+            Self::deposit_event(Event::<T>::XCMBondedExtra);
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn unbond(
+            origin: OriginFor<T>,
+            value: BalanceOf<T>,
+            relay_currency: AssetIdOf<T>,
+            index: u16,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            T::XCMOrigin::ensure_origin(origin)?;
+
+            Self::do_unbond(value, relay_currency, index, *notify)?;
+
+            Self::deposit_event(Event::<T>::XCMUnBonded);
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn rebond(
+            origin: OriginFor<T>,
+            value: BalanceOf<T>,
+            relay_currency: AssetIdOf<T>,
+            index: u16,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            T::XCMOrigin::ensure_origin(origin)?;
+
+            Self::do_rebond(value, relay_currency, index, *notify)?;
+
+            Self::deposit_event(Event::<T>::XCMReBonded);
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn withdraw_unbonded(
+            origin: OriginFor<T>,
+            num_slashing_spans: u32,
+            para_account_id: AccountIdOf<T>,
+            relay_currency: AssetIdOf<T>,
+            index: u16,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            T::XCMOrigin::ensure_origin(origin)?;
+
+            Self::do_withdraw_unbonded(
+                num_slashing_spans,
+                para_account_id,
+                relay_currency,
+                index,
+                *notify,
+            )?;
+
+            Self::deposit_event(Event::<T>::XCMWithdrawUnBonded);
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn nominate(
+            origin: OriginFor<T>,
+            targets: Vec<AccountIdOf<T>>,
+            relay_currency: AssetIdOf<T>,
+            index: u16,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            T::XCMOrigin::ensure_origin(origin)?;
+
+            Self::do_nominate(targets, relay_currency, index, *notify)?;
+
+            Self::deposit_event(Event::<T>::XCMNominated);
             Ok(().into())
         }
     }
