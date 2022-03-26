@@ -264,6 +264,11 @@ pub mod pallet {
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
 
+    /// ValidationData of previous block
+    ///
+    /// This is needed since validation data from cumulus_pallet_parachain_system
+    /// will be updated in set_validation_data Inherent which happens before external
+    /// extrinsics
     #[pallet::storage]
     #[pallet::getter(fn validation_data)]
     pub type ValidationData<T: Config> = StorageValue<_, PersistedValidationData, OptionQuery>;
