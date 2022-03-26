@@ -139,10 +139,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("kerria"),
     impl_name: create_runtime_str!("kerria"),
     authoring_version: 1,
-    spec_version: 180,
-    impl_version: 25,
+    spec_version: 181,
+    impl_version: 26,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 9,
+    transaction_version: 10,
     state_version: 0,
 };
 
