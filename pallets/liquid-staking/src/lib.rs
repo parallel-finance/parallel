@@ -750,16 +750,16 @@ pub mod pallet {
         pub fn set_current_era(
             origin: OriginFor<T>,
             era: EraIndex,
-            proof_bytes: Vec<Vec<u8>>,
+            proof: Vec<Vec<u8>>,
         ) -> DispatchResultWithPostInfo {
             Self::ensure_origin(origin)?;
 
             let offset = era.saturating_sub(Self::current_era());
 
             let key = Self::get_current_era_key();
-            let value = era.borrow().encode();
+            let value = era.encode();
             ensure!(
-                Self::verify_merkle_proof(key, value, proof_bytes),
+                Self::verify_merkle_proof(key, value, proof),
                 Error::<T>::InvalidProof
             );
 
@@ -775,7 +775,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             derivative_index: DerivativeIndex,
             staking_ledger: StakingLedger<T::AccountId, BalanceOf<T>>,
-            proof_bytes: Vec<Vec<u8>>,
+            proof: Vec<Vec<u8>>,
         ) -> DispatchResultWithPostInfo {
             Self::ensure_origin(origin)?;
 
@@ -785,9 +785,9 @@ pub mod pallet {
                     Error::<T>::StakingLedgerLocked
                 );
                 let key = Self::get_staking_ledger_key(derivative_index);
-                let value = staking_ledger.borrow().encode();
+                let value = staking_ledger.encode();
                 ensure!(
-                    Self::verify_merkle_proof(key, value, proof_bytes),
+                    Self::verify_merkle_proof(key, value, proof),
                     Error::<T>::InvalidProof
                 );
                 log::trace!(
@@ -1409,7 +1409,7 @@ pub mod pallet {
         pub(crate) fn verify_merkle_proof(
             key: Vec<u8>,
             value: Vec<u8>,
-            proof_bytes: Vec<Vec<u8>>,
+            proof: Vec<Vec<u8>>,
         ) -> bool {
             let validation_data = Self::validation_data();
             if validation_data.is_none() {
@@ -1425,7 +1425,7 @@ pub mod pallet {
                 "relay_parent_number: {:?}, relay_parent_storage_root: {:?}",
                 &relay_parent_number, &relay_parent_storage_root,
             );
-            let relay_proof = StorageProof::new(proof_bytes);
+            let relay_proof = StorageProof::new(proof);
             let db = relay_proof.into_memory_db();
             if let Ok(Some(result)) = sp_trie::read_trie_value::<sp_trie::LayoutV1<BlakeTwo256>, _>(
                 &db,
