@@ -44,12 +44,14 @@ pub const EHKO_CURRENCY: BridgeToken = BridgeToken {
     id: EHKO,
     external: false,
     fee: 0,
+    enable: true,
 };
 
 pub const EUSDT_CURRENCY: BridgeToken = BridgeToken {
     id: EUSDT,
     external: true,
     fee: 0,
+    enable: true,
 };
 
 parameter_types! {

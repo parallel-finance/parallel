@@ -20,6 +20,7 @@ const EHKO_CURRENCY: BridgeToken = BridgeToken {
     id: EHKO,
     external: false,
     fee: 0,
+    enable: true,
 };
 
 fn transfer_initial_balance<T: Config + pallet_balances::Config<Balance = Balance>>(
@@ -69,7 +70,7 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
     }: _(SystemOrigin::Root, HKO, EHKO_CURRENCY)
     verify {
-        assert_last_event::<T>(Event::BridgeTokenRegistered(HKO, EHKO, false, 0).into())
+        assert_last_event::<T>(Event::BridgeTokenRegistered(HKO, EHKO, false, 0, true).into())
     }
 
     unregister_bridge_token {
@@ -86,6 +87,14 @@ benchmarks! {
     }: _(SystemOrigin::Root, EHKO, dollar(1))
     verify {
         assert_last_event::<T>(Event::BridgeTokenFeeChanged(EHKO, dollar(1)).into())
+    }
+
+    set_bridge_token_status {
+        let caller: T::AccountId = whitelisted_caller();
+        assert_ok!(Bridge::<T>::register_bridge_token(SystemOrigin::Root.into(), HKO, EHKO_CURRENCY));
+    }: _(SystemOrigin::Root, EHKO, false)
+    verify {
+        assert_last_event::<T>(Event::BridgeTokenStatusChanged(EHKO, false).into())
     }
 
     teleport {

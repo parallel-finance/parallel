@@ -9,6 +9,7 @@ pub struct BridgeToken {
     pub id: CurrencyId,
     pub external: bool,
     pub fee: Balance,
+    pub enable: bool,
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]

@@ -236,7 +236,7 @@ fn materialize_works() {
 #[test]
 fn set_bridge_token_fee_works() {
     new_test_ext().execute_with(|| {
-        // Case 1: Bridge toke is HKO
+        // Case 1: Bridge token is HKO
         // Set HKO fee equal to 2 HKO
         Bridge::set_bridge_token_fee(Origin::root(), EHKO, dollar(1)).unwrap();
 
@@ -293,6 +293,45 @@ fn set_bridge_token_fee_works() {
             ETH,
             2,
             EUSDT,
+            "TELE".into(),
+            dollar(9),
+            dollar(1),
+        ))]);
+    });
+}
+
+#[test]
+fn set_bridge_token_status_works() {
+    new_test_ext().execute_with(|| {
+        // Case 1: Cannot not teleport a disabled token
+        // Set bridge token status to disabled
+        Bridge::set_bridge_token_status(Origin::root(), EHKO, false).unwrap();
+
+        // Set HKO transaction fee to 2 HKO
+        Bridge::set_bridge_token_fee(Origin::root(), EHKO, dollar(1)).unwrap();
+        // Initial balance of EVE is 100 HKO
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));
+        assert_noop!(
+            Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(10)),
+            Error::<Test>::BridgeTokenDisabled,
+        );
+
+        // Case 2: user can teleport a enabled token
+        Bridge::set_bridge_token_status(Origin::root(), EHKO, true).unwrap();
+        Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(10)).unwrap();
+        assert_eq!(
+            <Test as Config>::Assets::balance(HKO, &Bridge::account_id()),
+            dollar(10)
+        );
+
+        // Success in generating `TeleportBurned` event
+        // actual amount is 9 HKO
+        // fee is 1 HKO
+        assert_events(vec![mock::Event::Bridge(Event::TeleportBurned(
+            EVE,
+            ETH,
+            1,
+            EHKO,
             "TELE".into(),
             dollar(9),
             dollar(1),

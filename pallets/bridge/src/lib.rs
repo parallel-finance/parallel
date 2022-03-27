@@ -145,6 +145,8 @@ pub mod pallet {
         BridgeTokenAlreadyRegistered,
         /// The bridge token is not registered and the related operation will be invalid
         BridgeTokenNotRegistered,
+        /// The bridge token is not available in cross-chain
+        BridgeTokenDisabled,
         /// The AdminMember already vote for the proposal
         MemberAlreadyVoted,
         /// The bridged amount is too low
@@ -174,8 +176,8 @@ pub mod pallet {
         ChainRemoved(ChainId),
 
         /// New bridge_token_id has been registered
-        /// [asset_id, bridge_token_id, external, fee]
-        BridgeTokenRegistered(AssetIdOf<T>, CurrencyId, bool, BalanceOf<T>),
+        /// [asset_id, bridge_token_id, external, fee, enable]
+        BridgeTokenRegistered(AssetIdOf<T>, CurrencyId, bool, BalanceOf<T>, bool),
 
         /// The bridge_token_id has been unregistered
         /// [asset_id, bridge_token_id]
@@ -184,6 +186,10 @@ pub mod pallet {
         /// Bridge token fee has changed
         /// [bridge_token_id, fee]
         BridgeTokenFeeChanged(CurrencyId, BalanceOf<T>),
+
+        /// The status of the bridge token has changed
+        /// [bridge_token_id, enabled]
+        BridgeTokenStatusChanged(CurrencyId, bool),
 
         /// Event emitted when bridge token is destoryed by teleportation
         /// [ori_address, dest_id, chain_nonce, bridge_token_id, dst_address, amount, fee]
@@ -357,6 +363,7 @@ pub mod pallet {
                 bridge_token.id,
                 bridge_token.external,
                 bridge_token.fee,
+                bridge_token.enable,
             ));
             Ok(().into())
         }
@@ -399,6 +406,27 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Set the cross-chain transaction fee for a registered bridge token
+        /// TODO: weight
+        #[pallet::weight(T::WeightInfo::set_bridge_token_fee())]
+        #[transactional]
+        pub fn set_bridge_token_status(
+            origin: OriginFor<T>,
+            bridge_token_id: CurrencyId,
+            enable: bool,
+        ) -> DispatchResult {
+            T::OperateOrigin::ensure_origin(origin)?;
+            Self::ensure_bridge_token_registered(bridge_token_id)?;
+
+            let asset_id = AssetIds::<T>::get(bridge_token_id);
+            BridgeTokens::<T>::mutate(asset_id, |token| {
+                token.enable = enable;
+            });
+
+            Self::deposit_event(Event::BridgeTokenStatusChanged(bridge_token_id, enable));
+            Ok(())
+        }
+
         /// Teleport the bridge token to specified recipient in the destination chain
         ///
         /// Transfer funds from one account to an account in another registered chain.
@@ -424,10 +452,14 @@ pub mod pallet {
             Self::ensure_amount_valid(amount)?;
 
             let asset_id = AssetIds::<T>::get(bridge_token_id);
-            let BridgeToken { external, fee, .. } = BridgeTokens::<T>::get(asset_id);
-            let actual_amount = amount
-                .checked_sub(fee)
-                .ok_or(Error::<T>::BridgedAmountTooLow)?;
+            let BridgeToken {
+                external,
+                fee,
+                enable,
+                ..
+            } = BridgeTokens::<T>::get(asset_id);
+            ensure!(enable, Error::<T>::BridgeTokenDisabled);
+
             if external {
                 T::Assets::burn_from(asset_id, &who, amount)?;
                 T::Assets::mint_into(asset_id, &Self::account_id(), fee)?;
@@ -435,6 +467,9 @@ pub mod pallet {
                 T::Assets::transfer(asset_id, &who, &Self::account_id(), amount, false)?;
             }
 
+            let actual_amount = amount
+                .checked_sub(fee)
+                .ok_or(Error::<T>::BridgedAmountTooLow)?;
             Self::teleport_internal(who, dest_id, bridge_token_id, to, actual_amount, fee)
         }
 
