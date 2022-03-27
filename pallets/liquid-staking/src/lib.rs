@@ -817,9 +817,6 @@ pub mod pallet {
                 &block_number,
                 &offset
             );
-            if let Some(data) = T::RelayChainValidationDataProvider::validation_data() {
-                ValidationData::<T>::put(data);
-            }
             if offset.is_zero() {
                 return <T as Config>::WeightInfo::on_initialize();
             }
@@ -843,6 +840,9 @@ pub mod pallet {
 
         fn on_finalize(_n: T::BlockNumber) {
             IsUpdated::<T>::remove_all(None);
+            if let Some(data) = T::RelayChainValidationDataProvider::validation_data() {
+                ValidationData::<T>::put(data);
+            }
         }
     }
 
