@@ -61,6 +61,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         [storageKey],
         relayBlockHash
       )) as ReadProof
+      logger.info(`proof: ${JSON.stringify(proof.proof)}`)
 
       const maybeLedger = (await relayApi.query.staking.ledger.at(
         relayBlockHash,

@@ -44,6 +44,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         [storageKey],
         relayBlockHash
       )) as ReadProof
+      logger.info(`proof: ${JSON.stringify(proof.proof)}`)
 
       const maybeEraIndex = (await relayApi.query.staking.currentEra.at(
         relayBlockHash
