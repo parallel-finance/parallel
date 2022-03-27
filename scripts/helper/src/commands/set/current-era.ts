@@ -31,13 +31,12 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       const blockHash = await api.rpc.chain.getBlockHash()
       logger.info(`parachain block hash: ${blockHash.toString()}`)
 
-      const maybeValidationData = (await api.query.liquidStaking.validationData.at(
-        blockHash
-      )) as unknown as Option<PersistedValidationData>
+      const maybeValidationData =
+        (await api.query.liquidStaking.validationData()) as unknown as Option<PersistedValidationData>
       const validationData = maybeValidationData.unwrap()
       logger.info(JSON.stringify(validationData, null, 4))
 
-      const relayBlockHash = await relayApi.rpc.chain.getBlockHash(validationData.relayParentNumber)
+      const relayBlockHash = await relayApi.rpc.chain.getBlockHash()
       logger.info(`relaychain block hash: ${relayBlockHash.toString()}`)
 
       const proof = (await relayApi.rpc.state.getReadProof(
@@ -46,9 +45,8 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       )) as ReadProof
       logger.info(`proof: ${JSON.stringify(proof.proof)}`)
 
-      const maybeEraIndex = (await relayApi.query.staking.currentEra.at(
-        relayBlockHash
-      )) as unknown as Option<EraIndex>
+      const maybeEraIndex =
+        (await relayApi.query.staking.currentEra()) as unknown as Option<EraIndex>
 
       const nonce = await api.rpc.system.accountNextIndex(signer.address)
       api.tx.liquidStaking

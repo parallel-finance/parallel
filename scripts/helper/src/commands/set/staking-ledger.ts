@@ -48,13 +48,12 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       const blockHash = await api.rpc.chain.getBlockHash()
       logger.info(`parachain block hash: ${blockHash.toString()}`)
 
-      const maybeValidationData = (await api.query.liquidStaking.validationData.at(
-        blockHash
-      )) as unknown as Option<PersistedValidationData>
+      const maybeValidationData =
+        (await api.query.liquidStaking.validationData()) as unknown as Option<PersistedValidationData>
       const validationData = maybeValidationData.unwrap()
       logger.info(JSON.stringify(validationData, null, 4))
 
-      const relayBlockHash = await relayApi.rpc.chain.getBlockHash(validationData.relayParentNumber)
+      const relayBlockHash = await relayApi.rpc.chain.getBlockHash()
       logger.info(`relaychain block hash: ${relayBlockHash.toString()}`)
 
       const proof = (await relayApi.rpc.state.getReadProof(
@@ -63,8 +62,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       )) as ReadProof
       logger.info(`proof: ${JSON.stringify(proof.proof)}`)
 
-      const maybeLedger = (await relayApi.query.staking.ledger.at(
-        relayBlockHash,
+      const maybeLedger = (await relayApi.query.staking.ledger(
         controllerAddress
       )) as unknown as Option<StakingLedger>
 
