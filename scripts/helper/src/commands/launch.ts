@@ -1,4 +1,4 @@
-import getConfig from './config'
+import getConfig from '../config'
 import '@polkadot/api-augment'
 import { options } from '@parallel-finance/api'
 import { ApiPromise, Keyring, WsProvider } from '@polkadot/api'

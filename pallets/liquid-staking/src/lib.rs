@@ -722,14 +722,60 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Force set staking_ledger for updating exchange rate in next era
-        #[pallet::weight(<T as Config>::WeightInfo::set_staking_ledger())]
+        /// Force set staking_ledger
+        #[pallet::weight(<T as Config>::WeightInfo::force_set_staking_ledger())]
+        #[transactional]
+        pub fn force_set_staking_ledger(
+            origin: OriginFor<T>,
+            derivative_index: DerivativeIndex,
+            staking_ledger: StakingLedger<T::AccountId, BalanceOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+
+            Self::do_update_ledger(derivative_index, |ledger| {
+                ensure!(
+                    !Self::is_updated(derivative_index),
+                    Error::<T>::StakingLedgerLocked
+                );
+                *ledger = staking_ledger;
+                Ok(())
+            })?;
+
+            Ok(().into())
+        }
+
+        /// Set current era by providing storage proof
+        #[pallet::weight(<T as Config>::WeightInfo::force_set_current_era())]
+        #[transactional]
+        pub fn set_current_era(
+            origin: OriginFor<T>,
+            era: EraIndex,
+            proof: Vec<Vec<u8>>,
+        ) -> DispatchResultWithPostInfo {
+            Self::ensure_origin(origin)?;
+
+            let offset = era.saturating_sub(Self::current_era());
+
+            let key = Self::get_current_era_key();
+            let value = era.encode();
+            ensure!(
+                Self::verify_merkle_proof(key, value, proof),
+                Error::<T>::InvalidProof
+            );
+
+            Self::do_advance_era(offset)?;
+
+            Ok(().into())
+        }
+
+        /// Set staking_ledger by providing storage proof
+        #[pallet::weight(<T as Config>::WeightInfo::force_set_staking_ledger())]
         #[transactional]
         pub fn set_staking_ledger(
             origin: OriginFor<T>,
             derivative_index: DerivativeIndex,
             staking_ledger: StakingLedger<T::AccountId, BalanceOf<T>>,
-            proof_bytes: Vec<Vec<u8>>,
+            proof: Vec<Vec<u8>>,
         ) -> DispatchResultWithPostInfo {
             Self::ensure_origin(origin)?;
 
@@ -738,8 +784,10 @@ pub mod pallet {
                     !Self::is_updated(derivative_index),
                     Error::<T>::StakingLedgerLocked
                 );
+                let key = Self::get_staking_ledger_key(derivative_index);
+                let value = staking_ledger.encode();
                 ensure!(
-                    Self::verify_merkle_proof(derivative_index, &staking_ledger, proof_bytes,),
+                    Self::verify_merkle_proof(key, value, proof),
                     Error::<T>::InvalidProof
                 );
                 log::trace!(
@@ -769,9 +817,6 @@ pub mod pallet {
                 &block_number,
                 &offset
             );
-            if let Some(data) = T::RelayChainValidationDataProvider::validation_data() {
-                ValidationData::<T>::put(data);
-            }
             if offset.is_zero() {
                 return <T as Config>::WeightInfo::on_initialize();
             }
@@ -795,6 +840,9 @@ pub mod pallet {
 
         fn on_finalize(_n: T::BlockNumber) {
             IsUpdated::<T>::remove_all(None);
+            if let Some(data) = T::RelayChainValidationDataProvider::validation_data() {
+                ValidationData::<T>::put(data);
+            }
         }
     }
 
@@ -1287,6 +1335,10 @@ pub mod pallet {
 
         #[require_transactional]
         pub(crate) fn do_advance_era(offset: EraIndex) -> DispatchResult {
+            if offset.is_zero() {
+                return Ok(());
+            }
+
             EraStartBlock::<T>::put(T::RelayChainValidationDataProvider::current_block_number());
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
@@ -1355,13 +1407,10 @@ pub mod pallet {
         }
 
         pub(crate) fn verify_merkle_proof(
-            derivative_index: DerivativeIndex,
-            staking_ledger: &StakingLedger<T::AccountId, BalanceOf<T>>,
-            proof_bytes: Vec<Vec<u8>>,
+            key: Vec<u8>,
+            value: Vec<u8>,
+            proof: Vec<Vec<u8>>,
         ) -> bool {
-            let key = Self::get_staking_ledger_key(derivative_index);
-            let value = staking_ledger.borrow().encode();
-
             let validation_data = Self::validation_data();
             if validation_data.is_none() {
                 return false;
@@ -1376,7 +1425,7 @@ pub mod pallet {
                 "relay_parent_number: {:?}, relay_parent_storage_root: {:?}",
                 &relay_parent_number, &relay_parent_storage_root,
             );
-            let relay_proof = StorageProof::new(proof_bytes);
+            let relay_proof = StorageProof::new(proof);
             let db = relay_proof.into_memory_db();
             if let Ok(Some(result)) = sp_trie::read_trie_value::<sp_trie::LayoutV1<BlakeTwo256>, _>(
                 &db,
@@ -1388,7 +1437,7 @@ pub mod pallet {
             false
         }
 
-        fn get_staking_ledger_key(derivative_index: DerivativeIndex) -> Vec<u8> {
+        pub(crate) fn get_staking_ledger_key(derivative_index: DerivativeIndex) -> Vec<u8> {
             let storage_prefix = storage_prefix("Staking".as_bytes(), "Ledger".as_bytes());
             let key = Self::derivative_sovereign_account_id(derivative_index);
             let key_hashed = key.borrow().using_encoded(Blake2_128Concat::hash);
@@ -1399,6 +1448,10 @@ pub mod pallet {
             final_key.extend_from_slice(key_hashed.as_ref() as &[u8]);
 
             final_key
+        }
+
+        pub(crate) fn get_current_era_key() -> Vec<u8> {
+            storage_prefix("Staking".as_bytes(), "CurrentEra".as_bytes()).to_vec()
         }
     }
 }
