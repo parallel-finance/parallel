@@ -37,7 +37,7 @@ jobs:
       - uses: actions-rs/install@v0.1.2
         with:
           crate: cargo-tarpaulin
-          version: 0.19.1
+          version: 0.20.0
           use-tool-cache: true
 
       # Work around https://github.com/actions/cache/issues/403 by using GNU tar
