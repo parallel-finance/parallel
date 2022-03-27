@@ -1,13 +1,13 @@
 import { Command, CreateCommandParameters } from '@caporal/core'
 import { EraIndex, PersistedValidationData, ReadProof } from '@polkadot/types/interfaces'
 import { xxhashAsU8a } from '@polkadot/util-crypto'
-import { getApi, getRelayApi } from '../utils'
+import { getApi, getRelayApi } from '../../utils'
 import { u8aToHex } from '@polkadot/util'
 import { Keyring } from '@polkadot/api'
 import { Option } from '@polkadot/types'
 
 export default function ({ createCommand }: CreateCommandParameters): Command {
-  return createCommand('Fetch relaychain ledger and update to parachain')
+  return createCommand('Fetch relaychain era and update to parachain')
     .option('-r, --relay-ws [url]', 'the relaychain API endpoint', {
       default: 'ws://127.0.0.1:9944'
     })

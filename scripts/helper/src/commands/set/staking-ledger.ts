@@ -6,7 +6,7 @@ import {
   StakingLedger
 } from '@polkadot/types/interfaces'
 import { blake2AsU8a, xxhashAsU8a } from '@polkadot/util-crypto'
-import { getApi, getRelayApi, sovereignRelayOf, subAccountId } from '../utils'
+import { getApi, getRelayApi, sovereignRelayOf, subAccountId } from '../../utils'
 import { decodeAddress } from '@polkadot/keyring'
 import { u8aConcat, u8aToHex } from '@polkadot/util'
 import { Keyring } from '@polkadot/api'
