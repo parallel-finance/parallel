@@ -2,7 +2,7 @@ import '@polkadot/api-augment'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import shell from 'shelljs'
 import { blake2AsU8a } from '@polkadot/util-crypto'
-import { stringToU8a, bnToU8a, u8aConcat } from '@polkadot/util'
+import { stringToU8a, bnToU8a, u8aConcat, u8aToHex } from '@polkadot/util'
 import { decodeAddress, encodeAddress } from '@polkadot/keyring'
 import { KeyringPair } from '@polkadot/keyring/types'
 import { Index } from '@polkadot/types/interfaces'
@@ -116,7 +116,7 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
               X1: {
                 AccountId32: {
                   network: 'Any',
-                  id: sovereignAccount
+                  id: u8aToHex(decodeAddress(sovereignAccount))
                 }
               }
             }
