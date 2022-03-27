@@ -169,8 +169,8 @@ pub mod pallet {
         InsufficientCash,
         /// The factor should be bigger than 0% and smaller than 100%
         InvalidFactor,
-        /// The cap cannot be zero
-        InvalidCap,
+        /// The supply cap cannot be zero
+        InvalidSupplyCap,
         /// Payer cannot be signer
         PayerIsSigner,
     }
@@ -442,7 +442,10 @@ pub mod pallet {
                 market.reserve_factor > Ratio::zero() && market.reserve_factor < Ratio::one(),
                 Error::<T>::InvalidFactor,
             );
-            ensure!(market.supply_cap > Zero::zero(), Error::<T>::InvalidCap,);
+            ensure!(
+                market.supply_cap > Zero::zero(),
+                Error::<T>::InvalidSupplyCap,
+            );
 
             // Ensures a given `ptoken_id` not exists on the `Market` and `UnderlyingAssetId`.
             Self::ensure_ptoken(market.ptoken_id)?;
@@ -534,7 +537,7 @@ pub mod pallet {
                 reserve_factor > Ratio::zero() && reserve_factor < Ratio::one(),
                 Error::<T>::InvalidFactor
             );
-            ensure!(supply_cap > Zero::zero(), Error::<T>::InvalidCap);
+            ensure!(supply_cap > Zero::zero(), Error::<T>::InvalidSupplyCap);
 
             let market = Self::mutate_market(asset_id, |stored_market| {
                 *stored_market = Market {
@@ -572,6 +575,13 @@ pub mod pallet {
                 market.rate_model.check_model(),
                 Error::<T>::InvalidRateModelParam
             );
+            if UnderlyingAssetId::<T>::contains_key(market.ptoken_id) {
+                ensure!(
+                    Self::underlying_id(market.ptoken_id)? == asset_id,
+                    Error::<T>::InvalidPtokenId
+                );
+            }
+            UnderlyingAssetId::<T>::insert(market.ptoken_id, asset_id);
             let updated_market = Self::mutate_market(asset_id, |stored_market| {
                 *stored_market = market;
                 stored_market.clone()
