@@ -871,11 +871,13 @@ fn test_verify_merkle_proof_work() {
         use codec::Encode;
         let derivative_index = <Test as Config>::DerivativeIndex::get();
         let staking_ledger = get_mock_staking_ledger(derivative_index);
-        assert_eq!(hex::encode(&staking_ledger.encode()), MOCK_DATA);
+        let key = LiquidStaking::get_staking_ledger_key(derivative_index);
+        let value = staking_ledger.encode();
+        assert_eq!(hex::encode(&value), MOCK_DATA);
         LiquidStaking::on_initialize(1);
         assert!(LiquidStaking::verify_merkle_proof(
-            derivative_index,
-            &staking_ledger,
+            key,
+            value,
             get_mock_proof_bytes()
         ));
     })

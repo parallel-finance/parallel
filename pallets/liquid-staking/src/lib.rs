@@ -1437,7 +1437,7 @@ pub mod pallet {
             false
         }
 
-        fn get_staking_ledger_key(derivative_index: DerivativeIndex) -> Vec<u8> {
+        pub(crate) fn get_staking_ledger_key(derivative_index: DerivativeIndex) -> Vec<u8> {
             let storage_prefix = storage_prefix("Staking".as_bytes(), "Ledger".as_bytes());
             let key = Self::derivative_sovereign_account_id(derivative_index);
             let key_hashed = key.borrow().using_encoded(Blake2_128Concat::hash);
@@ -1450,7 +1450,7 @@ pub mod pallet {
             final_key
         }
 
-        fn get_current_era_key() -> Vec<u8> {
+        pub(crate) fn get_current_era_key() -> Vec<u8> {
             storage_prefix("Staking".as_bytes(), "CurrentEra".as_bytes()).to_vec()
         }
     }
