@@ -429,8 +429,7 @@ pub mod pallet {
         }
 
         /// Set the cross-chain transaction fee for a registered bridge token
-        /// TODO: weight
-        #[pallet::weight(T::WeightInfo::set_bridge_token_fee())]
+        #[pallet::weight(T::WeightInfo::set_bridge_token_status())]
         #[transactional]
         pub fn set_bridge_token_status(
             origin: OriginFor<T>,
@@ -450,8 +449,7 @@ pub mod pallet {
         }
 
         /// Set the cross-chain transaction cap for a registered bridge token
-        /// TODO: weight
-        #[pallet::weight(T::WeightInfo::set_bridge_token_fee())]
+        #[pallet::weight(T::WeightInfo::set_bridge_token_cap())]
         #[transactional]
         pub fn set_bridge_token_cap(
             origin: OriginFor<T>,
@@ -479,8 +477,7 @@ pub mod pallet {
         }
 
         /// Clean the accumulated cap value to make bridge work again
-        /// TODO: weight
-        #[pallet::weight(T::WeightInfo::set_bridge_token_fee())]
+        #[pallet::weight(T::WeightInfo::clean_cap_accumulated_value())]
         #[transactional]
         pub fn clean_cap_accumulated_value(
             origin: OriginFor<T>,
