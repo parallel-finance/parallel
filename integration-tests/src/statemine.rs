@@ -13,10 +13,11 @@
 // limitations under the License.
 
 use crate::{kusama_test_net::*, setup::*};
+use cumulus_primitives_core::ParaId;
 use frame_support::assert_ok;
 use frame_support::traits::Currency;
 use polkadot_parachain::primitives::Sibling;
-use primitives::{AccountId, Balance, CurrencyId};
+use primitives::{tokens::*, AccountId, Balance, CurrencyId};
 use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::*;
 use xcm_emulator::TestExt;
@@ -25,6 +26,9 @@ pub const RMRK_ASSET_ID: u32 = 8;
 pub const RMRK_DECIMAL: u8 = 10;
 pub const RMRK_MINIMAL_BALANCE: Balance = 10;
 pub const RMRK_WEIGHT_PER_SEC: u128 = 100000000000;
+pub const HEIKO_RMRK_ASSET_ID: u32 = 4187061565;
+pub const STATEMINE_FEE_AMOUNT: u128 = 8_000_000_000;
+pub const RELAY_FEE_AMOUNT: u128 = 106_666_660;
 
 pub fn rmrk(n: f64) -> Balance {
     (n as u128) * 10u128.pow(RMRK_DECIMAL.into())
@@ -45,7 +49,7 @@ fn statemine() {
     };
     Heiko::execute_with(|| {
         use heiko_runtime::{AssetManager, Origin};
-        assert_eq!(statemine_rmrk_asset_id, 4187061565);
+        assert_eq!(statemine_rmrk_asset_id, HEIKO_RMRK_ASSET_ID);
         let another_asset: AssetType = AssetType::Xcm(MultiLocation::new(
             1,
             X3(Parachain(1000), PalletInstance(50), GeneralIndex(9)),
@@ -118,7 +122,7 @@ fn statemine() {
                 .into()
                 .into()
             ),
-            Box::new((X2(PalletInstance(50), GeneralIndex(8)), rmrk(1f64)).into()),
+            Box::new((X2(PalletInstance(50), GeneralIndex(8)), rmrk(2f64)).into()),
             0
         ));
         println!("{:?}", System::events());
@@ -126,10 +130,58 @@ fn statemine() {
     // Rerun the Statemine::execute to actually send the egress message via XCM
     Statemine::execute_with(|| {});
     Heiko::execute_with(|| {
-        use heiko_runtime::Assets;
+        use heiko_runtime::{Assets, Origin, XTokens};
         assert_eq!(
             Assets::balance(statemine_rmrk_asset_id, &AccountId::from(BOB)),
-            9940000000
-        ); //rmrk fee in heiko is 60_000_000 which is 0.006rmrk~=0.08$
-    })
+            19940000000
+        ); //rmrk fee in heiko is 60_000_000 which is 0.006rmrk~=0.09$
+        assert_ok!(Assets::mint(
+            Origin::signed(AccountId::from(ALICE)),
+            KSM,
+            MultiAddress::Id(AccountId::from(BOB)),
+            ksm(1f64),
+        )); //mint some ksm to BOB to pay for the xcm fee
+        assert_ok!(XTokens::transfer_multicurrencies(
+            Origin::signed(BOB.into()),
+            vec![
+                (KSM, STATEMINE_FEE_AMOUNT),
+                (HEIKO_RMRK_ASSET_ID, rmrk(1f64)),
+            ],
+            0,
+            Box::new(
+                MultiLocation::new(
+                    1,
+                    X2(
+                        Parachain(1000),
+                        Junction::AccountId32 {
+                            network: NetworkId::Any,
+                            id: BOB.into(),
+                        }
+                    )
+                )
+                .into()
+            ),
+            (STATEMINE_FEE_AMOUNT / 2) as u64
+        ));
+    });
+    KusamaNet::execute_with(|| {
+        let heiko_sovereign: AccountId = ParaId::from(2085u32).into_account();
+        let statemine_sovereign: AccountId = ParaId::from(1000u32).into_account();
+        assert_eq!(
+            ksm(100f64) - STATEMINE_FEE_AMOUNT / 2,
+            kusama_runtime::Balances::free_balance(&heiko_sovereign)
+        ); //4_000_000_000 deducted from heiko_sovereign
+        assert_eq!(
+            STATEMINE_FEE_AMOUNT / 2 - RELAY_FEE_AMOUNT,
+            kusama_runtime::Balances::free_balance(&statemine_sovereign)
+        ); // 4_000_000_000-106_666_660 reserved into statemine_sovereign
+    });
+    Statemine::execute_with(|| {
+        use statemine_runtime::Assets;
+        // recipient receive rmrk in statemine
+        assert_eq!(
+            rmrk(1f64),
+            Assets::balance(RMRK_ASSET_ID, &AccountId::from(BOB))
+        );
+    });
 }
