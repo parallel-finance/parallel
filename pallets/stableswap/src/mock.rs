@@ -115,6 +115,10 @@ parameter_types! {
     pub const NumTokens: u8 = 2;
     pub const Precision: u32 = 100;
     pub const AmplificationCoefficient: u8 = 85;
+    //
+    // pub DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.05%
+    // pub const MinimumLiquidity: u128 = 1_000u128;
+    // pub const LockAccountId: AccountId = AccountId(1_u64);
 }
 
 impl pallet_stableswap::Config for Test {
@@ -122,10 +126,16 @@ impl pallet_stableswap::Config for Test {
     type Assets = CurrencyAdapter;
     type WeightInfo = ();
     type PalletId = StableSwapPalletId;
-    type AMM = DefaultAMM;
     type NumTokens = NumTokens;
     type Precision = Precision;
     type AmplificationCoefficient = AmplificationCoefficient;
+
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
+    type LpFee = DefaultLpFee;
+    type LockAccountId = LockAccountId;
+    type ProtocolFee = DefaultProtocolFee;
+    type MinimumLiquidity = MinimumLiquidity;
+    type CreatePoolOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
 }
 
 parameter_types! {

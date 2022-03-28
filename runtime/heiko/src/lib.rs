@@ -1659,10 +1659,15 @@ impl pallet_stableswap::Config for Runtime {
     type Assets = CurrencyAdapter;
     type WeightInfo = pallet_stableswap::weights::SubstrateWeight<Runtime>;
     type PalletId = StableSwapPalletId;
-    type AMM = AMM;
     type NumTokens = NumTokens;
     type Precision = Precision;
     type AmplificationCoefficient = AmplificationCoefficient;
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
+    type LpFee = DefaultLpFee;
+    type LockAccountId = OneAccount;
+    type ProtocolFee = DefaultProtocolFee;
+    type MinimumLiquidity = MinimumLiquidity;
+    type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
 pub struct WhiteListFilter;

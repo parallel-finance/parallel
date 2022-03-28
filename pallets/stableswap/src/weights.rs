@@ -25,6 +25,8 @@ use sp_std::marker::PhantomData;
 pub trait WeightInfo {
     fn get_delta() -> Weight;
     fn get_alternative_var() -> Weight;
+    fn add_liquidity() -> Weight;
+    fn remove_liquidity() -> Weight;
 }
 
 /// Weights for stableswap using the Substrate node and recommended hardware.
@@ -36,6 +38,12 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn get_alternative_var() -> Weight {
         10_000 as Weight
     }
+    fn add_liquidity() -> Weight {
+        10_000 as Weight
+    }
+    fn remove_liquidity() -> Weight {
+        10_000 as Weight
+    }
 }
 
 // For backwards compatibility and tests
@@ -44,6 +52,12 @@ impl WeightInfo for () {
         10_000 as Weight
     }
     fn get_alternative_var() -> Weight {
+        10_000 as Weight
+    }
+    fn add_liquidity() -> Weight {
+        10_000 as Weight
+    }
+    fn remove_liquidity() -> Weight {
         10_000 as Weight
     }
 }

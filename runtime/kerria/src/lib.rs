@@ -1668,7 +1668,6 @@ parameter_types! {
     pub const NumTokens: u8 = 2;
     pub const Precision: u32 = 100;
     pub const AmplificationCoefficient: u8 = 85;
-
 }
 
 impl pallet_stableswap::Config for Runtime {
@@ -1676,10 +1675,15 @@ impl pallet_stableswap::Config for Runtime {
     type Assets = CurrencyAdapter;
     type WeightInfo = pallet_stableswap::weights::SubstrateWeight<Runtime>;
     type PalletId = StableSwapPalletId;
-    type AMM = AMM;
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
+    type LpFee = DefaultLpFee;
+    type LockAccountId = OneAccount;
+    type ProtocolFee = DefaultProtocolFee;
+    type MinimumLiquidity = MinimumLiquidity;
     type NumTokens = NumTokens;
     type Precision = Precision;
     type AmplificationCoefficient = AmplificationCoefficient;
+    type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
 pub struct WhiteListFilter;

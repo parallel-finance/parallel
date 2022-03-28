@@ -5,7 +5,7 @@ use frame_system::RawOrigin;
 #[test]
 fn stable_swap_amount_out_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(DefaultAMM::create_pool(
+        assert_ok!(DefaultStableSwap::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
             (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000_000, 1_000_000),          // Liquidity amounts to be added in pool
@@ -24,7 +24,7 @@ fn stable_swap_amount_out_should_work() {
 #[test]
 fn small_stable_swap_amount_out_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(DefaultAMM::create_pool(
+        assert_ok!(DefaultStableSwap::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
             (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000_000, 1_000_000),          // Liquidity amounts to be added in pool
@@ -54,7 +54,7 @@ fn small_stable_swap_amount_out_should_work() {
 #[test]
 fn large_stable_swap_amount_out_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(DefaultAMM::create_pool(
+        assert_ok!(DefaultStableSwap::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
             (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000_000, 1_000_000),          // Liquidity amounts to be added in pool
@@ -76,7 +76,7 @@ fn large_stable_swap_amount_out_should_work() {
 #[test]
 fn unbalanced_stable_swap_amount_out_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(DefaultAMM::create_pool(
+        assert_ok!(DefaultStableSwap::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
             (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (10_000, 1_000_000),             // Liquidity amounts to be added in pool
@@ -98,7 +98,7 @@ fn unbalanced_stable_swap_amount_out_should_work() {
 #[test]
 fn unbalanced_small_stable_swap_amount_out_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(DefaultAMM::create_pool(
+        assert_ok!(DefaultStableSwap::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
             (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (10_000, 1_000_000),             // Liquidity amounts to be added in pool
@@ -120,7 +120,7 @@ fn unbalanced_small_stable_swap_amount_out_should_work() {
 #[test]
 fn close_unbalanced_small_stable_swap_amount_out_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(DefaultAMM::create_pool(
+        assert_ok!(DefaultStableSwap::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
             (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (900_000, 1_000_000),            // Liquidity amounts to be added in pool
