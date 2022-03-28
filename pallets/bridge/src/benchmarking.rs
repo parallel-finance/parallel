@@ -11,7 +11,7 @@ use primitives::{ChainId, CurrencyId};
 use sp_runtime::traits::StaticLookup;
 
 const ETH: ChainId = 1;
-const ROPOSTEN: ChainId = 2;
+const ROPSTEN: ChainId = 2;
 
 const HKO: CurrencyId = 0;
 const EHKO: CurrencyId = 0;
@@ -21,6 +21,10 @@ const EHKO_CURRENCY: BridgeToken = BridgeToken {
     external: false,
     fee: 0,
     enable: true,
+    out_cap: 1000000000000000,
+    in_cap: 1000000000000000,
+    out_amount: 0,
+    in_amount: 0,
 };
 
 fn transfer_initial_balance<T: Config + pallet_balances::Config<Balance = Balance>>(
@@ -53,17 +57,17 @@ benchmarks! {
 
     register_chain {
         let caller: T::AccountId = whitelisted_caller();
-    }: _(SystemOrigin::Root, ROPOSTEN)
+    }: _(SystemOrigin::Root, ROPSTEN)
     verify {
-        assert_last_event::<T>(Event::ChainRegistered(ROPOSTEN).into())
+        assert_last_event::<T>(Event::ChainRegistered(ROPSTEN).into())
     }
 
     unregister_chain {
         let caller: T::AccountId = whitelisted_caller();
-        assert_ok!(Bridge::<T>::register_chain(SystemOrigin::Root.into(), ROPOSTEN));
+        assert_ok!(Bridge::<T>::register_chain(SystemOrigin::Root.into(), ROPSTEN));
     }: _(SystemOrigin::Root, 2)
     verify {
-        assert_last_event::<T>(Event::ChainRemoved(ROPOSTEN).into())
+        assert_last_event::<T>(Event::ChainRemoved(ROPSTEN).into())
     }
 
     register_bridge_token {
@@ -97,15 +101,31 @@ benchmarks! {
         assert_last_event::<T>(Event::BridgeTokenStatusChanged(EHKO, false).into())
     }
 
+    set_bridge_token_cap {
+        let caller: T::AccountId = whitelisted_caller();
+        assert_ok!(Bridge::<T>::register_bridge_token(SystemOrigin::Root.into(), HKO, EHKO_CURRENCY));
+    }: _(SystemOrigin::Root, EHKO, BridgeType::BridgeIn, dollar(200))
+    verify {
+        assert_last_event::<T>(Event::BridgeTokenCapChanged(EHKO, BridgeType::BridgeIn, dollar(200)).into())
+    }
+
+    clean_cap_accumulated_value {
+        let caller: T::AccountId = whitelisted_caller();
+        assert_ok!(Bridge::<T>::register_bridge_token(SystemOrigin::Root.into(), HKO, EHKO_CURRENCY));
+    }: _(SystemOrigin::Root, EHKO, BridgeType::BridgeIn)
+    verify {
+        assert_last_event::<T>(Event::BridgeTokenAccumulatedValueCleaned(EHKO, BridgeType::BridgeIn).into())
+    }
+
     teleport {
         let caller: T::AccountId = whitelisted_caller();
-        assert_ok!(Bridge::<T>::register_chain(SystemOrigin::Root.into(), ETH));
+        assert_ok!(Bridge::<T>::register_chain(SystemOrigin::Root.into(), ROPSTEN));
         assert_ok!(Bridge::<T>::register_bridge_token(SystemOrigin::Root.into(), HKO, EHKO_CURRENCY));
         transfer_initial_balance::<T>(caller.clone());
         let tele: TeleAccount = whitelisted_caller();
-    }: _(SystemOrigin::Signed(caller.clone()), ETH, EHKO, tele.clone(), dollar(50))
+    }: _(SystemOrigin::Signed(caller.clone()), ROPSTEN, EHKO, tele.clone(), dollar(50))
     verify {
-        assert_last_event::<T>(Event::TeleportBurned(caller, ETH, 1, EHKO, tele, dollar(50), dollar(0)).into())
+        assert_last_event::<T>(Event::TeleportBurned(caller, ROPSTEN, 1, EHKO, tele, dollar(50), dollar(0)).into())
     }
 
     materialize {

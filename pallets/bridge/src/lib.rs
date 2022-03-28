@@ -48,6 +48,7 @@ mod types;
 pub mod weights;
 
 pub use pallet::*;
+use types::BridgeType;
 pub use weights::WeightInfo;
 
 type AssetIdOf<T> =
@@ -84,6 +85,9 @@ pub mod pallet {
         /// Root can always do this.
         type OperateOrigin: EnsureOrigin<Self::Origin>;
 
+        /// The origin which can clean accumulated cap value
+        type CapCleanOrigin: EnsureOrigin<Self::Origin>;
+
         /// The root operator account id
         #[pallet::constant]
         type RootOperatorAccountId: Get<Self::AccountId>;
@@ -93,14 +97,18 @@ pub mod pallet {
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
+        /// An account to pay the bonus
         #[pallet::constant]
         type GiftAccount: Get<Self::AccountId>;
 
+        /// A bonus amount converter
         type GiftConvert: BalanceConversion<Balance, CurrencyId, Balance>;
 
+        /// Currency id of the native token
         #[pallet::constant]
         type NativeCurrencyId: Get<AssetIdOf<Self>>;
 
+        /// The essential balance for an existed account
         #[pallet::constant]
         type ExistentialDeposit: Get<Balance>;
 
@@ -149,8 +157,14 @@ pub mod pallet {
         BridgeTokenDisabled,
         /// The AdminMember already vote for the proposal
         MemberAlreadyVoted,
-        /// The bridged amount is too low
+        /// The bridging amount is too low
         BridgedAmountTooLow,
+        /// The bridging amount is exceed the capacity
+        BridgeOutCapacityExceeded,
+        /// The bridging amount is exceed the capacity
+        BridgeInCapacityExceeded,
+        /// The bridging amount is overflow
+        BridgeAmountOverflow,
         /// No proposal was found
         ProposalDoesNotExist,
         /// Proposal has been finished
@@ -190,6 +204,14 @@ pub mod pallet {
         /// The status of the bridge token has changed
         /// [bridge_token_id, enabled]
         BridgeTokenStatusChanged(CurrencyId, bool),
+
+        /// The status of the bridge token cap has changed
+        /// [bridge_token_id, bridge_type, new_cap]
+        BridgeTokenCapChanged(CurrencyId, BridgeType, BalanceOf<T>),
+
+        /// The accumulated cap value cleaned
+        /// [bridge_token_id, bridge_type]
+        BridgeTokenAccumulatedValueCleaned(CurrencyId, BridgeType),
 
         /// Event emitted when bridge token is destoryed by teleportation
         /// [ori_address, dest_id, chain_nonce, bridge_token_id, dst_address, amount, fee]
@@ -378,7 +400,7 @@ pub mod pallet {
             T::OperateOrigin::ensure_origin(origin)?;
             Self::ensure_bridge_token_registered(bridge_token_id)?;
 
-            let asset_id = AssetIds::<T>::get(bridge_token_id);
+            let asset_id = Self::asset_ids(bridge_token_id);
             BridgeTokens::<T>::remove(asset_id);
             AssetIds::<T>::remove(bridge_token_id);
 
@@ -397,7 +419,7 @@ pub mod pallet {
             T::OperateOrigin::ensure_origin(origin)?;
             Self::ensure_bridge_token_registered(bridge_token_id)?;
 
-            let asset_id = AssetIds::<T>::get(bridge_token_id);
+            let asset_id = Self::asset_ids(bridge_token_id);
             BridgeTokens::<T>::mutate(asset_id, |token| {
                 token.fee = new_fee;
             });
@@ -418,12 +440,68 @@ pub mod pallet {
             T::OperateOrigin::ensure_origin(origin)?;
             Self::ensure_bridge_token_registered(bridge_token_id)?;
 
-            let asset_id = AssetIds::<T>::get(bridge_token_id);
+            let asset_id = Self::asset_ids(bridge_token_id);
             BridgeTokens::<T>::mutate(asset_id, |token| {
                 token.enable = enable;
             });
 
             Self::deposit_event(Event::BridgeTokenStatusChanged(bridge_token_id, enable));
+            Ok(())
+        }
+
+        /// Set the cross-chain transaction cap for a registered bridge token
+        /// TODO: weight
+        #[pallet::weight(T::WeightInfo::set_bridge_token_fee())]
+        #[transactional]
+        pub fn set_bridge_token_cap(
+            origin: OriginFor<T>,
+            bridge_token_id: CurrencyId,
+            bridge_type: BridgeType,
+            new_cap: BalanceOf<T>,
+        ) -> DispatchResult {
+            T::OperateOrigin::ensure_origin(origin)?;
+            Self::ensure_bridge_token_registered(bridge_token_id)?;
+
+            let asset_id = Self::asset_ids(bridge_token_id);
+            BridgeTokens::<T>::mutate(asset_id, |token| {
+                match bridge_type {
+                    BridgeType::BridgeOut => token.out_cap = new_cap,
+                    BridgeType::BridgeIn => token.in_cap = new_cap,
+                };
+            });
+
+            Self::deposit_event(Event::BridgeTokenCapChanged(
+                bridge_token_id,
+                bridge_type,
+                new_cap,
+            ));
+            Ok(())
+        }
+
+        /// Clean the accumulated cap value to make bridge work again
+        /// TODO: weight
+        #[pallet::weight(T::WeightInfo::set_bridge_token_fee())]
+        #[transactional]
+        pub fn clean_cap_accumulated_value(
+            origin: OriginFor<T>,
+            bridge_token_id: CurrencyId,
+            bridge_type: BridgeType,
+        ) -> DispatchResult {
+            T::CapCleanOrigin::ensure_origin(origin)?;
+            Self::ensure_bridge_token_registered(bridge_token_id)?;
+
+            let asset_id = Self::asset_ids(bridge_token_id);
+            BridgeTokens::<T>::mutate(asset_id, |token| {
+                match bridge_type {
+                    BridgeType::BridgeIn => token.in_amount = Zero::zero(),
+                    BridgeType::BridgeOut => token.out_amount = Zero::zero(),
+                };
+            });
+
+            Self::deposit_event(Event::BridgeTokenAccumulatedValueCleaned(
+                bridge_token_id,
+                bridge_type,
+            ));
             Ok(())
         }
 
@@ -451,14 +529,15 @@ pub mod pallet {
             Self::ensure_bridge_token_registered(bridge_token_id)?;
             Self::ensure_amount_valid(amount)?;
 
-            let asset_id = AssetIds::<T>::get(bridge_token_id);
+            let asset_id = Self::asset_ids(bridge_token_id);
             let BridgeToken {
                 external,
                 fee,
                 enable,
                 ..
-            } = BridgeTokens::<T>::get(asset_id);
+            } = Self::bridge_tokens(asset_id);
             ensure!(enable, Error::<T>::BridgeTokenDisabled);
+            Self::update_bridge_token_cap(asset_id, amount, BridgeType::BridgeOut)?;
 
             if external {
                 T::Assets::burn_from(asset_id, &who, amount)?;
@@ -500,6 +579,11 @@ pub mod pallet {
             Self::ensure_chain_nonce_valid(src_id, src_nonce)?;
             Self::ensure_bridge_token_registered(bridge_token_id)?;
             Self::ensure_amount_valid(amount)?;
+            Self::ensure_under_bridge_cap(
+                Self::asset_ids(bridge_token_id),
+                amount,
+                BridgeType::BridgeIn,
+            )?;
 
             let call = MaterializeCall {
                 bridge_token_id,
@@ -656,6 +740,41 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    /// Make sure the bridging amount under the bridge cap
+    fn ensure_under_bridge_cap(
+        asset_id: AssetIdOf<T>,
+        amount: BalanceOf<T>,
+        bridge_type: BridgeType,
+    ) -> Result<Balance, Error<T>> {
+        let bridge_token = Self::bridge_tokens(asset_id);
+        let new_amount = match bridge_type {
+            BridgeType::BridgeOut => {
+                let new_out_amount = bridge_token
+                    .out_amount
+                    .checked_add(amount)
+                    .ok_or(Error::<T>::BridgeAmountOverflow)?;
+                ensure!(
+                    new_out_amount <= bridge_token.out_cap,
+                    Error::<T>::BridgeOutCapacityExceeded
+                );
+                new_out_amount
+            }
+            BridgeType::BridgeIn => {
+                let new_in_amount = bridge_token
+                    .in_amount
+                    .checked_add(amount)
+                    .ok_or(Error::<T>::BridgeAmountOverflow)?;
+                ensure!(
+                    new_in_amount <= bridge_token.in_cap,
+                    Error::<T>::BridgeInCapacityExceeded
+                );
+                new_in_amount
+            }
+        };
+
+        Ok(new_amount)
+    }
+
     pub fn change_vote_threshold() -> DispatchResult {
         let new_threshold =
             Ratio::from_percent(T::ThresholdPercentage::get()).mul_ceil(Self::get_members_count());
@@ -695,7 +814,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn has_bridged(chain_id: ChainId, chain_nonce: ChainNonce) -> bool {
-        BridgeRegistry::<T>::get(&chain_id).map_or(false, |registry| {
+        Self::bridge_registry(&chain_id).map_or(false, |registry| {
             registry
                 .iter()
                 .any(|&r| (chain_nonce >= r.0 && chain_nonce <= r.1))
@@ -705,7 +824,7 @@ impl<T: Config> Pallet<T> {
     /// Records completed bridge transactions
     #[require_transactional]
     fn update_bridge_registry(chain_id: ChainId, nonce: ChainNonce) {
-        match BridgeRegistry::<T>::get(&chain_id) {
+        match Self::bridge_registry(&chain_id) {
             None => {}
             Some(mut registry) => {
                 registry.iter_mut().for_each(|x| {
@@ -723,6 +842,28 @@ impl<T: Config> Pallet<T> {
                 BridgeRegistry::<T>::insert(chain_id, registry);
             }
         }
+    }
+
+    /// Update bridge token amount
+    #[require_transactional]
+    fn update_bridge_token_cap(
+        asset_id: AssetIdOf<T>,
+        amount: BalanceOf<T>,
+        bridge_type: BridgeType,
+    ) -> DispatchResult {
+        let new_amount = Self::ensure_under_bridge_cap(asset_id, amount, bridge_type.clone())?;
+        let mut bridge_token = Self::bridge_tokens(asset_id);
+        match bridge_type {
+            BridgeType::BridgeOut => {
+                bridge_token.out_amount = new_amount;
+            }
+            BridgeType::BridgeIn => {
+                bridge_token.in_amount = new_amount;
+            }
+        };
+        BridgeTokens::<T>::insert(asset_id, bridge_token);
+
+        Ok(())
     }
 
     /// Initiates a transfer of the bridge token
@@ -769,7 +910,7 @@ impl<T: Config> Pallet<T> {
         src_nonce: ChainNonce,
         call: MaterializeCallOf<T>,
     ) -> DispatchResult {
-        if let Some(mut proposal) = ProposalVotes::<T>::get(src_id, (src_nonce, call.clone())) {
+        if let Some(mut proposal) = Self::votes(src_id, (src_nonce, call.clone())) {
             let now = <frame_system::Pallet<T>>::block_number();
             ensure!(!proposal.is_complete(), Error::<T>::ProposalAlreadyComplete);
             ensure!(!proposal.is_expired(now), Error::<T>::ProposalExpired);
@@ -797,10 +938,11 @@ impl<T: Config> Pallet<T> {
         Self::ensure_chain_registered(src_id)?;
         Self::ensure_bridge_token_registered(call.bridge_token_id)?;
 
+        let asset_id = Self::asset_ids(call.bridge_token_id);
+        Self::update_bridge_token_cap(asset_id, call.amount, BridgeType::BridgeIn)?;
         Self::deposit_event(Event::ProposalApproved(src_id, src_nonce));
 
-        let asset_id = AssetIds::<T>::get(call.bridge_token_id);
-        let BridgeToken { external, .. } = BridgeTokens::<T>::get(asset_id);
+        let BridgeToken { external, .. } = Self::bridge_tokens(asset_id);
         if external {
             T::Assets::mint_into(asset_id, &call.to, call.amount)?;
         } else {

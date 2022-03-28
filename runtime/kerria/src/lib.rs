@@ -1507,6 +1507,7 @@ impl pallet_bridge::Config for Runtime {
     type AdminMembers = BridgeMembership;
     type RootOperatorAccountId = OneAccount;
     type OperateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CapCleanOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ChainId = ParallelKerria;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;

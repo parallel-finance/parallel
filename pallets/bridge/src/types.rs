@@ -10,6 +10,18 @@ pub struct BridgeToken {
     pub external: bool,
     pub fee: Balance,
     pub enable: bool,
+    pub out_cap: Balance,
+    pub out_amount: Balance,
+    pub in_cap: Balance,
+    pub in_amount: Balance,
+}
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum BridgeType {
+    // Transfer assets from the current chain to other chains
+    BridgeOut = 0,
+    // Transfer assets from other chains to the current chain
+    BridgeIn = 1,
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
