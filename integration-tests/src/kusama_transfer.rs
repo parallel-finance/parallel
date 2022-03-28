@@ -24,51 +24,51 @@ use crate::{kusama_test_net::*, setup::*};
 
 #[test]
 fn transfer_from_relay_chain() {
-	KusamaNet::execute_with(|| {
-		assert_ok!(kusama_runtime::XcmPallet::reserve_transfer_assets(
-			kusama_runtime::Origin::signed(ALICE.into()),
-			Box::new(VersionedMultiLocation::V1(X1(Parachain(2085)).into())),
-			Box::new(VersionedMultiLocation::V1(
-				X1(Junction::AccountId32 {
-					id: BOB,
-					network: NetworkId::Any
-				})
-				.into()
-			)),
-			Box::new(VersionedMultiAssets::V1((Here, ksm(1f64)).into())),
-			0,
-		));
-	});
+    KusamaNet::execute_with(|| {
+        assert_ok!(kusama_runtime::XcmPallet::reserve_transfer_assets(
+            kusama_runtime::Origin::signed(ALICE.into()),
+            Box::new(VersionedMultiLocation::V1(X1(Parachain(2085)).into())),
+            Box::new(VersionedMultiLocation::V1(
+                X1(Junction::AccountId32 {
+                    id: BOB,
+                    network: NetworkId::Any
+                })
+                .into()
+            )),
+            Box::new(VersionedMultiAssets::V1((Here, ksm(1f64)).into())),
+            0,
+        ));
+    });
 
-	Heiko::execute_with(|| {
-		assert_eq!(Assets::balance(KSM, &AccountId::from(BOB)), 999_952_000_000);
-		//ksm fee in heiko is 48_000_000
-	});
+    Heiko::execute_with(|| {
+        assert_eq!(Assets::balance(KSM, &AccountId::from(BOB)), 999_952_000_000);
+        //ksm fee in heiko is 48_000_000
+    });
 }
 
 #[test]
 fn transfer_to_relay_chain() {
-	use heiko_runtime::{Origin, XTokens};
-	Heiko::execute_with(|| {
-		assert_ok!(XTokens::transfer(
-			Origin::signed(ALICE.into()),
-			KSM,
-			ksm(1f64),
-			Box::new(xcm::VersionedMultiLocation::V1(MultiLocation::new(
-				1,
-				X1(Junction::AccountId32 {
-					id: BOB,
-					network: NetworkId::Any
-				})
-			))),
-			4_000_000_000
-		));
-	});
+    use heiko_runtime::{Origin, XTokens};
+    Heiko::execute_with(|| {
+        assert_ok!(XTokens::transfer(
+            Origin::signed(ALICE.into()),
+            KSM,
+            ksm(1f64),
+            Box::new(xcm::VersionedMultiLocation::V1(MultiLocation::new(
+                1,
+                X1(Junction::AccountId32 {
+                    id: BOB,
+                    network: NetworkId::Any
+                })
+            ))),
+            4_000_000_000
+        ));
+    });
 
-	KusamaNet::execute_with(|| {
-		assert_eq!(
-			kusama_runtime::Balances::free_balance(&AccountId::from(BOB)),
-			999_893_333_340 //xcm fee in kusama is 106_666_660~=0.015$
-		);
-	});
+    KusamaNet::execute_with(|| {
+        assert_eq!(
+            kusama_runtime::Balances::free_balance(&AccountId::from(BOB)),
+            999_893_333_340 //xcm fee in kusama is 106_666_660~=0.015$
+        );
+    });
 }

@@ -29,7 +29,8 @@ fn registering_works() {
         assert_ok!(AssetManager::register_asset(
             Origin::root(),
             MockAssetType::MockAsset(1),
-            0u32.into(),
+            None,
+            Some(0u32.into()),
             1u32.into(),
             true
         ));
@@ -45,7 +46,6 @@ fn registering_works() {
         expect_events(vec![crate::Event::AssetRegistered {
             asset_id: 1,
             asset: MockAssetType::MockAsset(1),
-            metadata: 0u32,
         }])
     });
 }
@@ -56,7 +56,8 @@ fn test_asset_exists_error() {
         assert_ok!(AssetManager::register_asset(
             Origin::root(),
             MockAssetType::MockAsset(1),
-            0u32.into(),
+            None,
+            Some(0u32.into()),
             1u32.into(),
             true
         ));
@@ -69,7 +70,8 @@ fn test_asset_exists_error() {
             AssetManager::register_asset(
                 Origin::root(),
                 MockAssetType::MockAsset(1),
-                0u32.into(),
+                None,
+                Some(0u32.into()),
                 1u32.into(),
                 true
             ),
@@ -85,7 +87,8 @@ fn test_asset_create_failed_error() {
             AssetManager::register_asset(
                 Origin::root(),
                 MockAssetType::MockAsset(1),
-                0u32.into(),
+                None,
+                Some(0u32.into()),
                 0u32.into(),
                 true
             ),
@@ -100,7 +103,8 @@ fn test_root_can_change_units_per_second() {
 		assert_ok!(AssetManager::register_asset(
 			Origin::root(),
 			MockAssetType::MockAsset(1),
-			0u32.into(),
+			None,
+            Some(0u32.into()),
 			1u32.into(),
 			true
 		));
@@ -109,7 +113,6 @@ fn test_root_can_change_units_per_second() {
 			Origin::root(),
 			MockAssetType::MockAsset(1),
 			200u128.into(),
-			0
 		));
 
 		assert_eq!(
@@ -122,9 +125,8 @@ fn test_root_can_change_units_per_second() {
 			crate::Event::AssetRegistered {
 				asset_id: 1,
 				asset: MockAssetType::MockAsset(1),
-				metadata: 0,
 			},
-			crate::Event::UnitsPerSecondChanged {
+			crate::Event::UnitsPerSecondUpdated {
 				asset_type: MockAssetType::MockAsset(1),
 				units_per_second: 200,
 			},
@@ -139,7 +141,8 @@ fn test_regular_user_cannot_call_extrinsics() {
             AssetManager::register_asset(
                 Origin::signed(1),
                 MockAssetType::MockAsset(1),
-                0u32.into(),
+                None,
+                Some(0u32.into()),
                 1u32.into(),
                 true
             ),
@@ -151,7 +154,6 @@ fn test_regular_user_cannot_call_extrinsics() {
                 Origin::signed(1),
                 MockAssetType::MockAsset(1),
                 200u128.into(),
-                0
             ),
             sp_runtime::DispatchError::BadOrigin
         );
@@ -161,7 +163,6 @@ fn test_regular_user_cannot_call_extrinsics() {
                 Origin::signed(1),
                 1,
                 MockAssetType::MockAsset(2),
-                1
             ),
             sp_runtime::DispatchError::BadOrigin
         );
@@ -174,7 +175,8 @@ fn test_root_can_change_asset_id_type() {
         assert_ok!(AssetManager::register_asset(
             Origin::root(),
             MockAssetType::MockAsset(1),
-            0u32.into(),
+            None,
+            Some(0u32.into()),
             1u32.into(),
             true
         ));
@@ -183,14 +185,12 @@ fn test_root_can_change_asset_id_type() {
             Origin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
-            0
         ));
 
         assert_ok!(AssetManager::change_existing_asset_type(
             Origin::root(),
             1,
             MockAssetType::MockAsset(2),
-            1
         ));
 
         // New one contains the new asset type units per second
@@ -219,13 +219,12 @@ fn test_root_can_change_asset_id_type() {
             crate::Event::AssetRegistered {
                 asset_id: 1,
                 asset: MockAssetType::MockAsset(1),
-                metadata: 0,
             },
-            crate::Event::UnitsPerSecondChanged {
+            crate::Event::UnitsPerSecondUpdated {
                 asset_type: MockAssetType::MockAsset(1),
                 units_per_second: 200,
             },
-            crate::Event::AssetTypeChanged {
+            crate::Event::AssetTypeUpdated {
                 asset_id: 1,
                 new_asset_type: MockAssetType::MockAsset(2),
             },
@@ -239,7 +238,8 @@ fn test_change_units_per_second_after_setting_it_once() {
 		assert_ok!(AssetManager::register_asset(
 			Origin::root(),
 			MockAssetType::MockAsset(1),
-			0u32.into(),
+            None,
+			Some(0u32.into()),
 			1u32.into(),
 			true,
 		));
@@ -248,7 +248,6 @@ fn test_change_units_per_second_after_setting_it_once() {
 			Origin::root(),
 			MockAssetType::MockAsset(1),
 			200u128.into(),
-			0
 		));
 
 		assert_eq!(
@@ -261,7 +260,6 @@ fn test_change_units_per_second_after_setting_it_once() {
 			Origin::root(),
 			MockAssetType::MockAsset(1),
 			100u128.into(),
-			1
 		));
 
 		assert_eq!(
@@ -274,13 +272,12 @@ fn test_change_units_per_second_after_setting_it_once() {
 			crate::Event::AssetRegistered {
 				asset_id: 1,
 				asset: MockAssetType::MockAsset(1),
-				metadata: 0,
 			},
-			crate::Event::UnitsPerSecondChanged {
+			crate::Event::UnitsPerSecondUpdated {
 				asset_type: MockAssetType::MockAsset(1),
 				units_per_second: 200,
 			},
-			crate::Event::UnitsPerSecondChanged {
+			crate::Event::UnitsPerSecondUpdated {
 				asset_type: MockAssetType::MockAsset(1),
 				units_per_second: 100,
 			},
@@ -294,7 +291,8 @@ fn test_root_can_change_units_per_second_and_then_remove() {
 		assert_ok!(AssetManager::register_asset(
 			Origin::root(),
 			MockAssetType::MockAsset(1),
-			0u32.into(),
+			None,
+            Some(0u32.into()),
 			1u32.into(),
 			true,
 		));
@@ -303,7 +301,6 @@ fn test_root_can_change_units_per_second_and_then_remove() {
 			Origin::root(),
 			MockAssetType::MockAsset(1),
 			200u128.into(),
-			0
 		));
 
 		assert_eq!(
@@ -315,7 +312,6 @@ fn test_root_can_change_units_per_second_and_then_remove() {
 		assert_ok!(AssetManager::remove_supported_asset(
 			Origin::root(),
 			MockAssetType::MockAsset(1),
-			1,
 		));
 
 		assert!(
@@ -326,9 +322,8 @@ fn test_root_can_change_units_per_second_and_then_remove() {
 			crate::Event::AssetRegistered {
 				asset_id: 1,
 				asset: MockAssetType::MockAsset(1),
-				metadata: 0,
 			},
-			crate::Event::UnitsPerSecondChanged {
+			crate::Event::UnitsPerSecondUpdated {
 				asset_type: MockAssetType::MockAsset(1),
 				units_per_second: 200,
 			},
@@ -345,7 +340,8 @@ fn test_weight_hint_error() {
         assert_ok!(AssetManager::register_asset(
             Origin::root(),
             MockAssetType::MockAsset(1),
-            0u32.into(),
+            None,
+            Some(0u32.into()),
             1u32.into(),
             true,
         ));
@@ -354,13 +350,12 @@ fn test_weight_hint_error() {
             Origin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
-            0
         ));
 
-        assert_noop!(
-            AssetManager::remove_supported_asset(Origin::root(), MockAssetType::MockAsset(1), 0),
-            Error::<Test>::TooLowNumAssetsWeightHint
-        );
+        assert_ok!(AssetManager::remove_supported_asset(
+            Origin::root(),
+            MockAssetType::MockAsset(1)
+        ));
     });
 }
 
@@ -372,7 +367,6 @@ fn test_asset_id_non_existent_error() {
                 Origin::root(),
                 MockAssetType::MockAsset(1),
                 200u128.into(),
-                0
             ),
             Error::<Test>::AssetDoesNotExist
         );
@@ -381,7 +375,6 @@ fn test_asset_id_non_existent_error() {
                 Origin::root(),
                 1,
                 MockAssetType::MockAsset(2),
-                1
             ),
             Error::<Test>::AssetDoesNotExist
         );
@@ -409,7 +402,6 @@ fn test_populate_supported_fee_payment_assets_works() {
 				Origin::root(),
 				MockAssetType::MockAsset(1),
 				200u128.into(),
-				0
 			),
 			Error::<Test>::AssetDoesNotExist
 		);
@@ -436,7 +428,8 @@ fn test_asset_manager_units_with_asset_type_migration_works() {
         assert_ok!(AssetManager::register_asset(
             Origin::root(),
             MockAssetType::MockAsset(1),
-            0u32.into(),
+            None,
+            Some(0u32.into()),
             1u32.into(),
             true
         ));
@@ -552,7 +545,8 @@ fn test_asset_manager_change_statemine_prefixes() {
         assert_ok!(AssetManager::register_asset(
             Origin::root(),
             statemine_multilocation_2.clone(),
-            0u32.into(),
+            None,
+            Some(0u32.into()),
             1u32.into(),
             true
         ));
@@ -562,7 +556,8 @@ fn test_asset_manager_change_statemine_prefixes() {
         assert_ok!(AssetManager::register_asset(
             Origin::root(),
             statemine_multilocation_3.clone(),
-            0u32.into(),
+            None,
+            Some(0u32.into()),
             1u32.into(),
             true
         ));
@@ -571,7 +566,6 @@ fn test_asset_manager_change_statemine_prefixes() {
             Origin::root(),
             statemine_multilocation_3.clone(),
             1u128,
-            0
         ));
 
         // We run the migration
@@ -664,7 +658,8 @@ fn test_root_can_remove_asset_association() {
         assert_ok!(AssetManager::register_asset(
             Origin::root(),
             MockAssetType::MockAsset(1),
-            0u32.into(),
+            None,
+            Some(0u32.into()),
             1u32.into(),
             true
         ));
@@ -673,14 +668,9 @@ fn test_root_can_remove_asset_association() {
             Origin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
-            0
         ));
 
-        assert_ok!(AssetManager::remove_existing_asset_type(
-            Origin::root(),
-            1,
-            1
-        ));
+        assert_ok!(AssetManager::remove_existing_asset_type(Origin::root(), 1,));
 
         // Mappings are deleted
         assert!(AssetManager::asset_type_id(MockAssetType::MockAsset(1)).is_none());
@@ -693,9 +683,8 @@ fn test_root_can_remove_asset_association() {
             crate::Event::AssetRegistered {
                 asset_id: 1,
                 asset: MockAssetType::MockAsset(1),
-                metadata: 0,
             },
-            crate::Event::UnitsPerSecondChanged {
+            crate::Event::UnitsPerSecondUpdated {
                 asset_type: MockAssetType::MockAsset(1),
                 units_per_second: 200,
             },
@@ -713,16 +702,13 @@ fn test_removing_without_asset_units_per_second_does_not_panic() {
         assert_ok!(AssetManager::register_asset(
             Origin::root(),
             MockAssetType::MockAsset(1),
-            0u32.into(),
+            None,
+            Some(0u32.into()),
             1u32.into(),
             true
         ));
 
-        assert_ok!(AssetManager::remove_existing_asset_type(
-            Origin::root(),
-            1,
-            0
-        ));
+        assert_ok!(AssetManager::remove_existing_asset_type(Origin::root(), 1,));
 
         // Mappings are deleted
         assert!(AssetManager::asset_type_id(MockAssetType::MockAsset(1)).is_none());
@@ -735,7 +721,6 @@ fn test_removing_without_asset_units_per_second_does_not_panic() {
             crate::Event::AssetRegistered {
                 asset_id: 1,
                 asset: MockAssetType::MockAsset(1),
-                metadata: 0,
             },
             crate::Event::AssetRemoved {
                 asset_id: 1,

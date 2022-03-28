@@ -4,5 +4,4 @@ ignore = [
   "runtime/parallel/src/weights",
   "runtime/kerria/src/weights",
   "runtime/vanilla/src/weights",
-  "integration-tests",
 ]

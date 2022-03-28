@@ -28,7 +28,7 @@ benchmarks! {
         let amount = 1u32.into();
         let asset_id: T::AssetId = asset_type.clone().into();
 
-    }: _(RawOrigin::Root, asset_type.clone(), metadata, amount, true)
+    }: _(RawOrigin::Root, asset_type.clone(), None, Some(metadata), amount, true)
     verify {
         assert_eq!(Pallet::<T>::asset_id_type(asset_id), Some(asset_type));
     }
@@ -40,8 +40,8 @@ benchmarks! {
             let asset_type:  T::AssetType = MultiLocation::new(0, X1(GeneralIndex(i as u128))).into();
             let metadata = T::AssetRegistrarMetadata::default();
             let amount = 1u32.into();
-            Pallet::<T>::register_asset(RawOrigin::Root.into(), asset_type.clone(), metadata, amount, true)?;
-            Pallet::<T>::set_asset_units_per_second(RawOrigin::Root.into(), asset_type.clone(), 1, i)?;
+            Pallet::<T>::register_asset(RawOrigin::Root.into(), asset_type.clone(), None, Some(metadata), amount, true)?;
+            Pallet::<T>::set_asset_units_per_second(RawOrigin::Root.into(), asset_type.clone(), 1)?;
         }
 
         // does not really matter what we register, as long as it is different than the previous
@@ -49,9 +49,9 @@ benchmarks! {
         let metadata = T::AssetRegistrarMetadata::default();
         let amount = 1u32.into();
         let asset_id: T::AssetId = asset_type.clone().into();
-        Pallet::<T>::register_asset(RawOrigin::Root.into(), asset_type.clone(), metadata, amount, true)?;
+        Pallet::<T>::register_asset(RawOrigin::Root.into(), asset_type.clone(), None, Some(metadata), amount, true)?;
 
-    }: _(RawOrigin::Root, asset_type.clone(), 1, x)
+    }: _(RawOrigin::Root, asset_type.clone(), 1)
     verify {
         assert!(Pallet::<T>::supported_fee_payment_assets().contains(&asset_type));
         assert_eq!(Pallet::<T>::asset_type_units_per_second(asset_type), Some(1));
@@ -64,8 +64,8 @@ benchmarks! {
             let asset_type:  T::AssetType = MultiLocation::new(0, X1(GeneralIndex(i as u128))).into();
             let metadata = T::AssetRegistrarMetadata::default();
             let amount = 1u32.into();
-            Pallet::<T>::register_asset(RawOrigin::Root.into(), asset_type.clone(), metadata, amount, true)?;
-            Pallet::<T>::set_asset_units_per_second(RawOrigin::Root.into(), asset_type.clone(), 1, i)?;
+            Pallet::<T>::register_asset(RawOrigin::Root.into(), asset_type.clone(), None, Some(metadata), amount, true)?;
+            Pallet::<T>::set_asset_units_per_second(RawOrigin::Root.into(), asset_type.clone(), 1)?;
         }
 
         let new_asset_type = T::AssetType::default();
@@ -75,7 +75,7 @@ benchmarks! {
         ).into();
         let asset_id_to_be_changed = asset_type_to_be_changed.into();
 
-    }: _(RawOrigin::Root, asset_id_to_be_changed, new_asset_type.clone(), x)
+    }: _(RawOrigin::Root, asset_id_to_be_changed, new_asset_type.clone())
     verify {
         assert_eq!(Pallet::<T>::asset_id_type(asset_id_to_be_changed), Some(new_asset_type.clone()));
         assert_eq!(Pallet::<T>::asset_type_units_per_second(&new_asset_type), Some(1));
@@ -89,15 +89,15 @@ benchmarks! {
             let asset_type:  T::AssetType = MultiLocation::new(0, X1(GeneralIndex(i as u128))).into();
             let metadata = T::AssetRegistrarMetadata::default();
             let amount = 1u32.into();
-            Pallet::<T>::register_asset(RawOrigin::Root.into(), asset_type.clone(), metadata, amount, true)?;
-            Pallet::<T>::set_asset_units_per_second(RawOrigin::Root.into(), asset_type.clone(), 1, i)?;
+            Pallet::<T>::register_asset(RawOrigin::Root.into(), asset_type.clone(), None,Some(metadata), amount, true)?;
+            Pallet::<T>::set_asset_units_per_second(RawOrigin::Root.into(), asset_type.clone(), 1)?;
         }
         let asset_type_to_be_removed: T::AssetType = MultiLocation::new(
             0,
             X1(GeneralIndex((x-1) as u128))
         ).into();
         // We try to remove the last asset type
-    }: _(RawOrigin::Root, asset_type_to_be_removed.clone(), x)
+    }: _(RawOrigin::Root, asset_type_to_be_removed.clone())
     verify {
         assert!(!Pallet::<T>::supported_fee_payment_assets().contains(&asset_type_to_be_removed));
         assert_eq!(Pallet::<T>::asset_type_units_per_second(asset_type_to_be_removed), None);
@@ -111,8 +111,8 @@ benchmarks! {
             let asset_type:  T::AssetType = MultiLocation::new(0, X1(GeneralIndex(i as u128))).into();
             let metadata = T::AssetRegistrarMetadata::default();
             let amount = 1u32.into();
-            Pallet::<T>::register_asset(RawOrigin::Root.into(), asset_type.clone(), metadata, amount, true)?;
-            Pallet::<T>::set_asset_units_per_second(RawOrigin::Root.into(), asset_type.clone(), 1, i)?;
+            Pallet::<T>::register_asset(RawOrigin::Root.into(), asset_type.clone(), None, Some(metadata), amount, true)?;
+            Pallet::<T>::set_asset_units_per_second(RawOrigin::Root.into(), asset_type.clone(), 1)?;
         }
 
         let asset_type_to_be_removed: T::AssetType = MultiLocation::new(
@@ -120,12 +120,11 @@ benchmarks! {
             X1(GeneralIndex((x-1) as u128))
         ).into();
         let asset_id: T::AssetId = asset_type_to_be_removed.clone().into();
-    }: _(RawOrigin::Root, asset_id, x)
+    }: _(RawOrigin::Root, asset_id)
     verify {
         assert!(Pallet::<T>::asset_id_type(asset_id).is_none());
         assert!(Pallet::<T>::asset_type_units_per_second(&asset_type_to_be_removed).is_none());
         assert!(!Pallet::<T>::supported_fee_payment_assets().contains(&asset_type_to_be_removed));
-
     }
 }
 
