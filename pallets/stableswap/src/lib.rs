@@ -132,6 +132,8 @@ pub mod pallet {
         PoolAlreadyExists,
         /// Identical assets
         IdenticalAssets,
+        /// Not an ideal price ratio
+        NotAnIdealPrice,
     }
 
     #[pallet::event]
@@ -202,6 +204,90 @@ pub mod pallet {
     // No Extrinsic Calls
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
+        // Allow users to add liquidity to a given pool
+        ///
+        /// - `pool`: Currency pool, in which liquidity will be added
+        /// - `liquidity_amounts`: Liquidity amounts to be added in pool
+        /// - `minimum_amounts`: specifying its "worst case" ratio when pool already exists
+        #[pallet::weight(T::WeightInfo::add_liquidity())]
+        #[transactional]
+        pub fn add_liquidity(
+            origin: OriginFor<T>,
+            pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
+            desired_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
+            minimum_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            let (is_inverted, base_asset, quote_asset) = Self::sort_assets(pair)?;
+
+            let (base_amount, quote_amount) = if is_inverted {
+                (desired_amounts.1, desired_amounts.0)
+            } else {
+                (desired_amounts.0, desired_amounts.1)
+            };
+
+            let (minimum_base_amount, minimum_quote_amount) = if is_inverted {
+                (minimum_amounts.1, minimum_amounts.0)
+            } else {
+                (minimum_amounts.0, minimum_amounts.1)
+            };
+
+            Pools::<T, I>::try_mutate(
+                base_asset,
+                quote_asset,
+                |pool| -> DispatchResultWithPostInfo {
+                    let pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
+
+                    let (ideal_base_amount, ideal_quote_amount) =
+                        Self::get_ideal_amounts(pool, (base_amount, quote_amount))?;
+
+                    ensure!(
+                        ideal_base_amount <= base_amount && ideal_quote_amount <= quote_amount,
+                        Error::<T, I>::InsufficientAmountIn
+                    );
+
+                    ensure!(
+                        ideal_base_amount >= minimum_base_amount
+                            && ideal_quote_amount >= minimum_quote_amount,
+                        Error::<T, I>::NotAnIdealPrice
+                    );
+
+                    Self::do_mint_protocol_fee(pool)?;
+
+                    Self::do_add_liquidity(
+                        &who,
+                        pool,
+                        (ideal_base_amount, ideal_quote_amount),
+                        (base_asset, quote_asset),
+                    )?;
+
+                    log::trace!(
+                        target: "stableswap::add_liquidity",
+                        "who: {:?}, base_asset: {:?}, quote_asset: {:?}, ideal_amounts: {:?},\
+                        desired_amounts: {:?}, minimum_amounts: {:?}",
+                        &who,
+                        &base_asset,
+                        &quote_asset,
+                        &(ideal_base_amount, ideal_quote_amount),
+                        &desired_amounts,
+                        &minimum_amounts
+                    );
+
+                    Self::deposit_event(Event::<T, I>::LiquidityAdded(
+                        who,
+                        base_asset,
+                        quote_asset,
+                        ideal_base_amount,
+                        ideal_quote_amount,
+                        pool.lp_token_id,
+                        pool.base_amount,
+                        pool.quote_amount,
+                    ));
+
+                    Ok(().into())
+                },
+            )
+        }
         /// Allow users to remove liquidity from a given pool
         ///
         /// - `pair`: Currency pool, in which liquidity will be removed
@@ -249,7 +335,7 @@ pub mod pallet {
                 Ok(())
             })
         }
-        #[pallet::weight(T::WeightInfo::add_liquidity())]
+        #[pallet::weight(T::WeightInfo::create_pool())]
         #[transactional]
         pub fn create_pool(
             origin: OriginFor<T>,
@@ -392,6 +478,25 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         );
 
         Ok(amount_out)
+    }
+
+    fn quote(
+        base_amount: BalanceOf<T, I>,
+        base_pool: BalanceOf<T, I>,
+        quote_pool: BalanceOf<T, I>,
+    ) -> Result<BalanceOf<T, I>, DispatchError> {
+        log::trace!(
+            target: "stableswap::quote",
+            "base_amount: {:?}, base_pool: {:?}, quote_pool: {:?}",
+            &base_amount,
+            &base_pool,
+            &quote_pool
+        );
+
+        Ok(base_amount
+            .checked_mul(quote_pool)
+            .and_then(|r| r.checked_div(base_pool))
+            .ok_or(ArithmeticError::Underflow)?)
     }
 
     fn sort_assets(
@@ -1119,6 +1224,30 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         }
 
         Ok(())
+    }
+    // given a pool, calculate the ideal liquidity amounts as a function of the current
+    // pool reserves ratio
+    fn get_ideal_amounts(
+        pool: &Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
+        (base_amount, quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
+    ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
+        log::trace!(
+            target: "stableswap::get_ideal_amounts",
+            "pair: {:?}",
+            &(base_amount, quote_amount)
+        );
+
+        if pool.is_empty() {
+            return Ok((base_amount, quote_amount));
+        }
+
+        let ideal_quote_amount = Self::quote(base_amount, pool.base_amount, pool.quote_amount)?;
+        if ideal_quote_amount <= quote_amount {
+            Ok((base_amount, ideal_quote_amount))
+        } else {
+            let ideal_base_amount = Self::quote(quote_amount, pool.quote_amount, pool.base_amount)?;
+            Ok((ideal_base_amount, quote_amount))
+        }
     }
     fn protocol_fee_on() -> bool {
         !T::ProtocolFee::get().is_zero()

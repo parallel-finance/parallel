@@ -27,6 +27,7 @@ pub trait WeightInfo {
     fn get_alternative_var() -> Weight;
     fn add_liquidity() -> Weight;
     fn remove_liquidity() -> Weight;
+    fn create_pool() -> Weight;
 }
 
 /// Weights for stableswap using the Substrate node and recommended hardware.
@@ -44,6 +45,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn remove_liquidity() -> Weight {
         10_000 as Weight
     }
+    fn create_pool() -> Weight {
+        10_000 as Weight
+    }
 }
 
 // For backwards compatibility and tests
@@ -58,6 +62,9 @@ impl WeightInfo for () {
         10_000 as Weight
     }
     fn remove_liquidity() -> Weight {
+        10_000 as Weight
+    }
+    fn create_pool() -> Weight {
         10_000 as Weight
     }
 }
