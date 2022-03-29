@@ -1,8 +1,13 @@
 version: "3.7"
 services:
-  parallel-dapp:
+  heiko-dapp:
     ports:
       - "8080:80"
+    image: parallelfinance/heiko-dapp:latest
+    restart: always
+  parallel-dapp:
+    ports:
+      - "8081:80"
     image: parallelfinance/parallel-dapp:latest
     restart: always
   oracle-client:

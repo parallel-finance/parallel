@@ -33,8 +33,10 @@ use frame_system::pallet_prelude::OriginFor;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use frame_support::dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo};
-    use frame_support::pallet_prelude::*;
+    use frame_support::{
+        dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
+        pallet_prelude::*,
+    };
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -51,20 +53,17 @@ pub mod pallet {
             + Dispatchable<Origin = Self::Origin, PostInfo = PostDispatchInfo>
             + GetDispatchInfo
             + From<frame_system::Call<Self>>;
-
-        ///  A dynamic filter which happens during runtime
-        type EmergencyCallFilter: EmergencyCallFilter<Self>;
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Toggled Pallet Flag
+        /// Toggled Pallet
         /// [flag]
-        ToggledPalletFlag(bool),
-        /// Toggled Call Flag
+        ToggledPallet(bool),
+        /// Toggled Call
         /// [flag]
-        ToggledCallFlag(bool),
+        ToggledCall(bool),
     }
 
     #[pallet::pallet]
@@ -74,7 +73,7 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn disable_pallets)]
-    pub type DisabledPallets<T: Config> = StorageMap<_, Twox64Concat, u8, bool, ValueQuery>;
+    pub type DisabledPallets<T: Config> = StorageMap<_, Blake2_128Concat, u8, bool, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn disable_calls)]
@@ -92,7 +91,7 @@ pub mod pallet {
             <DisabledPallets<T>>::insert(pallet_idx, updated_flag);
 
             // Emit an event.
-            Self::deposit_event(Event::ToggledPalletFlag(updated_flag));
+            Self::deposit_event(Event::ToggledPallet(updated_flag));
             Ok(())
         }
 
@@ -104,29 +103,25 @@ pub mod pallet {
             <DisabledCalls<T>>::insert(pallet_idx, call_idx, updated_flag);
 
             // Emit an event.
-            Self::deposit_event(Event::ToggledCallFlag(updated_flag));
+            Self::deposit_event(Event::ToggledCall(updated_flag));
             Ok(())
         }
     }
 }
 
 pub trait EmergencyCallFilter<T: Config> {
-    fn is_call_filtered(call: &<T as Config>::Call) -> bool;
+    fn contains(call: &<T as Config>::Call) -> bool;
 }
 
 impl<T: Config> EmergencyCallFilter<T> for Pallet<T> {
-    fn is_call_filtered(call: &<T as Config>::Call) -> bool {
+    fn contains(call: &<T as Config>::Call) -> bool {
         let (pallet_idx, call_idx): (u8, u8) = call
             .using_encoded(|mut bytes| Decode::decode(&mut bytes))
             .expect(
                 "decode input is output of Call encode; Call guaranteed to have two enums; qed",
             );
-        if T::Whitelist::contains(call) {
-            true
-        } else if Self::disable_pallets(pallet_idx) {
-            false
-        } else {
-            !Self::disable_calls(pallet_idx, call_idx)
-        }
+
+        T::Whitelist::contains(call)
+            || !Self::disable_pallets(pallet_idx) && !Self::disable_calls(pallet_idx, call_idx)
     }
 }

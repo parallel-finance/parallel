@@ -70,7 +70,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{EUSDC, EUSDT, HKO, KAR, KSM, KUSD, LKSM, SKSM},
+    tokens::{EUSDC, EUSDT, HKO, KAR, KBTC, KINT, KSM, KUSD, LKSM, MOVR, PHA, SKSM},
     Index, *,
 };
 use scale_info::TypeInfo;
@@ -96,6 +96,7 @@ pub use pallet_bridge;
 pub use pallet_farming;
 pub use pallet_liquid_staking;
 pub use pallet_loans;
+pub use pallet_payroll;
 pub use pallet_prices;
 pub use pallet_router;
 pub use pallet_stableswap;
@@ -143,10 +144,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("heiko"),
     impl_name: create_runtime_str!("heiko"),
     authoring_version: 1,
-    spec_version: 180,
-    impl_version: 25,
+    spec_version: 181,
+    impl_version: 26,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 9,
+    transaction_version: 10,
     state_version: 0,
 };
 
@@ -280,7 +281,7 @@ impl Contains<Call> for BaseCallFilter {
 pub struct CallFilterRouter;
 impl Contains<Call> for CallFilterRouter {
     fn contains(call: &Call) -> bool {
-        BaseCallFilter::contains(call) && EmergencyShutdown::is_call_filtered(call)
+        BaseCallFilter::contains(call) && EmergencyShutdown::contains(call)
     }
 }
 
@@ -368,6 +369,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(b"HKO".to_vec()),
                 ),
             )),
+            // Karura
             KAR => Some(MultiLocation::new(
                 1,
                 X2(
@@ -387,6 +389,31 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 X2(
                     Parachain(paras::karura::ID),
                     GeneralKey(paras::karura::LKSM_KEY.to_vec()),
+                ),
+            )),
+            // Moonriver
+            MOVR => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::moonriver::ID),
+                    PalletInstance(paras::moonriver::MOVR_KEY),
+                ),
+            )),
+            // Khala
+            PHA => Some(MultiLocation::new(1, X1(Parachain(paras::khala::ID)))),
+            // Kintsugi
+            KINT => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::kintsugi::ID),
+                    GeneralKey(paras::kintsugi::KINT_KEY.to_vec()),
+                ),
+            )),
+            KBTC => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::kintsugi::ID),
+                    GeneralKey(paras::kintsugi::KBTC_KEY.to_vec()),
                 ),
             )),
             _ => None,
@@ -421,6 +448,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 0,
                 interior: X1(GeneralKey(key)),
             } if key == b"HKO".to_vec() => Some(HKO),
+            // Karura
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
@@ -433,6 +461,29 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
             } if id == paras::karura::ID && key == paras::karura::LKSM_KEY.to_vec() => Some(LKSM),
+            // Moonriver
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), PalletInstance(key)),
+            } if id == paras::moonriver::ID && key == paras::moonriver::MOVR_KEY => Some(MOVR),
+            // Khala
+            MultiLocation {
+                parents: 1,
+                interior: X1(Parachain(id)),
+            } if id == paras::khala::ID => Some(PHA),
+            // Kintsugi
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::kintsugi::ID && key == paras::kintsugi::KINT_KEY.to_vec() => {
+                Some(KINT)
+            }
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::kintsugi::ID && key == paras::kintsugi::KBTC_KEY.to_vec() => {
+                Some(KBTC)
+            }
             _ => None,
         }
     }
@@ -557,7 +608,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
-    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
+    type RelayChainValidationDataProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
 }
@@ -1027,6 +1078,7 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 30
     );
+    // Karura
     pub KusdPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
@@ -1047,6 +1099,37 @@ parameter_types! {
             X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::LKSM_KEY.to_vec())),
         ).into(),
         ksm_per_second()
+    );
+    // Moonriver
+    pub MovrPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::moonriver::ID), PalletInstance(paras::moonriver::MOVR_KEY)),
+        ).into(),
+        ksm_per_second() * 3
+    );
+    // Khala
+    pub PhaPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X1(Parachain(paras::khala::ID)),
+        ).into(),
+        ksm_per_second() * 400
+    );
+    // Kintsugi
+    pub KintPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::kintsugi::ID), GeneralKey(paras::kintsugi::KINT_KEY.to_vec())),
+        ).into(),
+        ksm_per_second() * 400
+    );
+    pub KbtcPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::kintsugi::ID), GeneralKey(paras::kintsugi::KBTC_KEY.to_vec())),
+        ).into(),
+        ksm_per_second() / 1_500_000
     );
 }
 
@@ -1085,9 +1168,17 @@ pub type Trader = (
     FixedRateOfFungible<SKSMPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<HkoPerSecond, ToTreasury>,
     FixedRateOfFungible<HkoPerSecondOfCanonicalLocation, ToTreasury>,
+    // Karura
     FixedRateOfFungible<KusdPerSecond, ToTreasury>,
     FixedRateOfFungible<KarPerSecond, ToTreasury>,
     FixedRateOfFungible<LKSMPerSecond, ToTreasury>,
+    // Moonriver
+    FixedRateOfFungible<MovrPerSecond, ToTreasury>,
+    // Khala
+    FixedRateOfFungible<PhaPerSecond, ToTreasury>,
+    // Kintsugi
+    FixedRateOfFungible<KintPerSecond, ToTreasury>,
+    FixedRateOfFungible<KbtcPerSecond, ToTreasury>,
 );
 
 pub struct XcmConfig;
@@ -1548,10 +1639,10 @@ parameter_types! {
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
 
-pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
+pub struct RelayChainValidationDataProvider<T>(sp_std::marker::PhantomData<T>);
 
 impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
-    for RelayChainBlockNumberProvider<T>
+    for RelayChainValidationDataProvider<T>
 {
     type BlockNumber = primitives::BlockNumber;
 
@@ -1559,6 +1650,14 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
         cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
             .map(|d| d.relay_parent_number)
             .unwrap_or_default()
+    }
+}
+
+impl<T: cumulus_pallet_parachain_system::Config> ValidationDataProvider
+    for RelayChainValidationDataProvider<T>
+{
+    fn validation_data() -> Option<PersistedValidationData> {
+        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
     }
 }
 
@@ -1584,8 +1683,20 @@ impl pallet_crowdloans::Config for Runtime {
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
     type XCM = XcmHelper;
-    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
+    type RelayChainBlockNumberProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = CrowdloansAutomatorsMembership;
+}
+
+parameter_types! {
+    pub const PayrollPalletId: PalletId = PalletId(*b"par/payr");
+}
+
+impl pallet_payroll::Config for Runtime {
+    type Event = Event;
+    type Assets = CurrencyAdapter;
+    type PalletId = PayrollPalletId;
+    type UnixTime = Timestamp;
+    type WeightInfo = pallet_payroll::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1736,7 +1847,6 @@ impl pallet_emergency_shutdown::Config for Runtime {
     type Whitelist = WhiteListFilter;
     type ShutdownOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type Call = Call;
-    type EmergencyCallFilter = EmergencyShutdown;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1812,7 +1922,8 @@ construct_runtime!(
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Storage, Event<T>} = 91,
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
-        StableSwap: pallet_stableswap::{Pallet, Call, Storage, Event<T>} = 94,
+        Payroll: pallet_payroll::{Pallet, Call, Storage, Event<T>} = 94,
+        StableSwap: pallet_stableswap::{Pallet, Call, Storage, Event<T>} = 95,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
@@ -1853,7 +1964,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    LoansMigrationV2,
+    (),
 >;
 
 // Migration for loans pallet to add borrow limit in market.
