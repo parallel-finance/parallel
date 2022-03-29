@@ -80,7 +80,19 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
     }: _(SystemOrigin::Root, USDT, EUSDT_CURRENCY)
     verify {
-        assert_last_event::<T>(Event::BridgeTokenRegistered(USDT, EUSDT, false, 0, true).into())
+        assert_last_event::<T>(
+            Event::BridgeTokenRegistered(
+                USDT,
+                EUSDT,
+                false,
+                0,
+                true,
+                EUSDT_CURRENCY.out_cap,
+                EUSDT_CURRENCY.out_amount,
+                EUSDT_CURRENCY.in_cap,
+                EUSDT_CURRENCY.in_amount,
+            ).into()
+        )
     }
 
     unregister_bridge_token {
@@ -96,7 +108,7 @@ benchmarks! {
         assert_ok!(Bridge::<T>::register_bridge_token(SystemOrigin::Root.into(), USDT, EUSDT_CURRENCY));
     }: _(SystemOrigin::Root, EUSDT, dollar(1))
     verify {
-        assert_last_event::<T>(Event::BridgeTokenFeeChanged(EUSDT, dollar(1)).into())
+        assert_last_event::<T>(Event::BridgeTokenFeeUpdated(EUSDT, dollar(1)).into())
     }
 
     set_bridge_token_status {
@@ -104,7 +116,7 @@ benchmarks! {
         assert_ok!(Bridge::<T>::register_bridge_token(SystemOrigin::Root.into(), USDT, EUSDT_CURRENCY));
     }: _(SystemOrigin::Root, EUSDT, false)
     verify {
-        assert_last_event::<T>(Event::BridgeTokenStatusChanged(EUSDT, false).into())
+        assert_last_event::<T>(Event::BridgeTokenStatusUpdated(EUSDT, false).into())
     }
 
     set_bridge_token_cap {
@@ -112,7 +124,7 @@ benchmarks! {
         assert_ok!(Bridge::<T>::register_bridge_token(SystemOrigin::Root.into(), USDT, EUSDT_CURRENCY));
     }: _(SystemOrigin::Root, EUSDT, BridgeType::BridgeIn, dollar(200))
     verify {
-        assert_last_event::<T>(Event::BridgeTokenCapChanged(EUSDT, BridgeType::BridgeIn, dollar(200)).into())
+        assert_last_event::<T>(Event::BridgeTokenCapUpdated(EUSDT, BridgeType::BridgeIn, dollar(200)).into())
     }
 
     clean_cap_accumulated_value {

@@ -399,12 +399,12 @@ fn bridge_in_and_out_cap_works() {
         // Failed if bridgeing amount exceed the bridge out cap
         assert_noop!(
             Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(1)),
-            Error::<Test>::BridgeOutCapacityExceeded,
+            Error::<Test>::BridgeOutCapExceeded,
         );
         // Bob also cannot teleport when bridge out capacity is exceeded
         assert_noop!(
             Bridge::teleport(Origin::signed(BOB), ETH, EHKO, "TELE".into(), dollar(1)),
-            Error::<Test>::BridgeOutCapacityExceeded,
+            Error::<Test>::BridgeOutCapExceeded,
         );
 
         // Case 2: bridge in cap works
@@ -427,7 +427,7 @@ fn bridge_in_and_out_cap_works() {
         // Failed if exceed the bridge in cap
         assert_noop!(
             Bridge::materialize(Origin::signed(ALICE), ETH, 1, EHKO, EVE, dollar(100), true),
-            Error::<Test>::BridgeInCapacityExceeded,
+            Error::<Test>::BridgeInCapExceeded,
         );
     })
 }
@@ -439,10 +439,10 @@ fn clean_cap_accumulated_value_works() {
         Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(100)).unwrap();
         assert_noop!(
             Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(100)),
-            Error::<Test>::BridgeOutCapacityExceeded,
+            Error::<Test>::BridgeOutCapExceeded,
         );
 
-        // CapCleanOrigin can clean the accumulated cap value
+        // CapOrigin can clean the accumulated cap value
         Bridge::clean_cap_accumulated_value(Origin::signed(ALICE), EHKO, BridgeType::BridgeOut)
             .unwrap();
 
@@ -450,7 +450,7 @@ fn clean_cap_accumulated_value_works() {
         Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(100)).unwrap();
         assert_noop!(
             Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(1)),
-            Error::<Test>::BridgeOutCapacityExceeded,
+            Error::<Test>::BridgeOutCapExceeded,
         );
     })
 }
@@ -462,7 +462,7 @@ fn set_bridge_token_cap_works() {
         Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(100)).unwrap();
         assert_noop!(
             Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(250)),
-            Error::<Test>::BridgeOutCapacityExceeded,
+            Error::<Test>::BridgeOutCapExceeded,
         );
 
         // Set a higher cap to continue the transaction above
@@ -473,7 +473,7 @@ fn set_bridge_token_cap_works() {
         Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(250)).unwrap();
         assert_noop!(
             Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(1)),
-            Error::<Test>::BridgeOutCapacityExceeded,
+            Error::<Test>::BridgeOutCapExceeded,
         );
     })
 }
@@ -510,10 +510,10 @@ fn multi_materialize_cap_limit_works() {
                 dollar(100),
                 true
             ),
-            Error::<Test>::BridgeInCapacityExceeded,
+            Error::<Test>::BridgeInCapExceeded,
         );
 
-        // CapCleanOrigin should clean the accumulated cap value
+        // CapOrigin should clean the accumulated cap value
         Bridge::clean_cap_accumulated_value(Origin::signed(ALICE), EHKO, BridgeType::BridgeIn)
             .unwrap();
         // Succed after the accumulated cap value is cleaned

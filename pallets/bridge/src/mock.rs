@@ -21,8 +21,7 @@ pub type AccountId = u128;
 
 type EnsureRootOrigin = EnsureRoot<AccountId>;
 
-pub type CapCleanOrigin =
-    EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+pub type CapOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub struct AliceOrigin;
 impl SortedMembers<AccountId> for AliceOrigin {
@@ -218,21 +217,18 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
 
 impl Config for Test {
     type Event = Event;
-    type AdminMembers = BridgeMembership;
-
+    type RelayMembers = BridgeMembership;
     type RootOperatorAccountId = RootOperatorAccountId;
-    type OperateOrigin = EnsureRoot<AccountId>;
-    type CapCleanOrigin = CapCleanOrigin;
-
+    type UpdateChainOrigin = EnsureRoot<AccountId>;
+    type UpdateTokenOrigin = EnsureRoot<AccountId>;
+    type CapOrigin = CapOrigin;
     type ChainId = ParallelHeiko;
     type PalletId = BridgePalletId;
-
     type Assets = CurrencyAdapter;
     type GiftAccount = GiftAccount;
     type GiftConvert = GiftConvert;
     type NativeCurrencyId = NativeCurrencyId;
     type ExistentialDeposit = ExistentialDeposit;
-
     type ProposalLifetime = ProposalLifetime;
     type ThresholdPercentage = ThresholdPercentage;
 
