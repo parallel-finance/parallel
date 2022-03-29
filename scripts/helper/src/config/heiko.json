@@ -253,7 +253,7 @@
         "assetId": 202,
         "id": 2,
         "external": true,
-        "fee": 300000000,
+        "fee": "300000000",
         "enable": true,
         "outCap": "10000000000",
         "outAmount": "0",
