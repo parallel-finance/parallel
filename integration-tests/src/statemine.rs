@@ -36,7 +36,7 @@ pub fn rmrk(n: f64) -> Balance {
 
 #[test]
 fn statemine() {
-    use heiko_runtime::{AssetRegistrarMetadata, AssetType};
+    use primitives::{xcm_gadget::AssetType, AssetRegistrarMetadata};
     let statemine_rmrk_asset_location =
         MultiLocation::new(1, X3(Parachain(1000), PalletInstance(50), GeneralIndex(8)));
     let statemine_rmrk_asset_type = AssetType::Xcm(statemine_rmrk_asset_location);
@@ -109,7 +109,7 @@ fn statemine() {
         System::reset_events();
 
         let para_acc: AccountId = Sibling::from(2085).into_account();
-        println!("{:?}", para_acc);
+        println!("heiko para account in sibling chain:{:?}", para_acc);
 
         assert_ok!(PolkadotXcm::reserve_transfer_assets(
             origin.clone(),
@@ -125,7 +125,6 @@ fn statemine() {
             Box::new((X2(PalletInstance(50), GeneralIndex(8)), rmrk(2f64)).into()),
             0
         ));
-        println!("{:?}", System::events());
     });
     // Rerun the Statemine::execute to actually send the egress message via XCM
     Statemine::execute_with(|| {});

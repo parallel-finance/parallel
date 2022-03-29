@@ -14,21 +14,22 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use crate::CurrencyId;
+use codec::{Decode, Encode};
 use frame_support::{
-    traits::{tokens::fungibles::Mutate, Get, OriginTrait},
+    traits::{tokens::fungibles::Mutate, Get},
     weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
-use sp_runtime::traits::{CheckedConversion, Zero};
+use scale_info::TypeInfo;
+use sp_core::H256;
+use sp_runtime::traits::{BlakeTwo256, CheckedConversion, Hash as THash, Zero};
 use sp_std::{borrow::Borrow, vec::Vec};
-use sp_std::{
-    convert::{TryFrom, TryInto},
-    marker::PhantomData,
-};
+use sp_std::{convert::TryFrom, marker::PhantomData};
+use xcm::latest::prelude::*;
 use xcm::latest::{
     AssetId as xcmAssetId, Error as XcmError, Fungibility,
     Junction::{AccountId32, Parachain},
-    Junctions::*,
-    MultiAsset, MultiLocation, NetworkId,
+    MultiLocation, NetworkId,
 };
 use xcm_builder::TakeRevenue;
 use xcm_executor::traits::{FilterAssetLocation, MatchesFungible, MatchesFungibles, WeightTrader};
@@ -83,30 +84,6 @@ where
                 id: account.into(),
             }),
         }
-    }
-}
-
-// Convert a local Origin (i.e., a signed 32 byte account Origin)  to a Multilocation
-pub struct SignedToAccountId<Origin, AccountId, Network>(
-    sp_std::marker::PhantomData<(Origin, AccountId, Network)>,
-);
-impl<Origin: OriginTrait + Clone, AccountId: Into<[u8; 32]>, Network: Get<NetworkId>>
-    xcm_executor::traits::Convert<Origin, MultiLocation>
-    for SignedToAccountId<Origin, AccountId, Network>
-where
-    Origin::PalletsOrigin: From<frame_system::RawOrigin<AccountId>>
-        + TryInto<frame_system::RawOrigin<AccountId>, Error = Origin::PalletsOrigin>,
-{
-    fn convert(o: Origin) -> Result<MultiLocation, Origin> {
-        o.try_with_caller(|caller| match caller.try_into() {
-            Ok(frame_system::RawOrigin::Signed(who)) => Ok(AccountId32 {
-                id: who.into(),
-                network: Network::get(),
-            }
-            .into()),
-            Ok(other) => Err(other.into()),
-            Err(other) => Err(other),
-        })
     }
 }
 
@@ -295,38 +272,6 @@ pub trait UnitsToWeightRatio<AssetType> {
     fn get_units_per_second(asset_type: AssetType) -> Option<u128>;
 }
 
-// The utility calls that need to be implemented as part of
-// this pallet
-#[derive(Debug, PartialEq, Eq)]
-pub enum UtilityAvailableCalls {
-    AsDerivative(u16, Vec<u8>),
-}
-
-// Trait that the ensures we can encode a call with utility functions.
-// With this trait we ensure that the user cannot control entirely the call
-// to be performed in the destination chain. It only can control the call inside
-// the as_derivative extrinsic, and thus, this call can only be dispatched from the
-// derivative account
-pub trait UtilityEncodeCall {
-    fn encode_call(self, call: UtilityAvailableCalls) -> Vec<u8>;
-}
-
-// Trait to ensure we can retrieve the destination if a given type
-// It must implement UtilityEncodeCall
-// We separate this in two traits to be able to implement UtilityEncodeCall separately
-// for different runtimes of our choice
-pub trait XcmTransact: UtilityEncodeCall {
-    /// Encode call from the relay.
-    fn destination(self) -> MultiLocation;
-}
-
-/// This trait ensure we can convert AccountIds to CurrencyIds
-/// We will require Runtime to have this trait implemented
-pub trait AccountIdToCurrencyId<Account, CurrencyId> {
-    // Get assetId from account
-    fn account_to_currency_id(account: Account) -> Option<CurrencyId>;
-}
-
 /// XCM fee depositor to which we implement the TakeRevenue trait
 /// It receives a fungibles::Mutate implemented argument, a matcher to convert MultiAsset into
 /// AssetId and amount, and the fee receiver account
@@ -370,6 +315,47 @@ impl<T: Get<Vec<MultiLocation>>, B: TryFrom<u128>> MatchesFungible<B> for MultiI
                 CheckedConversion::checked_from(*amount)
             }
             _ => None,
+        }
+    }
+}
+
+// Our AssetType. For now we only handle Xcm Assets
+#[derive(Clone, Eq, Debug, PartialEq, Ord, PartialOrd, Encode, Decode, TypeInfo)]
+pub enum AssetType {
+    Xcm(MultiLocation),
+}
+
+impl Default for AssetType {
+    fn default() -> Self {
+        Self::Xcm(MultiLocation::here())
+    }
+}
+
+impl From<MultiLocation> for AssetType {
+    fn from(location: MultiLocation) -> Self {
+        Self::Xcm(location)
+    }
+}
+
+impl From<AssetType> for Option<MultiLocation> {
+    fn from(asset: AssetType) -> Option<MultiLocation> {
+        match asset {
+            AssetType::Xcm(location) => Some(location),
+        }
+    }
+}
+
+// Implementation on how to retrieve the AssetId from an AssetType
+// We simply hash the AssetType and take the lowest 32 bits
+impl From<AssetType> for CurrencyId {
+    fn from(asset: AssetType) -> CurrencyId {
+        match asset {
+            AssetType::Xcm(id) => {
+                let mut result: [u8; 4] = [0u8; 4];
+                let hash: H256 = id.using_encoded(BlakeTwo256::hash);
+                result.copy_from_slice(&hash.as_fixed_bytes()[0..4]);
+                u32::from_le_bytes(result)
+            }
         }
     }
 }

@@ -190,3 +190,11 @@ impl ConvertToBigUint for u128 {
         self.to_biguint().unwrap()
     }
 }
+
+#[derive(Clone, Default, Eq, Debug, PartialEq, Ord, PartialOrd, Encode, Decode, TypeInfo)]
+pub struct AssetRegistrarMetadata {
+    pub name: Vec<u8>,
+    pub symbol: Vec<u8>,
+    pub decimals: u8,
+    pub is_frozen: bool,
+}

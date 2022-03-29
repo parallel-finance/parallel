@@ -14,6 +14,7 @@
 
 //! Cross-chain transfer tests within Kusama network.
 
+use cumulus_primitives_core::ParaId;
 use frame_support::assert_ok;
 use heiko_runtime::Assets;
 use primitives::{tokens::*, AccountId};
@@ -66,6 +67,8 @@ fn transfer_to_relay_chain() {
     });
 
     KusamaNet::execute_with(|| {
+        let para_acc: AccountId = ParaId::from(2085).into_account();
+        println!("heiko para account in relaychain:{:?}", para_acc);
         assert_eq!(
             kusama_runtime::Balances::free_balance(&AccountId::from(BOB)),
             999_893_333_340 //xcm fee in kusama is 106_666_660~=0.015$
