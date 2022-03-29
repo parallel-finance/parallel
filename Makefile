@@ -39,7 +39,7 @@ clean:
 	cargo clean -p parallel -p vanilla-runtime -p kerria-runtime -p heiko-runtime -p parallel-runtime
 
 .PHONY: ci
-ci: check lint check-helper check-wasm test
+ci: check lint check-helper check-wasm test integration-test
 
 .PHONY: check
 check:

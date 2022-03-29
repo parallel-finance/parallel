@@ -17,6 +17,7 @@ use cumulus_primitives_core::ParaId;
 use frame_support::assert_ok;
 use frame_support::traits::Currency;
 use polkadot_parachain::primitives::Sibling;
+use primitives::ump::{XcmCall, XcmWeightFeeMisc};
 use primitives::{tokens::*, AccountId, Balance, CurrencyId};
 use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::*;
@@ -129,7 +130,7 @@ fn statemine() {
     // Rerun the Statemine::execute to actually send the egress message via XCM
     Statemine::execute_with(|| {});
     Heiko::execute_with(|| {
-        use heiko_runtime::{Assets, Origin, XTokens};
+        use heiko_runtime::{Assets, Origin, XTokens, XcmHelper};
         assert_eq!(
             Assets::balance(statemine_rmrk_asset_id, &AccountId::from(BOB)),
             19940000000
@@ -140,6 +141,14 @@ fn statemine() {
             MultiAddress::Id(AccountId::from(BOB)),
             ksm(1f64),
         )); //mint some ksm to BOB to pay for the xcm fee
+        assert_ok!(XcmHelper::update_xcm_weight_fee(
+            Origin::root(),
+            XcmCall::TransferToSiblingchain(Box::new((1, Parachain(1000)).into())),
+            XcmWeightFeeMisc {
+                weight: (STATEMINE_FEE_AMOUNT / 2) as u64,
+                fee: STATEMINE_FEE_AMOUNT / 2,
+            }
+        )); // set xcm transfer fee
         assert_ok!(XTokens::transfer_multicurrencies(
             Origin::signed(BOB.into()),
             vec![

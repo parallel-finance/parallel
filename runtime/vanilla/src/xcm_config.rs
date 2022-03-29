@@ -17,7 +17,7 @@ use crate::{
     AccountId, AssetManager, Assets, Balance, BlockNumber, Call, CurrencyAdapter, CurrencyId,
     DmpQueue, EnsureRootOrMoreThanHalfGeneralCouncil, Event, ExistentialDeposit, GiftAccount,
     GiftConvert, NativeCurrencyId, Origin, ParachainInfo, ParachainSystem, PolkadotXcm,
-    RefundLocation, Runtime, TreasuryAccount, XcmpQueue, MAXIMUM_BLOCK_WEIGHT,
+    RefundLocation, Runtime, TreasuryAccount, XcmHelper, XcmpQueue, MAXIMUM_BLOCK_WEIGHT,
 };
 
 pub use cumulus_primitives_core::ParaId;
@@ -175,7 +175,7 @@ parameter_type_with_key! {
     pub ParachainMinFee: |location: MultiLocation| -> u128 {
         #[allow(clippy::match_ref_pats)] // false positive
         match (location.parents, location.first_interior()) {
-            (1, Some(Parachain(1000))) => 4000000000,//refact to get from some on chain storage
+            (1, Some(Parachain(1000))) => XcmHelper::get_xcm_weight_fee_to_sibling(location.clone()).fee,//default fee should be enough even if not configured
             _ => u128::MAX,
         }
     };
