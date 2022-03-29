@@ -1,7 +1,6 @@
 import getConfig from '../config'
 import '@polkadot/api-augment'
-import { options } from '@parallel-finance/api'
-import { ApiPromise, Keyring, WsProvider } from '@polkadot/api'
+import { Keyring } from '@polkadot/api'
 import {
   chainHeight,
   createAddress,
@@ -9,7 +8,9 @@ import {
   sleep,
   sovereignRelayOf,
   subAccountId,
-  exec
+  exec,
+  getApi,
+  getRelayApi
 } from '../utils'
 import { ActionParameters, Command, CreateCommandParameters } from '@caporal/core'
 
@@ -17,14 +18,7 @@ const GiftPalletId = 'par/gift'
 
 async function para({ logger, options: { paraWs, network } }: ActionParameters) {
   const config = getConfig(network.valueOf() as string)
-  const api = await ApiPromise.create(
-    options({
-      types: {
-        'Compact<TAssetBalance>': 'Compact<Balance>'
-      },
-      provider: new WsProvider(paraWs.toString())
-    })
-  )
+  const api = await getApi(paraWs.toString())
 
   logger.info('Wait for parachain to produce blocks')
   do await sleep(1000)
@@ -46,7 +40,7 @@ async function para({ logger, options: { paraWs, network } }: ActionParameters) 
   for (const { assetId, marketConfig } of config.markets) {
     logger.info(`Create market for asset ${assetId}, ptokenId is ${marketConfig.ptokenId}`)
     call.push(
-      api.tx.sudo.sudo(api.tx.loans.addMarket(assetId, api.createType('Market', marketConfig))),
+      api.tx.sudo.sudo(api.tx.loans.addMarket(assetId, marketConfig)),
       api.tx.sudo.sudo(api.tx.loans.activateMarket(assetId))
     )
   }
@@ -98,9 +92,7 @@ async function para({ logger, options: { paraWs, network } }: ActionParameters) 
 
 async function relay({ logger, options: { relayWs, network } }: ActionParameters) {
   const config = getConfig(network.valueOf() as string)
-  const api = await ApiPromise.create({
-    provider: new WsProvider(relayWs.toString())
-  })
+  const api = await getRelayApi(relayWs.toString())
 
   logger.info('Wait for relaychain to produce blocks')
   do await sleep(1000)

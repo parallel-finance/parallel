@@ -94,6 +94,48 @@
       "assetId": 5002,
       "decimal": 12,
       "balances": []
+    },
+    {
+      "name": "Shiden",
+      "symbol": "SDN",
+      "assetId": 111,
+      "decimal": 18,
+      "balances": []
+    },
+    {
+      "name": "Moonriver",
+      "symbol": "MOVR",
+      "assetId": 113,
+      "decimal": 18,
+      "balances": []
+    },
+    {
+      "name": "Phala",
+      "symbol": "PHA",
+      "assetId": 115,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Phala",
+      "symbol": "KMA",
+      "assetId": 116,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Kintsugi",
+      "symbol": "KINT",
+      "assetId": 118,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Kintsugi Bitcoin",
+      "symbol": "KBTC",
+      "assetId": 119,
+      "decimal": 8,
+      "balances": []
     }
   ],
   "markets": [
@@ -107,7 +149,7 @@
         "borrowCap": "100000000000000000",
         "liquidateIncentive": "1100000000000000000",
         "rateModel": {
-          "jumpModel": {
+          "jump": {
             "baseRate": "20000000000000000",
             "jumpRate": "100000000000000000",
             "fullRate": "320000000000000000",
@@ -128,7 +170,7 @@
         "borrowCap": "100000000000000000",
         "liquidateIncentive": "1100000000000000000",
         "rateModel": {
-          "jumpModel": {
+          "jump": {
             "baseRate": "20000000000000000",
             "jumpRate": "100000000000000000",
             "fullRate": "320000000000000000",
@@ -149,7 +191,7 @@
         "borrowCap": "100000000000000000",
         "liquidateIncentive": "1100000000000000000",
         "rateModel": {
-          "jumpModel": {
+          "jump": {
             "baseRate": "20000000000000000",
             "jumpRate": "100000000000000000",
             "fullRate": "320000000000000000",
