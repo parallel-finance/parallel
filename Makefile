@@ -164,9 +164,9 @@ dev-launch: shutdown
 	yq -i eval '.parachains[0].chain = "$(CHAIN)"' $(LAUNCH_CONFIG_JSON) -j
 	ts-node scripts/polkadot-launch/src/cli.ts config.json
 
-.PHONY: dev-launch-kerria
-dev-launch-kerria:
-	make PARA_ID=2012 CHAIN=kerria-dev RELAY_CHAIN=polkadot-local dev-launch
+.PHONY: dev-launch-vanilla
+dev-launch-vanilla:
+	make PARA_ID=2085 CHAIN=vanilla-dev RELAY_CHAIN=kusama-local dev-launch
 
 .PHONY: logs
 logs:
