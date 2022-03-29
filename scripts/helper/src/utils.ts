@@ -6,7 +6,6 @@ import { stringToU8a, bnToU8a, u8aConcat, u8aToHex } from '@polkadot/util'
 import { decodeAddress, encodeAddress } from '@polkadot/keyring'
 import { KeyringPair } from '@polkadot/keyring/types'
 import { Index } from '@polkadot/types/interfaces'
-import { options } from '@parallel-finance/api'
 
 const EMPTY_U8A_32 = new Uint8Array(32)
 
@@ -128,14 +127,9 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
 }
 
 export const getApi = async (endpoint: string): Promise<ApiPromise> => {
-  return ApiPromise.create(
-    options({
-      types: {
-        'Compact<TAssetBalance>': 'Compact<Balance>'
-      },
-      provider: new WsProvider(endpoint)
-    })
-  )
+  return ApiPromise.create({
+    provider: new WsProvider(endpoint)
+  })
 }
 export const getRelayApi = async (endpoint: string): Promise<ApiPromise> => {
   return ApiPromise.create({
