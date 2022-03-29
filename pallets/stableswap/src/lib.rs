@@ -1335,16 +1335,4 @@ impl<T: Config<I>, I: 'static>
         let (amount_x, amount_y) = Self::get_reserves(asset_in, asset_out)?;
         Ok((amount_x, amount_y))
     }
-    // fn get_d(pair: (AssetIdOf<T, I>, AssetIdOf<T, I>)) -> Result<u128, DispatchError> {
-    //     let d = Self::do_get_delta(pair)?;
-    //     Ok(d)
-    // }
-    //
-    // fn get_alternative_var(
-    //     autonomous_var: BalanceOf<T, I>,
-    //     pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
-    // ) -> Result<u128, DispatchError> {
-    //     let alternative_var = Self::do_get_alternative_var(autonomous_var, pair)?;
-    //     Ok(alternative_var)
-    // }
 }

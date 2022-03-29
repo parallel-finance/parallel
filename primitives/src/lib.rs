@@ -217,11 +217,6 @@ pub trait StableSwap<AccountId, CurrencyId, Balance> {
         asset_in: CurrencyId,
         asset_out: CurrencyId,
     ) -> Result<(Balance, Balance), DispatchError>;
-    // fn get_d(pair: (CurrencyId, CurrencyId)) -> Result<u128, DispatchError>;
-    // fn get_alternative_var(
-    //     autonomous_var: Balance,
-    //     pair: (CurrencyId, CurrencyId),
-    // ) -> Result<u128, DispatchError>;
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug)]
