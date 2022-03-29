@@ -22,6 +22,7 @@ use frame_support::{
 };
 use scale_info::TypeInfo;
 use sp_core::H256;
+use sp_runtime::traits::Convert;
 use sp_runtime::traits::{BlakeTwo256, CheckedConversion, Hash as THash, Zero};
 use sp_std::{borrow::Borrow, vec::Vec};
 use sp_std::{convert::TryFrom, marker::PhantomData};
@@ -357,5 +358,26 @@ impl From<AssetType> for CurrencyId {
                 u32::from_le_bytes(result)
             }
         }
+    }
+}
+
+// How to convert from CurrencyId to MultiLocation
+pub struct CurrencyIdtoMultiLocation<LegacyAssetConverter, ForeignAssetConverter>(
+    sp_std::marker::PhantomData<(LegacyAssetConverter, ForeignAssetConverter)>,
+);
+impl<LegacyAssetConverter, ForeignAssetConverter>
+    sp_runtime::traits::Convert<CurrencyId, Option<MultiLocation>>
+    for CurrencyIdtoMultiLocation<LegacyAssetConverter, ForeignAssetConverter>
+where
+    LegacyAssetConverter: Convert<CurrencyId, Option<MultiLocation>>,
+    ForeignAssetConverter: xcm_executor::traits::Convert<MultiLocation, CurrencyId>,
+{
+    fn convert(currency_id: CurrencyId) -> Option<MultiLocation> {
+        let mut multi_location = LegacyAssetConverter::convert(currency_id);
+        multi_location = match multi_location {
+            Some(_) => multi_location,
+            None => ForeignAssetConverter::reverse_ref(&currency_id).ok(),
+        };
+        multi_location
     }
 }

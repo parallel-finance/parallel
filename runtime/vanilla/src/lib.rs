@@ -1278,7 +1278,9 @@ impl Contains<Call> for WhiteListFilter {
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
             Call::CrowdloansAutomatorsMembership(_) |
-            Call::LiquidStakingAgentsMembership(_)
+            Call::LiquidStakingAgentsMembership(_) |
+            // AssetManager
+            Call::AssetManager(_)
         )
     }
 }
@@ -1336,6 +1338,8 @@ construct_runtime!(
         OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 45,
         Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>} = 46,
 
+        // Asset Management
+        AssetManager: pallet_asset_manager::{Pallet, Call, Storage, Event<T>} = 48,
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,

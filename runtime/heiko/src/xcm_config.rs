@@ -17,10 +17,9 @@ use crate::{
     AccountId, AssetManager, Assets, Balance, BlockNumber, Call, CurrencyAdapter, CurrencyId,
     DmpQueue, EnsureRootOrMoreThanHalfGeneralCouncil, Event, ExistentialDeposit, GiftAccount,
     GiftConvert, NativeCurrencyId, Origin, ParachainInfo, ParachainSystem, PolkadotXcm,
-    RefundLocation, Runtime, TreasuryPalletId, XcmpQueue, MAXIMUM_BLOCK_WEIGHT,
+    RefundLocation, Runtime, TreasuryAccount, XcmpQueue, MAXIMUM_BLOCK_WEIGHT,
 };
 
-use sp_runtime::traits::AccountIdConversion;
 pub use cumulus_primitives_core::ParaId;
 use frame_support::match_type;
 use frame_support::traits::fungibles::Mutate;
@@ -39,7 +38,10 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     tokens::*,
-    xcm_gadget::{AccountIdToMultiLocation, AsAssetType, AssetType, FirstAssetTrader},
+    xcm_gadget::{
+        AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
+        FirstAssetTrader,
+    },
     AssetRegistrarMetadata,
 };
 use sp_runtime::traits::Convert;
@@ -385,10 +387,6 @@ pub type Barrier = (
     AllowTopLevelPaidExecutionFrom<Everything>,
 );
 
-parameter_types! {
-    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
-}
-
 impl orml_xcm::Config for Runtime {
     type Event = Event;
     type SovereignOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -474,27 +472,6 @@ parameter_type_with_key! {
             _ => u128::MAX,
         }
     };
-}
-
-// How to convert from CurrencyId to MultiLocation
-pub struct CurrencyIdtoMultiLocation<LegacyAssetConverter, ForeignAssetConverter>(
-    sp_std::marker::PhantomData<(LegacyAssetConverter, ForeignAssetConverter)>,
-);
-impl<LegacyAssetConverter, ForeignAssetConverter>
-    sp_runtime::traits::Convert<CurrencyId, Option<MultiLocation>>
-    for CurrencyIdtoMultiLocation<LegacyAssetConverter, ForeignAssetConverter>
-where
-    LegacyAssetConverter: Convert<CurrencyId, Option<MultiLocation>>,
-    ForeignAssetConverter: xcm_executor::traits::Convert<MultiLocation, CurrencyId>,
-{
-    fn convert(currency_id: CurrencyId) -> Option<MultiLocation> {
-        let mut multi_location = LegacyAssetConverter::convert(currency_id);
-        multi_location = match multi_location {
-            Some(_) => multi_location,
-            None => ForeignAssetConverter::reverse_ref(&currency_id).ok(),
-        };
-        multi_location
-    }
 }
 
 impl orml_xtokens::Config for Runtime {
