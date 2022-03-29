@@ -250,6 +250,7 @@ pub mod pallet {
             })
         }
         #[pallet::weight(T::WeightInfo::add_liquidity())]
+        #[transactional]
         pub fn create_pool(
             origin: OriginFor<T>,
             pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
