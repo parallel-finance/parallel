@@ -40,7 +40,7 @@ async function para({ logger, options: { paraWs, network } }: ActionParameters) 
   for (const { assetId, marketConfig } of config.markets) {
     logger.info(`Create market for asset ${assetId}, ptokenId is ${marketConfig.ptokenId}`)
     call.push(
-      api.tx.sudo.sudo(api.tx.loans.addMarket(assetId, api.createType('Market', marketConfig))),
+      api.tx.sudo.sudo(api.tx.loans.addMarket(assetId, marketConfig)),
       api.tx.sudo.sudo(api.tx.loans.activateMarket(assetId))
     )
   }

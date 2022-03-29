@@ -121,7 +121,7 @@
         "borrowCap": "100000000000000000",
         "liquidateIncentive": "1100000000000000000",
         "rateModel": {
-          "jumpModel": {
+          "jump": {
             "baseRate": "20000000000000000",
             "jumpRate": "100000000000000000",
             "fullRate": "320000000000000000",
@@ -142,7 +142,7 @@
         "borrowCap": "100000000000000000",
         "liquidateIncentive": "1100000000000000000",
         "rateModel": {
-          "jumpModel": {
+          "jump": {
             "baseRate": "20000000000000000",
             "jumpRate": "100000000000000000",
             "fullRate": "320000000000000000",
@@ -163,7 +163,7 @@
         "borrowCap": "100000000000000000",
         "liquidateIncentive": "1100000000000000000",
         "rateModel": {
-          "jumpModel": {
+          "jump": {
             "baseRate": "20000000000000000",
             "jumpRate": "100000000000000000",
             "fullRate": "320000000000000000",
