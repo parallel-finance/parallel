@@ -172,7 +172,7 @@ benchmarks! {
         assert_last_event::<T>(Event::<T>::BondingExtra(0, BOND_AMOUNT).into());
     }
 
-    // set_staking_ledger {
+    // force_set_staking_ledger {
     //     let alice: T::AccountId = account("Sample", 100, SEED);
     //     initial_set_up::<T>(alice.clone());
     //     LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();

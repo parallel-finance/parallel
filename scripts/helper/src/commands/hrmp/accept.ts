@@ -22,9 +22,8 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         args: { source, target },
         options: { relayWs, paraWs }
       } = actionParameters
-      const encoded = await getRelayApi(relayWs.toString())
-        .then(api => api.tx.hrmp.hrmpAcceptOpenChannel(source.valueOf() as number).toHex())
-        .then(hex => `0x${hex.slice(6)}`)
+      const relayApi = await getRelayApi(relayWs.toString())
+      const encoded = relayApi.tx.hrmp.hrmpAcceptOpenChannel(source.valueOf() as number).toHex()
       const api = await getApi(paraWs.toString())
       const signer = new Keyring({ type: 'sr25519' }).addFromUri(
         `${process.env.PARA_CHAIN_SUDO_KEY || '//Dave'}`
@@ -38,7 +37,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
                 interior: 'Here'
               }
             },
-            createXcm(encoded, sovereignRelayOf(target.valueOf() as number))
+            createXcm(`0x${encoded.slice(6)}`, sovereignRelayOf(target.valueOf() as number))
           )
         )
         .signAndSend(signer, { nonce: await nextNonce(api, signer) })
