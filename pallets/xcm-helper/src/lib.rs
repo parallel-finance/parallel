@@ -40,7 +40,7 @@ use frame_system::pallet_prelude::BlockNumberFor;
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup};
 use sp_std::{boxed::Box, vec, vec::Vec};
-use xcm::{latest::prelude::*, DoubleEncoded};
+use xcm::{latest::prelude::*, DoubleEncoded, VersionedMultiLocation, VersionedXcm};
 use xcm_executor::traits::InvertLocation;
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -123,6 +123,8 @@ pub mod pallet {
         XCMWithdrawUnBonded,
         /// XCMNominated
         XCMNominated,
+        /// XCM message sent. \[to, message\]
+        Sent { to: MultiLocation, message: Xcm<()> },
     }
 
     #[pallet::storage]
@@ -147,6 +149,15 @@ pub mod pallet {
         ZeroXcmFees,
         /// Insufficient xcm fees
         InsufficientXcmFees,
+        /// The message and destination combination was not recognized as being
+        /// reachable.
+        Unreachable,
+        /// The message and destination was recognized as being reachable but
+        /// the operation could not be completed.
+        SendFailure,
+        /// The version of the `Versioned` value used is not able to be
+        /// interpreted.
+        BadVersion,
     }
 
     #[pallet::call]
@@ -158,7 +169,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             xcm_call: XcmCall,
             xcm_weight_fee_misc: XcmWeightFeeMisc<Weight, BalanceOf<T>>,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
 
             ensure!(!xcm_weight_fee_misc.fee.is_zero(), Error::<T>::ZeroXcmFees);
@@ -169,7 +180,7 @@ pub mod pallet {
 
             XcmWeightFee::<T>::mutate(xcm_call, |v| *v = xcm_weight_fee_misc);
             Self::deposit_event(Event::<T>::XcmWeightFeeUpdated(xcm_weight_fee_misc));
-            Ok(().into())
+            Ok(())
         }
 
         #[pallet::weight(10_000)]
@@ -180,13 +191,13 @@ pub mod pallet {
             relay_currency: AssetIdOf<T>,
             para_account_id: AccountIdOf<T>,
             notify: Box<CallIdOf<T>>,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::XCMOrigin::ensure_origin(origin)?;
 
             Self::do_withdraw(para_id, relay_currency, para_account_id, *notify)?;
 
             Self::deposit_event(Event::<T>::XCMWithdrawDone);
-            Ok(().into())
+            Ok(())
         }
 
         #[pallet::weight(10_000)]
@@ -198,13 +209,13 @@ pub mod pallet {
             amount: BalanceOf<T>,
             who: AccountIdOf<T>,
             notify: Box<CallIdOf<T>>,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::XCMOrigin::ensure_origin(origin)?;
 
             Self::do_contribute(para_id, relay_currency, amount, &who, *notify)?;
 
             Self::deposit_event(Event::<T>::XCMContributeDone);
-            Ok(().into())
+            Ok(())
         }
 
         #[pallet::weight(10_000)]
@@ -217,13 +228,13 @@ pub mod pallet {
             relay_currency: AssetIdOf<T>,
             index: u16,
             notify: Box<CallIdOf<T>>,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::XCMOrigin::ensure_origin(origin)?;
 
             Self::do_bond(value, payee, stash, relay_currency, index, *notify)?;
 
             Self::deposit_event(Event::<T>::XCMBonded);
-            Ok(().into())
+            Ok(())
         }
 
         #[pallet::weight(10_000)]
@@ -235,13 +246,13 @@ pub mod pallet {
             relay_currency: AssetIdOf<T>,
             index: u16,
             notify: Box<CallIdOf<T>>,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::XCMOrigin::ensure_origin(origin)?;
 
             Self::do_bond_extra(value, stash, relay_currency, index, *notify)?;
 
             Self::deposit_event(Event::<T>::XCMBondedExtra);
-            Ok(().into())
+            Ok(())
         }
 
         #[pallet::weight(10_000)]
@@ -252,13 +263,13 @@ pub mod pallet {
             relay_currency: AssetIdOf<T>,
             index: u16,
             notify: Box<CallIdOf<T>>,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::XCMOrigin::ensure_origin(origin)?;
 
             Self::do_unbond(value, relay_currency, index, *notify)?;
 
             Self::deposit_event(Event::<T>::XCMUnBonded);
-            Ok(().into())
+            Ok(())
         }
 
         #[pallet::weight(10_000)]
@@ -269,13 +280,13 @@ pub mod pallet {
             relay_currency: AssetIdOf<T>,
             index: u16,
             notify: Box<CallIdOf<T>>,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::XCMOrigin::ensure_origin(origin)?;
 
             Self::do_rebond(value, relay_currency, index, *notify)?;
 
             Self::deposit_event(Event::<T>::XCMReBonded);
-            Ok(().into())
+            Ok(())
         }
 
         #[pallet::weight(10_000)]
@@ -287,7 +298,7 @@ pub mod pallet {
             relay_currency: AssetIdOf<T>,
             index: u16,
             notify: Box<CallIdOf<T>>,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::XCMOrigin::ensure_origin(origin)?;
 
             Self::do_withdraw_unbonded(
@@ -299,7 +310,7 @@ pub mod pallet {
             )?;
 
             Self::deposit_event(Event::<T>::XCMWithdrawUnBonded);
-            Ok(().into())
+            Ok(())
         }
 
         #[pallet::weight(10_000)]
@@ -310,13 +321,50 @@ pub mod pallet {
             relay_currency: AssetIdOf<T>,
             index: u16,
             notify: Box<CallIdOf<T>>,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::XCMOrigin::ensure_origin(origin)?;
 
             Self::do_nominate(targets, relay_currency, index, *notify)?;
 
             Self::deposit_event(Event::<T>::XCMNominated);
-            Ok(().into())
+            Ok(())
+        }
+
+        #[pallet::weight(100_000_000)]
+        pub fn send_as_sovereign(
+            origin: OriginFor<T>,
+            dest: Box<VersionedMultiLocation>,
+            message: Box<VersionedXcm<()>>,
+        ) -> DispatchResult {
+            T::XCMOrigin::ensure_origin(origin)?;
+            let dest = MultiLocation::try_from(*dest).map_err(|()| Error::<T>::BadVersion)?;
+            let message: Xcm<()> = (*message).try_into().map_err(|()| Error::<T>::BadVersion)?;
+
+            pallet_xcm::Pallet::<T>::send_xcm(Here, dest.clone(), message.clone()).map_err(
+                |e| match e {
+                    SendError::CannotReachDestination(..) => Error::<T>::Unreachable,
+                    _ => Error::<T>::SendFailure,
+                },
+            )?;
+            Self::deposit_event(Event::Sent { to: dest, message });
+            Ok(())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn ump_transacts(
+            origin: OriginFor<T>,
+            call: DoubleEncoded<()>,
+            weight: Weight,
+            beneficiary: MultiLocation,
+            relay_currency: AssetIdOf<T>,
+            fees: BalanceOf<T>,
+        ) -> DispatchResult {
+            T::XCMOrigin::ensure_origin(origin)?;
+
+            Self::ump_transact(call, weight, beneficiary, relay_currency, fees)?;
+
+            Ok(())
         }
     }
 }
