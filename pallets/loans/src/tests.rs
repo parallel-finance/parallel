@@ -661,6 +661,13 @@ fn calc_collateral_amount_works() {
         Loans::calc_collateral_amount(u128::MAX, exchange_rate),
         Err(DispatchError::Arithmetic(ArithmeticError::Underflow))
     );
+
+    // relative test: prevent_the_exchange_rate_attack
+    let exchange_rate = Rate::saturating_from_rational(30000, 1);
+    assert_eq!(
+        Loans::calc_collateral_amount(10000, exchange_rate).unwrap(),
+        0
+    );
 }
 
 #[test]
@@ -691,5 +698,32 @@ fn ensure_enough_cash_works() {
             Error::<Test>::InsufficientCash,
         );
         assert_ok!(Loans::ensure_enough_cash(KSM, dollar(990)));
+    })
+}
+
+#[test]
+fn ensure_valid_exchange_rate_works() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            Loans::ensure_valid_exchange_rate(FixedU128::saturating_from_rational(1, 100)),
+            Error::<Test>::InvalidExchangeRate
+        );
+        assert_ok!(Loans::ensure_valid_exchange_rate(
+            FixedU128::saturating_from_rational(2, 100)
+        ));
+        assert_ok!(Loans::ensure_valid_exchange_rate(
+            FixedU128::saturating_from_rational(3, 100)
+        ));
+        assert_ok!(Loans::ensure_valid_exchange_rate(
+            FixedU128::saturating_from_rational(99, 100)
+        ));
+        assert_noop!(
+            Loans::ensure_valid_exchange_rate(Rate::one()),
+            Error::<Test>::InvalidExchangeRate,
+        );
+        assert_noop!(
+            Loans::ensure_valid_exchange_rate(Rate::saturating_from_rational(101, 100)),
+            Error::<Test>::InvalidExchangeRate,
+        );
     })
 }

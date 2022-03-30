@@ -70,6 +70,9 @@ pub mod weights;
 pub const MAX_INTEREST_CALCULATING_INTERVAL: u64 = 5 * 24 * 3600; // 5 days
 pub const MIN_INTEREST_CALCULATING_INTERVAL: u64 = 100; // 100 seconds
 
+pub const MAX_EXCHANGE_RATE: u128 = 1_000_000_000_000_000_000; // 1
+pub const MIN_EXCHANGE_RATE: u128 = 20_000_000_000_000_000; // 0.02
+
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 type BalanceOf<T> =
@@ -167,10 +170,14 @@ pub mod pallet {
         BorrowCapacityExceeded,
         /// Insufficient cash in the pool
         InsufficientCash,
-        /// The factor should be bigger than 0% and smaller than 100%
+        /// The factor should be greater than 0% and less than 100%
         InvalidFactor,
         /// The supply cap cannot be zero
         InvalidSupplyCap,
+        /// The exchange rate should be greater than 0.02 and less than 1
+        InvalidExchangeRate,
+        /// Amount cannot be zero
+        InvalidAmount,
         /// Payer cannot be signer
         PayerIsSigner,
     }
@@ -454,7 +461,7 @@ pub mod pallet {
             UnderlyingAssetId::<T>::insert(market.ptoken_id, asset_id);
 
             // Init the ExchangeRate and BorrowIndex for asset
-            ExchangeRate::<T>::insert(asset_id, Rate::saturating_from_rational(2, 100));
+            ExchangeRate::<T>::insert(asset_id, Rate::from_inner(MIN_EXCHANGE_RATE));
             BorrowIndex::<T>::insert(asset_id, Rate::one());
 
             Self::deposit_event(Event::<T>::NewMarket(market));
@@ -603,6 +610,7 @@ pub mod pallet {
             #[pallet::compact] mint_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+            ensure!(!mint_amount.is_zero(), Error::<T>::InvalidAmount);
             Self::ensure_active_market(asset_id)?;
             Self::ensure_under_supply_cap(asset_id, mint_amount)?;
 
@@ -610,6 +618,7 @@ pub mod pallet {
             Self::update_earned_stored(&who, asset_id)?;
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(mint_amount, exchange_rate)?;
+            ensure!(!voucher_amount.is_zero(), Error::<T>::InvalidExchangeRate);
             AccountDeposits::<T>::try_mutate(asset_id, &who, |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
@@ -1108,7 +1117,7 @@ impl<T: Config> Pallet<T> {
             .ok_or(ArithmeticError::Underflow)?;
         let total_borrows = Self::total_borrows(asset_id);
         // NOTE : total_borrows use a different way to calculate interest
-        // so when user repays all borrows, total_borrows can be smaller than account_borrows
+        // so when user repays all borrows, total_borrows can be less than account_borrows
         // which will cause it to fail with `ArithmeticError::Underflow`
         //
         // Change it back to checked_sub will cause Underflow
