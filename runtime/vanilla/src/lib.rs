@@ -1703,6 +1703,7 @@ impl pallet_xcm_helper::Config for Runtime {
     type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type XCMOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type Call = Call;
     type WeightInfo = pallet_xcm_helper::weights::SubstrateWeight<Runtime>;
 }
 

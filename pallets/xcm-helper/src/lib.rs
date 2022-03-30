@@ -38,7 +38,10 @@ use frame_support::{
 use frame_system::pallet_prelude::BlockNumberFor;
 
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
+use sp_io::hashing::blake2_256;
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup};
+use sp_runtime::traits::{Dispatchable, TrailingZeroInput};
+use sp_std::prelude::*;
 use sp_std::{boxed::Box, vec, vec::Vec};
 use xcm::{latest::prelude::*, DoubleEncoded, VersionedMultiLocation, VersionedXcm};
 use xcm_executor::traits::InvertLocation;
@@ -56,6 +59,12 @@ pub mod pallet {
     use frame_system::pallet_prelude::{BlockNumberFor, OriginFor};
 
     use super::*;
+    use frame_support::traits::IsSubType;
+    use frame_support::traits::OriginTrait;
+    use frame_support::traits::UnfilteredDispatchable;
+    use frame_support::weights::extract_actual_weight;
+    use frame_support::weights::PostDispatchInfo;
+    use frame_system::{ensure_root, ensure_signed};
     use sp_runtime::traits::{Convert, Zero};
 
     #[pallet::config]
@@ -100,6 +109,17 @@ pub mod pallet {
 
         /// Weight information
         type WeightInfo: WeightInfo;
+
+        /// The overarching call type.
+        type Call: Parameter
+            + Dispatchable<
+                Origin = <Self as frame_system::Config>::Origin,
+                PostInfo = PostDispatchInfo,
+            > + GetDispatchInfo
+            + From<frame_system::Call<Self>>
+            + UnfilteredDispatchable<Origin = <Self as frame_system::Config>::Origin>
+            + IsSubType<Call<Self>>
+            + IsType<<Self as frame_system::Config>::Call>;
     }
 
     #[pallet::event]
@@ -125,6 +145,10 @@ pub mod pallet {
         XCMNominated,
         /// XCM message sent. \[to, message\]
         Sent { to: MultiLocation, message: Xcm<()> },
+        /// Batch of dispatches completed fully with no error.
+        BatchCompleted,
+        /// A single item within a Batch of dispatches has completed with no error.
+        ItemCompleted,
     }
 
     #[pallet::storage]
@@ -158,6 +182,30 @@ pub mod pallet {
         /// The version of the `Versioned` value used is not able to be
         /// interpreted.
         BadVersion,
+        /// Too many calls batched.
+        TooManyCalls,
+    }
+
+    // Align the call size to 1KB. As we are currently compiling the runtime for native/wasm
+    // the `size_of` of the `Call` can be different. To ensure that this don't leads to
+    // mismatches between native/wasm or to different metadata for the same runtime, we
+    // algin the call size. The value is choosen big enough to hopefully never reach it.
+    const CALL_ALIGN: u32 = 1024;
+
+    #[pallet::extra_constants]
+    impl<T: Config> Pallet<T> {
+        /// The limit on the number of batched calls.
+        fn batched_calls_limit() -> u32 {
+            let allocator_limit = sp_core::MAX_POSSIBLE_ALLOCATION;
+            let call_size = ((sp_std::mem::size_of::<<T as Config>::Call>() as u32 + CALL_ALIGN
+                - 1)
+                / CALL_ALIGN)
+                * CALL_ALIGN;
+            // The margin to take into account vec doubling capacity.
+            let margin_factor = 3;
+
+            allocator_limit / margin_factor / call_size
+        }
     }
 
     #[pallet::call]
@@ -367,7 +415,16 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight({
+		let dispatch_info = call.get_dispatch_info();
+		(
+		T::WeightInfo::as_derivative()
+		.saturating_add(dispatch_info.weight)
+		// AccountData for inner call origin accountdata.
+		.saturating_add(T::DbWeight::get().reads_writes(1, 1)),
+		dispatch_info.class,
+		)
+		})]
         pub fn as_derivative(
             origin: OriginFor<T>,
             index: u16,
@@ -390,6 +447,68 @@ pub mod pallet {
                     err
                 })
                 .map(|_| Some(weight).into())
+        }
+
+        #[pallet::weight({
+		let dispatch_infos = calls.iter().map(|call| call.get_dispatch_info()).collect::<Vec<_>>();
+		let dispatch_weight = dispatch_infos.iter()
+		.map(|di| di.weight)
+		.fold(0, |total: Weight, weight: Weight| total.saturating_add(weight))
+		.saturating_add(T::WeightInfo::batch_all(calls.len() as u32));
+		let dispatch_class = {
+		let all_operational = dispatch_infos.iter()
+		.map(|di| di.class)
+		.all(|class| class == DispatchClass::Operational);
+		if all_operational {
+		DispatchClass::Operational
+		} else {
+		DispatchClass::Normal
+		}
+		};
+		(dispatch_weight, dispatch_class)
+		})]
+        #[transactional]
+        pub fn batch_all(
+            origin: OriginFor<T>,
+            calls: Vec<<T as Config>::Call>,
+        ) -> DispatchResultWithPostInfo {
+            let is_root = ensure_root(origin.clone()).is_ok();
+            let calls_len = calls.len();
+            ensure!(
+                calls_len <= Self::batched_calls_limit() as usize,
+                Error::<T>::TooManyCalls
+            );
+
+            // Track the actual weight of each of the batch calls.
+            let mut weight: Weight = 0;
+            for (index, call) in calls.into_iter().enumerate() {
+                let info = call.get_dispatch_info();
+                // If origin is root, bypass any dispatch filter; root can call anything.
+                let result = if is_root {
+                    call.dispatch_bypass_filter(origin.clone())
+                } else {
+                    let mut filtered_origin = origin.clone();
+                    // Don't allow users to nest `batch_all` calls.
+                    filtered_origin.add_filter(move |c: &<T as frame_system::Config>::Call| {
+                        let c = <T as Config>::Call::from_ref(c);
+                        !matches!(c.is_sub_type(), Some(Call::batch_all { .. }))
+                    });
+                    call.dispatch(filtered_origin)
+                };
+                // Add the weight of this call.
+                weight = weight.saturating_add(extract_actual_weight(&result, &info));
+                result.map_err(|mut err| {
+                    // Take the weight of this function itself into account.
+                    let base_weight = T::WeightInfo::batch_all(index.saturating_add(1) as u32);
+                    // Return the actual used weight + base_weight of this call.
+                    err.post_info = Some(base_weight + weight).into();
+                    err
+                })?;
+                Self::deposit_event(Event::ItemCompleted);
+            }
+            Self::deposit_event(Event::BatchCompleted);
+            let base_weight = T::WeightInfo::batch_all(calls_len as u32);
+            Ok(Some(base_weight + weight).into())
         }
     }
 }
@@ -497,6 +616,12 @@ impl<T: Config> Pallet<T> {
         // so we need to insert it after Withdraw, BuyExecution
         message.0.insert(2, SetAppendix(report_error));
         Ok(query_id)
+    }
+
+    pub fn derivative_account_id(who: T::AccountId, index: u16) -> T::AccountId {
+        let entropy = (b"modlpy/utilisuba", who, index).using_encoded(blake2_256);
+        Decode::decode(&mut TrailingZeroInput::new(entropy.as_ref()))
+            .expect("infinite length input; no invalid inputs for type; qed")
     }
 }
 

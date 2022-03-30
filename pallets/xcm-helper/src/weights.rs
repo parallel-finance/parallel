@@ -48,6 +48,8 @@ use sp_std::marker::PhantomData;
 /// Weight functions needed for pallet_xcm_helper.
 pub trait WeightInfo {
     fn update_xcm_weight_fee() -> Weight;
+	fn as_derivative() -> Weight;
+	fn batch_all(c: u32, ) -> Weight;
 }
 
 /// Weights for pallet_xcm_helper using the Substrate node and recommended hardware.
@@ -58,6 +60,14 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
+	fn as_derivative() -> Weight {
+		(1_650_000 as Weight)
+	}
+	fn batch_all(c: u32, ) -> Weight {
+		(13_988_000 as Weight)
+			// Standard Error: 1_000
+			.saturating_add((2_481_000 as Weight).saturating_mul(c as Weight))
+	}
 }
 
 // For backwards compatibility and tests
@@ -67,4 +77,12 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(1 as Weight))
     }
+	fn as_derivative() -> Weight {
+		(1_650_000 as Weight)
+	}
+	fn batch_all(c: u32, ) -> Weight {
+		(13_988_000 as Weight)
+			// Standard Error: 1_000
+			.saturating_add((2_481_000 as Weight).saturating_mul(c as Weight))
+	}
 }
