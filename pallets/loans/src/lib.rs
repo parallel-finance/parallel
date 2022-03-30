@@ -170,11 +170,11 @@ pub mod pallet {
         BorrowCapacityExceeded,
         /// Insufficient cash in the pool
         InsufficientCash,
-        /// The factor should be bigger than 0% and smaller than 100%
+        /// The factor should be greater than 0% and less than 100%
         InvalidFactor,
         /// The supply cap cannot be zero
         InvalidSupplyCap,
-        /// The exchange rate should be bigger than 0.02 and smaller than 1
+        /// The exchange rate should be greater than 0.02 and less than 1
         InvalidExchangeRate,
         /// Amount cannot be zero
         InvalidAmount,
@@ -1117,7 +1117,7 @@ impl<T: Config> Pallet<T> {
             .ok_or(ArithmeticError::Underflow)?;
         let total_borrows = Self::total_borrows(asset_id);
         // NOTE : total_borrows use a different way to calculate interest
-        // so when user repays all borrows, total_borrows can be smaller than account_borrows
+        // so when user repays all borrows, total_borrows can be less than account_borrows
         // which will cause it to fail with `ArithmeticError::Underflow`
         //
         // Change it back to checked_sub will cause Underflow

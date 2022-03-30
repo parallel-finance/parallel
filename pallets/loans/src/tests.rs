@@ -662,7 +662,7 @@ fn calc_collateral_amount_works() {
         Err(DispatchError::Arithmetic(ArithmeticError::Underflow))
     );
 
-    // relative test:
+    // relative test: prevent_the_exchange_rate_attack
     let exchange_rate = Rate::saturating_from_rational(30000, 1);
     assert_eq!(
         Loans::calc_collateral_amount(10000, exchange_rate).unwrap(),
