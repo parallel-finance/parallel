@@ -661,6 +661,13 @@ fn calc_collateral_amount_works() {
         Loans::calc_collateral_amount(u128::MAX, exchange_rate),
         Err(DispatchError::Arithmetic(ArithmeticError::Underflow))
     );
+
+    // relative test:
+    let exchange_rate = Rate::saturating_from_rational(30000, 1);
+    assert_eq!(
+        Loans::calc_collateral_amount(10000, exchange_rate).unwrap(),
+        0
+    );
 }
 
 #[test]
