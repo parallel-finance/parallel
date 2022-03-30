@@ -3569,6 +3569,7 @@ dependencies = [
  "orml-xcm-support",
  "orml-xtokens",
  "pallet-amm",
+ "pallet-asset-manager",
  "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
