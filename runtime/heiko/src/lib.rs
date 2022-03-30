@@ -240,8 +240,6 @@ impl Contains<Call> for BaseCallFilter {
             Call::OracleMembership(_) |
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
-            // AssetManager
-            Call::AssetManager(_) |
             Call::LiquidStakingAgentsMembership(_) |
             Call::CrowdloansAutomatorsMembership(_) |
             Call::BridgeMembership(_) |
@@ -1341,8 +1339,6 @@ construct_runtime!(
         OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 45,
         Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>} = 46,
 
-        // Asset Management
-        AssetManager: pallet_asset_manager::{Pallet, Call, Storage, Event<T>} = 48,
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
@@ -1600,7 +1596,6 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_crowdloans, Crowdloans);
             list_benchmark!(list, extra, pallet_xcm_helper, XcmHelper);
             list_benchmark!(list, extra, pallet_farming, Farming);
-            list_benchmark!(list, extra, pallet_asset_manager, AssetManager);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1647,7 +1642,6 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_crowdloans, Crowdloans);
             add_benchmark!(params, batches, pallet_xcm_helper, XcmHelper);
             add_benchmark!(params, batches, pallet_farming, Farming);
-            add_benchmark!(params, batches, pallet_asset_manager, AssetManager);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

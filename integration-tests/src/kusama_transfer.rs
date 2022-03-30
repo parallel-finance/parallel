@@ -16,8 +16,8 @@
 
 use cumulus_primitives_core::ParaId;
 use frame_support::assert_ok;
-use heiko_runtime::Assets;
 use primitives::{tokens::*, AccountId};
+use vanilla_runtime::Assets;
 use xcm::{latest::prelude::*, VersionedMultiAssets, VersionedMultiLocation};
 use xcm_emulator::TestExt;
 
@@ -41,7 +41,7 @@ fn transfer_from_relay_chain() {
         ));
     });
 
-    Heiko::execute_with(|| {
+    Vanilla::execute_with(|| {
         assert_eq!(Assets::balance(KSM, &AccountId::from(BOB)), 999_952_000_000);
         //ksm fee in heiko is 48_000_000
     });
@@ -49,8 +49,8 @@ fn transfer_from_relay_chain() {
 
 #[test]
 fn transfer_to_relay_chain() {
-    use heiko_runtime::{Origin, XTokens};
-    Heiko::execute_with(|| {
+    use vanilla_runtime::{Origin, XTokens};
+    Vanilla::execute_with(|| {
         assert_ok!(XTokens::transfer(
             Origin::signed(ALICE.into()),
             KSM,

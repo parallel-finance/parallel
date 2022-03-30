@@ -47,7 +47,7 @@ impl ExtBuilder {
     }
 
     pub fn build(self) -> sp_io::TestExternalities {
-        use heiko_runtime::{Assets, Origin, Runtime, System};
+        use vanilla_runtime::{Assets, Origin, Runtime, System};
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
             .unwrap();

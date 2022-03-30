@@ -48,8 +48,8 @@ fn statemine() {
         decimals: RMRK_DECIMAL,
         is_frozen: false,
     };
-    Heiko::execute_with(|| {
-        use heiko_runtime::{AssetManager, Origin};
+    Vanilla::execute_with(|| {
+        use vanilla_runtime::{AssetManager, Origin};
         assert_eq!(statemine_rmrk_asset_id, HEIKO_RMRK_ASSET_ID);
         let another_asset: AssetType = AssetType::Xcm(MultiLocation::new(
             1,
@@ -129,8 +129,8 @@ fn statemine() {
     });
     // Rerun the Statemine::execute to actually send the egress message via XCM
     Statemine::execute_with(|| {});
-    Heiko::execute_with(|| {
-        use heiko_runtime::{Assets, Origin, XTokens, XcmHelper};
+    Vanilla::execute_with(|| {
+        use vanilla_runtime::{Assets, Origin, XTokens, XcmHelper};
         assert_eq!(
             Assets::balance(statemine_rmrk_asset_id, &AccountId::from(BOB)),
             19940000000

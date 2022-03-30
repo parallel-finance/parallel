@@ -67,7 +67,7 @@ pallet-router                 = { path = '../pallets/router' }
 pallet-router-rpc-runtime-api = { path = '../pallets/router/rpc/runtime-api' }
 pallet-xcm-helper             = { path = '../pallets/xcm-helper' }
 primitives                    = { package = 'parallel-primitives', path = '../primitives' }
-heiko-runtime                 = { path = '../runtime/heiko' }
+vanilla-runtime                 = { path = '../runtime/vanilla' }
 
 [dev-dependencies]
 env_logger                              = '0.9.0'
