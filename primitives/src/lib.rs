@@ -106,7 +106,10 @@ pub type DerivativeIndex = u16;
 
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
-pub use cumulus_primitives_core::ParaId;
+// DAOFi id of a payment stream
+pub type StreamId = u128;
+
+pub use cumulus_primitives_core::{ParaId, PersistedValidationData};
 use num_bigint::{BigUint, ToBigUint};
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
@@ -191,10 +194,16 @@ impl ConvertToBigUint for u128 {
     }
 }
 
+/// Asset Registrar Metadata
 #[derive(Clone, Default, Eq, Debug, PartialEq, Ord, PartialOrd, Encode, Decode, TypeInfo)]
 pub struct AssetRegistrarMetadata {
     pub name: Vec<u8>,
     pub symbol: Vec<u8>,
     pub decimals: u8,
     pub is_frozen: bool,
+}
+
+/// Get relaychain validation data
+pub trait ValidationDataProvider {
+    fn validation_data() -> Option<PersistedValidationData>;
 }

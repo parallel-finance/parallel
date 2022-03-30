@@ -1,4 +1,4 @@
-import { createXcm, getApi, getRelayApi, nextNonce, sovereignAccountOf } from '../../utils'
+import { createXcm, getApi, getRelayApi, nextNonce, sovereignRelayOf } from '../../utils'
 import { Command, CreateCommandParameters, program } from '@caporal/core'
 import { Keyring } from '@polkadot/api'
 
@@ -22,23 +22,22 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         args: { source, target },
         options: { relayWs, paraWs }
       } = actionParameters
-      const encoded = await getRelayApi(relayWs.toString())
-        .then(api => api.tx.hrmp.hrmpAcceptOpenChannel(source.valueOf() as number).toHex())
-        .then(hex => `0x${hex.slice(6)}`)
+      const relayApi = await getRelayApi(relayWs.toString())
+      const encoded = relayApi.tx.hrmp.hrmpAcceptOpenChannel(source.valueOf() as number).toHex()
       const api = await getApi(paraWs.toString())
       const signer = new Keyring({ type: 'sr25519' }).addFromUri(
         `${process.env.PARA_CHAIN_SUDO_KEY || '//Dave'}`
       )
       await api.tx.sudo
         .sudo(
-          api.tx.ormlXcm.sendAsSovereign(
+          api.tx.polkadotXcm.send(
             {
               V1: {
                 parents: 1,
                 interior: 'Here'
               }
             },
-            createXcm(encoded, sovereignAccountOf(target.valueOf() as number))
+            createXcm(`0x${encoded.slice(6)}`, sovereignRelayOf(target.valueOf() as number))
           )
         )
         .signAndSend(signer, { nonce: await nextNonce(api, signer) })

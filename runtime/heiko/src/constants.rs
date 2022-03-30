@@ -94,11 +94,37 @@ pub mod fee {
 
 /// Parachains-related
 pub mod paras {
+    pub mod statemine {
+        pub const ID: u32 = 1000;
+    }
 
     pub mod karura {
         pub const ID: u32 = 2000;
         pub const KAR_KEY: &[u8] = &[0, 128];
         pub const KUSD_KEY: &[u8] = &[0, 129];
         pub const LKSM_KEY: &[u8] = &[0, 131];
+    }
+
+    pub mod moonriver {
+        pub const ID: u32 = 2023;
+        pub const MOVR_KEY: u8 = 10;
+    }
+
+    pub mod khala {
+        pub const ID: u32 = 2004;
+    }
+
+    pub mod shiden {
+        pub const ID: u32 = 2007;
+    }
+
+    pub mod calamari {
+        pub const ID: u32 = 2084;
+    }
+
+    pub mod kintsugi {
+        pub const ID: u32 = 2092;
+        pub const KBTC_KEY: &[u8] = &[0, 11];
+        pub const KINT_KEY: &[u8] = &[0, 12];
     }
 }

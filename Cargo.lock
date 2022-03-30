@@ -2793,7 +2793,7 @@ checksum = "2540771e65fc8cb83cd6e8a237f70c319bd5c29f78ed1084ba5d50eeac86f7f9"
 
 [[package]]
 name = "heiko-runtime"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -2838,6 +2838,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-payroll",
  "pallet-preimage",
  "pallet-prices",
  "pallet-proxy",
@@ -3542,7 +3543,7 @@ dependencies = [
 
 [[package]]
 name = "kerria-runtime"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -3586,6 +3587,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-payroll",
  "pallet-preimage",
  "pallet-prices",
  "pallet-proxy",
@@ -5179,7 +5181,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-amm"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5201,7 +5203,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-asset-manager"
-version = "0.1.0"
+version = "1.8.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5417,7 +5419,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-bridge"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5535,7 +5537,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-crowdloans"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -5577,7 +5579,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-currency-adapter"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5646,7 +5648,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-emergency-shutdown"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5660,7 +5662,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-farming"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5772,7 +5774,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-liquid-staking"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -5781,6 +5783,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex",
  "kusama-runtime",
  "orml-traits",
  "orml-xcm-support",
@@ -5805,7 +5808,9 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "sp-state-machine",
  "sp-std",
+ "sp-trie",
  "xcm",
  "xcm-builder",
  "xcm-executor",
@@ -5814,7 +5819,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5838,7 +5843,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans-rpc"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "jsonrpc-core",
  "jsonrpc-core-client",
@@ -5855,7 +5860,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans-rpc-runtime-api"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
@@ -6001,6 +6006,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-payroll"
+version = "1.7.8"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "orml-oracle",
+ "orml-traits",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-currency-adapter",
+ "pallet-prices",
+ "pallet-timestamp",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-preimage"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.17#22d40c761a985482f93bbbea5ba4199bdba74f8e"
@@ -6018,7 +6047,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-prices"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6065,7 +6094,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6085,7 +6114,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router-rpc"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "jsonrpc-core",
  "jsonrpc-core-client",
@@ -6103,7 +6132,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router-rpc-runtime-api"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
@@ -6418,7 +6447,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-helper"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -6497,7 +6526,7 @@ dependencies = [
 
 [[package]]
 name = "parallel"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "clap",
  "cumulus-client-cli",
@@ -6570,7 +6599,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-primitives"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -6594,7 +6623,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-runtime"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -6638,6 +6667,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-payroll",
  "pallet-preimage",
  "pallet-prices",
  "pallet-proxy",
@@ -11924,7 +11954,7 @@ dependencies = [
 
 [[package]]
 name = "vanilla-runtime"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -11969,6 +11999,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-payroll",
  "pallet-preimage",
  "pallet-prices",
  "pallet-proxy",

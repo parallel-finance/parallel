@@ -42,8 +42,12 @@ pub mod v2 {
             StorageVersion::<T>::get() == crate::Versions::V1,
             "must upgrade linearly"
         );
-        Markets::<T>::iter().for_each(|(asset_id, _market)| {
-            log::info!("market {:#?} need to migrate", asset_id);
+        Markets::<T>::iter().for_each(|(asset_id, market)| {
+            log::info!(
+                "market {:#?} need to migrate, cap {:#?}",
+                asset_id,
+                market.cap
+            );
         });
         log::info!("👜 loans borrow-limit migration passes PRE migrate checks ✅",);
 
@@ -57,14 +61,14 @@ pub mod v2 {
 
             Markets::<T>::translate::<OldMarket<BalanceOf<T>>, _>(|_key, market| {
                 Some(Market {
-                    borrow_limit: 1_000_000_000_000_000u128,
+                    borrow_cap: 1_000_000_000_000_000u128,
+                    supply_cap: market.cap,
                     collateral_factor: market.collateral_factor,
                     reserve_factor: market.reserve_factor,
                     close_factor: market.close_factor,
                     liquidate_incentive: market.liquidate_incentive,
                     rate_model: market.rate_model,
                     state: market.state,
-                    cap: market.cap,
                     ptoken_id: market.ptoken_id,
                 })
             });
@@ -86,9 +90,10 @@ pub mod v2 {
         );
         Markets::<T>::iter().for_each(|(asset_id, market)| {
             log::info!(
-                "market {:#?}, borrow_limit {:#?}",
+                "market {:#?}, supply_cap {:#?}, borrow_cap {:#?}",
                 asset_id,
-                market.borrow_limit
+                market.supply_cap,
+                market.borrow_cap
             );
         });
         log::info!("👜 loans borrow-limit migration passes POST migrate checks ✅",);

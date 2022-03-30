@@ -101,6 +101,10 @@ bench-amm-router:
 bench-asset-manager:
 	cargo run --release --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-asset-manager --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/asset-manager/src/weights.rs
 
+.PHONY: bench-payroll
+bench-payroll:
+	cargo run --release --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-payroll --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/payroll/src/weights.rs
+
 .PHONY: lint
 lint:
 	SKIP_WASM_BUILD= cargo fmt --all -- --check
@@ -148,6 +152,7 @@ launch: shutdown
 	docker image pull parallelfinance/liquidation-client:latest
 	docker image pull parallelfinance/nominate-client:latest
 	docker image pull parallelfinance/oracle-client:latest
+	docker image pull parallelfinance/heiko-dapp:latest
 	docker image pull parallelfinance/parallel-dapp:latest
 	parachain-launch generate $(LAUNCH_CONFIG_YAML) \
 		&& (cp -r keystore* output || true) \
@@ -171,9 +176,9 @@ dev-launch: shutdown
 	yq -i eval '.parachains[0].chain = "$(CHAIN)"' $(LAUNCH_CONFIG_JSON) -j
 	ts-node scripts/polkadot-launch/src/cli.ts config.json
 
-.PHONY: dev-launch-kerria
-dev-launch-kerria:
-	make PARA_ID=2012 CHAIN=kerria-dev RELAY_CHAIN=polkadot-local dev-launch
+.PHONY: dev-launch-vanilla
+dev-launch-vanilla:
+	make PARA_ID=2085 CHAIN=vanilla-dev RELAY_CHAIN=kusama-local dev-launch
 
 .PHONY: logs
 logs:

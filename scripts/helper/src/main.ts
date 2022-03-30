@@ -8,4 +8,7 @@ dotenv.config()
 
 program.bin('parallel-helper').discover(path.join(__dirname, 'commands'))
 
-program.run()
+program.run().catch(err => {
+  console.error(err.message)
+  process.exit(1)
+})

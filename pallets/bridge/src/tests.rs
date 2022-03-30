@@ -88,19 +88,21 @@ fn gift_fees_works() {
         assert_eq!(<Test as Config>::Assets::balance(USDT, &DAVE), dollar(0));
         assert_eq!(<Test as Config>::Assets::balance(HKO, &DAVE), dollar(0));
 
-        Bridge::materialize(Origin::signed(ALICE), ETH, 0, EUSDT, DAVE, dollar(10), true).unwrap();
-        Bridge::materialize(Origin::signed(BOB), ETH, 0, EUSDT, DAVE, dollar(10), true).unwrap();
+        Bridge::set_bridge_token_cap(Origin::root(), EUSDT, BridgeType::BridgeIn, usdt(300))
+            .unwrap();
+        Bridge::materialize(Origin::signed(ALICE), ETH, 0, EUSDT, DAVE, usdt(300), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 0, EUSDT, DAVE, usdt(300), true).unwrap();
         Bridge::materialize(
             Origin::signed(CHARLIE),
             ETH,
             0,
             EUSDT,
             DAVE,
-            dollar(10),
+            usdt(300),
             true,
         )
         .unwrap();
-        assert_eq!(<Test as Config>::Assets::balance(USDT, &DAVE), dollar(10));
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &DAVE), usdt(300));
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &DAVE),
             dollar(25) / 1000 + dollar(1) / 100,
@@ -111,19 +113,12 @@ fn gift_fees_works() {
         assert_eq!(<Test as Config>::Assets::balance(USDT, &BOB), dollar(0));
         assert_eq!(<Test as Config>::Assets::balance(HKO, &BOB), dollar(0));
 
-        Bridge::materialize(Origin::signed(ALICE), ETH, 1, EUSDT, BOB, 299_000_000, true).unwrap();
-        Bridge::materialize(Origin::signed(BOB), ETH, 1, EUSDT, BOB, 299_000_000, true).unwrap();
-        Bridge::materialize(
-            Origin::signed(CHARLIE),
-            ETH,
-            1,
-            EUSDT,
-            BOB,
-            299_000_000,
-            true,
-        )
-        .unwrap();
-        assert_eq!(<Test as Config>::Assets::balance(USDT, &BOB), 299_000_000);
+        Bridge::clean_cap_accumulated_value(Origin::signed(ALICE), EUSDT, BridgeType::BridgeIn)
+            .unwrap();
+        Bridge::materialize(Origin::signed(ALICE), ETH, 1, EUSDT, BOB, usdt(229), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 1, EUSDT, BOB, usdt(229), true).unwrap();
+        Bridge::materialize(Origin::signed(CHARLIE), ETH, 1, EUSDT, BOB, usdt(229), true).unwrap();
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &BOB), usdt(229));
         assert_eq!(<Test as Config>::Assets::balance(HKO, &BOB), 0,);
 
         // BOB balance = 0.022 HKO
@@ -131,19 +126,11 @@ fn gift_fees_works() {
         // final_gift = existential_deposit + 0.013 HKO = 0.023 HKO
         // final_balance = 0.022 HKO + 0.023 HKO = 0.045 HKO
         Balances::set_balance(Origin::root(), BOB, dollar(22) / 1000, dollar(0)).unwrap();
-
-        Bridge::materialize(Origin::signed(ALICE), ETH, 2, EUSDT, BOB, dollar(10), true).unwrap();
-        Bridge::materialize(Origin::signed(BOB), ETH, 2, EUSDT, BOB, dollar(10), true).unwrap();
-        Bridge::materialize(
-            Origin::signed(CHARLIE),
-            ETH,
-            2,
-            EUSDT,
-            BOB,
-            dollar(10),
-            true,
-        )
-        .unwrap();
+        Bridge::clean_cap_accumulated_value(Origin::signed(ALICE), EUSDT, BridgeType::BridgeIn)
+            .unwrap();
+        Bridge::materialize(Origin::signed(ALICE), ETH, 2, EUSDT, BOB, usdt(300), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 2, EUSDT, BOB, usdt(300), true).unwrap();
+        Bridge::materialize(Origin::signed(CHARLIE), ETH, 2, EUSDT, BOB, usdt(300), true).unwrap();
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &BOB),
             dollar(35) / 1000 + dollar(1) / 100,
@@ -154,19 +141,11 @@ fn gift_fees_works() {
         // final_gift = 0 HKO
         // final_balance = 0.035 HKO
         Balances::set_balance(Origin::root(), BOB, dollar(35) / 1000, dollar(0)).unwrap();
-
-        Bridge::materialize(Origin::signed(ALICE), ETH, 3, EUSDT, BOB, dollar(10), true).unwrap();
-        Bridge::materialize(Origin::signed(BOB), ETH, 3, EUSDT, BOB, dollar(10), true).unwrap();
-        Bridge::materialize(
-            Origin::signed(CHARLIE),
-            ETH,
-            3,
-            EUSDT,
-            BOB,
-            dollar(10),
-            true,
-        )
-        .unwrap();
+        Bridge::clean_cap_accumulated_value(Origin::signed(ALICE), EUSDT, BridgeType::BridgeIn)
+            .unwrap();
+        Bridge::materialize(Origin::signed(ALICE), ETH, 3, EUSDT, BOB, usdt(10), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 3, EUSDT, BOB, usdt(10), true).unwrap();
+        Bridge::materialize(Origin::signed(CHARLIE), ETH, 3, EUSDT, BOB, usdt(10), true).unwrap();
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &BOB),
             dollar(35) / 1000,
@@ -236,7 +215,7 @@ fn materialize_works() {
 #[test]
 fn set_bridge_token_fee_works() {
     new_test_ext().execute_with(|| {
-        // Case 1: Bridge toke is HKO
+        // Case 1: Bridge token is HKO
         // Set HKO fee equal to 2 HKO
         Bridge::set_bridge_token_fee(Origin::root(), EHKO, dollar(1)).unwrap();
 
@@ -267,22 +246,22 @@ fn set_bridge_token_fee_works() {
 
         // Case 2: Bridge toke is EUSDT
         // Set EUSDT fee equal to 1 EUSDT
-        Bridge::set_bridge_token_fee(Origin::root(), EUSDT, dollar(1)).unwrap();
+        Bridge::set_bridge_token_fee(Origin::root(), EUSDT, usdt(1)).unwrap();
 
         // EVE has 10 USDT initialized
-        Assets::mint(Origin::signed(ALICE), USDT, EVE, dollar(10)).unwrap();
-        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(10));
+        Assets::mint(Origin::signed(ALICE), USDT, EVE, usdt(10)).unwrap();
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), usdt(10));
 
         // EVE teleport 10 EUSDT
-        Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), dollar(10)).unwrap();
+        Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), usdt(10)).unwrap();
 
         // After teleport 10 EUSDT
         // EVE should have 0 USDT
         // PalletId should receive the fee equal to 1 USDT
-        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(0));
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), usdt(0));
         assert_eq!(
             <Test as Config>::Assets::balance(USDT, &Bridge::account_id()),
-            dollar(1)
+            usdt(1)
         );
 
         // Success in generating `TeleportBurned` event
@@ -294,6 +273,45 @@ fn set_bridge_token_fee_works() {
             2,
             EUSDT,
             "TELE".into(),
+            usdt(9),
+            usdt(1),
+        ))]);
+    });
+}
+
+#[test]
+fn set_bridge_token_status_works() {
+    new_test_ext().execute_with(|| {
+        // Case 1: Cannot not teleport a disabled token
+        // Set bridge token status to disabled
+        Bridge::set_bridge_token_status(Origin::root(), EHKO, false).unwrap();
+
+        // Set HKO transaction fee to 2 HKO
+        Bridge::set_bridge_token_fee(Origin::root(), EHKO, dollar(1)).unwrap();
+        // Initial balance of EVE is 100 HKO
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));
+        assert_noop!(
+            Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(10)),
+            Error::<Test>::BridgeTokenDisabled,
+        );
+
+        // Case 2: user can teleport a enabled token
+        Bridge::set_bridge_token_status(Origin::root(), EHKO, true).unwrap();
+        Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(10)).unwrap();
+        assert_eq!(
+            <Test as Config>::Assets::balance(HKO, &Bridge::account_id()),
+            dollar(10)
+        );
+
+        // Success in generating `TeleportBurned` event
+        // actual amount is 9 HKO
+        // fee is 1 HKO
+        assert_events(vec![mock::Event::Bridge(Event::TeleportBurned(
+            EVE,
+            ETH,
+            1,
+            EHKO,
+            "TELE".into(),
             dollar(9),
             dollar(1),
         ))]);
@@ -304,19 +322,19 @@ fn set_bridge_token_fee_works() {
 fn teleport_external_currency_works() {
     new_test_ext().execute_with(|| {
         // Set EUSDT fee equal to 1 USDT
-        Bridge::set_bridge_token_fee(Origin::root(), EUSDT, dollar(1)).unwrap();
+        Bridge::set_bridge_token_fee(Origin::root(), EUSDT, usdt(1)).unwrap();
 
         // EVE has 100 USDT initialized
-        Assets::mint(Origin::signed(ALICE), USDT, EVE, dollar(100)).unwrap();
-        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(100));
+        Assets::mint(Origin::signed(ALICE), USDT, EVE, usdt(100)).unwrap();
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), usdt(100));
 
         // EVE teleport 10 EUSDT
-        Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), dollar(10)).unwrap();
+        Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), usdt(10)).unwrap();
 
-        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(90));
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), usdt(90));
         assert_eq!(
             <Test as Config>::Assets::balance(USDT, &Bridge::account_id()),
-            dollar(1),
+            usdt(1),
         );
 
         assert_events(vec![mock::Event::Bridge(Event::TeleportBurned(
@@ -325,8 +343,8 @@ fn teleport_external_currency_works() {
             1,
             EUSDT,
             "TELE".into(),
-            dollar(9),
-            dollar(1),
+            usdt(9),
+            usdt(1),
         ))]);
     });
 }
@@ -342,33 +360,24 @@ fn materialize_external_currency_works() {
 
         // EVE has 0 USDT, and then requests for materializing 10 USDT
         // Current vote threshold is 3
-        Bridge::materialize(Origin::signed(ALICE), ETH, 1, EUSDT, EVE, dollar(10), true).unwrap();
-        Bridge::materialize(Origin::signed(BOB), ETH, 1, EUSDT, EVE, dollar(10), true).unwrap();
-        Bridge::materialize(
-            Origin::signed(CHARLIE),
-            ETH,
-            1,
-            EUSDT,
-            EVE,
-            dollar(10),
-            true,
-        )
-        .unwrap();
-        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(10));
+        Bridge::materialize(Origin::signed(ALICE), ETH, 1, EUSDT, EVE, usdt(10), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 1, EUSDT, EVE, usdt(10), true).unwrap();
+        Bridge::materialize(Origin::signed(CHARLIE), ETH, 1, EUSDT, EVE, usdt(10), true).unwrap();
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), usdt(10));
 
         assert_events(vec![mock::Event::Bridge(Event::MaterializeMinted(
             ETH,
             1,
             EUSDT,
             EVE,
-            dollar(10),
+            usdt(10),
         ))]);
 
         assert_noop!(
-            Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), dollar(11)),
+            Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), usdt(11)),
             pallet_assets::Error::<Test>::BalanceLow,
         );
-        Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), dollar(10)).unwrap();
+        Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), usdt(10)).unwrap();
 
         assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(0));
         assert_eq!(
@@ -377,8 +386,152 @@ fn materialize_external_currency_works() {
         );
     })
 }
+
 #[test]
-fn test_merge_overlapping_intervals() {
+fn bridge_in_and_out_cap_works() {
+    new_test_ext().execute_with(|| {
+        // Case 1: bridge out cap works
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));
+        // bridge_out_cp = 100 HKO, teleport 10 HKO is ok
+        Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(10)).unwrap();
+        // It reaches the bridge out cap
+        Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(90)).unwrap();
+        // Failed if bridgeing amount exceed the bridge out cap
+        assert_noop!(
+            Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(1)),
+            Error::<Test>::BridgeOutCapExceeded,
+        );
+        // Bob also cannot teleport when bridge out capacity is exceeded
+        assert_noop!(
+            Bridge::teleport(Origin::signed(BOB), ETH, EHKO, "TELE".into(), dollar(1)),
+            Error::<Test>::BridgeOutCapExceeded,
+        );
+
+        // Case 2: bridge in cap works
+        Balances::set_balance(Origin::root(), Bridge::account_id(), dollar(200), dollar(0))
+            .unwrap();
+        // Bridge_in cap is 100 HKO
+        Bridge::materialize(Origin::signed(ALICE), ETH, 0, EHKO, EVE, dollar(100), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 0, EHKO, EVE, dollar(100), true).unwrap();
+        Bridge::materialize(
+            Origin::signed(CHARLIE),
+            ETH,
+            0,
+            EHKO,
+            EVE,
+            dollar(100),
+            true,
+        )
+        .unwrap();
+
+        // Failed if exceed the bridge in cap
+        assert_noop!(
+            Bridge::materialize(Origin::signed(ALICE), ETH, 1, EHKO, EVE, dollar(100), true),
+            Error::<Test>::BridgeInCapExceeded,
+        );
+    })
+}
+
+#[test]
+fn clean_cap_accumulated_value_works() {
+    new_test_ext().execute_with(|| {
+        Balances::set_balance(Origin::root(), EVE, dollar(200), dollar(0)).unwrap();
+        Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(100)).unwrap();
+        assert_noop!(
+            Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(100)),
+            Error::<Test>::BridgeOutCapExceeded,
+        );
+
+        // CapOrigin can clean the accumulated cap value
+        Bridge::clean_cap_accumulated_value(Origin::signed(ALICE), EHKO, BridgeType::BridgeOut)
+            .unwrap();
+
+        // Bridge out works again
+        Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(100)).unwrap();
+        assert_noop!(
+            Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(1)),
+            Error::<Test>::BridgeOutCapExceeded,
+        );
+    })
+}
+
+#[test]
+fn set_bridge_token_cap_works() {
+    new_test_ext().execute_with(|| {
+        Balances::set_balance(Origin::root(), EVE, dollar(500), dollar(0)).unwrap();
+        Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(100)).unwrap();
+        assert_noop!(
+            Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(250)),
+            Error::<Test>::BridgeOutCapExceeded,
+        );
+
+        // Set a higher cap to continue the transaction above
+        Bridge::set_bridge_token_cap(Origin::root(), EHKO, BridgeType::BridgeOut, dollar(350))
+            .unwrap();
+
+        // It works after cap changes
+        Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(250)).unwrap();
+        assert_noop!(
+            Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(1)),
+            Error::<Test>::BridgeOutCapExceeded,
+        );
+    })
+}
+
+#[test]
+fn multi_materialize_cap_limit_works() {
+    new_test_ext().execute_with(|| {
+        Balances::set_balance(Origin::root(), Bridge::account_id(), dollar(300), dollar(0))
+            .unwrap();
+        // Try to materialize for EVE with 100 EHKO
+        Bridge::materialize(Origin::signed(ALICE), ETH, 0, EHKO, EVE, dollar(100), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 0, EHKO, EVE, dollar(100), true).unwrap();
+        // But another materialize tx was finished advance and reach the bridge in cap
+        Bridge::materialize(Origin::signed(ALICE), ETH, 1, EHKO, BOB, dollar(100), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 1, EHKO, BOB, dollar(100), true).unwrap();
+        Bridge::materialize(
+            Origin::signed(CHARLIE),
+            ETH,
+            1,
+            EHKO,
+            BOB,
+            dollar(100),
+            true,
+        )
+        .unwrap();
+        // Failed if exceed the bridge in cap
+        assert_noop!(
+            Bridge::materialize(
+                Origin::signed(CHARLIE),
+                ETH,
+                0,
+                EHKO,
+                EVE,
+                dollar(100),
+                true
+            ),
+            Error::<Test>::BridgeInCapExceeded,
+        );
+
+        // CapOrigin should clean the accumulated cap value
+        Bridge::clean_cap_accumulated_value(Origin::signed(ALICE), EHKO, BridgeType::BridgeIn)
+            .unwrap();
+        // Succed after the accumulated cap value is cleaned
+        Bridge::materialize(
+            Origin::signed(CHARLIE),
+            ETH,
+            0,
+            EHKO,
+            EVE,
+            dollar(100),
+            true,
+        )
+        .unwrap();
+    })
+}
+
+#[test]
+fn merge_overlapping_intervals_works() {
     // status 0: (1,1), (3,4), (6,6)
     // status 1: push 2 => (1,2), (2,4), (6,6)
     assert_eq!(

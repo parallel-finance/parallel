@@ -1,4 +1,5 @@
 use crate as pallet_emergency_shutdown;
+use crate::EmergencyCallFilter;
 use frame_support::{parameter_types, traits::Contains};
 use frame_system::EnsureRoot;
 use sp_core::H256;
@@ -75,6 +76,7 @@ impl pallet_emergency_shutdown::Config for Test {
     type Event = Event;
     type Whitelist = TestBaseCallFilter;
     type ShutdownOrigin = EnsureRoot<u64>;
+    type Call = Call;
 }
 
 // Build genesis storage according to the mock runtime.
