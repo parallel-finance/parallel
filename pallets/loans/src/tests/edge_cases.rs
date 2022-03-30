@@ -1,5 +1,6 @@
+use super::*;
 use crate::{
-    mock::{million_dollar, new_test_ext, Assets, Loans, Origin, Test, ALICE, DOT, KSM, SDOT},
+    mock::*,
     tests::{dollar, run_to_block},
     Error,
 };
@@ -82,5 +83,51 @@ fn redeem_all_should_be_accurate() {
         assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
         // It failed with InsufficientLiquidity before #839
         assert_ok!(Loans::redeem_all(Origin::signed(ALICE), KSM));
+    })
+}
+
+#[test]
+fn prevent_the_exchange_rate_attack() {
+    new_test_ext().execute_with(|| {
+        // Initialize Eve's balance
+        assert_ok!(<Test as Config>::Assets::transfer(
+            DOT,
+            &ALICE,
+            &EVE,
+            dollar(200),
+            false
+        ));
+        // Eve deposits a small amount
+        assert_ok!(Loans::mint(Origin::signed(EVE), DOT, 20));
+        // !!! Eve transfer a big amount to Loans::account_id
+        assert_ok!(<Test as Config>::Assets::transfer(
+            DOT,
+            &EVE,
+            &Loans::account_id(),
+            dollar(100),
+            false
+        ));
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &EVE), 99999999999980);
+        assert_eq!(
+            <Test as Config>::Assets::balance(DOT, &Loans::account_id()),
+            100000000000020
+        );
+        assert_eq!(
+            Loans::total_supply(DOT),
+            20 * 50, // 20 / 0.02
+        );
+        // Eve can not let the exchage rate greater than 1
+        assert!(Loans::accrue_interest(6).is_err());
+
+        // Mock a BIG exchange_rate: 100000000000.02
+        ExchangeRate::<Test>::insert(
+            DOT,
+            Rate::saturating_from_rational(100000000000020u128, 20 * 50),
+        );
+        // Bob can not deposit 0.1 DOT because the voucher_balance can not be 0.
+        assert_noop!(
+            Loans::mint(Origin::signed(BOB), DOT, 100000000000),
+            Error::<Test>::InvalidExchangeRate
+        );
     })
 }
