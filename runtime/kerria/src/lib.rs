@@ -1504,9 +1504,11 @@ parameter_types! {
 
 impl pallet_bridge::Config for Runtime {
     type Event = Event;
-    type AdminMembers = BridgeMembership;
+    type RelayMembers = BridgeMembership;
     type RootOperatorAccountId = OneAccount;
-    type OperateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateChainOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateTokenOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ChainId = ParallelKerria;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;

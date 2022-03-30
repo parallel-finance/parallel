@@ -39,7 +39,10 @@ use frame_support::{
 use frame_system::{ensure_signed_or_root, pallet_prelude::*};
 use primitives::{Balance, BridgeInterval, ChainId, ChainNonce, CurrencyId, Ratio};
 use scale_info::prelude::{vec, vec::Vec};
-use sp_runtime::traits::{AccountIdConversion, Zero};
+use sp_runtime::{
+    traits::{AccountIdConversion, Zero},
+    ArithmeticError,
+};
 
 mod benchmarking;
 mod mock;
@@ -48,6 +51,7 @@ mod types;
 pub mod weights;
 
 pub use pallet::*;
+use types::BridgeType;
 pub use weights::WeightInfo;
 
 type AssetIdOf<T> =
@@ -74,15 +78,17 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        /// Admin members has permission to manage the pallet
-        type AdminMembers: SortedMembers<Self::AccountId>;
+        /// Relay members has permission to materialize the assets
+        type RelayMembers: SortedMembers<Self::AccountId>;
 
-        /// The origin which can update bridge configurations
-        /// register or unregister the chains
-        /// register or unregister the bridge
-        /// set bridge token fee.
-        /// Root can always do this.
-        type OperateOrigin: EnsureOrigin<Self::Origin>;
+        /// The origin which can update bridged token
+        type UpdateTokenOrigin: EnsureOrigin<Self::Origin>;
+
+        /// The origin which can update bridged chain
+        type UpdateChainOrigin: EnsureOrigin<Self::Origin>;
+
+        /// The origin which can clean accumulated cap value
+        type CapOrigin: EnsureOrigin<Self::Origin>;
 
         /// The root operator account id
         #[pallet::constant]
@@ -93,14 +99,18 @@ pub mod pallet {
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
+        /// An account to pay the bonus
         #[pallet::constant]
         type GiftAccount: Get<Self::AccountId>;
 
+        /// A bonus amount converter
         type GiftConvert: BalanceConversion<Balance, CurrencyId, Balance>;
 
+        /// Currency id of the native token
         #[pallet::constant]
         type NativeCurrencyId: Get<AssetIdOf<Self>>;
 
+        /// The essential balance for an existed account
         #[pallet::constant]
         type ExistentialDeposit: Get<Balance>;
 
@@ -145,10 +155,16 @@ pub mod pallet {
         BridgeTokenAlreadyRegistered,
         /// The bridge token is not registered and the related operation will be invalid
         BridgeTokenNotRegistered,
-        /// The AdminMember already vote for the proposal
+        /// The bridge token is not available in cross-chain
+        BridgeTokenDisabled,
+        /// The RelayMembers already vote for the proposal
         MemberAlreadyVoted,
-        /// The bridged amount is too low
-        BridgedAmountTooLow,
+        /// The bridging amount is too low
+        BridgingAmountTooLow,
+        /// The bridging amount is exceed the capacity
+        BridgeOutCapExceeded,
+        /// The bridging amount is exceed the capacity
+        BridgeInCapExceeded,
         /// No proposal was found
         ProposalDoesNotExist,
         /// Proposal has been finished
@@ -161,9 +177,9 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Vote threshold has changed
+        /// Vote threshold has updated
         /// [vote_threshold]
-        VoteThresholdChanged(u32),
+        VoteThresholdUpdated(u32),
 
         /// New chain_id has been registered
         /// [chain_id]
@@ -174,16 +190,38 @@ pub mod pallet {
         ChainRemoved(ChainId),
 
         /// New bridge_token_id has been registered
-        /// [asset_id, bridge_token_id, external, fee]
-        BridgeTokenRegistered(AssetIdOf<T>, CurrencyId, bool, BalanceOf<T>),
+        /// [asset_id, bridge_token_id, external, fee, enable, out_cap, out_amount, in_cap, in_amount]
+        BridgeTokenRegistered(
+            AssetIdOf<T>,
+            CurrencyId,
+            bool,
+            BalanceOf<T>,
+            bool,
+            BalanceOf<T>,
+            BalanceOf<T>,
+            BalanceOf<T>,
+            BalanceOf<T>,
+        ),
 
         /// The bridge_token_id has been unregistered
         /// [asset_id, bridge_token_id]
         BridgeTokenRemoved(AssetIdOf<T>, CurrencyId),
 
-        /// Bridge token fee has changed
+        /// Bridge token fee has updated
         /// [bridge_token_id, fee]
-        BridgeTokenFeeChanged(CurrencyId, BalanceOf<T>),
+        BridgeTokenFeeUpdated(CurrencyId, BalanceOf<T>),
+
+        /// The status of the bridge token has updated
+        /// [bridge_token_id, enabled]
+        BridgeTokenStatusUpdated(CurrencyId, bool),
+
+        /// The status of the bridge token cap has updated
+        /// [bridge_token_id, bridge_type, new_cap]
+        BridgeTokenCapUpdated(CurrencyId, BridgeType, BalanceOf<T>),
+
+        /// The accumulated cap value cleaned
+        /// [bridge_token_id, bridge_type]
+        BridgeTokenAccumulatedValueCleaned(CurrencyId, BridgeType),
 
         /// Event emitted when bridge token is destoryed by teleportation
         /// [ori_address, dest_id, chain_nonce, bridge_token_id, dst_address, amount, fee]
@@ -262,12 +300,12 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, ChainId, Vec<BridgeInterval>, OptionQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn bridge_tokens)]
+    #[pallet::getter(fn bridge_token)]
     pub type BridgeTokens<T: Config> =
         StorageMap<_, Twox64Concat, AssetIdOf<T>, BridgeToken, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn asset_ids)]
+    #[pallet::getter(fn asset_id)]
     pub type AssetIds<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, AssetIdOf<T>, ValueQuery>;
 
@@ -294,7 +332,7 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::register_chain())]
         #[transactional]
         pub fn register_chain(origin: OriginFor<T>, chain_id: ChainId) -> DispatchResult {
-            T::OperateOrigin::ensure_origin(origin)?;
+            T::UpdateChainOrigin::ensure_origin(origin)?;
 
             // Registered chain_id cannot be pallet's chain_id or a existed chain_id
             ensure!(
@@ -315,7 +353,7 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::unregister_chain())]
         #[transactional]
         pub fn unregister_chain(origin: OriginFor<T>, chain_id: ChainId) -> DispatchResult {
-            T::OperateOrigin::ensure_origin(origin)?;
+            T::UpdateChainOrigin::ensure_origin(origin)?;
 
             // Unregistered chain_id should be existed
             Self::ensure_chain_registered(chain_id)?;
@@ -341,7 +379,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
             bridge_token: BridgeToken,
         ) -> DispatchResultWithPostInfo {
-            T::OperateOrigin::ensure_origin(origin)?;
+            T::UpdateTokenOrigin::ensure_origin(origin)?;
 
             ensure!(
                 !BridgeTokens::<T>::contains_key(asset_id)
@@ -357,6 +395,11 @@ pub mod pallet {
                 bridge_token.id,
                 bridge_token.external,
                 bridge_token.fee,
+                bridge_token.enable,
+                bridge_token.out_cap,
+                bridge_token.out_amount,
+                bridge_token.in_cap,
+                bridge_token.in_amount,
             ));
             Ok(().into())
         }
@@ -368,10 +411,10 @@ pub mod pallet {
             origin: OriginFor<T>,
             bridge_token_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
-            T::OperateOrigin::ensure_origin(origin)?;
+            T::UpdateTokenOrigin::ensure_origin(origin)?;
             Self::ensure_bridge_token_registered(bridge_token_id)?;
 
-            let asset_id = AssetIds::<T>::get(bridge_token_id);
+            let asset_id = Self::asset_id(bridge_token_id);
             BridgeTokens::<T>::remove(asset_id);
             AssetIds::<T>::remove(bridge_token_id);
 
@@ -387,16 +430,82 @@ pub mod pallet {
             bridge_token_id: CurrencyId,
             new_fee: BalanceOf<T>,
         ) -> DispatchResult {
-            T::OperateOrigin::ensure_origin(origin)?;
-            Self::ensure_bridge_token_registered(bridge_token_id)?;
+            T::UpdateTokenOrigin::ensure_origin(origin)?;
 
-            let asset_id = AssetIds::<T>::get(bridge_token_id);
-            BridgeTokens::<T>::mutate(asset_id, |token| {
+            Self::try_mutate_bridge_token(bridge_token_id, |token| {
                 token.fee = new_fee;
-            });
 
-            Self::deposit_event(Event::BridgeTokenFeeChanged(bridge_token_id, new_fee));
-            Ok(())
+                Self::deposit_event(Event::BridgeTokenFeeUpdated(bridge_token_id, new_fee));
+                Ok(())
+            })
+        }
+
+        /// Set the cross-chain transaction fee for a registered bridge token
+        #[pallet::weight(T::WeightInfo::set_bridge_token_status())]
+        #[transactional]
+        pub fn set_bridge_token_status(
+            origin: OriginFor<T>,
+            bridge_token_id: CurrencyId,
+            enable: bool,
+        ) -> DispatchResult {
+            T::UpdateTokenOrigin::ensure_origin(origin)?;
+
+            Self::try_mutate_bridge_token(bridge_token_id, |token| {
+                token.enable = enable;
+
+                Self::deposit_event(Event::BridgeTokenStatusUpdated(bridge_token_id, enable));
+                Ok(())
+            })
+        }
+
+        /// Set the cross-chain transaction cap for a registered bridge token
+        #[pallet::weight(T::WeightInfo::set_bridge_token_cap())]
+        #[transactional]
+        pub fn set_bridge_token_cap(
+            origin: OriginFor<T>,
+            bridge_token_id: CurrencyId,
+            bridge_type: BridgeType,
+            new_cap: BalanceOf<T>,
+        ) -> DispatchResult {
+            T::UpdateTokenOrigin::ensure_origin(origin)?;
+
+            Self::try_mutate_bridge_token(bridge_token_id, |token| {
+                match bridge_type {
+                    BridgeType::BridgeOut => token.out_cap = new_cap,
+                    BridgeType::BridgeIn => token.in_cap = new_cap,
+                };
+
+                Self::deposit_event(Event::BridgeTokenCapUpdated(
+                    bridge_token_id,
+                    bridge_type,
+                    new_cap,
+                ));
+                Ok(())
+            })
+        }
+
+        /// Clean the accumulated cap value to make bridge work again
+        #[pallet::weight(T::WeightInfo::clean_cap_accumulated_value())]
+        #[transactional]
+        pub fn clean_cap_accumulated_value(
+            origin: OriginFor<T>,
+            bridge_token_id: CurrencyId,
+            bridge_type: BridgeType,
+        ) -> DispatchResult {
+            T::CapOrigin::ensure_origin(origin)?;
+
+            Self::try_mutate_bridge_token(bridge_token_id, |token| {
+                match bridge_type {
+                    BridgeType::BridgeIn => token.in_amount = Zero::zero(),
+                    BridgeType::BridgeOut => token.out_amount = Zero::zero(),
+                };
+
+                Self::deposit_event(Event::BridgeTokenAccumulatedValueCleaned(
+                    bridge_token_id,
+                    bridge_type,
+                ));
+                Ok(())
+            })
         }
 
         /// Teleport the bridge token to specified recipient in the destination chain
@@ -423,11 +532,16 @@ pub mod pallet {
             Self::ensure_bridge_token_registered(bridge_token_id)?;
             Self::ensure_amount_valid(amount)?;
 
-            let asset_id = AssetIds::<T>::get(bridge_token_id);
-            let BridgeToken { external, fee, .. } = BridgeTokens::<T>::get(asset_id);
-            let actual_amount = amount
-                .checked_sub(fee)
-                .ok_or(Error::<T>::BridgedAmountTooLow)?;
+            let asset_id = Self::asset_id(bridge_token_id);
+            let BridgeToken {
+                external,
+                fee,
+                enable,
+                ..
+            } = Self::bridge_token(asset_id);
+            ensure!(enable, Error::<T>::BridgeTokenDisabled);
+            Self::update_bridge_token_cap(asset_id, amount, BridgeType::BridgeOut)?;
+
             if external {
                 T::Assets::burn_from(asset_id, &who, amount)?;
                 T::Assets::mint_into(asset_id, &Self::account_id(), fee)?;
@@ -435,6 +549,9 @@ pub mod pallet {
                 T::Assets::transfer(asset_id, &who, &Self::account_id(), amount, false)?;
             }
 
+            let actual_amount = amount
+                .checked_sub(fee)
+                .ok_or(Error::<T>::BridgingAmountTooLow)?;
             Self::teleport_internal(who, dest_id, bridge_token_id, to, actual_amount, fee)
         }
 
@@ -460,11 +577,16 @@ pub mod pallet {
             amount: BalanceOf<T>,
             favour: bool,
         ) -> DispatchResult {
-            let who = Self::ensure_admin(origin)?;
+            let who = Self::ensure_relay_member(origin)?;
             Self::ensure_chain_registered(src_id)?;
             Self::ensure_chain_nonce_valid(src_id, src_nonce)?;
             Self::ensure_bridge_token_registered(bridge_token_id)?;
             Self::ensure_amount_valid(amount)?;
+            Self::ensure_under_bridge_cap(
+                Self::asset_id(bridge_token_id),
+                amount,
+                BridgeType::BridgeIn,
+            )?;
 
             let call = MaterializeCall {
                 bridge_token_id,
@@ -546,21 +668,17 @@ impl<T: Config> Pallet<T> {
         T::PalletId::get().into_account()
     }
 
-    /// Checks if the origin is operateOrigin or admin members
-    fn ensure_admin(origin: T::Origin) -> Result<T::AccountId, Error<T>> {
-        let who = match ensure_signed_or_root(origin.clone())
-            .map_err(|_| Error::<T>::OriginNoPermission)?
-        {
+    /// Checks if the origin is relay members
+    fn ensure_relay_member(origin: T::Origin) -> Result<T::AccountId, Error<T>> {
+        let who = match ensure_signed_or_root(origin).map_err(|_| Error::<T>::OriginNoPermission)? {
             Some(account_id) => account_id,
-            None => T::RootOperatorAccountId::get(),
+            None => return Ok(T::RootOperatorAccountId::get()),
         };
-        if T::OperateOrigin::ensure_origin(origin).is_err() {
-            ensure!(
-                T::AdminMembers::contains(&who),
-                Error::<T>::OriginNoPermission
-            );
-        }
 
+        ensure!(
+            T::RelayMembers::contains(&who),
+            Error::<T>::OriginNoPermission
+        );
         Ok(who)
     }
 
@@ -588,7 +706,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn ensure_amount_valid(amount: BalanceOf<T>) -> DispatchResult {
-        ensure!(amount > 0, Error::<T>::BridgedAmountTooLow);
+        ensure!(amount > 0, Error::<T>::BridgingAmountTooLow);
 
         Ok(())
     }
@@ -603,9 +721,9 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    /// Get the count of members in the `AdminMembers`.
+    /// Get the count of members in the `RelayMembers`.
     pub fn get_members_count() -> u32 {
-        T::AdminMembers::count() as u32
+        T::RelayMembers::count() as u32
     }
 
     /// Check if the threshold is satisfied
@@ -621,6 +739,41 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    /// Make sure the bridging amount under the bridge cap
+    fn ensure_under_bridge_cap(
+        asset_id: AssetIdOf<T>,
+        amount: BalanceOf<T>,
+        bridge_type: BridgeType,
+    ) -> Result<Balance, DispatchError> {
+        let bridge_token = Self::bridge_token(asset_id);
+        let new_amount = match bridge_type {
+            BridgeType::BridgeOut => {
+                let new_out_amount = bridge_token
+                    .out_amount
+                    .checked_add(amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+                ensure!(
+                    new_out_amount <= bridge_token.out_cap,
+                    Error::<T>::BridgeOutCapExceeded
+                );
+                new_out_amount
+            }
+            BridgeType::BridgeIn => {
+                let new_in_amount = bridge_token
+                    .in_amount
+                    .checked_add(amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+                ensure!(
+                    new_in_amount <= bridge_token.in_cap,
+                    Error::<T>::BridgeInCapExceeded
+                );
+                new_in_amount
+            }
+        };
+
+        Ok(new_amount)
+    }
+
     pub fn change_vote_threshold() -> DispatchResult {
         let new_threshold =
             Ratio::from_percent(T::ThresholdPercentage::get()).mul_ceil(Self::get_members_count());
@@ -628,7 +781,7 @@ impl<T: Config> Pallet<T> {
 
         // Set a new vote threshold
         VoteThreshold::<T>::put(new_threshold);
-        Self::deposit_event(Event::VoteThresholdChanged(new_threshold));
+        Self::deposit_event(Event::VoteThresholdUpdated(new_threshold));
 
         Ok(())
     }
@@ -660,7 +813,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn has_bridged(chain_id: ChainId, chain_nonce: ChainNonce) -> bool {
-        BridgeRegistry::<T>::get(&chain_id).map_or(false, |registry| {
+        Self::bridge_registry(&chain_id).map_or(false, |registry| {
             registry
                 .iter()
                 .any(|&r| (chain_nonce >= r.0 && chain_nonce <= r.1))
@@ -670,7 +823,7 @@ impl<T: Config> Pallet<T> {
     /// Records completed bridge transactions
     #[require_transactional]
     fn update_bridge_registry(chain_id: ChainId, nonce: ChainNonce) {
-        match BridgeRegistry::<T>::get(&chain_id) {
+        match Self::bridge_registry(&chain_id) {
             None => {}
             Some(mut registry) => {
                 registry.iter_mut().for_each(|x| {
@@ -688,6 +841,43 @@ impl<T: Config> Pallet<T> {
                 BridgeRegistry::<T>::insert(chain_id, registry);
             }
         }
+    }
+
+    /// Update bridge token amount
+    #[require_transactional]
+    fn update_bridge_token_cap(
+        asset_id: AssetIdOf<T>,
+        amount: BalanceOf<T>,
+        bridge_type: BridgeType,
+    ) -> DispatchResult {
+        let new_amount = Self::ensure_under_bridge_cap(asset_id, amount, bridge_type.clone())?;
+        let mut bridge_token = Self::bridge_token(asset_id);
+        match bridge_type {
+            BridgeType::BridgeOut => {
+                bridge_token.out_amount = new_amount;
+            }
+            BridgeType::BridgeIn => {
+                bridge_token.in_amount = new_amount;
+            }
+        };
+        BridgeTokens::<T>::insert(asset_id, bridge_token);
+
+        Ok(())
+    }
+
+    #[require_transactional]
+    fn try_mutate_bridge_token<F>(bridge_token_id: CurrencyId, op: F) -> DispatchResult
+    where
+        F: FnOnce(&mut BridgeToken) -> DispatchResult,
+    {
+        Self::ensure_bridge_token_registered(bridge_token_id)?;
+
+        let asset_id = Self::asset_id(bridge_token_id);
+        let mut bridge_token = Self::bridge_token(asset_id);
+        op(&mut bridge_token)?;
+        BridgeTokens::<T>::insert(asset_id, bridge_token);
+
+        Ok(())
     }
 
     /// Initiates a transfer of the bridge token
@@ -734,7 +924,7 @@ impl<T: Config> Pallet<T> {
         src_nonce: ChainNonce,
         call: MaterializeCallOf<T>,
     ) -> DispatchResult {
-        if let Some(mut proposal) = ProposalVotes::<T>::get(src_id, (src_nonce, call.clone())) {
+        if let Some(mut proposal) = Self::votes(src_id, (src_nonce, call.clone())) {
             let now = <frame_system::Pallet<T>>::block_number();
             ensure!(!proposal.is_complete(), Error::<T>::ProposalAlreadyComplete);
             ensure!(!proposal.is_expired(now), Error::<T>::ProposalExpired);
@@ -762,10 +952,11 @@ impl<T: Config> Pallet<T> {
         Self::ensure_chain_registered(src_id)?;
         Self::ensure_bridge_token_registered(call.bridge_token_id)?;
 
+        let asset_id = Self::asset_id(call.bridge_token_id);
+        Self::update_bridge_token_cap(asset_id, call.amount, BridgeType::BridgeIn)?;
         Self::deposit_event(Event::ProposalApproved(src_id, src_nonce));
 
-        let asset_id = AssetIds::<T>::get(call.bridge_token_id);
-        let BridgeToken { external, .. } = BridgeTokens::<T>::get(asset_id);
+        let BridgeToken { external, .. } = Self::bridge_token(asset_id);
         if external {
             T::Assets::mint_into(asset_id, &call.to, call.amount)?;
         } else {

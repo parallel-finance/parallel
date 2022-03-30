@@ -75,8 +75,21 @@ async function para({ logger, options: { paraWs, network } }: ActionParameters) 
   const { members, chainIds, bridgeTokens } = config.bridge
   members.forEach(member => call.push(api.tx.sudo.sudo(api.tx.bridgeMembership.addMember(member))))
   chainIds.forEach(chainId => call.push(api.tx.sudo.sudo(api.tx.bridge.registerChain(chainId))))
-  bridgeTokens.map(({ assetId, id, external, fee }) =>
-    call.push(api.tx.sudo.sudo(api.tx.bridge.registerBridgeToken(assetId, { id, external, fee })))
+  bridgeTokens.map(({ assetId, id, external, fee, enable, outCap, outAmount, inCap, inAmount }) =>
+    call.push(
+      api.tx.sudo.sudo(
+        api.tx.bridge.registerBridgeToken(assetId, {
+          id,
+          external,
+          fee,
+          enable,
+          outCap,
+          outAmount,
+          inCap,
+          inAmount
+        })
+      )
+    )
   )
 
   call.push(

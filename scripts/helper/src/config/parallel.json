@@ -239,25 +239,40 @@
       "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
       "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y"
     ],
-    "chainIds": [1],
+    "chainIds": [2, 3],
     "bridgeTokens": [
       {
-        "assetId": 0,
+        "assetId": 1,
         "id": 0,
         "external": false,
-        "fee": 1000000000000
+        "fee": "1000000000000",
+        "enable": true,
+        "outCap": "10000000000000000",
+        "outAmount": "0",
+        "inCap": "10000000000000000",
+        "inAmount": "0"
       },
       {
         "assetId": 201,
         "id": 1,
         "external": true,
-        "fee": 300000000
+        "fee": "300000000",
+        "enable": true,
+        "outCap": "10000000000",
+        "outAmount": "0",
+        "inCap": "10000000000",
+        "inAmount": "0"
       },
       {
         "assetId": 202,
         "id": 2,
         "external": true,
-        "fee": 300000000
+        "fee": "300000000",
+        "enable": true,
+        "outCap": "10000000000",
+        "outAmount": "0",
+        "inCap": "10000000000",
+        "inAmount": "0"
       }
     ]
   }
