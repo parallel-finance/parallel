@@ -87,7 +87,7 @@ fn redeem_all_should_be_accurate() {
 }
 
 #[test]
-fn attack_the_exchange_rate() {
+fn prevent_the_exchange_rate_attack() {
     new_test_ext().execute_with(|| {
         // Initialize Eve's balance
         assert_ok!(<Test as Config>::Assets::transfer(
@@ -97,7 +97,6 @@ fn attack_the_exchange_rate() {
             dollar(200),
             false
         ));
-        // Step1
         // Eve deposits a small amount
         assert_ok!(Loans::mint(Origin::signed(EVE), DOT, 20));
         // !!! Eve transfer a big amount to Loans::account_id
@@ -117,40 +116,18 @@ fn attack_the_exchange_rate() {
             Loans::total_supply(DOT),
             20 * 50, // 20 / 0.02
         );
-        // Let exchange_rate greater than 0.02
-        run_to_block(20);
-        // Then Eve gets a BIG exchange_rate: 100000000000.02
-        assert_eq!(
-            Loans::exchange_rate(DOT),
-            FixedU128::saturating_from_rational(100000000000020u128, 20 * 50),
-        );
+        // Eve can not let the exchage rate greater than 1
+        assert!(Loans::accrue_interest(6).is_err());
 
-        // Step2
-        // Bob deposit 0.1 DOT but get nothing
-        assert_ok!(Loans::mint(Origin::signed(BOB), DOT, 100000000000));
-        assert_eq!(
-            <Test as Config>::Assets::balance(DOT, &Loans::account_id()),
-            100100000000020
+        // Mock a BIG exchange_rate: 100000000000.02
+        ExchangeRate::<Test>::insert(
+            DOT,
+            Rate::saturating_from_rational(100000000000020u128, 20 * 50),
         );
-        assert_eq!(
-            Loans::account_deposits(DOT, BOB),
-            Deposits {
-                voucher_balance: 0,
-                is_collateral: false,
-            }
-        );
-        assert_eq!(
-            Loans::total_supply(DOT),
-            20 * 50, // 20 / 0.02
-        );
-
-        // Step3
-        run_to_block(40);
-        // Alice redeem all the DOT including Bob's
-        assert_ok!(Loans::redeem_all(Origin::signed(EVE), DOT));
-        assert_eq!(
-            <Test as Config>::Assets::balance(DOT, &EVE),
-            200100000000000
+        // Bob can not deposit 0.1 DOT because the voucher_balance can not be 0.
+        assert_noop!(
+            Loans::mint(Origin::signed(BOB), DOT, 100000000000),
+            Error::<Test>::InvalidExchangeRate
         );
     })
 }
