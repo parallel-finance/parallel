@@ -366,6 +366,31 @@ pub mod pallet {
 
             Ok(())
         }
+
+        #[pallet::weight(10_000)]
+        pub fn as_derivative(
+            origin: OriginFor<T>,
+            index: u16,
+            call: Box<<T as Config>::Call>,
+        ) -> DispatchResultWithPostInfo {
+            let mut origin = origin;
+            let who = ensure_signed(origin.clone())?;
+            let pseudonym = Self::derivative_account_id(who, index);
+            origin.set_caller_from(frame_system::RawOrigin::Signed(pseudonym));
+            let info = call.get_dispatch_info();
+            let result = call.dispatch(origin);
+            // Always take into account the base weight of this call.
+            let mut weight = T::WeightInfo::as_derivative()
+                .saturating_add(T::DbWeight::get().reads_writes(1, 1));
+            // Add the real weight of the dispatch.
+            weight = weight.saturating_add(extract_actual_weight(&result, &info));
+            result
+                .map_err(|mut err| {
+                    err.post_info = Some(weight).into();
+                    err
+                })
+                .map(|_| Some(weight).into())
+        }
     }
 }
 
