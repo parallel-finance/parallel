@@ -37,8 +37,10 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 
+use frame_support::traits::ReservableCurrency;
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
 use sp_io::hashing::blake2_256;
+use sp_runtime::traits::Zero;
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup};
 use sp_runtime::traits::{Dispatchable, TrailingZeroInput};
 use sp_std::prelude::*;
@@ -53,12 +55,38 @@ pub type AssetIdOf<T> =
 pub type BalanceOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
+/// The parameters under which a particular account has a proxy relationship with some other
+/// account.
+#[derive(
+    Encode,
+    Decode,
+    Clone,
+    Copy,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    RuntimeDebug,
+    MaxEncodedLen,
+    TypeInfo,
+)]
+pub struct ProxyDefinition<AccountId, ProxyType, BlockNumber> {
+    /// The account which may act on behalf of another.
+    pub delegate: AccountId,
+    /// A value defining the subset of calls that it is allowed to make.
+    pub proxy_type: ProxyType,
+    /// The number of blocks that an announcement must be in place for before the corresponding
+    /// call may be dispatched. If zero, then no announcement is needed.
+    pub delay: BlockNumber,
+}
+
 #[frame_support::pallet]
 pub mod pallet {
     use crate::weights::WeightInfo;
     use frame_system::pallet_prelude::{BlockNumberFor, OriginFor};
 
     use super::*;
+    use frame_support::traits::InstanceFilter;
     use frame_support::traits::IsSubType;
     use frame_support::traits::OriginTrait;
     use frame_support::traits::UnfilteredDispatchable;
@@ -120,6 +148,40 @@ pub mod pallet {
             + UnfilteredDispatchable<Origin = <Self as frame_system::Config>::Origin>
             + IsSubType<Call<Self>>
             + IsType<<Self as frame_system::Config>::Call>;
+
+        /// A kind of proxy; specified with the proxy and passed in to the `IsProxyable` fitler.
+        /// The instance filter determines whether a given call may be proxied under this type.
+        ///
+        /// IMPORTANT: `Default` must be provided and MUST BE the the *most permissive* value.
+        type ProxyType: Parameter
+            + Member
+            + Ord
+            + PartialOrd
+            + InstanceFilter<<Self as Config>::Call>
+            + Default
+            + MaxEncodedLen;
+
+        /// The maximum amount of proxies allowed for a single account.
+        #[pallet::constant]
+        type MaxProxies: Get<u32>;
+
+        /// The currency mechanism.
+        type Currency: ReservableCurrency<Self::AccountId, Balance = Balance>;
+
+        /// The base amount of currency needed to reserve for creating a proxy.
+        ///
+        /// This is held for an additional storage item whose value size is
+        /// `sizeof(Balance)` bytes and whose key size is `sizeof(AccountId)` bytes.
+        #[pallet::constant]
+        type ProxyDepositBase: Get<BalanceOf<Self>>;
+
+        /// The amount of currency needed per proxy added.
+        ///
+        /// This is held for adding 32 bytes plus an instance of `ProxyType` more into a
+        /// pre-existing storage value. Thus, when configuring `ProxyDepositFactor` one should take
+        /// into account `32 + proxy_type.encode().len()` bytes of data.
+        #[pallet::constant]
+        type ProxyDepositFactor: Get<BalanceOf<Self>>;
     }
 
     #[pallet::event]
@@ -149,12 +211,41 @@ pub mod pallet {
         BatchCompleted,
         /// A single item within a Batch of dispatches has completed with no error.
         ItemCompleted,
+        /// A proxy was added.
+        ProxyAdded {
+            delegator: T::AccountId,
+            delegatee: T::AccountId,
+            proxy_type: T::ProxyType,
+            delay: T::BlockNumber,
+        },
+        /// A proxy was removed.
+        ProxyRemoved {
+            delegator: T::AccountId,
+            delegatee: T::AccountId,
+            proxy_type: T::ProxyType,
+            delay: T::BlockNumber,
+        },
     }
 
     #[pallet::storage]
     #[pallet::getter(fn xcm_weight_fee)]
     pub type XcmWeightFee<T: Config> =
         StorageMap<_, Twox64Concat, XcmCall, XcmWeightFeeMisc<Weight, BalanceOf<T>>, ValueQuery>;
+
+    /// The set of account proxies. Maps the account which has delegated to the accounts
+    /// which are being delegated to, together with the amount held on deposit.
+    #[pallet::storage]
+    #[pallet::getter(fn proxies)]
+    pub type Proxies<T: Config> = StorageMap<
+        _,
+        Twox64Concat,
+        T::AccountId,
+        (
+            BoundedVec<ProxyDefinition<T::AccountId, T::ProxyType, T::BlockNumber>, T::MaxProxies>,
+            BalanceOf<T>,
+        ),
+        ValueQuery,
+    >;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -184,6 +275,22 @@ pub mod pallet {
         BadVersion,
         /// Too many calls batched.
         TooManyCalls,
+        /// There are too many proxies registered or too many announcements pending.
+        TooMany,
+        /// Proxy registration not found.
+        NotFound,
+        /// Sender is not a proxy of the account to be proxied.
+        NotProxy,
+        /// A call which is incompatible with the proxy type's filter was attempted.
+        Unproxyable,
+        /// Account is already a proxy.
+        Duplicate,
+        /// Call may not be made by proxy because it may escalate its privileges.
+        NoPermission,
+        /// Announcement, if made at all, was made too recently.
+        Unannounced,
+        /// Cannot add self as proxy.
+        NoSelfProxy,
     }
 
     // Align the call size to 1KB. As we are currently compiling the runtime for native/wasm
@@ -510,6 +617,17 @@ pub mod pallet {
             let base_weight = T::WeightInfo::batch_all(calls_len as u32);
             Ok(Some(base_weight + weight).into())
         }
+
+        #[pallet::weight(10_000)]
+        pub fn remove_proxy(
+            origin: OriginFor<T>,
+            delegate: T::AccountId,
+            proxy_type: T::ProxyType,
+            delay: T::BlockNumber,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            Self::remove_proxy_delegate(&who, delegate, proxy_type, delay)
+        }
     }
 }
 
@@ -622,6 +740,105 @@ impl<T: Config> Pallet<T> {
         let entropy = (b"modlpy/utilisuba", who, index).using_encoded(blake2_256);
         Decode::decode(&mut TrailingZeroInput::new(entropy.as_ref()))
             .expect("infinite length input; no invalid inputs for type; qed")
+    }
+
+    /// Register a proxy account for the delegator that is able to make calls on its behalf.
+    ///
+    /// Parameters:
+    /// - `delegator`: The delegator account.
+    /// - `delegatee`: The account that the `delegator` would like to make a proxy.
+    /// - `proxy_type`: The permissions allowed for this proxy account.
+    /// - `delay`: The announcement period required of the initial proxy. Will generally be
+    /// zero.
+    pub fn add_proxy_delegate(
+        delegator: &T::AccountId,
+        delegatee: T::AccountId,
+        proxy_type: T::ProxyType,
+        delay: T::BlockNumber,
+    ) -> DispatchResult {
+        ensure!(delegator != &delegatee, Error::<T>::NoSelfProxy);
+        Proxies::<T>::try_mutate(delegator, |(ref mut proxies, ref mut deposit)| {
+            let proxy_def = ProxyDefinition {
+                delegate: delegatee.clone(),
+                proxy_type: proxy_type.clone(),
+                delay,
+            };
+            let i = proxies
+                .binary_search(&proxy_def)
+                .err()
+                .ok_or(Error::<T>::Duplicate)?;
+            proxies
+                .try_insert(i, proxy_def)
+                .map_err(|_| Error::<T>::TooMany)?;
+            let new_deposit = Self::deposit(proxies.len() as u32);
+            if new_deposit > *deposit {
+                T::Currency::reserve(delegator, new_deposit - *deposit)?;
+            } else if new_deposit < *deposit {
+                T::Currency::unreserve(delegator, *deposit - new_deposit);
+            }
+            *deposit = new_deposit;
+            Self::deposit_event(Event::<T>::ProxyAdded {
+                delegator: delegator.clone(),
+                delegatee,
+                proxy_type,
+                delay,
+            });
+            Ok(())
+        })
+    }
+
+    /// Unregister a proxy account for the delegator.
+    ///
+    /// Parameters:
+    /// - `delegator`: The delegator account.
+    /// - `delegatee`: The account that the `delegator` would like to make a proxy.
+    /// - `proxy_type`: The permissions allowed for this proxy account.
+    /// - `delay`: The announcement period required of the initial proxy. Will generally be
+    /// zero.
+    pub fn remove_proxy_delegate(
+        delegator: &T::AccountId,
+        delegatee: T::AccountId,
+        proxy_type: T::ProxyType,
+        delay: T::BlockNumber,
+    ) -> DispatchResult {
+        Proxies::<T>::try_mutate_exists(delegator, |x| {
+            let (mut proxies, old_deposit) = x.take().ok_or(Error::<T>::NotFound)?;
+            let proxy_def = ProxyDefinition {
+                delegate: delegatee.clone(),
+                proxy_type: proxy_type.clone(),
+                delay,
+            };
+            let i = proxies
+                .binary_search(&proxy_def)
+                .ok()
+                .ok_or(Error::<T>::NotFound)?;
+            proxies.remove(i);
+            let new_deposit = Self::deposit(proxies.len() as u32);
+            if new_deposit > old_deposit {
+                T::Currency::reserve(delegator, new_deposit - old_deposit)?;
+            } else if new_deposit < old_deposit {
+                T::Currency::unreserve(delegator, old_deposit - new_deposit);
+            }
+            if !proxies.is_empty() {
+                *x = Some((proxies, new_deposit))
+            }
+            Self::deposit_event(Event::<T>::ProxyRemoved {
+                delegator: delegator.clone(),
+                delegatee,
+                proxy_type,
+                delay,
+            });
+            Ok(())
+        })
+    }
+
+    pub fn deposit(num_proxies: u32) -> BalanceOf<T> {
+        if num_proxies == 0 {
+            Zero::zero()
+        } else {
+            BalanceOf::<T>::from(num_proxies)
+                .saturating_mul(T::ProxyDepositBase::get() + T::ProxyDepositFactor::get())
+        }
     }
 }
 
