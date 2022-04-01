@@ -29,6 +29,10 @@ mod tests;
 pub mod weights;
 pub use pallet::*;
 
+use frame_support::traits::{
+    Currency, ExistenceRequirement::KeepAlive, InstanceFilter, IsSubType, IsType, OriginTrait,
+    ReservableCurrency, UnfilteredDispatchable,
+};
 use frame_support::{
     dispatch::{DispatchResult, GetDispatchInfo},
     pallet_prelude::*,
@@ -36,13 +40,13 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-
-use frame_support::traits::ReservableCurrency;
+use frame_system::{self as system};
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
 use sp_io::hashing::blake2_256;
-use sp_runtime::traits::Zero;
-use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup};
-use sp_runtime::traits::{Dispatchable, TrailingZeroInput};
+use sp_runtime::traits::{
+    AccountIdConversion, BlockNumberProvider, Convert, Dispatchable, StaticLookup,
+    TrailingZeroInput, Zero,
+};
 use sp_std::prelude::*;
 use sp_std::{boxed::Box, vec, vec::Vec};
 use xcm::{latest::prelude::*, DoubleEncoded, VersionedMultiLocation, VersionedXcm};
@@ -86,12 +90,8 @@ pub mod pallet {
     use frame_system::pallet_prelude::{BlockNumberFor, OriginFor};
 
     use super::*;
-    use frame_support::traits::InstanceFilter;
-    use frame_support::traits::IsSubType;
-    use frame_support::traits::OriginTrait;
-    use frame_support::traits::UnfilteredDispatchable;
-    use frame_support::weights::extract_actual_weight;
-    use frame_support::weights::PostDispatchInfo;
+
+    use frame_support::weights::{extract_actual_weight, PostDispatchInfo};
     use frame_system::{ensure_root, ensure_signed};
     use sp_runtime::traits::{Convert, Zero};
 
@@ -211,6 +211,8 @@ pub mod pallet {
         BatchCompleted,
         /// A single item within a Batch of dispatches has completed with no error.
         ItemCompleted,
+        /// A proxy was executed correctly, with the given.
+        ProxyExecuted { result: DispatchResult },
         /// A proxy was added.
         ProxyAdded {
             delegator: T::AccountId,
@@ -619,6 +621,22 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
+        pub fn proxy(
+            origin: OriginFor<T>,
+            real: T::AccountId,
+            force_proxy_type: Option<T::ProxyType>,
+            call: Box<<T as Config>::Call>,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let def = Self::find_proxy(&real, &who, force_proxy_type)?;
+            ensure!(def.delay.is_zero(), Error::<T>::Unannounced);
+
+            Self::do_proxy(def, real, *call);
+
+            Ok(())
+        }
+
+        #[pallet::weight(10_000)]
         pub fn remove_proxy(
             origin: OriginFor<T>,
             delegate: T::AccountId,
@@ -628,6 +646,74 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::remove_proxy_delegate(&who, delegate, proxy_type, delay)
         }
+
+        #[pallet::weight(10_000)]
+        pub fn add_proxy(
+            origin: OriginFor<T>,
+            delegate: T::AccountId,
+            proxy_type: T::ProxyType,
+            delay: T::BlockNumber,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            Self::add_proxy_delegate(&who, delegate, proxy_type, delay)
+        }
+
+        #[pallet::weight(10_000)]
+        pub fn remove_proxies(origin: OriginFor<T>) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let (_, old_deposit) = Proxies::<T>::take(&who);
+            T::Currency::unreserve(&who, old_deposit);
+
+            Ok(())
+        }
+
+        #[pallet::weight(10_000)]
+        pub fn kill_anonymous(
+            origin: OriginFor<T>,
+            spawner: T::AccountId,
+            proxy_type: T::ProxyType,
+            index: u16,
+            #[pallet::compact] height: T::BlockNumber,
+            #[pallet::compact] ext_index: u32,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+
+            let when = (height, ext_index);
+            let proxy = Self::anonymous_account(&spawner, &proxy_type, index, Some(when));
+            ensure!(proxy == who, Error::<T>::NoPermission);
+
+            let (_, deposit) = Proxies::<T>::take(&who);
+            T::Currency::unreserve(&spawner, deposit);
+
+            Ok(())
+        }
+
+        #[pallet::weight(10_000)]
+        pub fn transfer_keep_alive(
+            origin: OriginFor<T>,
+            dest: <T::Lookup as StaticLookup>::Source,
+            #[pallet::compact] value: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            let transactor = ensure_signed(origin)?;
+            let dest = T::Lookup::lookup(dest)?;
+            T::Currency::transfer(&transactor, &dest, value, KeepAlive)?;
+            Ok(().into())
+        }
+        //
+        // #[pallet::weight(10_000)]
+        // pub fn transfer_all(
+        // 	origin: OriginFor<T>,
+        // 	dest: <T::Lookup as StaticLookup>::Source,
+        // 	keep_alive: bool,
+        // ) -> DispatchResult {
+        // 	use fungible::Inspect;
+        // 	let transactor = ensure_signed(origin)?;
+        // 	let reducible_balance = Self::reducible_balance(&transactor, keep_alive);
+        // 	let dest = T::Lookup::lookup(dest)?;
+        // 	let keep_alive = if keep_alive { KeepAlive } else { AllowDeath };
+        // 	T::Currency::transfer(&transactor, &dest, reducible_balance, keep_alive)?;
+        // 	Ok(())
+        // }
     }
 }
 
@@ -742,6 +828,42 @@ impl<T: Config> Pallet<T> {
             .expect("infinite length input; no invalid inputs for type; qed")
     }
 
+    /// Calculate the address of an anonymous account.
+    ///
+    /// - `who`: The spawner account.
+    /// - `proxy_type`: The type of the proxy that the sender will be registered as over the
+    /// new account. This will almost always be the most permissive `ProxyType` possible to
+    /// allow for maximum flexibility.
+    /// - `index`: A disambiguation index, in case this is called multiple times in the same
+    /// transaction (e.g. with `utility::batch`). Unless you're using `batch` you probably just
+    /// want to use `0`.
+    /// - `maybe_when`: The block height and extrinsic index of when the anonymous account was
+    /// created. None to use current block height and extrinsic index.
+    pub fn anonymous_account(
+        who: &T::AccountId,
+        proxy_type: &T::ProxyType,
+        index: u16,
+        maybe_when: Option<(T::BlockNumber, u32)>,
+    ) -> T::AccountId {
+        let (height, ext_index) = maybe_when.unwrap_or_else(|| {
+            (
+                system::Pallet::<T>::block_number(),
+                system::Pallet::<T>::extrinsic_index().unwrap_or_default(),
+            )
+        });
+        let entropy = (
+            b"modlpy/proxy____",
+            who,
+            height,
+            ext_index,
+            proxy_type,
+            index,
+        )
+            .using_encoded(blake2_256);
+        Decode::decode(&mut TrailingZeroInput::new(entropy.as_ref()))
+            .expect("infinite length input; no invalid inputs for type; qed")
+    }
+
     /// Register a proxy account for the delegator that is able to make calls on its behalf.
     ///
     /// Parameters:
@@ -839,6 +961,60 @@ impl<T: Config> Pallet<T> {
             BalanceOf::<T>::from(num_proxies)
                 .saturating_mul(T::ProxyDepositBase::get() + T::ProxyDepositFactor::get())
         }
+    }
+
+    pub fn find_proxy(
+        real: &T::AccountId,
+        delegate: &T::AccountId,
+        force_proxy_type: Option<T::ProxyType>,
+    ) -> Result<ProxyDefinition<T::AccountId, T::ProxyType, T::BlockNumber>, DispatchError> {
+        let f = |x: &ProxyDefinition<T::AccountId, T::ProxyType, T::BlockNumber>| -> bool {
+            &x.delegate == delegate
+                && force_proxy_type
+                    .as_ref()
+                    .map_or(true, |y| &x.proxy_type == y)
+        };
+        Ok(Proxies::<T>::get(real)
+            .0
+            .into_iter()
+            .find(f)
+            .ok_or(Error::<T>::NotProxy)?)
+    }
+
+    fn do_proxy(
+        def: ProxyDefinition<T::AccountId, T::ProxyType, T::BlockNumber>,
+        real: T::AccountId,
+        call: <T as Config>::Call,
+    ) {
+        // This is a freshly authenticated new account, the origin restrictions doesn't apply.
+        let mut origin: <T as frame_system::Config>::Origin =
+            frame_system::RawOrigin::Signed(real).into();
+        origin.add_filter(move |c: &<T as frame_system::Config>::Call| {
+            let c = <T as Config>::Call::from_ref(c);
+            // We make sure the proxy call does access this pallet to change modify proxies.
+            match c.is_sub_type() {
+                // Proxy call cannot add or remove a proxy with more permissions than it already
+                // has.
+                Some(Call::add_proxy { ref proxy_type, .. })
+                | Some(Call::remove_proxy { ref proxy_type, .. })
+                    if !def.proxy_type.is_superset(&proxy_type) =>
+                {
+                    false
+                }
+                // Proxy call cannot remove all proxies or kill anonymous proxies unless it has full
+                // permissions.
+                Some(Call::remove_proxies { .. }) | Some(Call::kill_anonymous { .. })
+                    if def.proxy_type != T::ProxyType::default() =>
+                {
+                    false
+                }
+                _ => def.proxy_type.filter(c),
+            }
+        });
+        let e = call.dispatch(origin);
+        Self::deposit_event(Event::ProxyExecuted {
+            result: e.map(|_| ()).map_err(|e| e.error),
+        });
     }
 }
 
