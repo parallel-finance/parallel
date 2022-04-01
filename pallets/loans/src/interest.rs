@@ -21,27 +21,34 @@ use crate::*;
 
 impl<T: Config> Pallet<T> {
     /// Accrue interest per block and update corresponding storage
-    pub(crate) fn accrue_interest(delta_time: u64) -> DispatchResult {
-        for (asset_id, market) in Self::active_markets() {
-            let total_cash = Self::get_total_cash(asset_id);
-            let total_borrows = Self::total_borrows(asset_id);
-            let total_reserves = Self::total_reserves(asset_id);
-            let util = Self::calc_utilization_ratio(total_cash, total_borrows, total_reserves)?;
-
-            let borrow_rate = market
-                .rate_model
-                .get_borrow_rate(util)
-                .ok_or(ArithmeticError::Overflow)?;
-            let supply_rate =
-                InterestRateModel::get_supply_rate(borrow_rate, util, market.reserve_factor);
-
-            UtilizationRatio::<T>::insert(asset_id, util);
-            BorrowRate::<T>::insert(asset_id, &borrow_rate);
-            SupplyRate::<T>::insert(asset_id, supply_rate);
-
-            Self::update_borrow_index(borrow_rate, asset_id, &market, delta_time)?;
-            Self::update_exchange_rate(asset_id)?;
+    pub(crate) fn accrue_interest(asset_id: AssetIdOf<T>) -> DispatchResult {
+        let now = T::UnixTime::now().as_secs();
+        if Self::last_accrued_timestamp().is_zero() {
+            // For the initialization
+            LastAccruedTimestamp::<T>::put(now);
         }
+        let last_accrued_timestamp = Self::last_accrued_timestamp();
+        if now <= last_accrued_timestamp {
+            return Ok(());
+        }
+        let delta_time = now - last_accrued_timestamp;
+        LastAccruedTimestamp::<T>::put(now);
+        let market = Self::market(asset_id)?;
+        let total_cash = Self::get_total_cash(asset_id);
+        let total_borrows = Self::total_borrows(asset_id);
+        let total_reserves = Self::total_reserves(asset_id);
+        let util = Self::calc_utilization_ratio(total_cash, total_borrows, total_reserves)?;
+        let borrow_rate = market
+            .rate_model
+            .get_borrow_rate(util)
+            .ok_or(ArithmeticError::Overflow)?;
+        let supply_rate =
+            InterestRateModel::get_supply_rate(borrow_rate, util, market.reserve_factor);
+        UtilizationRatio::<T>::insert(asset_id, util);
+        BorrowRate::<T>::insert(asset_id, &borrow_rate);
+        SupplyRate::<T>::insert(asset_id, supply_rate);
+        Self::update_borrow_index(borrow_rate, asset_id, &market, delta_time)?;
+        Self::update_exchange_rate(asset_id)?;
 
         Ok(())
     }

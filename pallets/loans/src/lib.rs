@@ -355,57 +355,6 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
-    #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        /// Called by substrate on block initialization which is fallible.
-        /// When an error occurs, stop counting interest. When the error is resolved,
-        /// the interest will be restored, because we use delta time to calculate the
-        /// interest.
-        fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
-            let last_accrued_timestamp = Self::last_accrued_timestamp();
-            let now = T::UnixTime::now().as_secs();
-            // For the initialization
-            if last_accrued_timestamp.is_zero() {
-                LastAccruedTimestamp::<T>::put(now);
-            }
-            if now <= last_accrued_timestamp {
-                return 0;
-            }
-            let delta_time = now - last_accrued_timestamp;
-            if delta_time > MAX_INTEREST_CALCULATING_INTERVAL {
-                // This should never happen...
-                log::error!(
-                    "Could not initialize block! Exceeded max interval {:#?}",
-                    block_number,
-                );
-                return 0;
-            }
-            if delta_time < MIN_INTEREST_CALCULATING_INTERVAL {
-                return 0;
-            }
-            with_transaction(|| {
-                match <Pallet<T>>::accrue_interest(delta_time) {
-                    Ok(()) => {
-                        LastAccruedTimestamp::<T>::put(now);
-                        TransactionOutcome::Commit(
-                            T::WeightInfo::accrue_interest()
-                                * Self::active_markets().count() as u64,
-                        )
-                    }
-                    Err(err) => {
-                        // This should never happen...
-                        log::error!(
-                            "Could not initialize block! Calculate interest failed! {:#?} {:#?}",
-                            block_number,
-                            err
-                        );
-                        TransactionOutcome::Rollback(0)
-                    }
-                }
-            })
-        }
-    }
-
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Stores a new market and its related currency. Returns `Err` if a currency
