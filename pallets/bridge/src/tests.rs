@@ -282,7 +282,7 @@ fn set_bridge_token_fee_works() {
 #[test]
 fn set_bridge_token_status_works() {
     new_test_ext().execute_with(|| {
-        // Case 1: Cannot not teleport / materialize a disabled token
+        // Case 1: Cannot teleport / materialize a disabled token
         // Set bridge token status to disabled
         Bridge::set_bridge_token_status(Origin::root(), EHKO, false).unwrap();
 
@@ -299,7 +299,7 @@ fn set_bridge_token_status_works() {
             Error::<Test>::BridgeTokenDisabled,
         );
 
-        // Case 2: user can teleport / materialize a enabled token
+        // Case 2: User can teleport / materialize a enabled token
         Bridge::set_bridge_token_status(Origin::root(), EHKO, true).unwrap();
         Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(10)).unwrap();
         assert_eq!(
