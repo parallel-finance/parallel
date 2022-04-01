@@ -180,6 +180,8 @@ pub mod pallet {
         InvalidAmount,
         /// Payer cannot be signer
         PayerIsSigner,
+		//Redeem Amount cannot be zero
+		InsufficientRedeemAmount,
     }
 
     #[pallet::event]
@@ -650,6 +652,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
             #[pallet::compact] redeem_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
+			ensure!(redeem_amount > 0, Error::<T>::InsufficientRedeemAmount);
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
             Self::update_earned_stored(&who, asset_id)?;

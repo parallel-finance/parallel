@@ -224,6 +224,16 @@ fn redeem_works() {
 }
 
 #[test]
+fn redeem_fails() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+            Loans::redeem(Origin::signed(ALICE), DOT, dollar(0)),
+            Error::<Test>::InsufficientRedeemAmount
+        );
+	})
+}
+
+#[test]
 fn redeem_must_return_err_when_overflows_occur() {
     new_test_ext().execute_with(|| {
         // Amount is too large, max_value / 0.0X == Overflow
