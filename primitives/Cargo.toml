@@ -5,6 +5,7 @@ name    = 'parallel-primitives'
 version = '1.8.1'
 
 [dependencies]
+log                     = { version = "0.4", default-features = false }
 codec                   = { package = 'parity-scale-codec', version = '2.3.1', default-features = false }
 cumulus-primitives-core = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.17', default-features = false }
 frame-support           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
@@ -20,6 +21,7 @@ sp-io                   = { git = 'https://github.com/paritytech/substrate.git',
 sp-runtime              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 sp-std                  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 xcm                     = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17', default-features = false }
+xcm-builder            = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17', default-features = false }
 xcm-executor            = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17', default-features = false }
 
 [features]
@@ -37,6 +39,7 @@ std     = [
   'frame-support/std',
   'xcm-executor/std',
   'xcm/std',
+  'xcm-builder/std',
   'scale-info/std',
   'cumulus-primitives-core/std',
   'num-bigint/std',

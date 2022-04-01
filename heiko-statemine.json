@@ -1,0 +1,116 @@
+{
+  "relaychain": {
+    "bin": "../polkadot/target/release/polkadot",
+    "chain": "rococo-local",
+    "nodes": [
+      {
+        "name": "alice",
+        "wsPort": 9944,
+        "rpcPort": 9933,
+        "port": 30333,
+        "basePath": "data/9944"
+      },
+      {
+        "name": "bob",
+        "wsPort": 9945,
+        "rpcPort": 9934,
+        "port": 30334,
+        "basePath": "data/9945"
+      },
+      {
+        "name": "charlie",
+        "wsPort": 9946,
+        "rpcPort": 9935,
+        "port": 30335,
+        "basePath": "data/9946"
+      },
+      {
+        "name": "dave",
+        "wsPort": 9947,
+        "rpcPort": 9936,
+        "port": 30336,
+        "basePath": "data/9947"
+      }
+    ],
+    "genesis": {
+      "runtime": {
+        "runtime_genesis_config": {
+          "configuration": {
+            "config": {
+              "validation_upgrade_frequency": 1,
+              "validation_upgrade_delay": 10
+            }
+          }
+        }
+      }
+    }
+  },
+  "parachains": [
+    {
+      "bin": "../parallel/target/release/parallel",
+      "chain": "heiko-dev",
+      "nodes": [
+        {
+          "wsPort": 9948,
+          "port": 30337,
+          "rpcPort": 9937,
+          "name": "alice",
+          "basePath": "data/9948",
+          "flags": [
+            "--unsafe-ws-external",
+            "--unsafe-rpc-external",
+            "--rpc-external",
+            "--ws-external",
+            "--rpc-cors=all",
+            "--rpc-methods=Unsafe",
+            "--force-authoring",
+            "--",
+            "--execution=wasm",
+            "--state-cache-size",
+            "0"
+          ]
+        }
+      ]
+    },
+    {
+      "bin": "../cumulus/target/release/polkadot-collator",
+      "chain": "statemine-local",
+      "nodes": [
+        {
+          "wsPort": 9950,
+          "port": 30339,
+          "name": "alice",
+          "basePath": "data/9950",
+          "flags": [
+            "--unsafe-ws-external",
+            "--unsafe-rpc-external",
+            "--rpc-external",
+            "--ws-external",
+            "--rpc-cors=all",
+            "--rpc-methods=Unsafe",
+            "--force-authoring",
+            "--",
+            "--execution=wasm"
+          ]
+        }
+      ]
+    }
+  ],
+  "simpleParachains": [],
+  "hrmpChannels": [
+    {
+      "sender": 1000,
+      "recipient": 2085,
+      "maxCapacity": 8,
+      "maxMessageSize": 512
+    },
+    {
+      "sender": 2085,
+      "recipient": 1000,
+      "maxCapacity": 8,
+      "maxMessageSize": 512
+    }
+  ],
+  "types": {},
+  "finalization": false
+}

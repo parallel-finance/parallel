@@ -18,6 +18,7 @@ pub mod currency;
 pub mod network;
 pub mod tokens;
 pub mod ump;
+pub mod xcm_gadget;
 
 use codec::{Decode, Encode};
 use frame_support::pallet_prelude::*;
@@ -191,6 +192,15 @@ impl ConvertToBigUint for u128 {
     fn get_big_uint(&self) -> BigUint {
         self.to_biguint().unwrap()
     }
+}
+
+/// Asset Registrar Metadata
+#[derive(Clone, Default, Eq, Debug, PartialEq, Ord, PartialOrd, Encode, Decode, TypeInfo)]
+pub struct AssetRegistrarMetadata {
+    pub name: Vec<u8>,
+    pub symbol: Vec<u8>,
+    pub decimals: u8,
+    pub is_frozen: bool,
 }
 
 /// Get relaychain validation data
