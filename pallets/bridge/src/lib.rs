@@ -775,8 +775,8 @@ impl<T: Config> Pallet<T> {
 
         let asset_id = Self::asset_id(bridge_token_id);
         let bridge_token = Self::bridge_token(asset_id);
-        Self::ensure_under_bridge_cap(bridge_token, amount, BridgeType::BridgeIn)?;
         ensure!(bridge_token.enable, Error::<T>::BridgeTokenDisabled);
+        Self::ensure_under_bridge_cap(bridge_token, amount, BridgeType::BridgeIn)?;
 
         Self::ensure_amount_valid(amount)?;
 
