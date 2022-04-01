@@ -580,13 +580,7 @@ pub mod pallet {
             let who = Self::ensure_relay_member(origin)?;
             Self::ensure_chain_registered(src_id)?;
             Self::ensure_chain_nonce_valid(src_id, src_nonce)?;
-            Self::ensure_bridge_token_registered(bridge_token_id)?;
-            Self::ensure_amount_valid(amount)?;
-            Self::ensure_under_bridge_cap(
-                Self::asset_id(bridge_token_id),
-                amount,
-                BridgeType::BridgeIn,
-            )?;
+            Self::materialize_allowed(bridge_token_id, amount)?;
 
             let call = MaterializeCall {
                 bridge_token_id,
@@ -741,11 +735,10 @@ impl<T: Config> Pallet<T> {
 
     /// Make sure the bridging amount under the bridge cap
     fn ensure_under_bridge_cap(
-        asset_id: AssetIdOf<T>,
+        bridge_token: BridgeToken,
         amount: BalanceOf<T>,
         bridge_type: BridgeType,
     ) -> Result<Balance, DispatchError> {
-        let bridge_token = Self::bridge_token(asset_id);
         let new_amount = match bridge_type {
             BridgeType::BridgeOut => {
                 let new_out_amount = bridge_token
@@ -772,6 +765,22 @@ impl<T: Config> Pallet<T> {
         };
 
         Ok(new_amount)
+    }
+
+    pub fn materialize_allowed(
+        bridge_token_id: CurrencyId,
+        amount: BalanceOf<T>,
+    ) -> DispatchResult {
+        Self::ensure_bridge_token_registered(bridge_token_id)?;
+
+        let asset_id = Self::asset_id(bridge_token_id);
+        let bridge_token = Self::bridge_token(asset_id);
+        ensure!(bridge_token.enable, Error::<T>::BridgeTokenDisabled);
+        Self::ensure_under_bridge_cap(bridge_token, amount, BridgeType::BridgeIn)?;
+
+        Self::ensure_amount_valid(amount)?;
+
+        Ok(())
     }
 
     pub fn change_vote_threshold() -> DispatchResult {
@@ -850,8 +859,9 @@ impl<T: Config> Pallet<T> {
         amount: BalanceOf<T>,
         bridge_type: BridgeType,
     ) -> DispatchResult {
-        let new_amount = Self::ensure_under_bridge_cap(asset_id, amount, bridge_type.clone())?;
         let mut bridge_token = Self::bridge_token(asset_id);
+        let new_amount =
+            Self::ensure_under_bridge_cap(bridge_token.clone(), amount, bridge_type.clone())?;
         match bridge_type {
             BridgeType::BridgeOut => {
                 bridge_token.out_amount = new_amount;
