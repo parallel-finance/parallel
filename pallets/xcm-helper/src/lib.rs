@@ -29,10 +29,6 @@ mod tests;
 pub mod weights;
 pub use pallet::*;
 
-use frame_support::traits::{
-    Currency, ExistenceRequirement::KeepAlive, InstanceFilter, IsSubType, IsType, OriginTrait,
-    ReservableCurrency, UnfilteredDispatchable,
-};
 use frame_support::{
     dispatch::{DispatchResult, GetDispatchInfo},
     pallet_prelude::*,
@@ -40,13 +36,8 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-use frame_system::{self as system};
-use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
-use sp_io::hashing::blake2_256;
-use sp_runtime::traits::{
-    AccountIdConversion, BlockNumberProvider, Convert, Dispatchable, StaticLookup,
-    TrailingZeroInput, Zero,
-};
+use primitives::{switch_relay, ump::*, AccountId, Balance, BlockNumber, CurrencyId, ParaId};
+use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup};
 use sp_std::prelude::*;
 use sp_std::{boxed::Box, vec, vec::Vec};
 use xcm::{latest::prelude::*, DoubleEncoded, VersionedMultiLocation, VersionedXcm};
@@ -59,31 +50,6 @@ pub type AssetIdOf<T> =
 pub type BalanceOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
-/// The parameters under which a particular account has a proxy relationship with some other
-/// account.
-#[derive(
-    Encode,
-    Decode,
-    Clone,
-    Copy,
-    Eq,
-    PartialEq,
-    Ord,
-    PartialOrd,
-    RuntimeDebug,
-    MaxEncodedLen,
-    TypeInfo,
-)]
-pub struct ProxyDefinition<AccountId, ProxyType, BlockNumber> {
-    /// The account which may act on behalf of another.
-    pub delegate: AccountId,
-    /// A value defining the subset of calls that it is allowed to make.
-    pub proxy_type: ProxyType,
-    /// The number of blocks that an announcement must be in place for before the corresponding
-    /// call may be dispatched. If zero, then no announcement is needed.
-    pub delay: BlockNumber,
-}
-
 #[frame_support::pallet]
 pub mod pallet {
     use crate::weights::WeightInfo;
@@ -91,8 +57,6 @@ pub mod pallet {
 
     use super::*;
 
-    use frame_support::weights::{extract_actual_weight, PostDispatchInfo};
-    use frame_system::{ensure_root, ensure_signed};
     use sp_runtime::traits::{Convert, Zero};
 
     #[pallet::config]
@@ -137,51 +101,6 @@ pub mod pallet {
 
         /// Weight information
         type WeightInfo: WeightInfo;
-
-        /// The overarching call type.
-        type Call: Parameter
-            + Dispatchable<
-                Origin = <Self as frame_system::Config>::Origin,
-                PostInfo = PostDispatchInfo,
-            > + GetDispatchInfo
-            + From<frame_system::Call<Self>>
-            + UnfilteredDispatchable<Origin = <Self as frame_system::Config>::Origin>
-            + IsSubType<Call<Self>>
-            + IsType<<Self as frame_system::Config>::Call>;
-
-        /// A kind of proxy; specified with the proxy and passed in to the `IsProxyable` fitler.
-        /// The instance filter determines whether a given call may be proxied under this type.
-        ///
-        /// IMPORTANT: `Default` must be provided and MUST BE the the *most permissive* value.
-        type ProxyType: Parameter
-            + Member
-            + Ord
-            + PartialOrd
-            + InstanceFilter<<Self as Config>::Call>
-            + Default
-            + MaxEncodedLen;
-
-        /// The maximum amount of proxies allowed for a single account.
-        #[pallet::constant]
-        type MaxProxies: Get<u32>;
-
-        /// The currency mechanism.
-        type Currency: ReservableCurrency<Self::AccountId, Balance = Balance>;
-
-        /// The base amount of currency needed to reserve for creating a proxy.
-        ///
-        /// This is held for an additional storage item whose value size is
-        /// `sizeof(Balance)` bytes and whose key size is `sizeof(AccountId)` bytes.
-        #[pallet::constant]
-        type ProxyDepositBase: Get<BalanceOf<Self>>;
-
-        /// The amount of currency needed per proxy added.
-        ///
-        /// This is held for adding 32 bytes plus an instance of `ProxyType` more into a
-        /// pre-existing storage value. Thus, when configuring `ProxyDepositFactor` one should take
-        /// into account `32 + proxy_type.encode().len()` bytes of data.
-        #[pallet::constant]
-        type ProxyDepositFactor: Get<BalanceOf<Self>>;
     }
 
     #[pallet::event]
@@ -206,48 +125,20 @@ pub mod pallet {
         /// XCMNominated
         XCMNominated,
         /// XCM message sent. \[to, message\]
-        Sent { to: MultiLocation, message: Xcm<()> },
-        /// Batch of dispatches completed fully with no error.
-        BatchCompleted,
-        /// A single item within a Batch of dispatches has completed with no error.
-        ItemCompleted,
-        /// A proxy was executed correctly, with the given.
-        ProxyExecuted { result: DispatchResult },
-        /// A proxy was added.
-        ProxyAdded {
-            delegator: T::AccountId,
-            delegatee: T::AccountId,
-            proxy_type: T::ProxyType,
-            delay: T::BlockNumber,
+        Sent {
+            to: Box<MultiLocation>,
+            message: Xcm<()>,
         },
-        /// A proxy was removed.
-        ProxyRemoved {
-            delegator: T::AccountId,
-            delegatee: T::AccountId,
-            proxy_type: T::ProxyType,
-            delay: T::BlockNumber,
-        },
+        /// ProxyAdded
+        ProxyAdded,
+        /// ProxyRemoved
+        ProxyRemoved,
     }
 
     #[pallet::storage]
     #[pallet::getter(fn xcm_weight_fee)]
     pub type XcmWeightFee<T: Config> =
         StorageMap<_, Twox64Concat, XcmCall, XcmWeightFeeMisc<Weight, BalanceOf<T>>, ValueQuery>;
-
-    /// The set of account proxies. Maps the account which has delegated to the accounts
-    /// which are being delegated to, together with the amount held on deposit.
-    #[pallet::storage]
-    #[pallet::getter(fn proxies)]
-    pub type Proxies<T: Config> = StorageMap<
-        _,
-        Twox64Concat,
-        T::AccountId,
-        (
-            BoundedVec<ProxyDefinition<T::AccountId, T::ProxyType, T::BlockNumber>, T::MaxProxies>,
-            BalanceOf<T>,
-        ),
-        ValueQuery,
-    >;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -293,28 +184,6 @@ pub mod pallet {
         Unannounced,
         /// Cannot add self as proxy.
         NoSelfProxy,
-    }
-
-    // Align the call size to 1KB. As we are currently compiling the runtime for native/wasm
-    // the `size_of` of the `Call` can be different. To ensure that this don't leads to
-    // mismatches between native/wasm or to different metadata for the same runtime, we
-    // algin the call size. The value is choosen big enough to hopefully never reach it.
-    const CALL_ALIGN: u32 = 1024;
-
-    #[pallet::extra_constants]
-    impl<T: Config> Pallet<T> {
-        /// The limit on the number of batched calls.
-        fn batched_calls_limit() -> u32 {
-            let allocator_limit = sp_core::MAX_POSSIBLE_ALLOCATION;
-            let call_size = ((sp_std::mem::size_of::<<T as Config>::Call>() as u32 + CALL_ALIGN
-                - 1)
-                / CALL_ALIGN)
-                * CALL_ALIGN;
-            // The margin to take into account vec doubling capacity.
-            let margin_factor = 3;
-
-            allocator_limit / margin_factor / call_size
-        }
     }
 
     #[pallet::call]
@@ -503,7 +372,10 @@ pub mod pallet {
                     _ => Error::<T>::SendFailure,
                 },
             )?;
-            Self::deposit_event(Event::Sent { to: dest, message });
+            Self::deposit_event(Event::Sent {
+                to: Box::new(dest),
+                message,
+            });
             Ok(())
         }
 
@@ -513,212 +385,58 @@ pub mod pallet {
             origin: OriginFor<T>,
             call: DoubleEncoded<()>,
             weight: Weight,
-            beneficiary: MultiLocation,
+            beneficiary: Box<MultiLocation>,
             relay_currency: AssetIdOf<T>,
             fees: BalanceOf<T>,
         ) -> DispatchResult {
             T::XCMOrigin::ensure_origin(origin)?;
 
-            Self::ump_transact(call, weight, beneficiary, relay_currency, fees)?;
+            Self::ump_transact(call, weight, *beneficiary, relay_currency, fees)?;
 
             Ok(())
         }
 
-        #[pallet::weight({
-		let dispatch_info = call.get_dispatch_info();
-		(
-		T::WeightInfo::as_derivative()
-		.saturating_add(dispatch_info.weight)
-		// AccountData for inner call origin accountdata.
-		.saturating_add(T::DbWeight::get().reads_writes(1, 1)),
-		dispatch_info.class,
-		)
-		})]
-        pub fn as_derivative(
-            origin: OriginFor<T>,
-            index: u16,
-            call: Box<<T as Config>::Call>,
-        ) -> DispatchResultWithPostInfo {
-            let mut origin = origin;
-            let who = ensure_signed(origin.clone())?;
-            let pseudonym = Self::derivative_account_id(who, index);
-            origin.set_caller_from(frame_system::RawOrigin::Signed(pseudonym));
-            let info = call.get_dispatch_info();
-            let result = call.dispatch(origin);
-            // Always take into account the base weight of this call.
-            let mut weight = T::WeightInfo::as_derivative()
-                .saturating_add(T::DbWeight::get().reads_writes(1, 1));
-            // Add the real weight of the dispatch.
-            weight = weight.saturating_add(extract_actual_weight(&result, &info));
-            result
-                .map_err(|mut err| {
-                    err.post_info = Some(weight).into();
-                    err
-                })
-                .map(|_| Some(weight).into())
-        }
-
-        #[pallet::weight({
-		let dispatch_infos = calls.iter().map(|call| call.get_dispatch_info()).collect::<Vec<_>>();
-		let dispatch_weight = dispatch_infos.iter()
-		.map(|di| di.weight)
-		.fold(0, |total: Weight, weight: Weight| total.saturating_add(weight))
-		.saturating_add(T::WeightInfo::batch_all(calls.len() as u32));
-		let dispatch_class = {
-		let all_operational = dispatch_infos.iter()
-		.map(|di| di.class)
-		.all(|class| class == DispatchClass::Operational);
-		if all_operational {
-		DispatchClass::Operational
-		} else {
-		DispatchClass::Normal
-		}
-		};
-		(dispatch_weight, dispatch_class)
-		})]
+        #[pallet::weight(10_000)]
         #[transactional]
-        pub fn batch_all(
-            origin: OriginFor<T>,
-            calls: Vec<<T as Config>::Call>,
-        ) -> DispatchResultWithPostInfo {
-            let is_root = ensure_root(origin.clone()).is_ok();
-            let calls_len = calls.len();
-            ensure!(
-                calls_len <= Self::batched_calls_limit() as usize,
-                Error::<T>::TooManyCalls
-            );
-
-            // Track the actual weight of each of the batch calls.
-            let mut weight: Weight = 0;
-            for (index, call) in calls.into_iter().enumerate() {
-                let info = call.get_dispatch_info();
-                // If origin is root, bypass any dispatch filter; root can call anything.
-                let result = if is_root {
-                    call.dispatch_bypass_filter(origin.clone())
-                } else {
-                    let mut filtered_origin = origin.clone();
-                    // Don't allow users to nest `batch_all` calls.
-                    filtered_origin.add_filter(move |c: &<T as frame_system::Config>::Call| {
-                        let c = <T as Config>::Call::from_ref(c);
-                        !matches!(c.is_sub_type(), Some(Call::batch_all { .. }))
-                    });
-                    call.dispatch(filtered_origin)
-                };
-                // Add the weight of this call.
-                weight = weight.saturating_add(extract_actual_weight(&result, &info));
-                result.map_err(|mut err| {
-                    // Take the weight of this function itself into account.
-                    let base_weight = T::WeightInfo::batch_all(index.saturating_add(1) as u32);
-                    // Return the actual used weight + base_weight of this call.
-                    err.post_info = Some(base_weight + weight).into();
-                    err
-                })?;
-                Self::deposit_event(Event::ItemCompleted);
-            }
-            Self::deposit_event(Event::BatchCompleted);
-            let base_weight = T::WeightInfo::batch_all(calls_len as u32);
-            Ok(Some(base_weight + weight).into())
-        }
-
-        #[pallet::weight(10_000)]
-        pub fn proxy(
-            origin: OriginFor<T>,
-            real: T::AccountId,
-            force_proxy_type: Option<T::ProxyType>,
-            call: Box<<T as Config>::Call>,
-        ) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-            let def = Self::find_proxy(&real, &who, force_proxy_type)?;
-            ensure!(def.delay.is_zero(), Error::<T>::Unannounced);
-
-            Self::do_proxy(def, real, *call);
-
-            Ok(())
-        }
-
-        #[pallet::weight(10_000)]
-        pub fn remove_proxy(
-            origin: OriginFor<T>,
-            delegate: T::AccountId,
-            proxy_type: T::ProxyType,
-            delay: T::BlockNumber,
-        ) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-            Self::remove_proxy_delegate(&who, delegate, proxy_type, delay)
-        }
-
-        #[pallet::weight(10_000)]
         pub fn add_proxy(
             origin: OriginFor<T>,
-            delegate: T::AccountId,
-            proxy_type: T::ProxyType,
-            delay: T::BlockNumber,
+            delegate: AccountId,
+            proxy_type: Option<ProxyType>,
+            delay: BlockNumber,
+            relay_currency: AssetIdOf<T>,
+            notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-            Self::add_proxy_delegate(&who, delegate, proxy_type, delay)
-        }
+            T::XCMOrigin::ensure_origin(origin)?;
 
-        #[pallet::weight(10_000)]
-        pub fn remove_proxies(origin: OriginFor<T>) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-            let (_, old_deposit) = Proxies::<T>::take(&who);
-            T::Currency::unreserve(&who, old_deposit);
+            Self::do_add_proxy(delegate, proxy_type, delay, relay_currency, *notify)?;
 
+            Self::deposit_event(Event::<T>::ProxyAdded);
             Ok(())
         }
 
         #[pallet::weight(10_000)]
-        pub fn kill_anonymous(
+        #[transactional]
+        pub fn remove_proxy(
             origin: OriginFor<T>,
-            spawner: T::AccountId,
-            proxy_type: T::ProxyType,
-            index: u16,
-            #[pallet::compact] height: T::BlockNumber,
-            #[pallet::compact] ext_index: u32,
+            delegate: AccountId,
+            proxy_type: Option<ProxyType>,
+            delay: BlockNumber,
+            relay_currency: AssetIdOf<T>,
+            notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
-            let who = ensure_signed(origin)?;
+            T::XCMOrigin::ensure_origin(origin)?;
 
-            let when = (height, ext_index);
-            let proxy = Self::anonymous_account(&spawner, &proxy_type, index, Some(when));
-            ensure!(proxy == who, Error::<T>::NoPermission);
+            Self::do_remove_proxy(delegate, proxy_type, delay, relay_currency, *notify)?;
 
-            let (_, deposit) = Proxies::<T>::take(&who);
-            T::Currency::unreserve(&spawner, deposit);
-
+            Self::deposit_event(Event::<T>::ProxyRemoved);
             Ok(())
         }
-
-        #[pallet::weight(10_000)]
-        pub fn transfer_keep_alive(
-            origin: OriginFor<T>,
-            dest: <T::Lookup as StaticLookup>::Source,
-            #[pallet::compact] value: BalanceOf<T>,
-        ) -> DispatchResultWithPostInfo {
-            let transactor = ensure_signed(origin)?;
-            let dest = T::Lookup::lookup(dest)?;
-            T::Currency::transfer(&transactor, &dest, value, KeepAlive)?;
-            Ok(().into())
-        }
-        //
-        // #[pallet::weight(10_000)]
-        // pub fn transfer_all(
-        // 	origin: OriginFor<T>,
-        // 	dest: <T::Lookup as StaticLookup>::Source,
-        // 	keep_alive: bool,
-        // ) -> DispatchResult {
-        // 	use fungible::Inspect;
-        // 	let transactor = ensure_signed(origin)?;
-        // 	let reducible_balance = Self::reducible_balance(&transactor, keep_alive);
-        // 	let dest = T::Lookup::lookup(dest)?;
-        // 	let keep_alive = if keep_alive { KeepAlive } else { AllowDeath };
-        // 	T::Currency::transfer(&transactor, &dest, reducible_balance, keep_alive)?;
-        // 	Ok(())
-        // }
     }
 }
 
-pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
-    fn add_xcm_fees(relay_currency: AssetId, payer: &AccountId, amount: Balance) -> DispatchResult;
+pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, TAccountId> {
+    fn add_xcm_fees(relay_currency: AssetId, payer: &TAccountId, amount: Balance)
+        -> DispatchResult;
 
     fn ump_transact(
         call: DoubleEncoded<()>,
@@ -731,7 +449,7 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
     fn do_withdraw(
         para_id: ParaId,
         relay_currency: AssetId,
-        para_account_id: AccountId,
+        para_account_id: TAccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 
@@ -739,14 +457,14 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         para_id: ParaId,
         relay_currency: AssetId,
         amount: Balance,
-        who: &AccountId,
+        who: &TAccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_bond(
         value: Balance,
-        payee: RewardDestination<AccountId>,
-        stash: AccountId,
+        payee: RewardDestination<TAccountId>,
+        stash: TAccountId,
         relay_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
@@ -754,7 +472,7 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
 
     fn do_bond_extra(
         value: Balance,
-        stash: AccountId,
+        stash: TAccountId,
         relay_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
@@ -776,16 +494,32 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
 
     fn do_withdraw_unbonded(
         num_slashing_spans: u32,
-        para_account_id: AccountId,
+        para_account_id: TAccountId,
         staking_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_nominate(
-        targets: Vec<AccountId>,
+        targets: Vec<TAccountId>,
         relay_currency: AssetId,
         index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
+
+    fn do_add_proxy(
+        delegate: AccountId,
+        proxy_type: Option<ProxyType>,
+        delay: BlockNumber,
+        relay_currency: AssetId,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
+
+    fn do_remove_proxy(
+        delegate: AccountId,
+        proxy_type: Option<ProxyType>,
+        delay: BlockNumber,
+        relay_currency: AssetId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 }
@@ -820,201 +554,6 @@ impl<T: Config> Pallet<T> {
         // so we need to insert it after Withdraw, BuyExecution
         message.0.insert(2, SetAppendix(report_error));
         Ok(query_id)
-    }
-
-    pub fn derivative_account_id(who: T::AccountId, index: u16) -> T::AccountId {
-        let entropy = (b"modlpy/utilisuba", who, index).using_encoded(blake2_256);
-        Decode::decode(&mut TrailingZeroInput::new(entropy.as_ref()))
-            .expect("infinite length input; no invalid inputs for type; qed")
-    }
-
-    /// Calculate the address of an anonymous account.
-    ///
-    /// - `who`: The spawner account.
-    /// - `proxy_type`: The type of the proxy that the sender will be registered as over the
-    /// new account. This will almost always be the most permissive `ProxyType` possible to
-    /// allow for maximum flexibility.
-    /// - `index`: A disambiguation index, in case this is called multiple times in the same
-    /// transaction (e.g. with `utility::batch`). Unless you're using `batch` you probably just
-    /// want to use `0`.
-    /// - `maybe_when`: The block height and extrinsic index of when the anonymous account was
-    /// created. None to use current block height and extrinsic index.
-    pub fn anonymous_account(
-        who: &T::AccountId,
-        proxy_type: &T::ProxyType,
-        index: u16,
-        maybe_when: Option<(T::BlockNumber, u32)>,
-    ) -> T::AccountId {
-        let (height, ext_index) = maybe_when.unwrap_or_else(|| {
-            (
-                system::Pallet::<T>::block_number(),
-                system::Pallet::<T>::extrinsic_index().unwrap_or_default(),
-            )
-        });
-        let entropy = (
-            b"modlpy/proxy____",
-            who,
-            height,
-            ext_index,
-            proxy_type,
-            index,
-        )
-            .using_encoded(blake2_256);
-        Decode::decode(&mut TrailingZeroInput::new(entropy.as_ref()))
-            .expect("infinite length input; no invalid inputs for type; qed")
-    }
-
-    /// Register a proxy account for the delegator that is able to make calls on its behalf.
-    ///
-    /// Parameters:
-    /// - `delegator`: The delegator account.
-    /// - `delegatee`: The account that the `delegator` would like to make a proxy.
-    /// - `proxy_type`: The permissions allowed for this proxy account.
-    /// - `delay`: The announcement period required of the initial proxy. Will generally be
-    /// zero.
-    pub fn add_proxy_delegate(
-        delegator: &T::AccountId,
-        delegatee: T::AccountId,
-        proxy_type: T::ProxyType,
-        delay: T::BlockNumber,
-    ) -> DispatchResult {
-        ensure!(delegator != &delegatee, Error::<T>::NoSelfProxy);
-        Proxies::<T>::try_mutate(delegator, |(ref mut proxies, ref mut deposit)| {
-            let proxy_def = ProxyDefinition {
-                delegate: delegatee.clone(),
-                proxy_type: proxy_type.clone(),
-                delay,
-            };
-            let i = proxies
-                .binary_search(&proxy_def)
-                .err()
-                .ok_or(Error::<T>::Duplicate)?;
-            proxies
-                .try_insert(i, proxy_def)
-                .map_err(|_| Error::<T>::TooMany)?;
-            let new_deposit = Self::deposit(proxies.len() as u32);
-            if new_deposit > *deposit {
-                T::Currency::reserve(delegator, new_deposit - *deposit)?;
-            } else if new_deposit < *deposit {
-                T::Currency::unreserve(delegator, *deposit - new_deposit);
-            }
-            *deposit = new_deposit;
-            Self::deposit_event(Event::<T>::ProxyAdded {
-                delegator: delegator.clone(),
-                delegatee,
-                proxy_type,
-                delay,
-            });
-            Ok(())
-        })
-    }
-
-    /// Unregister a proxy account for the delegator.
-    ///
-    /// Parameters:
-    /// - `delegator`: The delegator account.
-    /// - `delegatee`: The account that the `delegator` would like to make a proxy.
-    /// - `proxy_type`: The permissions allowed for this proxy account.
-    /// - `delay`: The announcement period required of the initial proxy. Will generally be
-    /// zero.
-    pub fn remove_proxy_delegate(
-        delegator: &T::AccountId,
-        delegatee: T::AccountId,
-        proxy_type: T::ProxyType,
-        delay: T::BlockNumber,
-    ) -> DispatchResult {
-        Proxies::<T>::try_mutate_exists(delegator, |x| {
-            let (mut proxies, old_deposit) = x.take().ok_or(Error::<T>::NotFound)?;
-            let proxy_def = ProxyDefinition {
-                delegate: delegatee.clone(),
-                proxy_type: proxy_type.clone(),
-                delay,
-            };
-            let i = proxies
-                .binary_search(&proxy_def)
-                .ok()
-                .ok_or(Error::<T>::NotFound)?;
-            proxies.remove(i);
-            let new_deposit = Self::deposit(proxies.len() as u32);
-            if new_deposit > old_deposit {
-                T::Currency::reserve(delegator, new_deposit - old_deposit)?;
-            } else if new_deposit < old_deposit {
-                T::Currency::unreserve(delegator, old_deposit - new_deposit);
-            }
-            if !proxies.is_empty() {
-                *x = Some((proxies, new_deposit))
-            }
-            Self::deposit_event(Event::<T>::ProxyRemoved {
-                delegator: delegator.clone(),
-                delegatee,
-                proxy_type,
-                delay,
-            });
-            Ok(())
-        })
-    }
-
-    pub fn deposit(num_proxies: u32) -> BalanceOf<T> {
-        if num_proxies == 0 {
-            Zero::zero()
-        } else {
-            BalanceOf::<T>::from(num_proxies)
-                .saturating_mul(T::ProxyDepositBase::get() + T::ProxyDepositFactor::get())
-        }
-    }
-
-    pub fn find_proxy(
-        real: &T::AccountId,
-        delegate: &T::AccountId,
-        force_proxy_type: Option<T::ProxyType>,
-    ) -> Result<ProxyDefinition<T::AccountId, T::ProxyType, T::BlockNumber>, DispatchError> {
-        let f = |x: &ProxyDefinition<T::AccountId, T::ProxyType, T::BlockNumber>| -> bool {
-            &x.delegate == delegate
-                && force_proxy_type
-                    .as_ref()
-                    .map_or(true, |y| &x.proxy_type == y)
-        };
-        Ok(Proxies::<T>::get(real)
-            .0
-            .into_iter()
-            .find(f)
-            .ok_or(Error::<T>::NotProxy)?)
-    }
-
-    fn do_proxy(
-        def: ProxyDefinition<T::AccountId, T::ProxyType, T::BlockNumber>,
-        real: T::AccountId,
-        call: <T as Config>::Call,
-    ) {
-        // This is a freshly authenticated new account, the origin restrictions doesn't apply.
-        let mut origin: <T as frame_system::Config>::Origin =
-            frame_system::RawOrigin::Signed(real).into();
-        origin.add_filter(move |c: &<T as frame_system::Config>::Call| {
-            let c = <T as Config>::Call::from_ref(c);
-            // We make sure the proxy call does access this pallet to change modify proxies.
-            match c.is_sub_type() {
-                // Proxy call cannot add or remove a proxy with more permissions than it already
-                // has.
-                Some(Call::add_proxy { ref proxy_type, .. })
-                | Some(Call::remove_proxy { ref proxy_type, .. })
-                    if !def.proxy_type.is_superset(&proxy_type) =>
-                {
-                    false
-                }
-                // Proxy call cannot remove all proxies or kill anonymous proxies unless it has full
-                // permissions.
-                Some(Call::remove_proxies { .. }) | Some(Call::kill_anonymous { .. })
-                    if def.proxy_type != T::ProxyType::default() =>
-                {
-                    false
-                }
-                _ => def.proxy_type.filter(c),
-            }
-        });
-        let e = call.dispatch(origin);
-        Self::deposit_event(Event::ProxyExecuted {
-            result: e.map(|_| ()).map_err(|e| e.error),
-        });
     }
 }
 
@@ -1057,6 +596,85 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 beneficiary,
             },
         ]))
+    }
+
+    fn do_add_proxy(
+        delegate: AccountId,
+        proxy_type: Option<ProxyType>,
+        delay: BlockNumber,
+        relay_currency: AssetIdOf<T>,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::AddProxy);
+        Ok(switch_relay!({
+            let call =
+                RelaychainCall::<T>::Proxy(Box::new(ProxyCall::AddProxy(ProxyAddProxyCall {
+                    delegate,
+                    proxy_type,
+                    delay,
+                })));
+
+            let mut msg = Self::ump_transact(
+                call.encode().into(),
+                xcm_weight_fee_misc.weight,
+                Self::refund_location(),
+                relay_currency,
+                xcm_weight_fee_misc.fee,
+            )?;
+
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
+            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendXcmError.into());
+            }
+
+            query_id
+        }))
+    }
+
+    fn do_remove_proxy(
+        delegate: AccountId,
+        proxy_type: Option<ProxyType>,
+        delay: BlockNumber,
+        relay_currency: AssetIdOf<T>,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::RemoveProxy);
+        Ok(switch_relay!({
+            let call = RelaychainCall::<T>::Proxy(Box::new(ProxyCall::RemoveProxy(
+                ProxyRemoveProxyCall {
+                    delegate,
+                    proxy_type,
+                    delay,
+                },
+            )));
+
+            let mut msg = Self::ump_transact(
+                call.encode().into(),
+                xcm_weight_fee_misc.weight,
+                Self::refund_location(),
+                relay_currency,
+                xcm_weight_fee_misc.fee,
+            )?;
+
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
+            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendXcmError.into());
+            }
+
+            query_id
+        }))
     }
 
     fn do_withdraw(

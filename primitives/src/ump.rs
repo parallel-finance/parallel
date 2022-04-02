@@ -318,6 +318,9 @@ pub enum XcmCall {
     Contribute,
     Withdraw,
     AddMemo,
+    Proxy,
+    AddProxy,
+    RemoveProxy,
 }
 
 #[macro_export]
