@@ -35,26 +35,13 @@ fn repay_borrow_all_no_underflow() {
         // Alice borrow only 1/1e5 KSM which is hard to accure total borrows interest in 100 seconds
         assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, 10_u128.pow(7)));
 
-        // Initialize the last_accrued_timestamp
-        LastAccruedTimestamp::<Test>::put(6);
-        // assert_ok!(Loans::accrue_interest(KSM));
-        for i in 1..9 {
-            println!("i = {:#?}", i);
-            let now = <Test as Config>::UnixTime::now();
-            println!("now = {:#?}", now);
-            println!(
-                "last_accrued_timestamp = {:#?}",
-                Loans::last_accrued_timestamp()
-            );
-            TimestampPallet::set_timestamp(100000 * (i + 1));
-            assert_ok!(Loans::accrue_interest(KSM));
-        }
+        accrue_interest_of(KSM, 100, 9);
 
         assert_eq!(Loans::current_borrow_balance(&ALICE, KSM), Ok(10000005));
         // FIXME since total_borrows is too small and we accure internal on it every 100 seconds
         // accure_interest fails every time
         // as you can see the current borrow balance is not equal to total_borrows anymore
-        assert_eq!(Loans::total_borrows(KSM), 10000001);
+        assert_eq!(Loans::total_borrows(KSM), 10000000);
 
         // Alice repay all borrow balance. total_borrows = total_borrows.saturating_sub(10000005) = 0.
         assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
@@ -91,7 +78,11 @@ fn redeem_all_should_be_accurate() {
         assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, dollar(50)));
 
         // let exchange_rate greater than 0.02
-        run_to_block(150);
+        accrue_interest_of(KSM, 6, 2);
+        assert_eq!(
+            Loans::exchange_rate(KSM),
+            Rate::from_inner(20000000036387000)
+        );
 
         assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
         // It failed with InsufficientLiquidity before #839
@@ -129,8 +120,6 @@ fn prevent_the_exchange_rate_attack() {
             Loans::total_supply(DOT),
             20 * 50, // 20 / 0.02
         );
-        // Initialize the last_accrued_timestamp
-        LastAccruedTimestamp::<Test>::put(6);
         TimestampPallet::set_timestamp(12000);
         // Eve can not let the exchage rate greater than 1
         assert!(Loans::accrue_interest(DOT).is_err());

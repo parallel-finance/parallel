@@ -73,8 +73,6 @@ fn interest_rate_model_works() {
         let mut total_borrows = borrow_snapshot.principal;
         let mut total_reserves: u128 = 0;
 
-        // Initialize the last_accrued_timestamp
-        assert_ok!(Loans::accrue_interest(DOT));
         // Interest accrued from blocks 1 to 49
         for i in 1..49 {
             let delta_time = 6u128;
@@ -133,6 +131,16 @@ fn interest_rate_model_works() {
             (total_borrows - million_dollar(100) - total_reserves) / 10000,
             supply_interest / 10000
         );
+    })
+}
+
+#[test]
+fn accrue_interest_after_borrow() {
+    new_test_ext().execute_with(|| {
+        // Deposit 200 DOT and borrow 100 DOT
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
     })
 }
 
