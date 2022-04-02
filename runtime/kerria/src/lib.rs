@@ -66,7 +66,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
-    tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, SDOT},
+    tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, HKO, LC_DOT, LDOT, PARA, SDOT},
     xcm_gadget::{
         AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
         FirstAssetTrader,
@@ -517,6 +517,10 @@ impl pallet_assets::Config for Runtime {
     type Extra = ();
 }
 
+parameter_types! {
+    pub const RewardAssetId: CurrencyId = HKO;
+}
+
 impl pallet_loans::Config for Runtime {
     type Event = Event;
     type PalletId = LoansPalletId;
@@ -526,6 +530,7 @@ impl pallet_loans::Config for Runtime {
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
     type Assets = CurrencyAdapter;
+    type RewardAssetId = RewardAssetId;
 }
 
 parameter_types! {

@@ -12,6 +12,7 @@ codec              = { package = 'parity-scale-codec', version = '2.3.1', defaul
 frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false, optional = true }
 frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
+num-traits         = { default-features = false, version = '0.2' }
 orml-traits        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 pallet-balances    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
@@ -47,6 +48,7 @@ std                = [
   'pallet-timestamp/std',
   'serde',
   'scale-info/std',
+  'num-traits/std',
 ]
 try-runtime        = ['frame-support/try-runtime']
 
