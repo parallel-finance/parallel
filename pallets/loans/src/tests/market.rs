@@ -1,5 +1,8 @@
 use crate::{
-    mock::{new_test_ext, Loans, Origin, Test, ACTIVE_MARKET_MOCK, ALICE, DOT, MARKET_MOCK, SDOT},
+    mock::{
+        market_mock, new_test_ext, Loans, Origin, Test, ACTIVE_MARKET_MOCK, ALICE, DOT,
+        MARKET_MOCK, PDOT, PUSDT, SDOT,
+    },
     Error, InterestRateModel, MarketState,
 };
 use frame_support::{assert_noop, assert_ok, error::BadOrigin};
@@ -160,8 +163,23 @@ fn force_update_market_can_only_be_used_by_root() {
 #[test]
 fn force_update_market_works() {
     new_test_ext().execute_with(|| {
-        Loans::force_update_market(Origin::root(), DOT, MARKET_MOCK).unwrap();
-        assert_eq!(Loans::market(DOT).unwrap().state, MarketState::Pending);
+        let mut new_market = market_mock(PDOT);
+        new_market.state = MarketState::Active;
+        Loans::force_update_market(Origin::root(), DOT, new_market).unwrap();
+        assert_eq!(Loans::market(DOT).unwrap().state, MarketState::Active);
+        assert_eq!(Loans::market(DOT).unwrap().ptoken_id, PDOT);
+
+        // New ptoken_id must not be in use
+        assert_noop!(
+            Loans::force_update_market(Origin::root(), DOT, market_mock(PUSDT)),
+            Error::<Test>::InvalidPtokenId
+        );
+        assert_ok!(Loans::force_update_market(
+            Origin::root(),
+            DOT,
+            market_mock(1234)
+        ));
+        assert_eq!(Loans::market(DOT).unwrap().ptoken_id, 1234);
     })
 }
 
@@ -300,7 +318,7 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Zero::zero(),
                 market.borrow_cap,
             ),
-            Error::<Test>::InvalidCap
+            Error::<Test>::InvalidSupplyCap
         );
     })
 }

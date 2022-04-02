@@ -34,7 +34,7 @@ use frame_support::{
     PalletId,
 };
 
-use orml_traits::{DataProvider, DataProviderExtended};
+use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
@@ -139,10 +139,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 180,
-    impl_version: 25,
+    spec_version: 181,
+    impl_version: 26,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 9,
+    transaction_version: 10,
     state_version: 0,
 };
 
@@ -488,6 +488,12 @@ parameter_types! {
     pub const MaxAssetsForTransfer: usize = 2;
 }
 
+parameter_type_with_key! {
+    pub ParachainMinFee: |_location: MultiLocation| -> u128 {
+        u128::MAX
+    };
+}
+
 impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
@@ -500,6 +506,7 @@ impl orml_xtokens::Config for Runtime {
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
     type MaxAssetsForTransfer = MaxAssetsForTransfer;
+    type MinXcmFee = ParachainMinFee;
 }
 
 parameter_types! {
@@ -575,7 +582,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
-    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
+    type RelayChainValidationDataProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
 }
@@ -1515,9 +1522,11 @@ parameter_types! {
 
 impl pallet_bridge::Config for Runtime {
     type Event = Event;
-    type AdminMembers = BridgeMembership;
+    type RelayMembers = BridgeMembership;
     type RootOperatorAccountId = OneAccount;
-    type OperateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateChainOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateTokenOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ChainId = Parallel;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;
@@ -1575,10 +1584,10 @@ parameter_types! {
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
 
-pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
+pub struct RelayChainValidationDataProvider<T>(sp_std::marker::PhantomData<T>);
 
 impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
-    for RelayChainBlockNumberProvider<T>
+    for RelayChainValidationDataProvider<T>
 {
     type BlockNumber = primitives::BlockNumber;
 
@@ -1586,6 +1595,14 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
         cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
             .map(|d| d.relay_parent_number)
             .unwrap_or_default()
+    }
+}
+
+impl<T: cumulus_pallet_parachain_system::Config> ValidationDataProvider
+    for RelayChainValidationDataProvider<T>
+{
+    fn validation_data() -> Option<PersistedValidationData> {
+        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
     }
 }
 
@@ -1611,7 +1628,7 @@ impl pallet_crowdloans::Config for Runtime {
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
     type XCM = XcmHelper;
-    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
+    type RelayChainBlockNumberProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = CrowdloansAutomatorsMembership;
 }
 

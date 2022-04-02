@@ -94,6 +94,48 @@
       "assetId": 5002,
       "decimal": 12,
       "balances": []
+    },
+    {
+      "name": "Shiden",
+      "symbol": "SDN",
+      "assetId": 111,
+      "decimal": 18,
+      "balances": []
+    },
+    {
+      "name": "Moonriver",
+      "symbol": "MOVR",
+      "assetId": 113,
+      "decimal": 18,
+      "balances": []
+    },
+    {
+      "name": "Phala",
+      "symbol": "PHA",
+      "assetId": 115,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Phala",
+      "symbol": "KMA",
+      "assetId": 116,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Kintsugi",
+      "symbol": "KINT",
+      "assetId": 118,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Kintsugi Bitcoin",
+      "symbol": "KBTC",
+      "assetId": 119,
+      "decimal": 8,
+      "balances": []
     }
   ],
   "markets": [
@@ -107,7 +149,7 @@
         "borrowCap": "100000000000000000",
         "liquidateIncentive": "1100000000000000000",
         "rateModel": {
-          "jumpModel": {
+          "jump": {
             "baseRate": "20000000000000000",
             "jumpRate": "100000000000000000",
             "fullRate": "320000000000000000",
@@ -128,7 +170,7 @@
         "borrowCap": "100000000000000000",
         "liquidateIncentive": "1100000000000000000",
         "rateModel": {
-          "jumpModel": {
+          "jump": {
             "baseRate": "20000000000000000",
             "jumpRate": "100000000000000000",
             "fullRate": "320000000000000000",
@@ -137,111 +179,6 @@
         },
         "state": "Pending",
         "ptokenId": 2102
-      }
-    },
-    {
-      "assetId": 103,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "supplyCap": "100000000000000000",
-        "borrowCap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2103
-      }
-    },
-    {
-      "assetId": 107,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "supplyCap": "100000000000000000",
-        "borrowCap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2107
-      }
-    },
-    {
-      "assetId": 109,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "supplyCap": "100000000000000000",
-        "borrowCap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2109
-      }
-    },
-    {
-      "assetId": 201,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "supplyCap": "100000000000000000",
-        "borrowCap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2201
-      }
-    },
-    {
-      "assetId": 202,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "supplyCap": "100000000000000000",
-        "borrowCap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2202
       }
     },
     {
@@ -254,7 +191,7 @@
         "borrowCap": "100000000000000000",
         "liquidateIncentive": "1100000000000000000",
         "rateModel": {
-          "jumpModel": {
+          "jump": {
             "baseRate": "20000000000000000",
             "jumpRate": "100000000000000000",
             "fullRate": "320000000000000000",
@@ -330,25 +267,40 @@
       "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
       "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y"
     ],
-    "chainIds": [1],
+    "chainIds": [2, 3],
     "bridgeTokens": [
       {
         "assetId": 0,
         "id": 0,
         "external": false,
-        "fee": 1000000000000
+        "fee": "1000000000000",
+        "enable": true,
+        "outCap": "10000000000000000",
+        "outAmount": "0",
+        "inCap": "10000000000000000",
+        "inAmount": "0"
       },
       {
         "assetId": 201,
         "id": 1,
         "external": true,
-        "fee": 300000000
+        "fee": "300000000",
+        "enable": true,
+        "outCap": "10000000000",
+        "outAmount": "0",
+        "inCap": "10000000000",
+        "inAmount": "0"
       },
       {
         "assetId": 202,
         "id": 2,
         "external": true,
-        "fee": 300000000
+        "fee": "300000000",
+        "enable": true,
+        "outCap": "10000000000",
+        "outAmount": "0",
+        "inCap": "10000000000",
+        "inAmount": "0"
       }
     ]
   }

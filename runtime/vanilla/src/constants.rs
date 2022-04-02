@@ -106,8 +106,8 @@ pub mod paras {
     }
 
     pub mod moonriver {
-        pub const ID: u32 = 2023;
-        pub const MOVR_KEY: u8 = 10;
+        pub const ID: u32 = 1000;
+        pub const MOVR_KEY: u8 = 3;
     }
 
     pub mod khala {
