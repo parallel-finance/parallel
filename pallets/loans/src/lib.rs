@@ -180,8 +180,10 @@ pub mod pallet {
         InvalidAmount,
         /// Payer cannot be signer
         PayerIsSigner,
-		//Redeem Amount cannot be zero
+		/// Redeem Amount cannot be zero
 		InsufficientRedeemAmount,
+		/// Redeem Amount cannot be zero
+		InsufficientMarketLiquidity,
     }
 
     #[pallet::event]
@@ -661,8 +663,7 @@ pub mod pallet {
             // underlying_token_amount = ptoken_amount * exchange_rate
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
-            let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount)?;
-
+			let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount)?;
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
 
             Ok(().into())
@@ -1059,10 +1060,12 @@ impl<T: Config> Pallet<T> {
         asset_id: AssetIdOf<T>,
         voucher_amount: BalanceOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
-        Self::redeem_allowed(asset_id, who, voucher_amount)?;
+		Self::redeem_allowed(asset_id, who, voucher_amount)?;
         let exchange_rate = Self::exchange_rate(asset_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
-        AccountDeposits::<T>::try_mutate_exists(asset_id, who, |deposits| -> DispatchResult {
+
+		ensure!(T::Assets::balance(asset_id, &Self::account_id()) >= redeem_amount, Error::<T>::InsufficientMarketLiquidity);
+		AccountDeposits::<T>::try_mutate_exists(asset_id, who, |deposits| -> DispatchResult {
             let mut d = deposits.unwrap_or_default();
             d.voucher_balance = d
                 .voucher_balance
@@ -1083,8 +1086,8 @@ impl<T: Config> Pallet<T> {
             *total_balance = new_balance;
             Ok(())
         })?;
-        T::Assets::transfer(asset_id, &Self::account_id(), who, redeem_amount, false)?;
 
+        T::Assets::transfer(asset_id, &Self::account_id(), who, redeem_amount, false)?;
         Ok(redeem_amount)
     }
 
