@@ -14,20 +14,15 @@ services:
     image: parallelfinance/oracle-client:latest
     command: start -m 12000 -w ws://parachain-${PARA_ID}-0:9944
     restart: always
-    environment: &a2
-      PARA_ID: 2012
   nominate-client:
     image: parallelfinance/nominate-client:latest
     command: --relay-ws ws://relaychain-alice:9944 --para-ws ws://parachain-${PARA_ID}-0:9944 --tick 120000
     restart: always
-    environment: *a2
   stake-client:
     image: parallelfinance/stake-client:latest
     command: --relay-ws=ws://relaychain-alice:9944 --para-ws=ws://parachain-${PARA_ID}-0:9944
     restart: always
-    environment: *a2
   liquidation-client:
     image: parallelfinance/liquidation-client:latest
     command: --endpoint ws://parachain-${PARA_ID}-0:9944
     restart: always
-    environment: *a2

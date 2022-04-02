@@ -33,7 +33,7 @@ build:
 .PHONY: build-release
 build-release:
 	cargo build --workspace --exclude runtime-integration-tests --bin parallel --release  --features runtime-benchmarks --features try-runtime
-	
+
 .PHONY: clean
 clean:
 	cargo clean -p parallel -p vanilla-runtime -p kerria-runtime -p heiko-runtime -p parallel-runtime
@@ -145,7 +145,6 @@ launch: shutdown
 	yq -i eval '.parachains[0].image = "parallelfinance/parallel:$(DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].id = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].chain.base = "$(CHAIN)"' $(LAUNCH_CONFIG_YAML)
-	yq -i eval '.services["oracle-client"].environment.PARA_ID = $(PARA_ID)' $(DOCKER_OVERRIDE_YAML)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
@@ -160,10 +159,6 @@ launch: shutdown
 		&& cd output \
 		&& DOCKER_CLIENT_TIMEOUT=180 COMPOSE_HTTP_TIMEOUT=180 PARA_ID=$(PARA_ID) docker-compose up -d --build
 	cd scripts/helper && yarn start launch --network $(CHAIN)
-
-.PHONY: launch-kerria
-launch-kerria:
-	make PARA_ID=2012 CHAIN=kerria-dev RELAY_CHAIN=polkadot-local launch
 
 .PHONY: launch-vanilla
 launch-vanilla:
