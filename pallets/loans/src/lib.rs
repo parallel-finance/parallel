@@ -182,7 +182,7 @@ pub mod pallet {
         PayerIsSigner,
 		/// Redeem Amount cannot be zero
 		InsufficientRedeemAmount,
-		/// Redeem Amount cannot be zero
+		/// Insufficient Market Liquidity
 		InsufficientMarketLiquidity,
     }
 
