@@ -180,6 +180,51 @@ fn nominate_should_work() {
 }
 
 #[test]
+fn send_as_sovereign_should_work() {
+    new_test_ext().execute_with(|| {
+        use xcm::latest::OriginKind::SovereignAccount;
+
+        let remark = "test".as_bytes().to_vec();
+        let call = TestCall::System(frame_system::Call::remark { remark });
+
+        let assets: MultiAsset = (Here, 1_000_000_000).into();
+        assert_ok!(XcmHelpers::send_as_sovereign(
+            frame_system::RawOrigin::Root.into(), // origin
+            Box::new(Parent.into()),
+            Box::new(VersionedXcm::from(Xcm(vec![
+                WithdrawAsset(assets.clone().into()),
+                BuyExecution {
+                    fees: assets,
+                    weight_limit: Limited(2_000_000)
+                },
+                Instruction::Transact {
+                    origin_type: SovereignAccount,
+                    require_weight_at_most: 1_000_000,
+                    call: call.encode().into(),
+                }
+            ])))
+        ));
+    });
+}
+
+#[test]
+fn ump_transacts_should_work() {
+    new_test_ext().execute_with(|| {
+        let xcm_weight_fee_misc = XcmHelpers::xcm_weight_fee(XcmCall::AddProxy);
+        let remark = "test".as_bytes().to_vec();
+        let call = TestCall::System(frame_system::Call::remark { remark });
+        assert_ok!(XcmHelpers::ump_transacts(
+            frame_system::RawOrigin::Root.into(), // origin
+            call.encode().into(),
+            xcm_weight_fee_misc.weight,
+            Box::new(XcmHelpers::refund_location()),
+            DOT,
+            xcm_weight_fee_misc.fee,
+        ));
+    });
+}
+
+#[test]
 fn add_proxy_should_work() {
     new_test_ext().execute_with(|| {
         let remark = "test".as_bytes().to_vec();
