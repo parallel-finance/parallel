@@ -1,14 +1,8 @@
-use super::*;
-use crate::tests::TimestampPallet;
-use crate::{
-    mock::*,
-    tests::{dollar, million_dollar, run_to_block, Assets},
-    InterestRateModel, Markets,
-};
-use frame_support::{assert_ok, traits::Hooks};
+use crate::{mock::*, Markets};
+use frame_support::assert_ok;
 use primitives::{Rate, Ratio, SECONDS_PER_YEAR};
 use sp_runtime::{
-    traits::{CheckedDiv, One, Saturating, Zero},
+    traits::{CheckedDiv, One, Saturating},
     FixedPointNumber,
 };
 

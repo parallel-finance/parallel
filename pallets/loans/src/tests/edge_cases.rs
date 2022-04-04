@@ -1,9 +1,5 @@
 use super::*;
-use crate::{
-    mock::*,
-    tests::{dollar, run_to_block},
-    Error,
-};
+use crate::{mock::*, Error};
 use frame_support::{assert_err, assert_ok};
 use sp_runtime::FixedPointNumber;
 
