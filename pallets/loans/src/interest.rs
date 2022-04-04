@@ -20,19 +20,20 @@ use sp_runtime::{traits::Zero, DispatchResult};
 use crate::*;
 
 impl<T: Config> Pallet<T> {
-    /// Accrue interest per block and update corresponding storage
+    /// Accrue interest and update corresponding storage
     pub(crate) fn accrue_interest(asset_id: AssetIdOf<T>) -> DispatchResult {
         let now = T::UnixTime::now().as_secs();
-        if Self::last_accrued_timestamp().is_zero() {
+        let last_accrued_interest_time = Self::last_accrued_interest_time(asset_id);
+        if last_accrued_interest_time.is_zero() {
             // For the initialization
-            LastAccruedTimestamp::<T>::put(now);
-        }
-        let last_accrued_timestamp = Self::last_accrued_timestamp();
-        if now <= last_accrued_timestamp {
+            Self::update_last_accrued_interest_time(asset_id, now)?;
             return Ok(());
         }
-        let delta_time = now - last_accrued_timestamp;
-        LastAccruedTimestamp::<T>::put(now);
+        if now <= last_accrued_interest_time {
+            return Ok(());
+        }
+        Self::update_last_accrued_interest_time(asset_id, now)?;
+        let delta_time = now - last_accrued_interest_time;
         let market = Self::market(asset_id)?;
         let total_cash = Self::get_total_cash(asset_id);
         let total_borrows = Self::total_borrows(asset_id);
@@ -145,6 +146,16 @@ impl<T: Config> Pallet<T> {
         );
 
         Ok(())
+    }
+
+    pub(crate) fn update_last_accrued_interest_time(
+        asset_id: AssetIdOf<T>,
+        time: Timestamp,
+    ) -> DispatchResult {
+        LastAccruedInterestTime::<T>::try_mutate(asset_id, |last_time| -> DispatchResult {
+            *last_time = time;
+            Ok(())
+        })
     }
 
     fn accrued_interest(
