@@ -169,7 +169,6 @@ pub mod pallet {
             recipient: AccountOf<T>,
             deposit: BalanceOf<T>,
             currency_id: AssetIdOf<T>,
-            rate_per_sec: BalanceOf<T>,
             start_time: Timestamp,
             stop_time: Timestamp,
         ) -> DispatchResultWithPostInfo {
@@ -181,12 +180,20 @@ pub mod pallet {
                 Error::<T>::StartBeforeBlockTime
             );
             ensure!(stop_time > start_time, Error::<T>::StopBeforeStart);
+
+            // get rate per sec
+            let duration = stop_time
+                .checked_sub(start_time)
+                .ok_or(ArithmeticError::Underflow)?;
+            let rate_per_sec = deposit
+                .checked_div(duration as u128)
+                .ok_or(ArithmeticError::DivisionByZero)?;
             // insert stream to the Streams
             let stream: Stream<T> = Stream {
                 remaining_balance: deposit, // remaining balance same value for now due to initialization
                 deposit,                    // deposit
                 currency_id,                // currency id
-                rate_per_sec,               // rate per  millisecond
+                rate_per_sec,               // rate per second
                 recipient: recipient.clone(), // recipient
                 sender: sender.clone(),     // sender
                 start_time,                 // start_time

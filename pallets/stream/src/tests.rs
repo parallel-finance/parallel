@@ -26,7 +26,6 @@ fn create_stream_works() {
             BOB,
             dollar(100),
             DOT,
-            dollar(100) / 6000,
             6000,
             12000
         ));
@@ -47,7 +46,6 @@ fn cancel_stream_works_without_withdrawal() {
             BOB,
             dollar(100),
             DOT,
-            dollar(1),
             6,
             18
         ));
@@ -85,7 +83,6 @@ fn withdraw_from_stream_works() {
             BOB,
             dollar(100),
             DOT,
-            dollar(1),
             6,
             18
         ));
@@ -128,7 +125,6 @@ fn withdraw_from_with_slower_rate_works() {
             BOB,
             dollar(100),
             DOT,
-            dollar(1),
             6,
             18
         ));
@@ -169,7 +165,6 @@ fn cancel_stream_works_with_withdrawal() {
             BOB,
             dollar(100),
             DOT,
-            dollar(1),
             6,
             18
         ));
