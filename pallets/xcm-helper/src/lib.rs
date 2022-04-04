@@ -166,24 +166,6 @@ pub mod pallet {
         /// The version of the `Versioned` value used is not able to be
         /// interpreted.
         BadVersion,
-        /// Too many calls batched.
-        TooManyCalls,
-        /// There are too many proxies registered or too many announcements pending.
-        TooMany,
-        /// Proxy registration not found.
-        NotFound,
-        /// Sender is not a proxy of the account to be proxied.
-        NotProxy,
-        /// A call which is incompatible with the proxy type's filter was attempted.
-        Unproxyable,
-        /// Account is already a proxy.
-        Duplicate,
-        /// Call may not be made by proxy because it may escalate its privileges.
-        NoPermission,
-        /// Announcement, if made at all, was made too recently.
-        Unannounced,
-        /// Cannot add self as proxy.
-        NoSelfProxy,
     }
 
     #[pallet::call]
