@@ -83,6 +83,7 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 pub const DAVE: AccountId = 4;
+pub const EVE: AccountId = 5;
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;

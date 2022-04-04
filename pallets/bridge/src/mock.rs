@@ -3,10 +3,11 @@
 use super::*;
 use frame_support::{
     parameter_types,
-    traits::{fungibles::InspectMetadata, ChangeMembers, Everything},
+    traits::{fungibles::InspectMetadata, ChangeMembers, EnsureOneOf, Everything},
 };
 use frame_system::{self as system, EnsureRoot};
 use primitives::tokens::{HKO, KSM};
+use system::EnsureSignedBy;
 
 use crate::{self as bridge, ChainId, Config};
 use sp_core::H256;
@@ -19,6 +20,15 @@ pub type BlockNumber = u64;
 pub type AccountId = u128;
 
 type EnsureRootOrigin = EnsureRoot<AccountId>;
+
+pub type CapOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+
+pub struct AliceOrigin;
+impl SortedMembers<AccountId> for AliceOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![ALICE]
+    }
+}
 
 // Account Ids
 pub const ALICE: AccountId = 1;
@@ -44,12 +54,22 @@ pub const EHKO_CURRENCY: BridgeToken = BridgeToken {
     id: EHKO,
     external: false,
     fee: 0,
+    enable: true,
+    out_cap: 100000000000000,
+    in_cap: 100000000000000,
+    out_amount: 0,
+    in_amount: 0,
 };
 
 pub const EUSDT_CURRENCY: BridgeToken = BridgeToken {
     id: EUSDT,
     external: true,
     fee: 0,
+    enable: true,
+    out_cap: 100000000,
+    in_cap: 100000000,
+    out_amount: 0,
+    in_amount: 0,
 };
 
 parameter_types! {
@@ -197,20 +217,18 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
 
 impl Config for Test {
     type Event = Event;
-    type AdminMembers = BridgeMembership;
-
+    type RelayMembers = BridgeMembership;
     type RootOperatorAccountId = RootOperatorAccountId;
-    type OperateOrigin = EnsureRoot<AccountId>;
-
+    type UpdateChainOrigin = EnsureRoot<AccountId>;
+    type UpdateTokenOrigin = EnsureRoot<AccountId>;
+    type CapOrigin = CapOrigin;
     type ChainId = ParallelHeiko;
     type PalletId = BridgePalletId;
-
     type Assets = CurrencyAdapter;
     type GiftAccount = GiftAccount;
     type GiftConvert = GiftConvert;
     type NativeCurrencyId = NativeCurrencyId;
     type ExistentialDeposit = ExistentialDeposit;
-
     type ProposalLifetime = ProposalLifetime;
     type ThresholdPercentage = ThresholdPercentage;
 
@@ -311,4 +329,8 @@ pub(crate) fn run_to_block(n: BlockNumber) {
 
 pub fn dollar(d: u128) -> u128 {
     d.saturating_mul(10_u128.pow(12))
+}
+
+pub fn usdt(d: u128) -> u128 {
+    d.saturating_mul(10_u128.pow(6))
 }

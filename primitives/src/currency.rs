@@ -56,6 +56,7 @@ pub struct MultiCurrencyAdapter<
 
 enum Error {
     /// Failed to match fungible.
+    #[allow(dead_code)]
     FailedToMatchFungible,
     /// `MultiLocation` to `AccountId` Conversion failed.
     AccountIdConversionFailed,
@@ -163,8 +164,7 @@ impl<
                 MultiCurrency::mint_into(currency_id, &who, amount)
                     .map_err(|e| XcmError::FailedToTransactAsset(e.into()))
             }
-            // ignore unknown asset
-            _ => Ok(()),
+            _ => Err(XcmError::AssetNotFound),
         }
     }
 
@@ -172,13 +172,14 @@ impl<
         asset: &MultiAsset,
         location: &MultiLocation,
     ) -> result::Result<xcm_executor::Assets, XcmError> {
+        // throw AssetNotFound error here if not match in order to reach the next foreign transact in tuple
+        let amount: MultiCurrency::Balance = Match::matches_fungible(asset)
+            .ok_or(XcmError::AssetNotFound)?
+            .saturated_into();
         let who = AccountIdConvert::convert_ref(location)
             .map_err(|_| XcmError::from(Error::AccountIdConversionFailed))?;
         let currency_id = CurrencyIdConvert::convert(asset.clone())
             .ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
-        let amount: MultiCurrency::Balance = Match::matches_fungible(asset)
-            .ok_or_else(|| XcmError::from(Error::FailedToMatchFungible))?
-            .saturated_into();
         MultiCurrency::burn_from(currency_id, &who, amount)
             .map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
 

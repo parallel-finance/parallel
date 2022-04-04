@@ -257,6 +257,13 @@ impl<T: Config> Pallet<T> {
         message.0.insert(2, SetAppendix(report_error));
         Ok(query_id)
     }
+
+    pub fn get_xcm_weight_fee_to_sibling(
+        location: MultiLocation,
+    ) -> XcmWeightFeeMisc<Weight, BalanceOf<T>> {
+        let call = XcmCall::TransferToSiblingchain(Box::new(location));
+        Self::xcm_weight_fee(call)
+    }
 }
 
 impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pallet<T> {

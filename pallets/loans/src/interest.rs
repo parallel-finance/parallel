@@ -65,6 +65,7 @@ impl<T: Config> Pallet<T> {
         let exchange_rate =
             Rate::checked_from_rational(cash_plus_borrows_minus_reserves, total_supply)
                 .ok_or(ArithmeticError::Underflow)?;
+        Self::ensure_valid_exchange_rate(exchange_rate)?;
 
         ExchangeRate::<T>::insert(asset_id, exchange_rate);
 
@@ -124,6 +125,17 @@ impl<T: Config> Pallet<T> {
         TotalBorrows::<T>::insert(asset_id, total_borrows_new);
         TotalReserves::<T>::insert(asset_id, total_reserves_new);
         BorrowIndex::<T>::insert(asset_id, borrow_index_new);
+
+        Ok(())
+    }
+
+    /// The exchange rate should be greater than 0.02 and less than 1
+    pub(crate) fn ensure_valid_exchange_rate(exchange_rate: Rate) -> DispatchResult {
+        ensure!(
+            exchange_rate >= Rate::from_inner(MIN_EXCHANGE_RATE)
+                && exchange_rate < Rate::from_inner(MAX_EXCHANGE_RATE),
+            Error::<T>::InvalidExchangeRate
+        );
 
         Ok(())
     }

@@ -90,3 +90,7 @@ jobs:
       - name: Check Test
         run: |
           make test
+      
+      - name: Check Integration Test
+        run: |
+          make integration-test
