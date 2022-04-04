@@ -1,4 +1,4 @@
-import { createXcm, getApi, getRelayApi, nextNonce, sovereignAccountOf } from '../../utils'
+import { createXcm, getApi, getRelayApi, nextNonce, sovereignRelayOf } from '../../utils'
 import { Command, CreateCommandParameters, program } from '@caporal/core'
 import { Keyring } from '@polkadot/api'
 import { PolkadotRuntimeParachainsConfigurationHostConfiguration } from '@polkadot/types/lookup'
@@ -39,14 +39,14 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       )
       await api.tx.sudo
         .sudo(
-          api.tx.ormlXcm.sendAsSovereign(
+          api.tx.polkadotXcm.send(
             {
               V1: {
                 parents: 1,
                 interior: 'Here'
               }
             },
-            createXcm(`0x${encoded.slice(6)}`, sovereignAccountOf(source.valueOf() as number))
+            createXcm(`0x${encoded.slice(6)}`, sovereignRelayOf(source.valueOf() as number))
           )
         )
         .signAndSend(signer, { nonce: await nextNonce(api, signer) })

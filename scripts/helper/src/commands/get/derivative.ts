@@ -1,4 +1,4 @@
-import { subAccountId } from '../utils'
+import { subAccountId } from '../../utils'
 import { Command, CreateCommandParameters, program } from '@caporal/core'
 
 export default function ({ createCommand }: CreateCommandParameters): Command {

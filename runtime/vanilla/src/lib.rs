@@ -28,19 +28,21 @@ use scale_info::TypeInfo;
 use frame_support::{
     dispatch::Weight,
     log, match_type,
+    pallet_prelude::DispatchResult,
     traits::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
         ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter,
         Nothing,
     },
-    PalletId,
+    transactional, PalletId,
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
     EnsureRoot, EnsureSigned,
 };
 
+use orml_traits::parameter_type_with_key;
 use orml_traits::{DataProvider, DataProviderExtended};
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
@@ -48,8 +50,12 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{EUSDC, EUSDT, HKO, KAR, KSM, KUSD, LKSM, SKSM},
-    Index, *,
+    tokens::{EUSDC, EUSDT, HKO, KAR, KBTC, KINT, KSM, KUSD, LKSM, MOVR, PHA, SKSM},
+    xcm_gadget::{
+        AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
+        FirstAssetTrader,
+    },
+    AssetRegistrarMetadata, Index, *,
 };
 use sp_api::impl_runtime_apis;
 use sp_core::{
@@ -73,12 +79,13 @@ use sp_version::RuntimeVersion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-    AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds,
-    LocationInverter, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
-    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
+    AllowTopLevelPaidExecutionFrom, ConvertedConcreteAssetId, EnsureXcmOrigin, FixedRateOfFungible,
+    FixedWeightBounds, FungiblesAdapter, LocationInverter, ParentAsSuperuser, ParentIsPreset,
+    RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
+    TakeWeightCredit,
 };
-use xcm_executor::{Config, XcmExecutor};
+use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 
 pub mod constants;
 pub mod impls;
@@ -93,6 +100,7 @@ pub use pallet_crowdloans;
 pub use pallet_farming;
 pub use pallet_liquid_staking;
 pub use pallet_loans;
+pub use pallet_payroll;
 pub use pallet_prices;
 pub use pallet_router;
 
@@ -137,10 +145,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 180,
-    impl_version: 25,
+    spec_version: 181,
+    impl_version: 26,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 9,
+    transaction_version: 10,
     state_version: 0,
 };
 
@@ -274,7 +282,7 @@ impl Contains<Call> for BaseCallFilter {
 pub struct CallFilterRouter;
 impl Contains<Call> for CallFilterRouter {
     fn contains(call: &Call) -> bool {
-        BaseCallFilter::contains(call) && EmergencyShutdown::is_call_filtered(call)
+        BaseCallFilter::contains(call) && EmergencyShutdown::contains(call)
     }
 }
 
@@ -362,6 +370,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(b"HKO".to_vec()),
                 ),
             )),
+            // Karura
             KAR => Some(MultiLocation::new(
                 1,
                 X2(
@@ -381,6 +390,31 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 X2(
                     Parachain(paras::karura::ID),
                     GeneralKey(paras::karura::LKSM_KEY.to_vec()),
+                ),
+            )),
+            // Moonriver
+            MOVR => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::moonriver::ID),
+                    PalletInstance(paras::moonriver::MOVR_KEY),
+                ),
+            )),
+            // Khala
+            PHA => Some(MultiLocation::new(1, X1(Parachain(paras::khala::ID)))),
+            // Kintsugi
+            KINT => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::kintsugi::ID),
+                    GeneralKey(paras::kintsugi::KINT_KEY.to_vec()),
+                ),
+            )),
+            KBTC => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::kintsugi::ID),
+                    GeneralKey(paras::kintsugi::KBTC_KEY.to_vec()),
                 ),
             )),
             _ => None,
@@ -415,6 +449,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 0,
                 interior: X1(GeneralKey(key)),
             } if key == b"HKO".to_vec() => Some(HKO),
+            // Karura
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
@@ -427,6 +462,29 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
             } if id == paras::karura::ID && key == paras::karura::LKSM_KEY.to_vec() => Some(LKSM),
+            // Moonriver
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), PalletInstance(key)),
+            } if id == paras::moonriver::ID && key == paras::moonriver::MOVR_KEY => Some(MOVR),
+            // Khala
+            MultiLocation {
+                parents: 1,
+                interior: X1(Parachain(id)),
+            } if id == paras::khala::ID => Some(PHA),
+            // Kintsugi
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::kintsugi::ID && key == paras::kintsugi::KINT_KEY.to_vec() => {
+                Some(KINT)
+            }
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::kintsugi::ID && key == paras::kintsugi::KBTC_KEY.to_vec() => {
+                Some(KBTC)
+            }
             _ => None,
         }
     }
@@ -446,17 +504,6 @@ impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
     }
 }
 
-pub struct AccountIdToMultiLocation;
-impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
-    fn convert(account_id: AccountId) -> MultiLocation {
-        X1(AccountId32 {
-            network: NetworkId::Any,
-            id: account_id.into(),
-        })
-        .into()
-    }
-}
-
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 150_000_000;
@@ -468,14 +515,18 @@ impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type CurrencyId = CurrencyId;
-    type CurrencyIdConvert = CurrencyIdConvert;
-    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type CurrencyIdConvert = CurrencyIdtoMultiLocation<
+        CurrencyIdConvert,
+        AsAssetType<CurrencyId, AssetType, AssetManager>,
+    >;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation<AccountId>;
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
     type MaxAssetsForTransfer = MaxAssetsForTransfer;
+    type MinXcmFee = ParachainMinFee;
 }
 
 parameter_types! {
@@ -551,7 +602,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
     type MinNominatorBond = MinNominatorBond;
-    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
+    type RelayChainValidationDataProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
 }
@@ -1028,6 +1079,7 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 400
     );
+    // Karura
     pub KarPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
@@ -1041,6 +1093,37 @@ parameter_types! {
             X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::LKSM_KEY.to_vec())),
         ).into(),
         ksm_per_second()
+    );
+    // Moonriver
+    pub MovrPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::moonriver::ID), PalletInstance(paras::moonriver::MOVR_KEY)),
+        ).into(),
+        ksm_per_second() * 3
+    );
+    // Khala
+    pub PhaPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X1(Parachain(paras::khala::ID)),
+        ).into(),
+        ksm_per_second() * 400
+    );
+    // Kintsugi
+    pub KintPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::kintsugi::ID), GeneralKey(paras::kintsugi::KINT_KEY.to_vec())),
+        ).into(),
+        ksm_per_second() * 400
+    );
+    pub KbtcPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::kintsugi::ID), GeneralKey(paras::kintsugi::KBTC_KEY.to_vec())),
+        ).into(),
+        ksm_per_second() / 1_500_000
     );
 }
 
@@ -1079,17 +1162,89 @@ pub type Trader = (
     FixedRateOfFungible<SKSMPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<HkoPerSecond, ToTreasury>,
     FixedRateOfFungible<HkoPerSecondOfCanonicalLocation, ToTreasury>,
+    // Karura
     FixedRateOfFungible<KusdPerSecond, ToTreasury>,
     FixedRateOfFungible<KarPerSecond, ToTreasury>,
     FixedRateOfFungible<LKSMPerSecond, ToTreasury>,
+    // Moonriver
+    FixedRateOfFungible<MovrPerSecond, ToTreasury>,
+    // Khala
+    FixedRateOfFungible<PhaPerSecond, ToTreasury>,
+    // Kintsugi
+    FixedRateOfFungible<KintPerSecond, ToTreasury>,
+    FixedRateOfFungible<KbtcPerSecond, ToTreasury>,
+    // Foreign Assets registered in AssetManager
+    // TODO: replace all above except local reserved asset later
+    FirstAssetTrader<AssetType, AssetManager, XcmFeesToAccount>,
 );
+
+// Min fee required when transfering non-reserve asset back to sibling chain
+// It will use aother asset(e.g Relaychain's asset) as fee
+parameter_type_with_key! {
+    pub ParachainMinFee: |location: MultiLocation| -> u128 {
+        #[allow(clippy::match_ref_pats)] // false positive
+        match (location.parents, location.first_interior()) {
+            (1, Some(Parachain(1000))) => XcmHelper::get_xcm_weight_fee_to_sibling(location.clone()).fee,//default fee should be enough even if not configured
+            _ => u128::MAX,
+        }
+    };
+}
+
+parameter_types! {
+    pub CheckingAccount: AccountId = PolkadotXcm::check_account();
+}
+
+/// The non-reserve fungible transactor type
+/// It will use pallet-assets, and the Id will be matched against AsAssetType
+pub type ForeignFungiblesTransactor = FungiblesAdapter<
+    // Use this fungibles implementation:
+    Assets,
+    // Use this currency when it is a fungible asset matching the given location or name:
+    (
+        ConvertedConcreteAssetId<
+            CurrencyId,
+            Balance,
+            AsAssetType<CurrencyId, AssetType, AssetManager>,
+            JustTry,
+        >,
+    ),
+    // Do a simple punn to convert an AccountId20 MultiLocation into a native chain account ID:
+    LocationToAccountId,
+    // Our chain's account ID type (we can't get away without mentioning it explicitly):
+    AccountId,
+    // We dont allow teleports.
+    Nothing,
+    // We dont track any teleports
+    CheckingAccount,
+>;
+
+/// How to withdraw and deposit an asset, try LocalAssetTransactor first
+/// and if AssetNotFound then with ForeignFungiblesTransactor as fallback
+pub type AssetTransactors = (LocalAssetTransactor, ForeignFungiblesTransactor);
+
+/// This is the struct that will handle the revenue from xcm fees
+/// We do not burn anything because we want to mimic exactly what
+/// the sovereign account has
+pub type XcmFeesToAccount = primitives::xcm_gadget::XcmFeesToAccount<
+    Assets,
+    (
+        ConvertedConcreteAssetId<
+            CurrencyId,
+            Balance,
+            AsAssetType<CurrencyId, AssetType, AssetManager>,
+            JustTry,
+        >,
+    ),
+    AccountId,
+    TreasuryAccount,
+>;
 
 pub struct XcmConfig;
 impl Config for XcmConfig {
     type Call = Call;
     type XcmSender = XcmRouter;
     // How to withdraw and deposit an asset.
-    type AssetTransactor = LocalAssetTransactor;
+    type AssetTransactor = AssetTransactors;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = MultiNativeAsset;
     // Teleporting is disabled.
@@ -1102,6 +1257,48 @@ impl Config for XcmConfig {
     type SubscriptionService = PolkadotXcm;
     type AssetTrap = PolkadotXcm;
     type AssetClaims = PolkadotXcm;
+}
+
+// We instruct how to register the Assets
+// In this case, we tell it to Create an Asset in pallet-assets
+pub struct AssetRegistrar;
+
+impl pallet_asset_manager::AssetRegistrar<Runtime> for AssetRegistrar {
+    #[transactional]
+    fn create_asset(
+        asset: CurrencyId,
+        min_balance: Balance,
+        metadata: AssetRegistrarMetadata,
+        is_sufficient: bool,
+    ) -> DispatchResult {
+        Assets::force_create(
+            Origin::root(),
+            asset,
+            sp_runtime::MultiAddress::Id(AssetManager::account_id()),
+            is_sufficient,
+            min_balance,
+        )?;
+
+        Assets::force_set_metadata(
+            Origin::root(),
+            asset,
+            metadata.name,
+            metadata.symbol,
+            metadata.decimals,
+            metadata.is_frozen,
+        )
+    }
+}
+
+impl pallet_asset_manager::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type AssetId = CurrencyId;
+    type AssetRegistrarMetadata = AssetRegistrarMetadata;
+    type AssetType = AssetType;
+    type AssetRegistrar = AssetRegistrar;
+    type AssetModifierOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = pallet_asset_manager::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1483,9 +1680,11 @@ parameter_types! {
 
 impl pallet_bridge::Config for Runtime {
     type Event = Event;
-    type AdminMembers = BridgeMembership;
+    type RelayMembers = BridgeMembership;
     type RootOperatorAccountId = OneAccount;
-    type OperateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateChainOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateTokenOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ChainId = ParallelVanilla;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;
@@ -1543,10 +1742,10 @@ parameter_types! {
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
 
-pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
+pub struct RelayChainValidationDataProvider<T>(sp_std::marker::PhantomData<T>);
 
 impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
-    for RelayChainBlockNumberProvider<T>
+    for RelayChainValidationDataProvider<T>
 {
     type BlockNumber = primitives::BlockNumber;
 
@@ -1554,6 +1753,14 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
         cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
             .map(|d| d.relay_parent_number)
             .unwrap_or_default()
+    }
+}
+
+impl<T: cumulus_pallet_parachain_system::Config> ValidationDataProvider
+    for RelayChainValidationDataProvider<T>
+{
+    fn validation_data() -> Option<PersistedValidationData> {
+        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
     }
 }
 
@@ -1579,8 +1786,20 @@ impl pallet_crowdloans::Config for Runtime {
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
     type XCM = XcmHelper;
-    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
+    type RelayChainBlockNumberProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = CrowdloansAutomatorsMembership;
+}
+
+parameter_types! {
+    pub const PayrollPalletId: PalletId = PalletId(*b"par/payr");
+}
+
+impl pallet_payroll::Config for Runtime {
+    type Event = Event;
+    type Assets = CurrencyAdapter;
+    type PalletId = PayrollPalletId;
+    type UnixTime = Timestamp;
+    type WeightInfo = pallet_payroll::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1596,7 +1815,7 @@ impl pallet_xcm_helper::Config for Runtime {
     type RelayNetwork = RelayNetwork;
     type PalletId = XcmHelperPalletId;
     type NotifyTimeout = NotifyTimeout;
-    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation<AccountId>;
     type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type WeightInfo = pallet_xcm_helper::weights::SubstrateWeight<Runtime>;
@@ -1705,7 +1924,6 @@ impl pallet_emergency_shutdown::Config for Runtime {
     type Whitelist = WhiteListFilter;
     type ShutdownOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type Call = Call;
-    type EmergencyCallFilter = EmergencyShutdown;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1755,6 +1973,9 @@ construct_runtime!(
         OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 45,
         Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>} = 46,
 
+        // Asset Management
+        AssetManager: pallet_asset_manager::{Pallet, Call, Storage, Event<T>} = 48,
+
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
@@ -1781,6 +2002,7 @@ construct_runtime!(
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Storage, Event<T>} = 91,
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
+        Payroll: pallet_payroll::{Pallet, Call, Storage, Event<T>} = 94,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,

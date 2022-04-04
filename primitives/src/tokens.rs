@@ -30,6 +30,14 @@ pub const KAR: CurrencyId = 107;
 pub const ACA: CurrencyId = 108;
 pub const LKSM: CurrencyId = 109;
 pub const LDOT: CurrencyId = 110;
+pub const SDN: CurrencyId = 111;
+pub const ASTR: CurrencyId = 112;
+pub const MOVR: CurrencyId = 113;
+pub const GLMR: CurrencyId = 114;
+pub const PHA: CurrencyId = 115;
+pub const KMA: CurrencyId = 116;
+pub const KINT: CurrencyId = 118;
+pub const KBTC: CurrencyId = 119;
 
 // Ethereum ecosystem
 pub const EUSDT: CurrencyId = 201;
@@ -92,6 +100,12 @@ pub const CDOT_8_15: CurrencyId = 200080015;
 // | Heiko     | SKSM         | N/A                |
 // | Heiko     | CKSM         | N/A                |
 // | Heiko     | LKSM         | N/A                |
+// | Heiko     | MOVR         | N/A                |
+// | Heiko     | SDN          | N/A                |
+// | Heiko     | PHA          | N/A                |
+// | Heiko     | KMA          | N/A                |
+// | Heiko     | KINT         | N/A                |
+// | Heiko     | KBTC         | N/A                |
 // | Heiko     | PHKO         | N/A                |
 // | Heiko     | PKSM         | N/A                |
 // | Heiko     | PUSDT        | N/A                |
@@ -115,6 +129,8 @@ pub const CDOT_8_15: CurrencyId = 200080015;
 // | Parallel  | CDOT         | N/A                |
 // | Parallel  | LDOT         | N/A                |
 // | Parallel  | LCDOT        | N/A                |
+// | Parallel  | GLMR         | N/A                |
+// | Parallel  | ASTR         | N/A                |
 // | Parallel  | PPARA        | Native             |
 // | Parallel  | PKSM         | N/A                |
 // | Parallel  | PDOT         | N/A                |

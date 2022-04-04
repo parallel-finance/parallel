@@ -31,7 +31,7 @@ parameter_types! {
 pub enum CallFilterRouter {}
 impl Contains<Call> for CallFilterRouter {
     fn contains(call: &Call) -> bool {
-        EmergencyShutdown::is_call_filtered(call)
+        EmergencyShutdown::contains(call)
     }
 }
 
@@ -77,7 +77,6 @@ impl pallet_emergency_shutdown::Config for Test {
     type Whitelist = TestBaseCallFilter;
     type ShutdownOrigin = EnsureRoot<u64>;
     type Call = Call;
-    type EmergencyCallFilter = EmergencyShutdown;
 }
 
 // Build genesis storage according to the mock runtime.

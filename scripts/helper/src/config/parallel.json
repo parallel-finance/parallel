@@ -94,6 +94,20 @@
       "assetId": 6002,
       "decimal": 12,
       "balances": []
+    },
+    {
+      "name": "Astar",
+      "symbol": "ASTR",
+      "assetId": 112,
+      "decimal": 18,
+      "balances": []
+    },
+    {
+      "name": "Moonbeam",
+      "symbol": "GLMR",
+      "assetId": 114,
+      "decimal": 18,
+      "balances": []
     }
   ],
   "markets": [
@@ -107,7 +121,7 @@
         "borrowCap": "100000000000000000",
         "liquidateIncentive": "1100000000000000000",
         "rateModel": {
-          "jumpModel": {
+          "jump": {
             "baseRate": "20000000000000000",
             "jumpRate": "100000000000000000",
             "fullRate": "320000000000000000",
@@ -128,7 +142,7 @@
         "borrowCap": "100000000000000000",
         "liquidateIncentive": "1100000000000000000",
         "rateModel": {
-          "jumpModel": {
+          "jump": {
             "baseRate": "20000000000000000",
             "jumpRate": "100000000000000000",
             "fullRate": "320000000000000000",
@@ -137,111 +151,6 @@
         },
         "state": "Pending",
         "ptokenId": 2102
-      }
-    },
-    {
-      "assetId": 104,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "supplyCap": "100000000000000000",
-        "borrowCap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2104
-      }
-    },
-    {
-      "assetId": 108,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "supplyCap": "100000000000000000",
-        "borrowCap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2108
-      }
-    },
-    {
-      "assetId": 110,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "supplyCap": "100000000000000000",
-        "borrowCap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2110
-      }
-    },
-    {
-      "assetId": 201,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "supplyCap": "100000000000000000",
-        "borrowCap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2201
-      }
-    },
-    {
-      "assetId": 202,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "supplyCap": "100000000000000000",
-        "borrowCap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2202
       }
     },
     {
@@ -254,7 +163,7 @@
         "borrowCap": "100000000000000000",
         "liquidateIncentive": "1100000000000000000",
         "rateModel": {
-          "jumpModel": {
+          "jump": {
             "baseRate": "20000000000000000",
             "jumpRate": "100000000000000000",
             "fullRate": "320000000000000000",
@@ -330,25 +239,40 @@
       "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
       "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y"
     ],
-    "chainIds": [1],
+    "chainIds": [2, 3],
     "bridgeTokens": [
       {
-        "assetId": 0,
+        "assetId": 1,
         "id": 0,
         "external": false,
-        "fee": 1000000000000
+        "fee": "1000000000000",
+        "enable": true,
+        "outCap": "10000000000000000",
+        "outAmount": "0",
+        "inCap": "10000000000000000",
+        "inAmount": "0"
       },
       {
         "assetId": 201,
         "id": 1,
         "external": true,
-        "fee": 300000000
+        "fee": "300000000",
+        "enable": true,
+        "outCap": "10000000000",
+        "outAmount": "0",
+        "inCap": "10000000000",
+        "inAmount": "0"
       },
       {
         "assetId": 202,
         "id": 2,
         "external": true,
-        "fee": 300000000
+        "fee": "300000000",
+        "enable": true,
+        "outCap": "10000000000",
+        "outAmount": "0",
+        "inCap": "10000000000",
+        "inAmount": "0"
       }
     ]
   }
