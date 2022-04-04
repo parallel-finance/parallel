@@ -41,7 +41,7 @@ use frame_support::{
     Blake2_128Concat,
     PalletId,
 };
-// use frame_system::{ensure_signed, pallet_prelude::OriginFor};
+
 use primitives::{Balance, ConvertToBigUint, CurrencyId, Ratio};
 use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedSub, One, Saturating, Zero},
@@ -64,7 +64,6 @@ pub mod pallet {
     use frame_support::ensure;
     use frame_support::pallet_prelude::DispatchResultWithPostInfo;
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-    // use num_traits::ToPrimitive;
 
     pub type Amounts<T, I> = sp_std::vec::Vec<BalanceOf<T, I>>;
 
@@ -848,8 +847,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     pub fn do_get_delta(
         (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Result<Balance, DispatchError> {
+        // Gets reserves
         let (x, y) = Self::get_reserves(asset_in, asset_out).unwrap();
 
+        // total = x + y = C
         let total_reserves = x
             .get_big_uint()
             .checked_add(&y.get_big_uint())
@@ -857,6 +858,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .to_u128()
             .ok_or(ArithmeticError::Underflow)?;
 
+        // a = AC * Precision
         let a: u128 = (T::AmplificationCoefficient::get() as u128)
             .get_big_uint()
             .checked_mul(&T::Precision::get().get_big_uint())
@@ -1178,6 +1180,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_add(One::one())
             .ok_or(ArithmeticError::Overflow)?)
     }
+
     fn do_update_oracle(
         pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
     ) -> Result<(), DispatchError> {
