@@ -180,10 +180,8 @@ pub mod pallet {
         InvalidAmount,
         /// Payer cannot be signer
         PayerIsSigner,
-		/// Redeem Amount cannot be zero
-		InsufficientRedeemAmount,
-		/// Insufficient Market Liquidity
-		InsufficientMarketLiquidity,
+        /// Insufficient Market Liquidity
+        InsufficientMarketLiquidity,
     }
 
     #[pallet::event]
@@ -654,7 +652,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
             #[pallet::compact] redeem_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-			ensure!(redeem_amount > 0, Error::<T>::InsufficientRedeemAmount);
+            ensure!(!redeem_amount.is_zero(), Error::<T>::InvalidAmount);
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
             Self::update_earned_stored(&who, asset_id)?;
@@ -663,7 +661,7 @@ pub mod pallet {
             // underlying_token_amount = ptoken_amount * exchange_rate
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
-			let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount)?;
+            let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount)?;
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
 
             Ok(().into())
@@ -1060,12 +1058,15 @@ impl<T: Config> Pallet<T> {
         asset_id: AssetIdOf<T>,
         voucher_amount: BalanceOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
-		Self::redeem_allowed(asset_id, who, voucher_amount)?;
+        Self::redeem_allowed(asset_id, who, voucher_amount)?;
         let exchange_rate = Self::exchange_rate(asset_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
 
-		ensure!(T::Assets::balance(asset_id, &Self::account_id()) >= redeem_amount, Error::<T>::InsufficientMarketLiquidity);
-		AccountDeposits::<T>::try_mutate_exists(asset_id, who, |deposits| -> DispatchResult {
+        ensure!(
+            T::Assets::balance(asset_id, &Self::account_id()) >= redeem_amount,
+            Error::<T>::InsufficientMarketLiquidity
+        );
+        AccountDeposits::<T>::try_mutate_exists(asset_id, who, |deposits| -> DispatchResult {
             let mut d = deposits.unwrap_or_default();
             d.voucher_balance = d
                 .voucher_balance

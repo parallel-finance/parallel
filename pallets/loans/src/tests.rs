@@ -225,32 +225,32 @@ fn redeem_works() {
 
 #[test]
 fn redeem_fails() {
-	new_test_ext().execute_with(|| {
-		assert_noop!(
+    new_test_ext().execute_with(|| {
+        assert_noop!(
             Loans::redeem(Origin::signed(ALICE), DOT, dollar(0)),
-            Error::<Test>::InsufficientRedeemAmount
+            Error::<Test>::InvalidAmount
         );
-	})
+    })
 }
 
 #[test]
 fn withdraw_fails_when_insufficient_liquidity() {
-	new_test_ext().execute_with(|| {
-		// Prepare: Bob Deposit 200 DOT
-		assert_ok!(Loans::mint(Origin::signed(BOB), DOT, 200));
+    new_test_ext().execute_with(|| {
+        // Prepare: Bob Deposit 200 DOT
+        assert_ok!(Loans::mint(Origin::signed(BOB), DOT, 200));
 
-		// Deposit 200 KSM as collateral
-		assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
+        // Deposit 200 KSM as collateral
+        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
 
-		assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
-		// Borrow 50 DOT will reduce 100 KSM liquidity for collateral_factor is 50%
-		assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 50));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
+        // Borrow 50 DOT will reduce 100 KSM liquidity for collateral_factor is 50%
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 50));
 
-		assert_noop!(
+        assert_noop!(
             Loans::redeem(Origin::signed(BOB), DOT, 151),
             Error::<Test>::InsufficientMarketLiquidity
         );
-	})
+    })
 }
 
 #[test]
