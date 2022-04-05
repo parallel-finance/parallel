@@ -125,6 +125,8 @@ pub mod pallet {
         InsufficientAmountOut,
         /// Insufficient amount in
         InsufficientAmountIn,
+        /// Invariant Error
+        InvalidInvariant,
         /// LP token has already been minted
         LpTokenAlreadyExists,
         /// Pool does not exist
@@ -219,6 +221,11 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let (is_inverted, base_asset, quote_asset) = Self::sort_assets(pair)?;
 
+            // *************************************************************
+            // Initial invariant
+            let initial_invariant = Self::do_get_delta(pair).unwrap();
+            // *************************************************************
+
             let (base_amount, quote_amount) = if is_inverted {
                 (desired_amounts.1, desired_amounts.0)
             } else {
@@ -259,6 +266,22 @@ pub mod pallet {
                         (ideal_base_amount, ideal_quote_amount),
                         (base_asset, quote_asset),
                     )?;
+
+                    // ****************************************************************************
+                    // Gets New Liquidity Amount
+                    let updated_invariant = Self::do_get_delta(pair).unwrap();
+                    ensure!(
+                        updated_invariant > initial_invariant,
+                        Error::<T, I>::InvalidInvariant
+                    );
+                    let recalculate_invariant = updated_invariant;
+                    // Asset in Asset out
+                    /* Since we have 2 coins
+                    for in in  0..2:
+                        let ideal_balance =
+
+                    */
+                    // ****************************************************************************
 
                     log::trace!(
                         target: "stableswap::add_liquidity",
@@ -518,16 +541,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Err(Error::<T, I>::IdenticalAssets.into())
     }
 
+    // Returns liquidity
     #[require_transactional]
-    fn do_add_liquidity(
-        who: &T::AccountId,
+    fn do_get_liquidity(
+        total_supply: BalanceOf<T, I>,
         pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
         (ideal_base_amount, ideal_quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
-        (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
-    ) -> Result<(), DispatchError> {
-        let total_supply = T::Assets::total_issuance(pool.lp_token_id);
-
-        // lock a small amount of liquidity if the pool is first initialized
+    ) -> Result<BalanceOf<T, I>, DispatchError> {
+        // Extract to different functionality
         let liquidity = if total_supply.is_zero() {
             T::Assets::mint_into(
                 pool.lp_token_id,
@@ -562,6 +583,58 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     .ok_or(ArithmeticError::Underflow)?,
             )
         };
+        Ok(liquidity)
+    }
+
+    #[require_transactional]
+    fn do_add_liquidity(
+        who: &T::AccountId,
+        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
+        (ideal_base_amount, ideal_quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
+        (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
+    ) -> Result<(), DispatchError> {
+        let total_supply = T::Assets::total_issuance(pool.lp_token_id);
+
+        // lock a small amount of liquidity if the pool is first initialized
+
+        // Extract to different functionality
+        let liquidity =
+            Self::do_get_liquidity(total_supply, pool, (ideal_base_amount, ideal_quote_amount))
+                .unwrap();
+        // let liquidity = if total_supply.is_zero() {
+        //     T::Assets::mint_into(
+        //         pool.lp_token_id,
+        //         &Self::lock_account_id(),
+        //         T::MinimumLiquidity::get(),
+        //     )?;
+        //
+        //     ideal_base_amount
+        //         .get_big_uint()
+        //         .checked_mul(&ideal_quote_amount.get_big_uint())
+        //         // loss of precision due to truncated sqrt
+        //         .map(|r| r.sqrt())
+        //         .and_then(|r| r.checked_sub(&T::MinimumLiquidity::get().get_big_uint()))
+        //         .ok_or(Error::<T, I>::ConversionToU128Failed)?
+        //         .to_u128()
+        //         .ok_or(ArithmeticError::Underflow)?
+        // } else {
+        //     min(
+        //         ideal_base_amount
+        //             .get_big_uint()
+        //             .checked_mul(&total_supply.get_big_uint())
+        //             .and_then(|r| r.checked_div(&pool.base_amount.get_big_uint()))
+        //             .ok_or(Error::<T, I>::ConversionToU128Failed)?
+        //             .to_u128()
+        //             .ok_or(ArithmeticError::Underflow)?,
+        //         ideal_quote_amount
+        //             .get_big_uint()
+        //             .checked_mul(&total_supply.get_big_uint())
+        //             .and_then(|r| r.checked_div(&pool.quote_amount.get_big_uint()))
+        //             .ok_or(Error::<T, I>::ConversionToU128Failed)?
+        //             .to_u128()
+        //             .ok_or(ArithmeticError::Underflow)?,
+        //     )
+        // };
 
         // update reserves after liquidity calculation
         pool.base_amount = pool
