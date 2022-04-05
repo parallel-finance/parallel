@@ -843,6 +843,9 @@ impl pallet_sudo::Config for Runtime {
 )]
 pub enum ProxyType {
     Any,
+    Loans,
+    Staking,
+    Crowdloans,
 }
 impl Default for ProxyType {
     fn default() -> Self {
@@ -854,11 +857,17 @@ impl InstanceFilter<Call> for ProxyType {
     fn filter(&self, _c: &Call) -> bool {
         match self {
             ProxyType::Any => true,
+            ProxyType::Loans => true,
+            ProxyType::Staking => true,
+            ProxyType::Crowdloans => true,
         }
     }
     fn is_superset(&self, o: &Self) -> bool {
         match (self, o) {
             (ProxyType::Any, _) => true,
+            (ProxyType::Loans, _) => true,
+            (ProxyType::Staking, _) => true,
+            (ProxyType::Crowdloans, _) => true,
         }
     }
 }
