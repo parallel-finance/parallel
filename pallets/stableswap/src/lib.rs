@@ -274,7 +274,7 @@ pub mod pallet {
                         updated_invariant > initial_invariant,
                         Error::<T, I>::InvalidInvariant
                     );
-                    let recalculate_invariant = updated_invariant;
+                    let _recalculate_invariant = updated_invariant;
                     // Asset in Asset out
                     /* Since we have 2 coins
                     for in in  0..2:
