@@ -325,23 +325,6 @@ benchmarks! {
     verify {
         assert_last_event::<T>(Event::<T>::ReservesReduced(caller, USDT, reduce_amount.into(), (add_amount-reduce_amount).into()).into());
     }
-
-    accrue_interest {
-        let alice: T::AccountId = account("Sample", 100, SEED);
-        transfer_initial_balance::<T>(alice.clone());
-        let deposit_amount: u32 = 200_000_000;
-        let borrow_amount: u32 = 100_000_000;
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), USDT, pending_market_mock::<T>(PUSDT)));
-        assert_ok!(Loans::<T>::activate_market(SystemOrigin::Root.into(), USDT));
-        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(alice.clone()).into(), USDT, deposit_amount.into()));
-        assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(alice.clone()).into(), USDT, true));
-        assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(alice).into(), USDT, borrow_amount.into()));
-    }: {
-        Loans::<T>::accrue_interest(6)?;
-    }
-    verify {
-        assert_eq!(Loans::<T>::borrow_index(USDT), Rate::from_inner(1000000013318112633));
-    }
 }
 
 impl_benchmark_test_suite!(Loans, crate::mock::new_test_ext(), crate::mock::Test);

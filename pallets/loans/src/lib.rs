@@ -28,7 +28,6 @@ use frame_support::{
     log,
     pallet_prelude::*,
     require_transactional,
-    storage::{with_transaction, TransactionOutcome},
     traits::{
         tokens::fungibles::{Inspect, Mutate, Transfer},
         UnixTime,
@@ -204,7 +203,7 @@ pub mod pallet {
         /// [sender, asset_id, amount]
         RepaidBorrow(T::AccountId, AssetIdOf<T>, BalanceOf<T>),
         /// Event emitted when a borrow is liquidated
-        /// [liquidator, borrower, liquidate_token, collateral_token, repay_amount, collateral_amount]
+        /// [liquidator, borrower, liquidation_asset_id, collateral_asset_id, repay_amount, collateral_amount]
         LiquidatedBorrow(
             T::AccountId,
             T::AccountId,
@@ -232,8 +231,9 @@ pub mod pallet {
 
     /// The timestamp of the last calculation of accrued interest
     #[pallet::storage]
-    #[pallet::getter(fn last_accrued_timestamp)]
-    pub type LastAccruedTimestamp<T: Config> = StorageValue<_, Timestamp, ValueQuery>;
+    #[pallet::getter(fn last_accrued_interest_time)]
+    pub type LastAccruedInterestTime<T: Config> =
+        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Timestamp, ValueQuery>;
 
     /// Total number of collateral tokens in circulation
     /// CollateralType -> Balance
@@ -354,57 +354,6 @@ pub mod pallet {
     #[pallet::pallet]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
-
-    #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        /// Called by substrate on block initialization which is fallible.
-        /// When an error occurs, stop counting interest. When the error is resolved,
-        /// the interest will be restored, because we use delta time to calculate the
-        /// interest.
-        fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
-            let last_accrued_timestamp = Self::last_accrued_timestamp();
-            let now = T::UnixTime::now().as_secs();
-            // For the initialization
-            if last_accrued_timestamp.is_zero() {
-                LastAccruedTimestamp::<T>::put(now);
-            }
-            if now <= last_accrued_timestamp {
-                return 0;
-            }
-            let delta_time = now - last_accrued_timestamp;
-            if delta_time > MAX_INTEREST_CALCULATING_INTERVAL {
-                // This should never happen...
-                log::error!(
-                    "Could not initialize block! Exceeded max interval {:#?}",
-                    block_number,
-                );
-                return 0;
-            }
-            if delta_time < MIN_INTEREST_CALCULATING_INTERVAL {
-                return 0;
-            }
-            with_transaction(|| {
-                match <Pallet<T>>::accrue_interest(delta_time) {
-                    Ok(()) => {
-                        LastAccruedTimestamp::<T>::put(now);
-                        TransactionOutcome::Commit(
-                            T::WeightInfo::accrue_interest()
-                                * Self::active_markets().count() as u64,
-                        )
-                    }
-                    Err(err) => {
-                        // This should never happen...
-                        log::error!(
-                            "Could not initialize block! Calculate interest failed! {:#?} {:#?}",
-                            block_number,
-                            err
-                        );
-                        TransactionOutcome::Rollback(0)
-                    }
-                }
-            })
-        }
-    }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -613,7 +562,7 @@ pub mod pallet {
             ensure!(!mint_amount.is_zero(), Error::<T>::InvalidAmount);
             Self::ensure_active_market(asset_id)?;
             Self::ensure_under_supply_cap(asset_id, mint_amount)?;
-
+            Self::accrue_interest(asset_id)?;
             T::Assets::transfer(asset_id, &who, &Self::account_id(), mint_amount, false)?;
             Self::update_earned_stored(&who, asset_id)?;
             let exchange_rate = Self::exchange_rate(asset_id);
@@ -699,8 +648,8 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
-
             Self::borrow_allowed(asset_id, &who, borrow_amount)?;
+            Self::accrue_interest(asset_id)?;
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             let account_borrows_new = account_borrows
                 .checked_add(borrow_amount)
@@ -825,26 +774,27 @@ pub mod pallet {
         /// The sender liquidates the borrower's collateral.
         ///
         /// - `borrower`: the borrower to be liquidated.
-        /// - `liquidate_token`: the assert to be liquidated.
+        /// - `liquidation_asset_id`: the assert to be liquidated.
         /// - `repay_amount`: the amount to be repaid borrow.
-        /// - `collateral_token`: The collateral to seize from the borrower.
+        /// - `collateral_asset_id`: The collateral to seize from the borrower.
         #[pallet::weight(T::WeightInfo::liquidate_borrow())]
         #[transactional]
         pub fn liquidate_borrow(
             origin: OriginFor<T>,
             borrower: T::AccountId,
-            liquidate_token: AssetIdOf<T>,
+            liquidation_asset_id: AssetIdOf<T>,
             #[pallet::compact] repay_amount: BalanceOf<T>,
-            collateral_token: AssetIdOf<T>,
+            collateral_asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-
+            Self::accrue_interest(liquidation_asset_id)?;
+            Self::accrue_interest(collateral_asset_id)?;
             Self::do_liquidate_borrow(
                 who,
                 borrower,
-                liquidate_token,
+                liquidation_asset_id,
                 repay_amount,
-                collateral_token,
+                collateral_asset_id,
             )?;
             Ok(().into())
         }
@@ -1057,6 +1007,7 @@ impl<T: Config> Pallet<T> {
         voucher_amount: BalanceOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
         Self::redeem_allowed(asset_id, who, voucher_amount)?;
+        Self::accrue_interest(asset_id)?;
         let exchange_rate = Self::exchange_rate(asset_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
         AccountDeposits::<T>::try_mutate_exists(asset_id, who, |deposits| -> DispatchResult {
@@ -1109,9 +1060,8 @@ impl<T: Config> Pallet<T> {
         if account_borrows < repay_amount {
             return Err(Error::<T>::TooMuchRepay.into());
         }
-
+        Self::accrue_interest(asset_id)?;
         T::Assets::transfer(asset_id, borrower, &Self::account_id(), repay_amount, false)?;
-
         let account_borrows_new = account_borrows
             .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
@@ -1122,7 +1072,6 @@ impl<T: Config> Pallet<T> {
         //
         // Change it back to checked_sub will cause Underflow
         let total_borrows_new = total_borrows.saturating_sub(repay_amount);
-
         AccountBorrows::<T>::insert(
             asset_id,
             borrower,
@@ -1131,7 +1080,6 @@ impl<T: Config> Pallet<T> {
                 borrow_index: Self::borrow_index(asset_id),
             },
         );
-
         TotalBorrows::<T>::insert(asset_id, total_borrows_new);
 
         Ok(())
@@ -1192,15 +1140,15 @@ impl<T: Config> Pallet<T> {
     /// Checks if the liquidation should be allowed to occur
     fn liquidate_borrow_allowed(
         borrower: &T::AccountId,
-        liquidate_asset_id: AssetIdOf<T>,
+        liquidation_asset_id: AssetIdOf<T>,
         repay_amount: BalanceOf<T>,
         market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
         log::trace!(
             target: "loans::liquidate_borrow_allowed",
-            "borrower: {:?}, liquidate_asset_id {:?}, repay_amount {:?}, market: {:?}",
+            "borrower: {:?}, liquidation_asset_id {:?}, repay_amount {:?}, market: {:?}",
             borrower,
-            liquidate_asset_id,
+            liquidation_asset_id,
             repay_amount,
             market
         );
@@ -1210,7 +1158,7 @@ impl<T: Config> Pallet<T> {
         }
 
         // The liquidator may not repay more than 50%(close_factor) of the borrower's borrow balance.
-        let account_borrows = Self::current_borrow_balance(borrower, liquidate_asset_id)?;
+        let account_borrows = Self::current_borrow_balance(borrower, liquidation_asset_id)?;
         if market.close_factor.mul_ceil(account_borrows) < repay_amount {
             return Err(Error::<T>::TooMuchRepay.into());
         }
@@ -1219,31 +1167,31 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Note:
-    /// - liquidate_token is borrower's debt asset.
-    /// - collateral_token is borrower's collateral asset.
-    /// - repay_amount is amount of liquidate_token
+    /// - liquidation_asset_id is borrower's debt asset.
+    /// - collateral_asset_id is borrower's collateral asset.
+    /// - repay_amount is amount of liquidation_asset_id
     ///
-    /// The liquidator will repay a certain amount of liquidate_token from own
+    /// The liquidator will repay a certain amount of liquidation_asset_id from own
     /// account for borrower. Then the protocol will reduce borrower's debt
-    /// and liquidator will receive collateral_token(as voucher amount) from
+    /// and liquidator will receive collateral_asset_id(as voucher amount) from
     /// borrower.
     #[require_transactional]
     pub fn do_liquidate_borrow(
         liquidator: T::AccountId,
         borrower: T::AccountId,
-        liquidate_asset_id: AssetIdOf<T>,
+        liquidation_asset_id: AssetIdOf<T>,
         repay_amount: BalanceOf<T>,
         collateral_asset_id: AssetIdOf<T>,
     ) -> DispatchResult {
-        Self::ensure_active_market(liquidate_asset_id)?;
+        Self::ensure_active_market(liquidation_asset_id)?;
         Self::ensure_active_market(collateral_asset_id)?;
 
-        let market = Self::market(liquidate_asset_id)?;
+        let market = Self::market(liquidation_asset_id)?;
 
         if borrower == liquidator {
             return Err(Error::<T>::LiquidatorIsBorrower.into());
         }
-        Self::liquidate_borrow_allowed(&borrower, liquidate_asset_id, repay_amount, &market)?;
+        Self::liquidate_borrow_allowed(&borrower, liquidation_asset_id, repay_amount, &market)?;
 
         let deposits = AccountDeposits::<T>::get(collateral_asset_id, &borrower);
         if !deposits.is_collateral {
@@ -1256,7 +1204,7 @@ impl<T: Config> Pallet<T> {
 
         let collateral_value = Self::get_asset_value(collateral_asset_id, borrower_deposit_amount)?;
         // liquidate_value contains the incentive of liquidator and the punishment of the borrower
-        let liquidate_value = Self::get_asset_value(liquidate_asset_id, repay_amount)?
+        let liquidate_value = Self::get_asset_value(liquidation_asset_id, repay_amount)?
             .checked_mul(&market.liquidate_incentive)
             .ok_or(ArithmeticError::Overflow)?;
 
@@ -1283,7 +1231,7 @@ impl<T: Config> Pallet<T> {
         Self::liquidated_transfer(
             &liquidator,
             &borrower,
-            liquidate_asset_id,
+            liquidation_asset_id,
             collateral_asset_id,
             repay_amount,
             real_collateral_underlying_amount,
@@ -1296,18 +1244,18 @@ impl<T: Config> Pallet<T> {
     fn liquidated_transfer(
         liquidator: &T::AccountId,
         borrower: &T::AccountId,
-        liquidate_asset_id: AssetIdOf<T>,
+        liquidation_asset_id: AssetIdOf<T>,
         collateral_asset_id: AssetIdOf<T>,
         repay_amount: BalanceOf<T>,
         collateral_underlying_amount: BalanceOf<T>,
     ) -> DispatchResult {
         log::trace!(
             target: "loans::liquidated_transfer",
-            "liquidator: {:?}, borrower: {:?}, liquidate_asset_id: {:?},
+            "liquidator: {:?}, borrower: {:?}, liquidation_asset_id: {:?},
                 collateral_asset_id: {:?}, repay_amount: {:?}, collateral_underlying_amount: {:?}",
             liquidator,
             borrower,
-            liquidate_asset_id,
+            liquidation_asset_id,
             collateral_asset_id,
             repay_amount,
             collateral_underlying_amount
@@ -1315,7 +1263,7 @@ impl<T: Config> Pallet<T> {
         // 1.liquidator repay borrower's debt,
         // transfer from liquidator to module account
         T::Assets::transfer(
-            liquidate_asset_id,
+            liquidation_asset_id,
             liquidator,
             &Self::account_id(),
             repay_amount,
@@ -1323,23 +1271,23 @@ impl<T: Config> Pallet<T> {
         )?;
 
         // 2.the system reduce borrower's debt
-        let account_borrows = Self::current_borrow_balance(borrower, liquidate_asset_id)?;
+        let account_borrows = Self::current_borrow_balance(borrower, liquidation_asset_id)?;
         let account_borrows_new = account_borrows
             .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
-        let total_borrows = Self::total_borrows(liquidate_asset_id);
+        let total_borrows = Self::total_borrows(liquidation_asset_id);
         let total_borrows_new = total_borrows
             .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
         AccountBorrows::<T>::insert(
-            liquidate_asset_id,
+            liquidation_asset_id,
             borrower,
             BorrowSnapshot {
                 principal: account_borrows_new,
-                borrow_index: Self::borrow_index(liquidate_asset_id),
+                borrow_index: Self::borrow_index(liquidation_asset_id),
             },
         );
-        TotalBorrows::<T>::insert(liquidate_asset_id, total_borrows_new);
+        TotalBorrows::<T>::insert(liquidation_asset_id, total_borrows_new);
 
         // 3.the liquidator will receive voucher token from borrower
         let exchange_rate = Self::exchange_rate(collateral_asset_id);
@@ -1372,7 +1320,7 @@ impl<T: Config> Pallet<T> {
         Self::deposit_event(Event::<T>::LiquidatedBorrow(
             liquidator.clone(),
             borrower.clone(),
-            liquidate_asset_id,
+            liquidation_asset_id,
             collateral_asset_id,
             repay_amount,
             collateral_underlying_amount,
