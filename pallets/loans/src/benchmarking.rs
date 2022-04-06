@@ -8,7 +8,7 @@ use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whiteli
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{
-    tokens::{HKO, KSM, PKSM, PSKSM, PUSDT, SKSM, USDT},
+    tokens::{KSM, PKSM, PSKSM, PUSDT, SKSM, USDT},
     Balance, CurrencyId,
 };
 use rate_model::{InterestRateModel, JumpModel};
@@ -52,19 +52,14 @@ fn pending_market_mock<T: Config>(ptoken_id: CurrencyId) -> Market<BalanceOf<T>>
 const INITIAL_AMOUNT: u32 = 500_000_000;
 
 fn transfer_initial_balance<
-    T: Config + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_prices::Config,
+    T: Config
+        + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
+        + pallet_prices::Config
+        + pallet_balances::Config<Balance = Balance>,
 >(
     caller: T::AccountId,
 ) {
     let account_id = T::Lookup::unlookup(caller.clone());
-    pallet_assets::Pallet::<T>::force_create(
-        SystemOrigin::Root.into(),
-        HKO,
-        account_id.clone(),
-        true,
-        1,
-    )
-    .ok();
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
         KSM,
@@ -81,8 +76,14 @@ fn transfer_initial_balance<
         1,
     )
     .ok();
-    pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), USDT, account_id, true, 1)
-        .ok();
+    pallet_assets::Pallet::<T>::force_create(
+        SystemOrigin::Root.into(),
+        USDT,
+        account_id.clone(),
+        true,
+        1,
+    )
+    .ok();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
         KSM,
@@ -110,7 +111,13 @@ fn transfer_initial_balance<
         true,
     )
     .ok();
-    T::Assets::mint_into(HKO, &caller, INITIAL_AMOUNT.into()).unwrap();
+    pallet_balances::Pallet::<T>::set_balance(
+        SystemOrigin::Root.into(),
+        account_id,
+        10_000_000_000_000_u128,
+        0_u128,
+    )
+    .unwrap();
     T::Assets::mint_into(USDT, &caller, INITIAL_AMOUNT.into()).unwrap();
     T::Assets::mint_into(KSM, &caller, INITIAL_AMOUNT.into()).unwrap();
     T::Assets::mint_into(SKSM, &caller, INITIAL_AMOUNT.into()).unwrap();
@@ -143,7 +150,7 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
 benchmarks! {
     where_clause {
         where
-            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_prices::Config
+            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_prices::Config + pallet_balances::Config<Balance = Balance>
     }
 
     add_market {
@@ -197,19 +204,19 @@ benchmarks! {
     add_reward {
         let caller: T::AccountId = whitelisted_caller();
         transfer_initial_balance::<T>(caller.clone());
-    }: _(SystemOrigin::Signed(caller.clone()), 1_000_000)
+    }: _(SystemOrigin::Signed(caller.clone()), 1_000_000_000_000_u128)
     verify {
-        assert_last_event::<T>(Event::<T>::RewardAdded(caller, 1_000_000).into());
+        assert_last_event::<T>(Event::<T>::RewardAdded(caller, 1_000_000_000_000_u128).into());
     }
 
     withdraw_missing_reward {
         let caller: T::AccountId = whitelisted_caller();
         transfer_initial_balance::<T>(caller.clone());
-        assert_ok!(Loans::<T>::add_reward(SystemOrigin::Signed(caller.clone()).into(), 10_000_000));
+        assert_ok!(Loans::<T>::add_reward(SystemOrigin::Signed(caller.clone()).into(), 1_000_000_000_000_u128));
         let receiver = T::Lookup::unlookup(caller.clone());
-    }: _(SystemOrigin::Root, receiver, 1_000_000)
+    }: _(SystemOrigin::Root, receiver, 500_000_000_000_u128)
     verify {
-        assert_last_event::<T>(Event::<T>::RewardWithdrawn(caller, 1_000_000).into());
+        assert_last_event::<T>(Event::<T>::RewardWithdrawn(caller, 500_000_000_000_u128).into());
     }
 
     update_market_reward_speed {
@@ -226,7 +233,7 @@ benchmarks! {
         assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), USDT, pending_market_mock::<T>(USDT)));
         assert_ok!(Loans::<T>::activate_market(SystemOrigin::Root.into(), USDT));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), USDT, 100_000_000));
-        assert_ok!(Loans::<T>::add_reward(SystemOrigin::Signed(caller.clone()).into(), 100_000_000));
+        assert_ok!(Loans::<T>::add_reward(SystemOrigin::Signed(caller.clone()).into(), 1_000_000_000_000_u128));
         assert_ok!(Loans::<T>::update_market_reward_speed(SystemOrigin::Root.into(), USDT, 1_000_000));
         let target_height = frame_system::Pallet::<T>::block_number().saturating_add(One::one());
         frame_system::Pallet::<T>::set_block_number(target_height);
@@ -241,7 +248,7 @@ benchmarks! {
         assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), USDT, pending_market_mock::<T>(USDT)));
         assert_ok!(Loans::<T>::activate_market(SystemOrigin::Root.into(), USDT));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), USDT, 100_000_000));
-        assert_ok!(Loans::<T>::add_reward(SystemOrigin::Signed(caller.clone()).into(), 100_000_000));
+        assert_ok!(Loans::<T>::add_reward(SystemOrigin::Signed(caller.clone()).into(), 1_000_000_000_000_u128));
         assert_ok!(Loans::<T>::update_market_reward_speed(SystemOrigin::Root.into(), USDT, 1_000_000));
         let target_height = frame_system::Pallet::<T>::block_number().saturating_add(One::one());
         frame_system::Pallet::<T>::set_block_number(target_height);

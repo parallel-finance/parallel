@@ -1218,6 +1218,9 @@ impl<T: Config> Pallet<T> {
         reward_speed: BalanceOf<T>,
         total_share: BalanceOf<T>,
     ) -> Result<u128, sp_runtime::DispatchError> {
+        if total_share.is_zero() {
+            return Ok(0);
+        }
         let delta_block: BalanceOf<T> = delta_block.saturated_into();
         let delta_index = delta_block
             .get_big_uint()
@@ -1246,22 +1249,20 @@ impl<T: Config> Pallet<T> {
         let current_block_number = <frame_system::Pallet<T>>::block_number();
         RewardSupplyState::<T>::try_mutate(asset_id, |supply_state| -> DispatchResult {
             let delta_block = current_block_number.saturating_sub(supply_state.block);
-            if !delta_block.is_zero() {
-                let supply_speed = MarketRewardSpeed::<T>::get(asset_id);
-                if supply_speed > 0 {
-                    let total_supply = TotalSupply::<T>::get(asset_id);
-                    let delta_index = if total_supply > 0 {
-                        Self::calculate_reward_delta_index(delta_block, supply_speed, total_supply)?
-                    } else {
-                        0_u128
-                    };
-                    supply_state.index = supply_state
-                        .index
-                        .checked_add(delta_index)
-                        .ok_or(ArithmeticError::Overflow)?;
-                }
-                supply_state.block = current_block_number;
+            if delta_block.is_zero() {
+                return Ok(());
             }
+            let supply_speed = MarketRewardSpeed::<T>::get(asset_id);
+            if !supply_speed.is_zero() {
+                let total_supply = TotalSupply::<T>::get(asset_id);
+                let delta_index =
+                    Self::calculate_reward_delta_index(delta_block, supply_speed, total_supply)?;
+                supply_state.index = supply_state
+                    .index
+                    .checked_add(delta_index)
+                    .ok_or(ArithmeticError::Overflow)?;
+            }
+            supply_state.block = current_block_number;
 
             Ok(())
         })
@@ -1271,26 +1272,23 @@ impl<T: Config> Pallet<T> {
         let current_block_number = <frame_system::Pallet<T>>::block_number();
         RewardBorrowState::<T>::try_mutate(asset_id, |borrow_state| -> DispatchResult {
             let delta_block = current_block_number.saturating_sub(borrow_state.block);
-            if !delta_block.is_zero() {
-                let borrow_speed = MarketRewardSpeed::<T>::get(asset_id);
-                if borrow_speed > 0 {
-                    let current_borrow_amount = TotalBorrows::<T>::get(asset_id);
-                    let delta_index = if current_borrow_amount > 0 {
-                        Self::calculate_reward_delta_index(
-                            delta_block,
-                            borrow_speed,
-                            current_borrow_amount,
-                        )?
-                    } else {
-                        0_u128
-                    };
-                    borrow_state.index = borrow_state
-                        .index
-                        .checked_add(delta_index)
-                        .ok_or(ArithmeticError::Overflow)?;
-                }
-                borrow_state.block = current_block_number;
+            if delta_block.is_zero() {
+                return Ok(());
             }
+            let borrow_speed = MarketRewardSpeed::<T>::get(asset_id);
+            if !borrow_speed.is_zero() {
+                let current_borrow_amount = TotalBorrows::<T>::get(asset_id);
+                let delta_index = Self::calculate_reward_delta_index(
+                    delta_block,
+                    borrow_speed,
+                    current_borrow_amount,
+                )?;
+                borrow_state.index = borrow_state
+                    .index
+                    .checked_add(delta_index)
+                    .ok_or(ArithmeticError::Overflow)?;
+            }
+            borrow_state.block = current_block_number;
 
             Ok(())
         })
