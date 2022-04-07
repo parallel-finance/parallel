@@ -317,7 +317,7 @@ pub(crate) fn _run_to_block(n: BlockNumber) {
     }
 }
 
-pub fn accrue_interest_of(asset_id: CurrencyId, block_delta_secs: u64, run_to_block: u64) {
+pub fn accrue_interest_per_block(asset_id: CurrencyId, block_delta_secs: u64, run_to_block: u64) {
     for i in 1..run_to_block {
         TimestampPallet::set_timestamp(6000 + (block_delta_secs * 1000 * i));
         Loans::accrue_interest(asset_id).unwrap();
