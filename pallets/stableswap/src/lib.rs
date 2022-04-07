@@ -270,8 +270,9 @@ pub mod pallet {
                     // ****************************************************************************
                     // Gets New Liquidity Amount
                     let updated_invariant = Self::do_get_delta(pair).unwrap();
+                    println!("suman: {:?} : {:?}", updated_invariant, initial_invariant);
                     ensure!(
-                        updated_invariant > initial_invariant,
+                        updated_invariant >= initial_invariant,
                         Error::<T, I>::InvalidInvariant
                     );
                     let _recalculate_invariant = updated_invariant;

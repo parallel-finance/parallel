@@ -1,7 +1,10 @@
+use super::*;
 use crate::mock::*;
-use frame_support::assert_ok;
+use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
 use primitives::StableSwap as _;
+
+const MINIMUM_LIQUIDITY: u128 = 1_000;
 
 #[test]
 fn stable_swap_amount_out_should_work() {
@@ -141,7 +144,6 @@ fn close_unbalanced_small_stable_swap_amount_out_should_work() {
 }
 
 #[test]
-#[ignore]
 fn add_liquidity_with_variant_should_work() {
     // Currently this failing
     new_test_ext().execute_with(|| {
@@ -163,6 +165,269 @@ fn add_liquidity_with_variant_should_work() {
         assert_eq!(
             DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
             4_000
+        );
+    })
+}
+
+#[test]
+fn add_liquidity_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 2_000),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+        assert_ok!(DefaultStableSwap::add_liquidity(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 2_000),                  // Liquidity amounts to be added in pool
+            (5, 5),                          // specifying its worst case ratio when pool already
+        ));
+
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            4_000
+        );
+    })
+}
+
+#[test]
+fn add_more_liquidity_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 2_000),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
+        ));
+
+        assert_ok!(DefaultStableSwap::add_liquidity(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (3_000, 4_000),                  // Liquidity amounts to be added in pool
+            (5, 5), // specifying its worst case ratio when pool already exists
+        ));
+
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            6_000
+        );
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().quote_amount,
+            3_000
+        );
+    })
+}
+
+#[test]
+fn add_more_liquidity_should_not_work_if_minimum_base_amount_is_higher() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 2_000),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
+        ));
+
+        assert_noop!(
+            DefaultStableSwap::add_liquidity(
+                RawOrigin::Signed(ALICE).into(), // Origin
+                (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+                (3_000, 4_000),                  // Liquidity amounts to be added in pool
+                (5_500, 5_00)                    // specifying its worst case ratio when pool already
+            ),
+            Error::<Test>::NotAnIdealPrice // Not an ideal price ratio
+        );
+    })
+}
+
+#[test]
+fn add_more_liquidity_with_low_balance_should_not_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 2_000),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
+        ));
+
+        assert_ok!(DefaultStableSwap::add_liquidity(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (3_000, 4_000),                  // Liquidity amounts to be added in pool
+            (1, 1),                          // specifying its worst case ratio when pool already
+        ));
+
+        assert_noop!(
+            DefaultStableSwap::add_liquidity(
+                RawOrigin::Signed(ALICE).into(), // Origin
+                (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+                (5000_000_000, 6000_000_000),    // Liquidity amounts to be added in pool
+                (5, 5), // specifying its worst case ratio when pool already
+            ),
+            pallet_assets::Error::<Test>::BalanceLow
+        );
+    })
+}
+
+#[test]
+fn add_liquidity_by_another_user_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 2_000),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
+        ));
+
+        assert_ok!(DefaultStableSwap::add_liquidity(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (3_000, 4_000),                  // Liquidity amounts to be added in pool
+            (5, 5),                          // specifying its worst case ratio when pool already
+        ));
+
+        assert_ok!(DefaultStableSwap::add_liquidity(
+            RawOrigin::Signed(BOB).into(), // Origin
+            (DOT, SDOT),                   // Currency pool, in which liquidity will be added
+            (500, 1_000),                  // Liquidity amounts to be added in pool
+            (5, 5),                        // specifying its worst case ratio when pool already
+        ));
+
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            7_000
+        );
+    })
+}
+
+#[test]
+fn remove_liquidity_whole_share_should_work() {
+    new_test_ext().execute_with(|| {
+        // A pool with a single LP provider
+        // who deposit tokens and withdraws their whole share
+        // (most simple case)
+
+        let _ = DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 9_000),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        );
+
+        assert_ok!(DefaultStableSwap::remove_liquidity(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be removed
+            3_000 - MINIMUM_LIQUIDITY        // liquidity to be removed from user's liquidity
+        ));
+    })
+}
+
+#[test]
+fn remove_liquidity_only_portion_should_work() {
+    new_test_ext().execute_with(|| {
+        // A pool with a single LP provider who
+        // deposit tokens and withdraws
+        // a portion of their total shares (simple case)
+
+        let _ = DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 9_000),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        );
+
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            9_000
+        );
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().quote_amount,
+            1_000
+        );
+
+        assert_ok!(DefaultStableSwap::remove_liquidity(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be removed
+            1_500                            // Liquidity to be removed from user's liquidity
+        ));
+
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            4_500
+        );
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().quote_amount,
+            500
+        );
+    })
+}
+
+#[test]
+fn remove_liquidity_user_more_liquidity_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 2_500),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
+        ));
+        assert_ok!(DefaultStableSwap::add_liquidity(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_500, 3_000),                  // Liquidity amounts to be added in pool
+            (5, 5),                          // specifying its worst case ratio when pool already
+        ));
+
+        assert_ok!(DefaultStableSwap::remove_liquidity(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be removed
+            1_500                            // Liquidity to be removed from user's liquidity
+        ));
+    })
+}
+
+#[test]
+fn remove_liquidity_when_pool_does_not_exist_should_not_work() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            DefaultStableSwap::remove_liquidity(RawOrigin::Signed(ALICE).into(), (DOT, SDOT), 15),
+            Error::<Test>::PoolDoesNotExist
+        );
+    })
+}
+
+#[test]
+fn remove_liquidity_with_more_liquidity_should_not_work() {
+    new_test_ext().execute_with(|| {
+        // A pool with a single LP provider
+        // who deposit tokens and withdraws their whole share
+        // (most simple case)
+
+        let _ = DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 9_000),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        );
+
+        assert_noop!(
+            DefaultStableSwap::remove_liquidity(
+                RawOrigin::Signed(ALICE).into(),
+                (DOT, SDOT),
+                3_0000
+            ),
+            Error::<Test>::InsufficientLiquidity
         );
     })
 }
