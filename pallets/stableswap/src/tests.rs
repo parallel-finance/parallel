@@ -1,6 +1,7 @@
 use crate::mock::*;
 use frame_support::assert_ok;
 use frame_system::RawOrigin;
+use primitives::StableSwap as _;
 
 #[test]
 fn stable_swap_amount_out_should_work() {
@@ -162,6 +163,171 @@ fn add_liquidity_with_variant_should_work() {
         assert_eq!(
             DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
             4_000
+        );
+    })
+}
+
+#[test]
+fn swap_should_work_base_to_quote() {
+    new_test_ext().execute_with(|| {
+        let trader = EVE;
+
+        // create pool and add liquidity
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (100_000_000, 100_000_000),      // Liquidity amounts to be added in pool
+            CHARLIE,                         // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        // SDOT is base_asset 1001
+        // DOT is quote_asset 101
+
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            100_000_000
+        ); // SDOT
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().quote_amount,
+            100_000_000
+        ); // DOT
+
+        let path = vec![DOT, SDOT];
+
+        let amount_in = 1_000;
+
+        let amounts_out = DefaultStableSwap::get_amounts_out(amount_in, path).unwrap();
+
+        // check balances before swap
+        assert_eq!(Assets::balance(DOT, trader), 1_000_000_000);
+        assert_eq!(Assets::balance(SDOT, trader), 1_000_000_000);
+
+        assert_ok!(DefaultStableSwap::swap(
+            &trader,
+            (DOT, SDOT),
+            amounts_out[0]
+        ));
+
+        assert_eq!(
+            Assets::balance(DOT, trader),
+            1_000_000_000 - amount_in // 999_999_000
+        );
+
+        assert_eq!(
+            Assets::balance(SDOT, trader),
+            1_000_000_000 + amounts_out[1] // 1_000_000_996
+        );
+    })
+}
+
+#[test]
+fn swap_should_work_different_ratio_base_to_quote() {
+    new_test_ext().execute_with(|| {
+        let trader = EVE;
+
+        // create pool and add liquidity
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (100_000_000, 50_000_000),       // Liquidity amounts to be added in pool
+            CHARLIE,                         // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        // SDOT is base_asset 1001
+        // DOT is quote_asset 101
+
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            50_000_000
+        ); // SDOT
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().quote_amount,
+            100_000_000
+        ); // DOT
+
+        let path = vec![DOT, SDOT];
+
+        let amount_in = 1_000;
+
+        let amounts_out = DefaultStableSwap::get_amounts_out(amount_in, path).unwrap();
+
+        // check balances before swap
+        assert_eq!(Assets::balance(DOT, trader), 1_000_000_000);
+        assert_eq!(Assets::balance(SDOT, trader), 1_000_000_000);
+
+        assert_ok!(DefaultStableSwap::swap(
+            &trader,
+            (DOT, SDOT),
+            amounts_out[0],
+        ));
+
+        assert_eq!(
+            Assets::balance(DOT, trader),
+            1_000_000_000 - amount_in // 999_999_000
+        );
+
+        assert_eq!(
+            Assets::balance(SDOT, trader),
+            1_000_000_000 + amounts_out[1] // 1_000_000_996
+        );
+    })
+}
+
+#[test]
+fn swap_should_work_quote_to_base() {
+    new_test_ext().execute_with(|| {
+        let trader = EVE;
+
+        // create pool and add liquidity
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (SDOT, DOT),                     // Currency pool, in which liquidity will be added
+            (50_000_000, 100_000_000),       // Liquidity amounts to be added in pool
+            CHARLIE,                         // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        // SDOT is base_asset 1001
+        // DOT is quote_asset 101
+
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            50_000_000
+        ); // SDOT
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().quote_amount,
+            100_000_000
+        ); // DOT
+
+        let path = vec![DOT, SDOT];
+
+        let amount_in = 1_000;
+
+        let amounts_out = DefaultStableSwap::get_amounts_out(amount_in, path).unwrap();
+
+        // check balances before swap
+        assert_eq!(Assets::balance(DOT, trader), 1_000_000_000);
+        assert_eq!(Assets::balance(SDOT, trader), 1_000_000_000);
+
+        assert_ok!(DefaultStableSwap::swap(
+            &trader,
+            (DOT, SDOT),
+            amounts_out[0],
+        ));
+
+        assert_eq!(
+            Assets::balance(DOT, trader),
+            1_000_000_000 - amount_in // 999_999_000
+        );
+
+        assert_eq!(
+            Assets::balance(SDOT, trader),
+            1_000_000_000 + amounts_out[1] // 1_000_000_996
         );
     })
 }
