@@ -57,7 +57,7 @@ impl frame_system::Config for Test {
     type Origin = Origin;
     type Call = Call;
     type Index = u64;
-    type BlockNumber = u64;
+    type BlockNumber = BlockNumber;
     type Hash = H256;
     type Hashing = ::sp_runtime::traits::BlakeTwo256;
     type AccountId = AccountId;
@@ -307,7 +307,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 }
 
 /// Progress to the given block, and then finalize the block.
-pub(crate) fn run_to_block(n: BlockNumber) {
+pub(crate) fn _run_to_block(n: BlockNumber) {
     Loans::on_finalize(System::block_number());
     for b in (System::block_number() + 1)..=n {
         System::set_block_number(b);
@@ -324,6 +324,13 @@ pub fn almost_equal(target: u128, value: u128) -> bool {
     let value = value as i128;
     let diff = (target - value).abs() as u128;
     diff < micro_dollar(1)
+}
+
+pub fn accrue_interest_of(asset_id: CurrencyId, block_delta_secs: u64, run_to_block: u64) {
+    for i in 1..run_to_block {
+        TimestampPallet::set_timestamp(6000 + (block_delta_secs * 1000 * i));
+        Loans::accrue_interest(asset_id).unwrap();
+    }
 }
 
 pub fn dollar(d: u128) -> u128 {
