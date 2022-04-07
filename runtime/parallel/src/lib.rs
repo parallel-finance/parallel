@@ -822,20 +822,56 @@ impl Default for ProxyType {
 }
 
 impl InstanceFilter<Call> for ProxyType {
-    fn filter(&self, _c: &Call) -> bool {
+    fn filter(&self, c: &Call) -> bool {
         match self {
             ProxyType::Any => true,
-            ProxyType::Loans => true,
-            ProxyType::Staking => true,
-            ProxyType::Crowdloans => true,
+            ProxyType::Loans => {
+                matches!(
+                    c,
+                    Call::Loans(pallet_loans::Call::mint { .. })
+                        | Call::Loans(pallet_loans::Call::redeem { .. })
+                        | Call::Loans(pallet_loans::Call::redeem_all { .. })
+                        | Call::Loans(pallet_loans::Call::borrow { .. })
+                        | Call::Loans(pallet_loans::Call::repay_borrow { .. })
+                        | Call::Loans(pallet_loans::Call::repay_borrow_all { .. })
+                        | Call::Loans(pallet_loans::Call::add_reserves { .. })
+                        | Call::Loans(pallet_loans::Call::reduce_reserves { .. })
+                )
+            }
+            ProxyType::Staking => {
+                matches!(
+                    c,
+                    Call::LiquidStaking(pallet_liquid_staking::Call::stake { .. })
+                        | Call::LiquidStaking(pallet_liquid_staking::Call::unstake { .. })
+                        | Call::LiquidStaking(pallet_liquid_staking::Call::bond { .. })
+                        | Call::LiquidStaking(pallet_liquid_staking::Call::unbond { .. })
+                        | Call::LiquidStaking(pallet_liquid_staking::Call::bond_extra { .. })
+                        | Call::LiquidStaking(pallet_liquid_staking::Call::rebond { .. })
+                        | Call::LiquidStaking(
+                            pallet_liquid_staking::Call::withdraw_unbonded { .. }
+                        )
+                        | Call::LiquidStaking(pallet_liquid_staking::Call::nominate { .. })
+                )
+            }
+            ProxyType::Crowdloans => {
+                matches!(
+                    c,
+                    Call::Crowdloans(pallet_crowdloans::Call::create_vault { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::update_vault { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::open { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::close { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::reopen { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::contribute { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::withdraw { .. })
+                )
+            }
         }
     }
     fn is_superset(&self, o: &Self) -> bool {
         match (self, o) {
             (ProxyType::Any, _) => true,
-            (ProxyType::Loans, _) => true,
-            (ProxyType::Staking, _) => true,
-            (ProxyType::Crowdloans, _) => true,
+            (_, ProxyType::Any) => false,
+            _ => false,
         }
     }
 }
