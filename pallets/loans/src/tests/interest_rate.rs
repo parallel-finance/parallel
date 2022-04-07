@@ -130,6 +130,25 @@ fn interest_rate_model_works() {
 }
 
 #[test]
+fn last_accrued_interest_time_sould_be_update_correctly() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(Loans::borrow_index(DOT), Rate::one());
+        assert_eq!(Loans::last_accrued_interest_time(DOT), 0);
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
+        assert_eq!(Loans::last_accrued_interest_time(DOT), 6);
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
+        assert_eq!(Loans::borrow_index(DOT), Rate::one());
+        TimestampPallet::set_timestamp(12000);
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(100)));
+        assert_eq!(
+            Loans::borrow_index(DOT),
+            Rate::from_inner(1000000013318112633),
+        );
+    })
+}
+
+#[test]
 fn accrue_interest_works_after_mint() {
     new_test_ext().execute_with(|| {
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
