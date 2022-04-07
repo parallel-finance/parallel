@@ -754,7 +754,7 @@ pub mod pallet {
             Self::ensure_under_supply_cap(asset_id, mint_amount)?;
 
             Self::accrue_interest(asset_id)?;
-          
+
             // update supply index before modify supply balance.
             Self::update_reward_supply_index(asset_id)?;
             Self::distribute_supplier_reward(asset_id, &who)?;
@@ -844,7 +844,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
-          
+
             Self::borrow_allowed(asset_id, &who, borrow_amount)?;
             Self::accrue_interest(asset_id)?;
 
@@ -1391,7 +1391,7 @@ impl<T: Config> Pallet<T> {
         Self::redeem_allowed(asset_id, who, voucher_amount)?;
 
         Self::accrue_interest(asset_id)?;
-      
+
         // update supply index before modify supply balance.
         Self::update_reward_supply_index(asset_id)?;
         Self::distribute_supplier_reward(asset_id, who)?;
@@ -1448,7 +1448,7 @@ impl<T: Config> Pallet<T> {
         if account_borrows < repay_amount {
             return Err(Error::<T>::TooMuchRepay.into());
         }
-      
+
         Self::accrue_interest(asset_id)?;
 
         // update borrow index after accureInterest.
@@ -1656,8 +1656,8 @@ impl<T: Config> Pallet<T> {
         );
 
         // update borrow index after accureInterest.
-        Self::update_reward_borrow_index(liquidate_asset_id)?;
-        Self::distribute_borrower_reward(liquidate_asset_id, liquidator)?;
+        Self::update_reward_borrow_index(liquidation_asset_id)?;
+        Self::distribute_borrower_reward(liquidation_asset_id, liquidator)?;
 
         // 1.liquidator repay borrower's debt,
         // transfer from liquidator to module account
