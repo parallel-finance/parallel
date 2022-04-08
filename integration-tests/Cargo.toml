@@ -1,0 +1,84 @@
+[package]
+authors     = ['Parallel Team']
+edition     = '2021'
+homepage    = 'https://parallel.fi'
+license     = 'Apache'
+name        = 'runtime-integration-tests'
+repository  = 'https://github.com/parallel-finance/parallel'
+version     = '1.8.0'
+
+
+[dependencies]
+codec               = { package = 'parity-scale-codec', version = '2.3.1', default-features = false, features = ['derive'] }
+hex-literal         = '0.3.3'
+serde               = { version = '1.0.136', features = ['derive'], optional = true }
+serde_json          = '1.0.68'
+hex                 = { version = '0.4' }
+smallvec            = '1.6.1'
+static_assertions   = '1.1.0'
+
+# Substrate
+frame-support       = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17' }
+frame-system        = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17' }
+pallet-balances     = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17' }
+sp-runtime          = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17' }
+sp-std              = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17' }
+
+# Polkadot dependencies
+pallet-xcm              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17'}
+polkadot-parachain      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17'}
+polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17'}
+xcm                     = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17'}
+xcm-builder             = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17'}
+xcm-executor            = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17'}
+
+# Cumulus dependencies
+cumulus-pallet-dmp-queue        = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.17' }
+cumulus-pallet-parachain-system = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.17' }
+cumulus-pallet-xcm              = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.17' }
+cumulus-pallet-xcmp-queue       = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.17' }
+cumulus-primitives-core         = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.17' }
+cumulus-primitives-timestamp    = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.17' }
+cumulus-primitives-utility      = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.17' }
+pallet-collator-selection       = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.17' }
+parachain-info                  = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.17' }
+
+# ORML dependencies
+orml-oracle         = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git'}
+orml-traits         = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
+orml-vesting        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
+orml-xcm            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
+orml-xcm-support    = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
+orml-xtokens        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
+
+# Parallel dependencies
+pallet-asset-manager          = { path = '../pallets/asset-manager' }
+pallet-amm                    = { path = '../pallets/amm' }
+pallet-bridge                 = { path = '../pallets/bridge' }
+pallet-crowdloans             = { path = '../pallets/crowdloans' }
+pallet-currency-adapter       = { path = '../pallets/currency-adapter' }
+pallet-emergency-shutdown     = { path = '../pallets/emergency-shutdown' }
+pallet-farming                = { path = '../pallets/farming' }
+pallet-liquid-staking         = { path = '../pallets/liquid-staking' }
+pallet-loans                  = { path = '../pallets/loans' }
+pallet-loans-rpc-runtime-api  = { path = '../pallets/loans/rpc/runtime-api' }
+pallet-prices                 = { path = '../pallets/prices' }
+pallet-router                 = { path = '../pallets/router' }
+pallet-router-rpc-runtime-api = { path = '../pallets/router/rpc/runtime-api' }
+pallet-xcm-helper             = { path = '../pallets/xcm-helper' }
+primitives                    = { package = 'parallel-primitives', path = '../primitives' }
+vanilla-runtime                 = { path = '../runtime/vanilla' }
+
+[dev-dependencies]
+env_logger                              = '0.9.0'
+log                                     = '0.4.14'
+sp-io                                   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17'}
+sp-trie                                 = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17' }
+polkadot-primitives                     = { git = 'https://github.com/paritytech/polkadot', branch = 'release-v0.9.17' }
+polkadot-runtime-parachains             = { git = 'https://github.com/paritytech/polkadot', branch = 'release-v0.9.17' }
+kusama-runtime                          = { git = 'https://github.com/paritytech/polkadot', branch = 'release-v0.9.17' }
+cumulus-primitives-parachain-inherent   = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.17' }
+cumulus-test-relay-sproof-builder       = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.17' }
+statemine-runtime                       = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.17' }
+xcm-emulator                            = { git = 'https://github.com/shaunxw/xcm-simulator', rev = '24ccbce563d1f99019b4cdfa2f3af4e99bac0dfc' }
+

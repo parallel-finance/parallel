@@ -34,7 +34,7 @@ use frame_support::{
     PalletId,
 };
 
-use orml_traits::{DataProvider, DataProviderExtended};
+use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
@@ -211,6 +211,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Timestamp(_) |
             Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
+            Call::Assets(pallet_assets::Call::transfer { .. }) |
             Call::Assets(pallet_assets::Call::burn { .. }) |
             Call::Assets(pallet_assets::Call::destroy { .. }) |
             Call::Assets(pallet_assets::Call::force_create { .. }) |
@@ -239,7 +240,14 @@ impl Contains<Call> for BaseCallFilter {
             Call::Vesting(_) |
             // Membership
             Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_)
+            Call::TechnicalCommitteeMembership(_) |
+            // AMM
+            Call::AMM(_) |
+            Call::AMMRoute(_) |
+            // Payroll
+            Call::Payroll(_) |
+            // Farming
+            Call::Farming(_)
         )
         // // 3rd Party
         // Call::Oracle(_) |
@@ -488,6 +496,12 @@ parameter_types! {
     pub const MaxAssetsForTransfer: usize = 2;
 }
 
+parameter_type_with_key! {
+    pub ParachainMinFee: |_location: MultiLocation| -> u128 {
+        u128::MAX
+    };
+}
+
 impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
@@ -500,6 +514,7 @@ impl orml_xtokens::Config for Runtime {
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
     type MaxAssetsForTransfer = MaxAssetsForTransfer;
+    type MinXcmFee = ParachainMinFee;
 }
 
 parameter_types! {
@@ -530,6 +545,10 @@ impl pallet_assets::Config for Runtime {
     type Extra = ();
 }
 
+parameter_types! {
+    pub const RewardAssetId: CurrencyId = PARA;
+}
+
 impl pallet_loans::Config for Runtime {
     type Event = Event;
     type PalletId = LoansPalletId;
@@ -539,6 +558,7 @@ impl pallet_loans::Config for Runtime {
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
     type Assets = CurrencyAdapter;
+    type RewardAssetId = RewardAssetId;
 }
 
 parameter_types! {
@@ -1705,6 +1725,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
             Call::Assets(pallet_assets::Call::burn { .. }) |
+            Call::Assets(pallet_assets::Call::transfer { .. }) |
             Call::Assets(pallet_assets::Call::destroy { .. }) |
             Call::Assets(pallet_assets::Call::force_create { .. }) |
             Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |

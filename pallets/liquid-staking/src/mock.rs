@@ -11,6 +11,7 @@ use frame_support::{
     PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
+use orml_traits::parameter_type_with_key;
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::{IsSystem, Sibling};
@@ -269,6 +270,12 @@ parameter_types! {
     pub const MaxAssetsForTransfer: usize = 2;
 }
 
+parameter_type_with_key! {
+    pub ParachainMinFee: |_location: MultiLocation| -> u128 {
+        u128::MAX
+    };
+}
+
 impl orml_xtokens::Config for Test {
     type Event = Event;
     type Balance = Balance;
@@ -281,6 +288,7 @@ impl orml_xtokens::Config for Test {
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
     type MaxAssetsForTransfer = MaxAssetsForTransfer;
+    type MinXcmFee = ParachainMinFee;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;

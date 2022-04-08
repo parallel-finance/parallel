@@ -35,7 +35,7 @@ use frame_support::{
     PalletId,
 };
 
-use orml_traits::{DataProvider, DataProviderExtended};
+use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use sp_api::impl_runtime_apis;
 use sp_core::{
@@ -233,7 +233,10 @@ impl Contains<Call> for BaseCallFilter {
             Call::ParachainSystem(_) |
             Call::XcmpQueue(_) |
             Call::DmpQueue(_) |
-            Call::PolkadotXcm(_) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_default_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_subscribe_version_notify { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_unsubscribe_version_notify { .. }) |
             Call::CumulusXcm(_) |
             // Consensus
             Call::Authorship(_) |
@@ -269,7 +272,9 @@ impl Contains<Call> for BaseCallFilter {
             // Bridge
             Call::Bridge(_) |
             // Farming
-            Call::Farming(_)
+            Call::Farming(_) |
+            // Payroll
+            Call::Payroll(_)
         )
 
         // // Consensus
@@ -520,6 +525,12 @@ parameter_types! {
     pub const MaxAssetsForTransfer: usize = 2;
 }
 
+parameter_type_with_key! {
+    pub ParachainMinFee: |_location: MultiLocation| -> u128 {
+        u128::MAX
+    };
+}
+
 impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
@@ -532,6 +543,7 @@ impl orml_xtokens::Config for Runtime {
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
     type MaxAssetsForTransfer = MaxAssetsForTransfer;
+    type MinXcmFee = ParachainMinFee;
 }
 
 parameter_types! {
@@ -562,6 +574,10 @@ impl pallet_assets::Config for Runtime {
     type Extra = ();
 }
 
+parameter_types! {
+    pub const RewardAssetId: CurrencyId = HKO;
+}
+
 impl pallet_loans::Config for Runtime {
     type Event = Event;
     type PalletId = LoansPalletId;
@@ -571,6 +587,7 @@ impl pallet_loans::Config for Runtime {
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
     type Assets = CurrencyAdapter;
+    type RewardAssetId = RewardAssetId;
 }
 
 parameter_types! {
