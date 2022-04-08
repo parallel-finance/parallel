@@ -834,6 +834,7 @@ pub enum ProxyType {
     Loans,
     Staking,
     Crowdloans,
+    Farming,
 }
 impl Default for ProxyType {
     fn default() -> Self {
@@ -854,8 +855,8 @@ impl InstanceFilter<Call> for ProxyType {
                         | Call::Loans(pallet_loans::Call::borrow { .. })
                         | Call::Loans(pallet_loans::Call::repay_borrow { .. })
                         | Call::Loans(pallet_loans::Call::repay_borrow_all { .. })
-                        | Call::Loans(pallet_loans::Call::add_reserves { .. })
-                        | Call::Loans(pallet_loans::Call::reduce_reserves { .. })
+                        | Call::Loans(pallet_loans::Call::collateral_asset { .. })
+                        | Call::Loans(pallet_loans::Call::liquidate_borrow { .. })
                 )
             }
             ProxyType::Staking => {
@@ -863,26 +864,26 @@ impl InstanceFilter<Call> for ProxyType {
                     c,
                     Call::LiquidStaking(pallet_liquid_staking::Call::stake { .. })
                         | Call::LiquidStaking(pallet_liquid_staking::Call::unstake { .. })
-                        | Call::LiquidStaking(pallet_liquid_staking::Call::bond { .. })
-                        | Call::LiquidStaking(pallet_liquid_staking::Call::unbond { .. })
-                        | Call::LiquidStaking(pallet_liquid_staking::Call::bond_extra { .. })
-                        | Call::LiquidStaking(pallet_liquid_staking::Call::rebond { .. })
-                        | Call::LiquidStaking(
-                            pallet_liquid_staking::Call::withdraw_unbonded { .. }
-                        )
-                        | Call::LiquidStaking(pallet_liquid_staking::Call::nominate { .. })
                 )
             }
             ProxyType::Crowdloans => {
                 matches!(
                     c,
-                    Call::Crowdloans(pallet_crowdloans::Call::create_vault { .. })
-                        | Call::Crowdloans(pallet_crowdloans::Call::update_vault { .. })
-                        | Call::Crowdloans(pallet_crowdloans::Call::open { .. })
-                        | Call::Crowdloans(pallet_crowdloans::Call::close { .. })
-                        | Call::Crowdloans(pallet_crowdloans::Call::reopen { .. })
-                        | Call::Crowdloans(pallet_crowdloans::Call::contribute { .. })
+                    Call::Crowdloans(pallet_crowdloans::Call::contribute { .. },)
                         | Call::Crowdloans(pallet_crowdloans::Call::withdraw { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::claim { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::redeem { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::withdraw_for { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::claim_for { .. })
+                )
+            }
+            ProxyType::Farming => {
+                matches!(
+                    c,
+                    Call::Farming(pallet_farming::Call::deposit { .. })
+                        | Call::Farming(pallet_farming::Call::claim { .. })
+                        | Call::Farming(pallet_farming::Call::withdraw { .. })
+                        | Call::Farming(pallet_farming::Call::redeem { .. })
                 )
             }
         }
