@@ -273,7 +273,9 @@ impl Contains<Call> for BaseCallFilter {
             // Bridge
             Call::Bridge(_) |
             // Farming
-            Call::Farming(_)
+            Call::Farming(_) |
+            // Payroll
+            Call::Payroll(_)
         )
     }
 }

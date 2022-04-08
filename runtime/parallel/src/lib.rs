@@ -211,6 +211,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Timestamp(_) |
             Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
+            Call::Assets(pallet_assets::Call::transfer { .. }) |
             Call::Assets(pallet_assets::Call::burn { .. }) |
             Call::Assets(pallet_assets::Call::destroy { .. }) |
             Call::Assets(pallet_assets::Call::force_create { .. }) |
@@ -239,7 +240,12 @@ impl Contains<Call> for BaseCallFilter {
             Call::Vesting(_) |
             // Membership
             Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_)
+            Call::TechnicalCommitteeMembership(_) |
+            // AMM
+            Call::AMM(_) |
+            Call::AMMRoute(_) |
+            // Payroll
+            Call::Payroll(_)
         )
         // // 3rd Party
         // Call::Oracle(_) |
