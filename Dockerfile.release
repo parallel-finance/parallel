@@ -8,7 +8,7 @@ WORKDIR /parallel
 
 COPY . /parallel
 
-RUN cargo build --$PROFILE --bin $BIN --features runtime-benchmarks --features try-runtime
+RUN cargo build --workspace --exclude runtime-integration-tests --$PROFILE --bin $BIN --features runtime-benchmarks --features try-runtime
 
 # ===== SECOND STAGE ======
 

@@ -28,7 +28,6 @@ use frame_support::{
     log,
     pallet_prelude::*,
     require_transactional,
-    storage::{with_transaction, TransactionOutcome},
     traits::{
         tokens::fungibles::{Inspect, Mutate, Transfer},
         UnixTime,
@@ -36,20 +35,22 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
+use num_traits::cast::ToPrimitive;
 pub use pallet::*;
 use primitives::{
-    Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp,
+    Balance, ConvertToBigUint, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall,
+    Timestamp,
 };
 use sp_runtime::{
     traits::{
-        AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, StaticLookup,
-        Zero,
+        AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One,
+        SaturatedConversion, Saturating, StaticLookup, Zero,
     },
     ArithmeticError, FixedPointNumber, FixedU128,
 };
 use sp_std::result::Result;
 
-pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState};
+pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState, RewardMarketState};
 pub use weights::WeightInfo;
 
 mod benchmarking;
@@ -59,6 +60,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+mod farming;
 mod interest;
 mod ptoken;
 mod rate_model;
@@ -69,6 +71,9 @@ pub mod weights;
 
 pub const MAX_INTEREST_CALCULATING_INTERVAL: u64 = 5 * 24 * 3600; // 5 days
 pub const MIN_INTEREST_CALCULATING_INTERVAL: u64 = 100; // 100 seconds
+
+pub const MAX_EXCHANGE_RATE: u128 = 1_000_000_000_000_000_000; // 1
+pub const MIN_EXCHANGE_RATE: u128 = 20_000_000_000_000_000; // 0.02
 
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -119,6 +124,10 @@ pub mod pallet {
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+
+        /// Reward asset id.
+        #[pallet::constant]
+        type RewardAssetId: Get<AssetIdOf<Self>>;
     }
 
     #[pallet::error]
@@ -167,12 +176,20 @@ pub mod pallet {
         BorrowCapacityExceeded,
         /// Insufficient cash in the pool
         InsufficientCash,
-        /// The factor should be bigger than 0% and smaller than 100%
+        /// The factor should be greater than 0% and less than 100%
         InvalidFactor,
         /// The supply cap cannot be zero
         InvalidSupplyCap,
+        /// The exchange rate should be greater than 0.02 and less than 1
+        InvalidExchangeRate,
+        /// Amount cannot be zero
+        InvalidAmount,
         /// Payer cannot be signer
         PayerIsSigner,
+        /// Insufficient Market Liquidity
+        InsufficientMarketLiquidity,
+        /// Codec error
+        CodecError,
     }
 
     #[pallet::event]
@@ -197,7 +214,7 @@ pub mod pallet {
         /// [sender, asset_id, amount]
         RepaidBorrow(T::AccountId, AssetIdOf<T>, BalanceOf<T>),
         /// Event emitted when a borrow is liquidated
-        /// [liquidator, borrower, liquidate_token, collateral_token, repay_amount, collateral_amount]
+        /// [liquidator, borrower, liquidation_asset_id, collateral_asset_id, repay_amount, collateral_amount]
         LiquidatedBorrow(
             T::AccountId,
             T::AccountId,
@@ -221,12 +238,25 @@ pub mod pallet {
         /// Event emitted when a market is activated
         /// [admin, asset_id]
         UpdatedMarket(Market<BalanceOf<T>>),
+        /// Reward added
+        RewardAdded(T::AccountId, BalanceOf<T>),
+        /// Reward withdrawed
+        RewardWithdrawn(T::AccountId, BalanceOf<T>),
+        /// Event emitted when market reward speed updated.
+        MarketRewardSpeedUpdated(AssetIdOf<T>, BalanceOf<T>),
+        /// Deposited when Reward is distributed to a supplier
+        DistributedSupplierReward(AssetIdOf<T>, T::AccountId, BalanceOf<T>, BalanceOf<T>),
+        /// Deposited when Reward is distributed to a borrower
+        DistributedBorrowerReward(AssetIdOf<T>, T::AccountId, BalanceOf<T>, BalanceOf<T>),
+        /// Reward Paid for user
+        RewardPaid(T::AccountId, BalanceOf<T>),
     }
 
     /// The timestamp of the last calculation of accrued interest
     #[pallet::storage]
-    #[pallet::getter(fn last_accrued_timestamp)]
-    pub type LastAccruedTimestamp<T: Config> = StorageValue<_, Timestamp, ValueQuery>;
+    #[pallet::getter(fn last_accrued_interest_time)]
+    pub type LastAccruedInterestTime<T: Config> =
+        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Timestamp, ValueQuery>;
 
     /// Total number of collateral tokens in circulation
     /// CollateralType -> Balance
@@ -334,6 +364,66 @@ pub mod pallet {
     pub type UnderlyingAssetId<T: Config> =
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, AssetIdOf<T>>;
 
+    /// Mapping of token id to reward speed
+    #[pallet::storage]
+    #[pallet::getter(fn market_reward_speed)]
+    pub type MarketRewardSpeed<T: Config> =
+        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, BalanceOf<T>, ValueQuery>;
+
+    /// The Reward market supply state for each market
+    #[pallet::storage]
+    #[pallet::getter(fn reward_supply_state)]
+    pub type RewardSupplyState<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        AssetIdOf<T>,
+        RewardMarketState<T::BlockNumber, BalanceOf<T>>,
+        ValueQuery,
+    >;
+
+    /// The Reward market borrow state for each market
+    #[pallet::storage]
+    #[pallet::getter(fn reward_borrow_state)]
+    pub type RewardBorrowState<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        AssetIdOf<T>,
+        RewardMarketState<T::BlockNumber, BalanceOf<T>>,
+        ValueQuery,
+    >;
+
+    ///  The Reward index for each market for each supplier as of the last time they accrued Reward
+    #[pallet::storage]
+    #[pallet::getter(fn reward_supplier_index)]
+    pub type RewardSupplierIndex<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        AssetIdOf<T>,
+        Blake2_128Concat,
+        T::AccountId,
+        BalanceOf<T>,
+        ValueQuery,
+    >;
+
+    ///  The Reward index for each market for each borrower as of the last time they accrued Reward
+    #[pallet::storage]
+    #[pallet::getter(fn reward_borrower_index)]
+    pub type RewardBorrowerIndex<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        AssetIdOf<T>,
+        Blake2_128Concat,
+        T::AccountId,
+        BalanceOf<T>,
+        ValueQuery,
+    >;
+
+    /// The reward accrued but not yet transferred to each user.
+    #[pallet::storage]
+    #[pallet::getter(fn reward_accured)]
+    pub type RewardAccured<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+
     /// DefaultVersion is using for initialize the StorageVersion
     #[pallet::type_value]
     pub(super) fn DefaultVersion<T: Config>() -> Versions {
@@ -347,57 +437,6 @@ pub mod pallet {
     #[pallet::pallet]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
-
-    #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        /// Called by substrate on block initialization which is fallible.
-        /// When an error occurs, stop counting interest. When the error is resolved,
-        /// the interest will be restored, because we use delta time to calculate the
-        /// interest.
-        fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
-            let last_accrued_timestamp = Self::last_accrued_timestamp();
-            let now = T::UnixTime::now().as_secs();
-            // For the initialization
-            if last_accrued_timestamp.is_zero() {
-                LastAccruedTimestamp::<T>::put(now);
-            }
-            if now <= last_accrued_timestamp {
-                return 0;
-            }
-            let delta_time = now - last_accrued_timestamp;
-            if delta_time > MAX_INTEREST_CALCULATING_INTERVAL {
-                // This should never happen...
-                log::error!(
-                    "Could not initialize block! Exceeded max interval {:#?}",
-                    block_number,
-                );
-                return 0;
-            }
-            if delta_time < MIN_INTEREST_CALCULATING_INTERVAL {
-                return 0;
-            }
-            with_transaction(|| {
-                match <Pallet<T>>::accrue_interest(delta_time) {
-                    Ok(()) => {
-                        LastAccruedTimestamp::<T>::put(now);
-                        TransactionOutcome::Commit(
-                            T::WeightInfo::accrue_interest()
-                                * Self::active_markets().count() as u64,
-                        )
-                    }
-                    Err(err) => {
-                        // This should never happen...
-                        log::error!(
-                            "Could not initialize block! Calculate interest failed! {:#?} {:#?}",
-                            block_number,
-                            err
-                        );
-                        TransactionOutcome::Rollback(0)
-                    }
-                }
-            })
-        }
-    }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -454,7 +493,7 @@ pub mod pallet {
             UnderlyingAssetId::<T>::insert(market.ptoken_id, asset_id);
 
             // Init the ExchangeRate and BorrowIndex for asset
-            ExchangeRate::<T>::insert(asset_id, Rate::saturating_from_rational(2, 100));
+            ExchangeRate::<T>::insert(asset_id, Rate::from_inner(MIN_EXCHANGE_RATE));
             BorrowIndex::<T>::insert(asset_id, Rate::one());
 
             Self::deposit_event(Event::<T>::NewMarket(market));
@@ -591,6 +630,118 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Add reward for the pallet account.
+        ///
+        /// - `amount`: Reward amount added
+        #[pallet::weight(T::WeightInfo::add_reward())]
+        #[transactional]
+        pub fn add_reward(
+            origin: OriginFor<T>,
+            amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            ensure!(!amount.is_zero(), Error::<T>::InvalidAmount);
+
+            let reward_asset = T::RewardAssetId::get();
+            let pool_account = Self::reward_account_id()?;
+
+            T::Assets::transfer(reward_asset, &who, &pool_account, amount, true)?;
+
+            Self::deposit_event(Event::<T>::RewardAdded(who, amount));
+
+            Ok(().into())
+        }
+
+        /// Withdraw reward token from pallet account.
+        ///
+        /// The origin must conform to `UpdateOrigin`.
+        ///
+        /// - `target_account`: account receive reward token.
+        /// - `amount`: Withdraw amount
+        #[pallet::weight(T::WeightInfo::withdraw_missing_reward())]
+        #[transactional]
+        pub fn withdraw_missing_reward(
+            origin: OriginFor<T>,
+            target_account: <T::Lookup as StaticLookup>::Source,
+            amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            ensure!(!amount.is_zero(), Error::<T>::InvalidAmount);
+
+            let reward_asset = T::RewardAssetId::get();
+            let pool_account = Self::reward_account_id()?;
+            let target_account = T::Lookup::lookup(target_account)?;
+
+            T::Assets::transfer(reward_asset, &pool_account, &target_account, amount, true)?;
+            Self::deposit_event(Event::<T>::RewardWithdrawn(target_account, amount));
+
+            Ok(().into())
+        }
+
+        /// Updates reward speed for the specified market
+        ///
+        /// The origin must conform to `UpdateOrigin`.
+        ///
+        /// - `asset_id`: Market related currency
+        /// - `reward_per_block`: reward amount per block.
+        #[pallet::weight(T::WeightInfo::update_market_reward_speed())]
+        #[transactional]
+        pub fn update_market_reward_speed(
+            origin: OriginFor<T>,
+            asset_id: AssetIdOf<T>,
+            reward_per_block: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            Self::ensure_active_market(asset_id)?;
+
+            Self::update_reward_supply_index(asset_id)?;
+            Self::update_reward_borrow_index(asset_id)?;
+
+            MarketRewardSpeed::<T>::try_mutate(asset_id, |current_speed| -> DispatchResult {
+                *current_speed = reward_per_block;
+                Self::deposit_event(Event::<T>::MarketRewardSpeedUpdated(
+                    asset_id,
+                    reward_per_block,
+                ));
+                Ok(())
+            })?;
+
+            Ok(().into())
+        }
+
+        /// Claim reward from all market.
+        #[pallet::weight(T::WeightInfo::claim_reward())]
+        #[transactional]
+        pub fn claim_reward(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+
+            for asset_id in Markets::<T>::iter_keys() {
+                Self::collect_market_reward(asset_id, &who)?;
+            }
+
+            Self::pay_reward(&who)?;
+
+            Ok(().into())
+        }
+
+        /// Claim reward from the specified market.
+        ///
+        /// - `asset_id`: Market related currency
+        #[pallet::weight(T::WeightInfo::claim_reward_for_market())]
+        #[transactional]
+        pub fn claim_reward_for_market(
+            origin: OriginFor<T>,
+            asset_id: AssetIdOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+
+            Self::collect_market_reward(asset_id, &who)?;
+
+            Self::pay_reward(&who)?;
+
+            Ok(().into())
+        }
+
         /// Sender supplies assets into the market and receives internal supplies in exchange.
         ///
         /// - `asset_id`: the asset to be deposited.
@@ -603,13 +754,21 @@ pub mod pallet {
             #[pallet::compact] mint_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+            ensure!(!mint_amount.is_zero(), Error::<T>::InvalidAmount);
             Self::ensure_active_market(asset_id)?;
             Self::ensure_under_supply_cap(asset_id, mint_amount)?;
+
+            Self::accrue_interest(asset_id)?;
+
+            // update supply index before modify supply balance.
+            Self::update_reward_supply_index(asset_id)?;
+            Self::distribute_supplier_reward(asset_id, &who)?;
 
             T::Assets::transfer(asset_id, &who, &Self::account_id(), mint_amount, false)?;
             Self::update_earned_stored(&who, asset_id)?;
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(mint_amount, exchange_rate)?;
+            ensure!(!voucher_amount.is_zero(), Error::<T>::InvalidExchangeRate);
             AccountDeposits::<T>::try_mutate(asset_id, &who, |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
@@ -641,16 +800,16 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
             #[pallet::compact] redeem_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
+            ensure!(!redeem_amount.is_zero(), Error::<T>::InvalidAmount);
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
+            Self::accrue_interest(asset_id)?;
             Self::update_earned_stored(&who, asset_id)?;
-
             // Formula
             // underlying_token_amount = ptoken_amount * exchange_rate
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
             let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount)?;
-
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
 
             Ok(().into())
@@ -667,11 +826,11 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
-
+            Self::accrue_interest(asset_id)?;
             Self::update_earned_stored(&who, asset_id)?;
+
             let deposits = AccountDeposits::<T>::get(asset_id, &who);
             let redeem_amount = Self::do_redeem(&who, asset_id, deposits.voucher_balance)?;
-
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
 
             Ok(().into())
@@ -692,6 +851,12 @@ pub mod pallet {
             Self::ensure_active_market(asset_id)?;
 
             Self::borrow_allowed(asset_id, &who, borrow_amount)?;
+            Self::accrue_interest(asset_id)?;
+
+            // update borrow index after accureInterest.
+            Self::update_reward_borrow_index(asset_id)?;
+            Self::distribute_borrower_reward(asset_id, &who)?;
+
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             let account_borrows_new = account_borrows
                 .checked_add(borrow_amount)
@@ -729,7 +894,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
-
+            Self::accrue_interest(asset_id)?;
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             Self::do_repay_borrow(&who, asset_id, account_borrows, repay_amount)?;
 
@@ -749,7 +914,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
-
+            Self::accrue_interest(asset_id)?;
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             Self::do_repay_borrow(&who, asset_id, account_borrows, account_borrows)?;
 
@@ -816,26 +981,27 @@ pub mod pallet {
         /// The sender liquidates the borrower's collateral.
         ///
         /// - `borrower`: the borrower to be liquidated.
-        /// - `liquidate_token`: the assert to be liquidated.
+        /// - `liquidation_asset_id`: the assert to be liquidated.
         /// - `repay_amount`: the amount to be repaid borrow.
-        /// - `collateral_token`: The collateral to seize from the borrower.
+        /// - `collateral_asset_id`: The collateral to seize from the borrower.
         #[pallet::weight(T::WeightInfo::liquidate_borrow())]
         #[transactional]
         pub fn liquidate_borrow(
             origin: OriginFor<T>,
             borrower: T::AccountId,
-            liquidate_token: AssetIdOf<T>,
+            liquidation_asset_id: AssetIdOf<T>,
             #[pallet::compact] repay_amount: BalanceOf<T>,
-            collateral_token: AssetIdOf<T>,
+            collateral_asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-
+            Self::accrue_interest(liquidation_asset_id)?;
+            Self::accrue_interest(collateral_asset_id)?;
             Self::do_liquidate_borrow(
                 who,
                 borrower,
-                liquidate_token,
+                liquidation_asset_id,
                 repay_amount,
-                collateral_token,
+                collateral_asset_id,
             )?;
             Ok(().into())
         }
@@ -1048,8 +1214,15 @@ impl<T: Config> Pallet<T> {
         voucher_amount: BalanceOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
         Self::redeem_allowed(asset_id, who, voucher_amount)?;
+        Self::accrue_interest(asset_id)?;
+
+        // update supply index before modify supply balance.
+        Self::update_reward_supply_index(asset_id)?;
+        Self::distribute_supplier_reward(asset_id, who)?;
+
         let exchange_rate = Self::exchange_rate(asset_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
+
         AccountDeposits::<T>::try_mutate_exists(asset_id, who, |deposits| -> DispatchResult {
             let mut d = deposits.unwrap_or_default();
             d.voucher_balance = d
@@ -1071,8 +1244,9 @@ impl<T: Config> Pallet<T> {
             *total_balance = new_balance;
             Ok(())
         })?;
-        T::Assets::transfer(asset_id, &Self::account_id(), who, redeem_amount, false)?;
 
+        T::Assets::transfer(asset_id, &Self::account_id(), who, redeem_amount, false)
+            .map_err(|_| Error::<T>::InsufficientMarketLiquidity)?;
         Ok(redeem_amount)
     }
 
@@ -1100,20 +1274,21 @@ impl<T: Config> Pallet<T> {
         if account_borrows < repay_amount {
             return Err(Error::<T>::TooMuchRepay.into());
         }
-
+        Self::accrue_interest(asset_id)?;
+        // update borrow index after accureInterest.
+        Self::update_reward_borrow_index(asset_id)?;
+        Self::distribute_borrower_reward(asset_id, borrower)?;
         T::Assets::transfer(asset_id, borrower, &Self::account_id(), repay_amount, false)?;
-
         let account_borrows_new = account_borrows
             .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
         let total_borrows = Self::total_borrows(asset_id);
         // NOTE : total_borrows use a different way to calculate interest
-        // so when user repays all borrows, total_borrows can be smaller than account_borrows
+        // so when user repays all borrows, total_borrows can be less than account_borrows
         // which will cause it to fail with `ArithmeticError::Underflow`
         //
         // Change it back to checked_sub will cause Underflow
         let total_borrows_new = total_borrows.saturating_sub(repay_amount);
-
         AccountBorrows::<T>::insert(
             asset_id,
             borrower,
@@ -1122,7 +1297,6 @@ impl<T: Config> Pallet<T> {
                 borrow_index: Self::borrow_index(asset_id),
             },
         );
-
         TotalBorrows::<T>::insert(asset_id, total_borrows_new);
 
         Ok(())
@@ -1183,15 +1357,15 @@ impl<T: Config> Pallet<T> {
     /// Checks if the liquidation should be allowed to occur
     fn liquidate_borrow_allowed(
         borrower: &T::AccountId,
-        liquidate_asset_id: AssetIdOf<T>,
+        liquidation_asset_id: AssetIdOf<T>,
         repay_amount: BalanceOf<T>,
         market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
         log::trace!(
             target: "loans::liquidate_borrow_allowed",
-            "borrower: {:?}, liquidate_asset_id {:?}, repay_amount {:?}, market: {:?}",
+            "borrower: {:?}, liquidation_asset_id {:?}, repay_amount {:?}, market: {:?}",
             borrower,
-            liquidate_asset_id,
+            liquidation_asset_id,
             repay_amount,
             market
         );
@@ -1201,7 +1375,7 @@ impl<T: Config> Pallet<T> {
         }
 
         // The liquidator may not repay more than 50%(close_factor) of the borrower's borrow balance.
-        let account_borrows = Self::current_borrow_balance(borrower, liquidate_asset_id)?;
+        let account_borrows = Self::current_borrow_balance(borrower, liquidation_asset_id)?;
         if market.close_factor.mul_ceil(account_borrows) < repay_amount {
             return Err(Error::<T>::TooMuchRepay.into());
         }
@@ -1210,31 +1384,31 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Note:
-    /// - liquidate_token is borrower's debt asset.
-    /// - collateral_token is borrower's collateral asset.
-    /// - repay_amount is amount of liquidate_token
+    /// - liquidation_asset_id is borrower's debt asset.
+    /// - collateral_asset_id is borrower's collateral asset.
+    /// - repay_amount is amount of liquidation_asset_id
     ///
-    /// The liquidator will repay a certain amount of liquidate_token from own
+    /// The liquidator will repay a certain amount of liquidation_asset_id from own
     /// account for borrower. Then the protocol will reduce borrower's debt
-    /// and liquidator will receive collateral_token(as voucher amount) from
+    /// and liquidator will receive collateral_asset_id(as voucher amount) from
     /// borrower.
     #[require_transactional]
     pub fn do_liquidate_borrow(
         liquidator: T::AccountId,
         borrower: T::AccountId,
-        liquidate_asset_id: AssetIdOf<T>,
+        liquidation_asset_id: AssetIdOf<T>,
         repay_amount: BalanceOf<T>,
         collateral_asset_id: AssetIdOf<T>,
     ) -> DispatchResult {
-        Self::ensure_active_market(liquidate_asset_id)?;
+        Self::ensure_active_market(liquidation_asset_id)?;
         Self::ensure_active_market(collateral_asset_id)?;
 
-        let market = Self::market(liquidate_asset_id)?;
+        let market = Self::market(liquidation_asset_id)?;
 
         if borrower == liquidator {
             return Err(Error::<T>::LiquidatorIsBorrower.into());
         }
-        Self::liquidate_borrow_allowed(&borrower, liquidate_asset_id, repay_amount, &market)?;
+        Self::liquidate_borrow_allowed(&borrower, liquidation_asset_id, repay_amount, &market)?;
 
         let deposits = AccountDeposits::<T>::get(collateral_asset_id, &borrower);
         if !deposits.is_collateral {
@@ -1247,7 +1421,7 @@ impl<T: Config> Pallet<T> {
 
         let collateral_value = Self::get_asset_value(collateral_asset_id, borrower_deposit_amount)?;
         // liquidate_value contains the incentive of liquidator and the punishment of the borrower
-        let liquidate_value = Self::get_asset_value(liquidate_asset_id, repay_amount)?
+        let liquidate_value = Self::get_asset_value(liquidation_asset_id, repay_amount)?
             .checked_mul(&market.liquidate_incentive)
             .ok_or(ArithmeticError::Overflow)?;
 
@@ -1274,7 +1448,7 @@ impl<T: Config> Pallet<T> {
         Self::liquidated_transfer(
             &liquidator,
             &borrower,
-            liquidate_asset_id,
+            liquidation_asset_id,
             collateral_asset_id,
             repay_amount,
             real_collateral_underlying_amount,
@@ -1287,26 +1461,31 @@ impl<T: Config> Pallet<T> {
     fn liquidated_transfer(
         liquidator: &T::AccountId,
         borrower: &T::AccountId,
-        liquidate_asset_id: AssetIdOf<T>,
+        liquidation_asset_id: AssetIdOf<T>,
         collateral_asset_id: AssetIdOf<T>,
         repay_amount: BalanceOf<T>,
         collateral_underlying_amount: BalanceOf<T>,
     ) -> DispatchResult {
         log::trace!(
             target: "loans::liquidated_transfer",
-            "liquidator: {:?}, borrower: {:?}, liquidate_asset_id: {:?},
+            "liquidator: {:?}, borrower: {:?}, liquidation_asset_id: {:?},
                 collateral_asset_id: {:?}, repay_amount: {:?}, collateral_underlying_amount: {:?}",
             liquidator,
             borrower,
-            liquidate_asset_id,
+            liquidation_asset_id,
             collateral_asset_id,
             repay_amount,
             collateral_underlying_amount
         );
+
+        // update borrow index after accureInterest.
+        Self::update_reward_borrow_index(liquidation_asset_id)?;
+        Self::distribute_borrower_reward(liquidation_asset_id, liquidator)?;
+
         // 1.liquidator repay borrower's debt,
         // transfer from liquidator to module account
         T::Assets::transfer(
-            liquidate_asset_id,
+            liquidation_asset_id,
             liquidator,
             &Self::account_id(),
             repay_amount,
@@ -1314,23 +1493,28 @@ impl<T: Config> Pallet<T> {
         )?;
 
         // 2.the system reduce borrower's debt
-        let account_borrows = Self::current_borrow_balance(borrower, liquidate_asset_id)?;
+        let account_borrows = Self::current_borrow_balance(borrower, liquidation_asset_id)?;
         let account_borrows_new = account_borrows
             .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
-        let total_borrows = Self::total_borrows(liquidate_asset_id);
+        let total_borrows = Self::total_borrows(liquidation_asset_id);
         let total_borrows_new = total_borrows
             .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
         AccountBorrows::<T>::insert(
-            liquidate_asset_id,
+            liquidation_asset_id,
             borrower,
             BorrowSnapshot {
                 principal: account_borrows_new,
-                borrow_index: Self::borrow_index(liquidate_asset_id),
+                borrow_index: Self::borrow_index(liquidation_asset_id),
             },
         );
-        TotalBorrows::<T>::insert(liquidate_asset_id, total_borrows_new);
+        TotalBorrows::<T>::insert(liquidation_asset_id, total_borrows_new);
+
+        // update supply index before modify supply balance.
+        Self::update_reward_supply_index(collateral_asset_id)?;
+        Self::distribute_supplier_reward(collateral_asset_id, liquidator)?;
+        Self::distribute_supplier_reward(collateral_asset_id, borrower)?;
 
         // 3.the liquidator will receive voucher token from borrower
         let exchange_rate = Self::exchange_rate(collateral_asset_id);
@@ -1363,7 +1547,7 @@ impl<T: Config> Pallet<T> {
         Self::deposit_event(Event::<T>::LiquidatedBorrow(
             liquidator.clone(),
             borrower.clone(),
-            liquidate_asset_id,
+            liquidation_asset_id,
             collateral_asset_id,
             repay_amount,
             collateral_underlying_amount,

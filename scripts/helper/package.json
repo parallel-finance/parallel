@@ -20,11 +20,10 @@
     "eslint-plugin-prettier": "^4.0.0",
     "prettier": "^2.5.1",
     "ts-node": "^10.2.1",
-    "typescript": "^4.5.5"
+    "typescript": "~4.5.5"
   },
   "dependencies": {
     "@caporal/core": "^2.0.2",
-    "@parallel-finance/api": "^1.6.5",
     "@polkadot/api": "^7.9.1",
     "@polkadot/keyring": "^8.4.1",
     "@polkadot/rpc-core": "^7.9.1",

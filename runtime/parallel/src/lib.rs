@@ -34,7 +34,7 @@ use frame_support::{
     PalletId,
 };
 
-use orml_traits::{DataProvider, DataProviderExtended};
+use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
@@ -211,6 +211,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Timestamp(_) |
             Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
+            Call::Assets(pallet_assets::Call::transfer { .. }) |
             Call::Assets(pallet_assets::Call::burn { .. }) |
             Call::Assets(pallet_assets::Call::destroy { .. }) |
             Call::Assets(pallet_assets::Call::force_create { .. }) |
@@ -239,7 +240,14 @@ impl Contains<Call> for BaseCallFilter {
             Call::Vesting(_) |
             // Membership
             Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_)
+            Call::TechnicalCommitteeMembership(_) |
+            // AMM
+            Call::AMM(_) |
+            Call::AMMRoute(_) |
+            // Payroll
+            Call::Payroll(_) |
+            // Farming
+            Call::Farming(_)
         )
         // // 3rd Party
         // Call::Oracle(_) |
@@ -488,6 +496,12 @@ parameter_types! {
     pub const MaxAssetsForTransfer: usize = 2;
 }
 
+parameter_type_with_key! {
+    pub ParachainMinFee: |_location: MultiLocation| -> u128 {
+        u128::MAX
+    };
+}
+
 impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
@@ -500,6 +514,7 @@ impl orml_xtokens::Config for Runtime {
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
     type MaxAssetsForTransfer = MaxAssetsForTransfer;
+    type MinXcmFee = ParachainMinFee;
 }
 
 parameter_types! {
@@ -530,6 +545,10 @@ impl pallet_assets::Config for Runtime {
     type Extra = ();
 }
 
+parameter_types! {
+    pub const RewardAssetId: CurrencyId = PARA;
+}
+
 impl pallet_loans::Config for Runtime {
     type Event = Event;
     type PalletId = LoansPalletId;
@@ -539,6 +558,7 @@ impl pallet_loans::Config for Runtime {
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
     type Assets = CurrencyAdapter;
+    type RewardAssetId = RewardAssetId;
 }
 
 parameter_types! {
@@ -804,6 +824,10 @@ impl pallet_sudo::Config for Runtime {
 )]
 pub enum ProxyType {
     Any,
+    Loans,
+    Staking,
+    Crowdloans,
+    Farming,
 }
 impl Default for ProxyType {
     fn default() -> Self {
@@ -812,14 +836,56 @@ impl Default for ProxyType {
 }
 
 impl InstanceFilter<Call> for ProxyType {
-    fn filter(&self, _c: &Call) -> bool {
+    fn filter(&self, c: &Call) -> bool {
         match self {
             ProxyType::Any => true,
+            ProxyType::Loans => {
+                matches!(
+                    c,
+                    Call::Loans(pallet_loans::Call::mint { .. })
+                        | Call::Loans(pallet_loans::Call::redeem { .. })
+                        | Call::Loans(pallet_loans::Call::redeem_all { .. })
+                        | Call::Loans(pallet_loans::Call::borrow { .. })
+                        | Call::Loans(pallet_loans::Call::repay_borrow { .. })
+                        | Call::Loans(pallet_loans::Call::repay_borrow_all { .. })
+                        | Call::Loans(pallet_loans::Call::collateral_asset { .. })
+                        | Call::Loans(pallet_loans::Call::liquidate_borrow { .. })
+                )
+            }
+            ProxyType::Staking => {
+                matches!(
+                    c,
+                    Call::LiquidStaking(pallet_liquid_staking::Call::stake { .. })
+                        | Call::LiquidStaking(pallet_liquid_staking::Call::unstake { .. })
+                )
+            }
+            ProxyType::Crowdloans => {
+                matches!(
+                    c,
+                    Call::Crowdloans(pallet_crowdloans::Call::contribute { .. },)
+                        | Call::Crowdloans(pallet_crowdloans::Call::withdraw { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::claim { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::redeem { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::withdraw_for { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::claim_for { .. })
+                )
+            }
+            ProxyType::Farming => {
+                matches!(
+                    c,
+                    Call::Farming(pallet_farming::Call::deposit { .. })
+                        | Call::Farming(pallet_farming::Call::claim { .. })
+                        | Call::Farming(pallet_farming::Call::withdraw { .. })
+                        | Call::Farming(pallet_farming::Call::redeem { .. })
+                )
+            }
         }
     }
     fn is_superset(&self, o: &Self) -> bool {
         match (self, o) {
             (ProxyType::Any, _) => true,
+            (_, ProxyType::Any) => false,
+            _ => false,
         }
     }
 }
@@ -1515,9 +1581,11 @@ parameter_types! {
 
 impl pallet_bridge::Config for Runtime {
     type Event = Event;
-    type AdminMembers = BridgeMembership;
+    type RelayMembers = BridgeMembership;
     type RootOperatorAccountId = OneAccount;
-    type OperateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateChainOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateTokenOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ChainId = Parallel;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;
@@ -1703,6 +1771,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
             Call::Assets(pallet_assets::Call::burn { .. }) |
+            Call::Assets(pallet_assets::Call::transfer { .. }) |
             Call::Assets(pallet_assets::Call::destroy { .. }) |
             Call::Assets(pallet_assets::Call::force_create { .. }) |
             Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |

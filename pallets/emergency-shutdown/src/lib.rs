@@ -72,11 +72,11 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::storage]
-    #[pallet::getter(fn disable_pallets)]
+    #[pallet::getter(fn disabled_pallets)]
     pub type DisabledPallets<T: Config> = StorageMap<_, Blake2_128Concat, u8, bool, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn disable_calls)]
+    #[pallet::getter(fn disabled_calls)]
     pub type DisabledCalls<T: Config> =
         StorageDoubleMap<_, Blake2_128Concat, u8, Blake2_128Concat, u8, bool, ValueQuery>;
 
@@ -122,6 +122,6 @@ impl<T: Config> EmergencyCallFilter<T> for Pallet<T> {
             );
 
         T::Whitelist::contains(call)
-            || !Self::disable_pallets(pallet_idx) && !Self::disable_calls(pallet_idx, call_idx)
+            || !Self::disabled_pallets(pallet_idx) && !Self::disabled_calls(pallet_idx, call_idx)
     }
 }

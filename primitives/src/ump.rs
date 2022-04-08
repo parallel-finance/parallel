@@ -6,6 +6,7 @@ use frame_system::Config;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::StaticLookup, MultiSignature, RuntimeDebug};
 use sp_std::{boxed::Box, vec::Vec};
+use xcm::latest::MultiLocation;
 
 /// A destination account for payment.
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -307,7 +308,7 @@ impl Default for XcmWeightFeeMisc<Weight, Balance> {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum XcmCall {
     Bond,
     BondExtra,
@@ -318,6 +319,7 @@ pub enum XcmCall {
     Contribute,
     Withdraw,
     AddMemo,
+    TransferToSiblingchain(Box<MultiLocation>),
 }
 
 #[macro_export]
