@@ -65,3 +65,10 @@ pub struct Market<Balance> {
     /// Ptoken asset id
     pub ptoken_id: CurrencyId,
 }
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
+pub struct RewardMarketState<BlockNumber, Balance> {
+    pub index: Balance,
+    /// total amount of staking asset user deposited
+    pub block: BlockNumber,
+}

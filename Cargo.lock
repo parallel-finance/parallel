@@ -5825,6 +5825,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "num-traits",
  "orml-oracle",
  "orml-traits",
  "pallet-assets",

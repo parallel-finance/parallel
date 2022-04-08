@@ -12,6 +12,7 @@ codec              = { package = 'parity-scale-codec', version = '2.3.1', defaul
 frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false, optional = true }
 frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
+num-traits         = { default-features = false, version = '0.2' }
 orml-traits        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 pallet-balances    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
@@ -21,6 +22,7 @@ scale-info         = { version = '1.0', default-features = false, features = ['d
 
 primitives = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 serde      = { version = '1.0.136', features = ['derive'], optional = true }
+sp-io      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 sp-runtime = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 sp-std     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 
@@ -28,7 +30,6 @@ sp-std     = { git = 'https://github.com/paritytech/substrate.git', branch = 'po
 orml-oracle             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 pallet-currency-adapter = { path = '../currency-adapter' }
 sp-core                 = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
-sp-io                   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 
 
 [features]
@@ -47,6 +48,7 @@ std                = [
   'pallet-timestamp/std',
   'serde',
   'scale-info/std',
+  'num-traits/std',
 ]
 try-runtime        = ['frame-support/try-runtime']
 

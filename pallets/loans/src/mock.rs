@@ -243,6 +243,7 @@ impl pallet_assets::Config for Test {
 
 parameter_types! {
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
+    pub const RewardAssetId: CurrencyId = HKO;
 }
 
 impl Config for Test {
@@ -254,6 +255,7 @@ impl Config for Test {
     type WeightInfo = ();
     type UnixTime = TimestampPallet;
     type Assets = CurrencyAdapter;
+    type RewardAssetId = RewardAssetId;
 }
 
 parameter_types! {
@@ -317,6 +319,13 @@ pub(crate) fn _run_to_block(n: BlockNumber) {
     }
 }
 
+pub fn almost_equal(target: u128, value: u128) -> bool {
+    let target = target as i128;
+    let value = value as i128;
+    let diff = (target - value).abs() as u128;
+    diff < micro_dollar(2)
+}
+
 pub fn accrue_interest_per_block(asset_id: CurrencyId, block_delta_secs: u64, run_to_block: u64) {
     for i in 1..run_to_block {
         TimestampPallet::set_timestamp(6000 + (block_delta_secs * 1000 * i));
@@ -326,6 +335,14 @@ pub fn accrue_interest_per_block(asset_id: CurrencyId, block_delta_secs: u64, ru
 
 pub fn dollar(d: u128) -> u128 {
     d.saturating_mul(10_u128.pow(12))
+}
+
+pub fn milli_dollar(d: u128) -> u128 {
+    d.saturating_mul(10_u128.pow(9))
+}
+
+pub fn micro_dollar(d: u128) -> u128 {
+    d.saturating_mul(10_u128.pow(6))
 }
 
 pub fn million_dollar(d: u128) -> u128 {
