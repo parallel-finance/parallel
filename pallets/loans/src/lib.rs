@@ -186,6 +186,8 @@ pub mod pallet {
         InvalidAmount,
         /// Payer cannot be signer
         PayerIsSigner,
+        /// Insufficient Market Liquidity
+        InsufficientMarketLiquidity,
         /// Codec error
         CodecError,
     }
@@ -798,6 +800,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
             #[pallet::compact] redeem_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
+            ensure!(!redeem_amount.is_zero(), Error::<T>::InvalidAmount);
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
             Self::accrue_interest(asset_id)?;
@@ -1219,6 +1222,7 @@ impl<T: Config> Pallet<T> {
 
         let exchange_rate = Self::exchange_rate(asset_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
+
         AccountDeposits::<T>::try_mutate_exists(asset_id, who, |deposits| -> DispatchResult {
             let mut d = deposits.unwrap_or_default();
             d.voucher_balance = d
@@ -1240,8 +1244,9 @@ impl<T: Config> Pallet<T> {
             *total_balance = new_balance;
             Ok(())
         })?;
-        T::Assets::transfer(asset_id, &Self::account_id(), who, redeem_amount, false)?;
 
+        T::Assets::transfer(asset_id, &Self::account_id(), who, redeem_amount, false)
+            .map_err(|_| Error::<T>::InsufficientMarketLiquidity)?;
         Ok(redeem_amount)
     }
 
