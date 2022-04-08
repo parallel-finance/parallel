@@ -245,7 +245,9 @@ impl Contains<Call> for BaseCallFilter {
             Call::AMM(_) |
             Call::AMMRoute(_) |
             // Payroll
-            Call::Payroll(_)
+            Call::Payroll(_) |
+            // Farming
+            Call::Farming(_)
         )
         // // 3rd Party
         // Call::Oracle(_) |
@@ -1718,6 +1720,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
             Call::Assets(pallet_assets::Call::burn { .. }) |
+            Call::Assets(pallet_assets::Call::transfer { .. }) |
             Call::Assets(pallet_assets::Call::destroy { .. }) |
             Call::Assets(pallet_assets::Call::force_create { .. }) |
             Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
