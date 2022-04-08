@@ -31,7 +31,7 @@ fn repay_borrow_all_no_underflow() {
         // Alice borrow only 1/1e5 KSM which is hard to accure total borrows interest in 100 seconds
         assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, 10_u128.pow(7)));
 
-        accrue_interest_of(KSM, 100, 9);
+        accrue_interest_per_block(KSM, 100, 9);
 
         assert_eq!(Loans::current_borrow_balance(&ALICE, KSM), Ok(10000005));
         // FIXME since total_borrows is too small and we accure internal on it every 100 seconds
@@ -74,7 +74,7 @@ fn redeem_all_should_be_accurate() {
         assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, dollar(50)));
 
         // let exchange_rate greater than 0.02
-        accrue_interest_of(KSM, 6, 2);
+        accrue_interest_per_block(KSM, 6, 2);
         assert_eq!(
             Loans::exchange_rate(KSM),
             Rate::from_inner(20000000036387000)
