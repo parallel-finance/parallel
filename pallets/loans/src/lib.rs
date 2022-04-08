@@ -1389,11 +1389,11 @@ impl<T: Config> Pallet<T> {
     ) -> Result<BalanceOf<T>, DispatchError> {
         Self::redeem_allowed(asset_id, who, voucher_amount)?;
         Self::accrue_interest(asset_id)?;
-      
+
         // update supply index before modify supply balance.
         Self::update_reward_supply_index(asset_id)?;
         Self::distribute_supplier_reward(asset_id, who)?;
-      
+
         let exchange_rate = Self::exchange_rate(asset_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
         AccountDeposits::<T>::try_mutate_exists(asset_id, who, |deposits| -> DispatchResult {
@@ -1446,13 +1446,10 @@ impl<T: Config> Pallet<T> {
         if account_borrows < repay_amount {
             return Err(Error::<T>::TooMuchRepay.into());
         }
-      
         Self::accrue_interest(asset_id)?;
-
         // update borrow index after accureInterest.
         Self::update_reward_borrow_index(asset_id)?;
         Self::distribute_borrower_reward(asset_id, borrower)?;
-      
         T::Assets::transfer(asset_id, borrower, &Self::account_id(), repay_amount, false)?;
         let account_borrows_new = account_borrows
             .checked_sub(repay_amount)
