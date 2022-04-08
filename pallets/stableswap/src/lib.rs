@@ -221,11 +221,6 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let (is_inverted, base_asset, quote_asset) = Self::sort_assets(pair)?;
 
-            // *************************************************************
-            // Initial invariant
-            let initial_invariant = Self::do_get_delta(pair).unwrap();
-            // *************************************************************
-
             let (base_amount, quote_amount) = if is_inverted {
                 (desired_amounts.1, desired_amounts.0)
             } else {
@@ -260,28 +255,13 @@ pub mod pallet {
 
                     Self::do_mint_protocol_fee(pool)?;
 
+                    // Adds liquidity
                     Self::do_add_liquidity(
                         &who,
                         pool,
                         (ideal_base_amount, ideal_quote_amount),
                         (base_asset, quote_asset),
                     )?;
-
-                    // ****************************************************************************
-                    // Gets New Liquidity Amount
-                    let updated_invariant = Self::do_get_delta(pair).unwrap();
-                    ensure!(
-                        updated_invariant >= initial_invariant,
-                        Error::<T, I>::InvalidInvariant
-                    );
-                    let _recalculate_invariant = updated_invariant;
-                    // Asset in Asset out
-                    /* Since we have 2 coins
-                    for in in  0..2:
-                        let ideal_balance =
-
-                    */
-                    // ****************************************************************************
 
                     log::trace!(
                         target: "stableswap::add_liquidity",
@@ -541,7 +521,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Err(Error::<T, I>::IdenticalAssets.into())
     }
 
-    // Returns liquidity
+    // Returns liquidity for a given 2 assets
     #[require_transactional]
     fn do_get_liquidity(
         total_supply: BalanceOf<T, I>,
@@ -593,48 +573,19 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         (ideal_base_amount, ideal_quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
         (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Result<(), DispatchError> {
+        // Initial invariant
+        let mut d0 = 0u128;
+        let mut d1 = 0u128;
+        if Pools::<T, I>::contains_key(&base_asset, &quote_asset) {
+            d0 = Self::do_get_delta((base_asset, quote_asset)).unwrap();
+        }
+
         let total_supply = T::Assets::total_issuance(pool.lp_token_id);
 
-        // lock a small amount of liquidity if the pool is first initialized
-
         // Extract to different functionality
-        let liquidity =
+        let mut liquidity =
             Self::do_get_liquidity(total_supply, pool, (ideal_base_amount, ideal_quote_amount))
                 .unwrap();
-        // let liquidity = if total_supply.is_zero() {
-        //     T::Assets::mint_into(
-        //         pool.lp_token_id,
-        //         &Self::lock_account_id(),
-        //         T::MinimumLiquidity::get(),
-        //     )?;
-        //
-        //     ideal_base_amount
-        //         .get_big_uint()
-        //         .checked_mul(&ideal_quote_amount.get_big_uint())
-        //         // loss of precision due to truncated sqrt
-        //         .map(|r| r.sqrt())
-        //         .and_then(|r| r.checked_sub(&T::MinimumLiquidity::get().get_big_uint()))
-        //         .ok_or(Error::<T, I>::ConversionToU128Failed)?
-        //         .to_u128()
-        //         .ok_or(ArithmeticError::Underflow)?
-        // } else {
-        //     min(
-        //         ideal_base_amount
-        //             .get_big_uint()
-        //             .checked_mul(&total_supply.get_big_uint())
-        //             .and_then(|r| r.checked_div(&pool.base_amount.get_big_uint()))
-        //             .ok_or(Error::<T, I>::ConversionToU128Failed)?
-        //             .to_u128()
-        //             .ok_or(ArithmeticError::Underflow)?,
-        //         ideal_quote_amount
-        //             .get_big_uint()
-        //             .checked_mul(&total_supply.get_big_uint())
-        //             .and_then(|r| r.checked_div(&pool.quote_amount.get_big_uint()))
-        //             .ok_or(Error::<T, I>::ConversionToU128Failed)?
-        //             .to_u128()
-        //             .ok_or(ArithmeticError::Underflow)?,
-        //     )
-        // };
 
         // update reserves after liquidity calculation
         pool.base_amount = pool
@@ -645,6 +596,37 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .quote_amount
             .checked_add(ideal_quote_amount)
             .ok_or(ArithmeticError::Overflow)?;
+
+        let new_base_amount = pool.base_amount;
+        let new_quote_amount = pool.quote_amount;
+
+        if Pools::<T, I>::contains_key(&base_asset, &quote_asset) {
+            d1 = Self::do_get_delta_on_the_fly((new_base_amount, new_quote_amount)).unwrap();
+
+            ensure!(d1 >= d0, Error::<T, I>::InvalidInvariant);
+        }
+        // TODO: the following may not required since fee is -> 0
+        // let ideal_base_balance = D1.clone() * pool.base_amount / D0.clone();
+        // let ideal_base_new_balance = ideal_base_amount;
+        //
+        // if ideal_base_balance >
+        // let ideal_base_new_balance_difference = (ideal_base_balance - ideal_base_new_balance).abs();
+        //
+        // let ideal_quote_balance = D1.clone() * pool.base_amount / D0;
+        // let ideal_quote_new_balance = ideal_quote_balance;
+        // let ideal_quote_new_balance_difference =
+        //     (ideal_base_balance - ideal_base_new_balance).abs();
+
+        // let D2 = Self::do_get_delta((base_asset, quote_asset)).unwrap();
+        // D2 and D1 in here will be the same
+
+        if d0 > 0 {
+            if total_supply > 0 && d0 > 0 {
+                liquidity = liquidity * (d1 - d0) / d0;
+            } else {
+                liquidity += d1;
+            }
+        }
 
         T::Assets::mint_into(pool.lp_token_id, who, liquidity)?;
 
@@ -916,11 +898,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     // https://github.com/curvefi/curve-contract/blob/master/contracts/pool-templates/base/SwapTemplateBase.vy
     // https://github.com/parallel-finance/amm-formula/blob/master/src/formula.rs
     // https://curve.fi/files/stableswap-paper.pdf
+    // Do not call in initial add
     #[allow(dead_code)]
     pub fn do_get_delta(
         (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Result<Balance, DispatchError> {
-        // Gets reserves
         let (x, y) = Self::get_reserves(asset_in, asset_out).unwrap();
 
         // total = x + y = C
@@ -1049,6 +1031,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 break;
             }
         }
+        // TODO: Needs a test case here to capture this
         // throw new Error('D does not converge')
         Self::deposit_event(Event::<T, I>::DeltaCalculated(asset_in, asset_out, d));
 
@@ -1062,6 +1045,160 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         Ok(d)
     }
+
+    // ******************************************************************************************
+    // TODO: Refactor this code
+    // This does not fetch reserves from the storage and required to calculate delta with new values
+    // which requires for the amount calculation
+    #[allow(dead_code)]
+    pub fn do_get_delta_on_the_fly(
+        (new_tot_base_amount, new_tot_quote_amount): (Balance, Balance),
+    ) -> Result<Balance, DispatchError> {
+        // Gets reserves
+        // let (x, y) = Self::get_reserves(asset_in, asset_out).unwrap();
+
+        // total = x + y = C
+        let total_reserves = new_tot_base_amount
+            .get_big_uint()
+            .checked_add(&new_tot_quote_amount.get_big_uint())
+            .ok_or(Error::<T, I>::ConversionToU128Failed)?
+            .to_u128()
+            .ok_or(ArithmeticError::Underflow)?;
+
+        // a = AC * Precision
+        let a: u128 = (T::AmplificationCoefficient::get() as u128)
+            .get_big_uint()
+            .checked_mul(&T::Precision::get().get_big_uint())
+            .ok_or(Error::<T, I>::ConversionToU128Failed)?
+            .to_u128()
+            .ok_or(ArithmeticError::Underflow)?;
+
+        let mut prev_d: u128;
+
+        let mut d = total_reserves;
+
+        let n_a = a.checked_mul(2u128).ok_or(ArithmeticError::Overflow)?;
+
+        // 255 is a max number of loops
+        // should throw error if does not converge
+        for _ in 0..255 {
+            let mut dp = d;
+
+            dp = dp
+                .get_big_uint()
+                .checked_mul(&d.get_big_uint())
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?
+                .checked_div(
+                    new_tot_base_amount
+                        .get_big_uint()
+                        .checked_mul(&(T::NumTokens::get() as u128).get_big_uint())
+                        .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                        .to_u128()
+                        .ok_or(ArithmeticError::Underflow)?,
+                )
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?;
+
+            dp = dp
+                .get_big_uint()
+                .checked_mul(&d.get_big_uint())
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?
+                .checked_div(
+                    new_tot_quote_amount
+                        .get_big_uint()
+                        .checked_mul(&(T::NumTokens::get() as u128).get_big_uint())
+                        .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                        .to_u128()
+                        .ok_or(ArithmeticError::Underflow)?,
+                )
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?;
+
+            prev_d = d;
+
+            // d = ((((n_a * s) / a_precision) + (dp * n_t)) * d)
+            //     / ((((n_a - a_precision) * d) / a_precision) + ((n_t + 1) * dp));
+            let k = dp
+                .checked_mul(T::NumTokens::get().into())
+                .ok_or(ArithmeticError::Overflow)?;
+
+            let m = n_a
+                .get_big_uint()
+                .checked_mul(&total_reserves.get_big_uint())
+                .and_then(|r| r.checked_div(&T::Precision::get().get_big_uint()))
+                .and_then(|r| r.checked_add(&k.get_big_uint()))
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?;
+
+            let n = n_a
+                .get_big_uint()
+                .checked_sub(&T::Precision::get().get_big_uint())
+                .and_then(|r| r.checked_mul(&d.get_big_uint()))
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?;
+
+            let u = n
+                .get_big_uint()
+                .checked_div(&T::Precision::get().get_big_uint())
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?;
+
+            let l = (T::NumTokens::get() as u128)
+                .checked_add(1u128)
+                .ok_or(ArithmeticError::Overflow)?
+                .get_big_uint()
+                .checked_mul(&dp.get_big_uint())
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?;
+
+            let _denom = u
+                .get_big_uint()
+                .checked_add(&l.get_big_uint())
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?;
+
+            d = m
+                .get_big_uint()
+                .checked_mul(&d.get_big_uint())
+                .and_then(|r| r.checked_div(&_denom.get_big_uint()))
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?;
+
+            // check if difference is less than 1
+            if d > prev_d {
+                if d - prev_d < 1 {
+                    break;
+                }
+            } else if prev_d - d < 1 {
+                break;
+            }
+        }
+        // throw new Error('D does not converge')
+        // Self::deposit_event(Event::<T, I>::DeltaCalculated(asset_in, asset_out, d));
+
+        // log::trace!(
+        //     target: "stableSwap::do_get_delta",
+        //     "asset_in: {:?}, asset_out: {:?}, delta: {:?}",
+        //     &asset_in,
+        //     &asset_out,
+        //     &d
+        // );
+
+        Ok(d)
+    }
+    // ******************************************************************************************
 
     #[allow(dead_code)]
     pub fn do_get_alternative_var(
