@@ -600,7 +600,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         let new_base_amount = pool.base_amount;
         let new_quote_amount = pool.quote_amount;
 
-        // ********************************************************************
         if Pools::<T, I>::contains_key(&base_asset, &quote_asset) {
             d1 = Self::do_get_delta_on_the_fly((new_base_amount, new_quote_amount)).unwrap();
 
@@ -628,8 +627,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 liquidity += d1;
             }
         }
-
-        // ********************************************************************
 
         T::Assets::mint_into(pool.lp_token_id, who, liquidity)?;
 

@@ -1,3 +1,4 @@
+use super::*;
 use crate::mock::*;
 use frame_support::assert_ok;
 use frame_system::RawOrigin;
@@ -141,9 +142,7 @@ fn close_unbalanced_small_stable_swap_amount_out_should_work() {
 }
 
 #[test]
-#[ignore]
 fn add_liquidity_with_variant_should_work() {
-    // Currently this failing
     new_test_ext().execute_with(|| {
         assert_ok!(DefaultStableSwap::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
@@ -152,17 +151,18 @@ fn add_liquidity_with_variant_should_work() {
             ALICE,                           // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
+        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 1_414);
         assert_ok!(DefaultStableSwap::add_liquidity(
             RawOrigin::Signed(ALICE).into(), // Origin
             (DOT, SDOT),                     // Currency pool, in which liquidity will be added
-            (1_000, 2_000),                  // Liquidity amounts to be added in pool
+            (1_000_000, 2_000_000),          // Liquidity amounts to be added in pool
             (5, 5),                          // specifying its worst case ratio when pool already
         ));
-
+        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 1414390653);
         // This fails
         assert_eq!(
             DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
-            4_000
+            2002000
         );
     })
 }
