@@ -1051,7 +1051,7 @@ fn amount_out_and_in_should_work() {
         assert_eq!(amount_out, 1000);
     })
 }
-/*
+
 #[test]
 fn update_oracle_should_work() {
     new_test_ext().execute_with(|| {
@@ -1065,21 +1065,45 @@ fn update_oracle_should_work() {
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
 
-        assert_eq!(DefaultStableSwap::pools(SDOT, DOT).unwrap().block_timestamp_last, 0);
-        assert_eq!(DefaultStableSwap::pools(SDOT, DOT).unwrap().price_0_cumulative_last, 0);
-        assert_eq!(DefaultStableSwap::pools(SDOT, DOT).unwrap().price_1_cumulative_last, 0);
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT)
+                .unwrap()
+                .block_timestamp_last,
+            0
+        );
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT)
+                .unwrap()
+                .price_0_cumulative_last,
+            0
+        );
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT)
+                .unwrap()
+                .price_1_cumulative_last,
+            0
+        );
 
         run_to_block(2);
 
         assert_ok!(DefaultStableSwap::swap(&trader, (DOT, SDOT), 1_000));
 
-        assert_eq!(DefaultStableSwap::pools(SDOT, DOT).unwrap().block_timestamp_last, 2);
         assert_eq!(
-            DefaultStableSwap::pools(SDOT, DOT).unwrap().price_0_cumulative_last,
+            DefaultStableSwap::pools(SDOT, DOT)
+                .unwrap()
+                .block_timestamp_last,
+            2
+        );
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT)
+                .unwrap()
+                .price_0_cumulative_last,
             2_040136143738700978
         );
         assert_eq!(
-            DefaultStableSwap::pools(SDOT, DOT).unwrap().price_1_cumulative_last,
+            DefaultStableSwap::pools(SDOT, DOT)
+                .unwrap()
+                .price_1_cumulative_last,
             1_960653465346534653
         );
 
@@ -1087,13 +1111,22 @@ fn update_oracle_should_work() {
 
         assert_ok!(DefaultStableSwap::swap(&trader, (DOT, SDOT), 1_000));
 
-        assert_eq!(DefaultStableSwap::pools(SDOT, DOT).unwrap().block_timestamp_last, 4);
         assert_eq!(
-            DefaultStableSwap::pools(SDOT, DOT).unwrap().price_0_cumulative_last,
+            DefaultStableSwap::pools(SDOT, DOT)
+                .unwrap()
+                .block_timestamp_last,
+            4
+        );
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT)
+                .unwrap()
+                .price_0_cumulative_last,
             4_120792162342213614
         );
         assert_eq!(
-            DefaultStableSwap::pools(SDOT, DOT).unwrap().price_1_cumulative_last,
+            DefaultStableSwap::pools(SDOT, DOT)
+                .unwrap()
+                .price_1_cumulative_last,
             3_883124053581828770
         );
     })
@@ -1112,9 +1145,24 @@ fn oracle_big_block_no_overflow() {
             SAMPLE_LP_TOKEN, // Liquidity pool share representative token
         ));
 
-        assert_eq!(DefaultStableSwap::pools(DOT, KSM).unwrap().block_timestamp_last, 0);
-        assert_eq!(DefaultStableSwap::pools(DOT, KSM).unwrap().price_0_cumulative_last, 0);
-        assert_eq!(DefaultStableSwap::pools(DOT, KSM).unwrap().price_1_cumulative_last, 0);
+        assert_eq!(
+            DefaultStableSwap::pools(DOT, KSM)
+                .unwrap()
+                .block_timestamp_last,
+            0
+        );
+        assert_eq!(
+            DefaultStableSwap::pools(DOT, KSM)
+                .unwrap()
+                .price_0_cumulative_last,
+            0
+        );
+        assert_eq!(
+            DefaultStableSwap::pools(DOT, KSM)
+                .unwrap()
+                .price_1_cumulative_last,
+            0
+        );
 
         let mut big_block = 30_000;
         run_to_block(big_block);
@@ -1126,15 +1174,21 @@ fn oracle_big_block_no_overflow() {
         }
 
         assert_eq!(
-            DefaultStableSwap::pools(DOT, KSM).unwrap().block_timestamp_last,
+            DefaultStableSwap::pools(DOT, KSM)
+                .unwrap()
+                .block_timestamp_last,
             big_block
         );
         assert_eq!(
-            DefaultStableSwap::pools(DOT, KSM).unwrap().price_0_cumulative_last,
+            DefaultStableSwap::pools(DOT, KSM)
+                .unwrap()
+                .price_0_cumulative_last,
             105007346_092879071079611686
         );
         assert_eq!(
-            DefaultStableSwap::pools(DOT, KSM).unwrap().price_1_cumulative_last,
+            DefaultStableSwap::pools(DOT, KSM)
+                .unwrap()
+                .price_1_cumulative_last,
             11_665850491226458031
         );
 
@@ -1146,7 +1200,7 @@ fn oracle_big_block_no_overflow() {
         assert_ok!(DefaultStableSwap::swap(&trader, (DOT, KSM), 10_000_000_000));
     })
 }
-*/
+
 // #[test]
 // fn oracle_huge_block_should_work() {
 //     // we may want to omit this test because it take >5 minutes to run
