@@ -274,7 +274,9 @@ impl Contains<Call> for BaseCallFilter {
             // Bridge
             Call::Bridge(_) |
             // Farming
-            Call::Farming(_)
+            Call::Farming(_) |
+            // Payroll
+            Call::Payroll(_)
         )
     }
 }
@@ -1887,7 +1889,10 @@ impl Contains<Call> for WhiteListFilter {
             Call::ParachainSystem(_) |
             Call::XcmpQueue(_) |
             Call::DmpQueue(_) |
-            Call::PolkadotXcm(_) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_default_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_subscribe_version_notify { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_unsubscribe_version_notify { .. }) |
             Call::CumulusXcm(_) |
             // Consensus
             Call::Authorship(_) |
