@@ -49,8 +49,8 @@ use sp_runtime::{
         BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchError, DispatchResult, FixedU128, KeyTypeId, Perbill, Permill,
-    RuntimeDebug, SaturatedConversion,
+    ApplyExtrinsicResult, DispatchError, DispatchResult, KeyTypeId, Perbill, Permill, RuntimeDebug,
+    SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -2158,8 +2158,8 @@ impl_runtime_apis! {
         }
     }
 
-    impl pallet_router_rpc_runtime_api::RouterApi<Block, AccountId> for Runtime {
-        fn get_best_route(amount_in: Balance, token_in: CurrencyId, token_out: CurrencyId) -> Result<(Vec<CurrencyId>, FixedU128), DispatchError> {
+    impl pallet_router_rpc_runtime_api::RouterApi<Block, Balance> for Runtime {
+        fn get_best_route(amount_in: Balance, token_in: CurrencyId, token_out: CurrencyId) -> Result<(Vec<CurrencyId>, Balance), DispatchError> {
             let (route, amount) = AMMRoute::get_best_route(amount_in, token_in, token_out)?;
             Ok((route, amount.into()))
         }
