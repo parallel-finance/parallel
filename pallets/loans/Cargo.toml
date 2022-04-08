@@ -22,6 +22,7 @@ scale-info         = { version = '1.0', default-features = false, features = ['d
 
 primitives = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 serde      = { version = '1.0.136', features = ['derive'], optional = true }
+sp-io      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 sp-runtime = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 sp-std     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 
@@ -29,7 +30,6 @@ sp-std     = { git = 'https://github.com/paritytech/substrate.git', branch = 'po
 orml-oracle             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 pallet-currency-adapter = { path = '../currency-adapter' }
 sp-core                 = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
-sp-io                   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 
 
 [features]

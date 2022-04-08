@@ -41,6 +41,7 @@ use primitives::{
     Balance, ConvertToBigUint, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall,
     Timestamp,
 };
+use sp_io::hashing::blake2_256;
 use sp_runtime::{
     traits::{
         AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One,
@@ -185,6 +186,8 @@ pub mod pallet {
         InvalidAmount,
         /// Payer cannot be signer
         PayerIsSigner,
+        /// Codec error
+        CodecError,
     }
 
     #[pallet::event]
@@ -638,7 +641,7 @@ pub mod pallet {
             ensure!(!amount.is_zero(), Error::<T>::InvalidAmount);
 
             let reward_asset = T::RewardAssetId::get();
-            let pool_account = Self::account_id();
+            let pool_account = Self::reward_account_id()?;
 
             T::Assets::transfer(reward_asset, &who, &pool_account, amount, true)?;
 
@@ -664,7 +667,7 @@ pub mod pallet {
             ensure!(!amount.is_zero(), Error::<T>::InvalidAmount);
 
             let reward_asset = T::RewardAssetId::get();
-            let pool_account = Self::account_id();
+            let pool_account = Self::reward_account_id()?;
             let target_account = T::Lookup::lookup(target_account)?;
 
             T::Assets::transfer(reward_asset, &pool_account, &target_account, amount, true)?;
@@ -1162,6 +1165,12 @@ impl<T: Config> Pallet<T> {
         Ok(total_asset_value)
     }
 
+    fn reward_account_id() -> Result<T::AccountId, DispatchError> {
+        let account_id: T::AccountId = T::PalletId::get().into_account();
+        let entropy = (b"loans/farming", &[account_id]).using_encoded(blake2_256);
+        Ok(T::AccountId::decode(&mut &entropy[..]).map_err(|_| Error::<T>::CodecError)?)
+    }
+
     fn reward_scale() -> u128 {
         10_u128.pow(12)
     }
@@ -1328,7 +1337,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn pay_reward(user: &T::AccountId) -> DispatchResult {
-        let pool_account = Self::account_id();
+        let pool_account = Self::reward_account_id()?;
         let reward_asset = T::RewardAssetId::get();
         RewardAccured::<T>::try_mutate(user, |total_reward| -> DispatchResult {
             let total = *total_reward;

@@ -748,7 +748,7 @@ fn withdraw_missing_reward_works() {
         assert_eq!(<Test as Config>::Assets::balance(HKO, &ALICE), dollar(40));
 
         assert_eq!(
-            <Test as Config>::Assets::balance(HKO, &Loans::account_id()),
+            <Test as Config>::Assets::balance(HKO, &Loans::reward_account_id().unwrap()),
             dollar(60)
         );
     })
@@ -931,7 +931,7 @@ fn reward_calculation_one_palyer_in_multi_markets_works() {
         );
         assert_eq!(
             almost_equal(
-                <Test as Config>::Assets::balance(HKO, &Loans::account_id()),
+                <Test as Config>::Assets::balance(HKO, &Loans::reward_account_id().unwrap()),
                 dollar(90)
             ),
             true
@@ -1033,7 +1033,7 @@ fn reward_calculation_multi_player_in_one_market_works() {
         );
         assert_eq!(
             almost_equal(
-                <Test as Config>::Assets::balance(HKO, &Loans::account_id()),
+                <Test as Config>::Assets::balance(HKO, &Loans::reward_account_id().unwrap()),
                 dollar(120)
             ),
             true
