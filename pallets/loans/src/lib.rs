@@ -1062,10 +1062,6 @@ impl<T: Config> Pallet<T> {
         let exchange_rate = Self::exchange_rate(asset_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
 
-        ensure!(
-            T::Assets::balance(asset_id, &Self::account_id()) >= redeem_amount,
-            Error::<T>::InsufficientMarketLiquidity
-        );
         AccountDeposits::<T>::try_mutate_exists(asset_id, who, |deposits| -> DispatchResult {
             let mut d = deposits.unwrap_or_default();
             d.voucher_balance = d
@@ -1088,7 +1084,8 @@ impl<T: Config> Pallet<T> {
             Ok(())
         })?;
 
-        T::Assets::transfer(asset_id, &Self::account_id(), who, redeem_amount, false)?;
+        T::Assets::transfer(asset_id, &Self::account_id(), who, redeem_amount, false)
+            .map_err(|_| Error::<T>::InsufficientMarketLiquidity)?;
         Ok(redeem_amount)
     }
 
