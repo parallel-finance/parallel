@@ -2254,7 +2254,7 @@ impl_runtime_apis! {
     impl pallet_router_rpc_runtime_api::RouterApi<Block, Balance> for Runtime {
         fn get_best_route(amount_in: Balance, token_in: CurrencyId, token_out: CurrencyId) -> Result<(Vec<CurrencyId>, Balance), DispatchError> {
             let (route, amount) = AMMRoute::get_best_route(amount_in, token_in, token_out)?;
-            Ok((route, amount.into()))
+            Ok((route, amount))
         }
     }
 
