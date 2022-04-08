@@ -38,6 +38,7 @@ pub const PHA: CurrencyId = 115;
 pub const KMA: CurrencyId = 116;
 pub const KINT: CurrencyId = 118;
 pub const KBTC: CurrencyId = 119;
+pub const GENS: CurrencyId = 120;
 
 // Ethereum ecosystem
 pub const EUSDT: CurrencyId = 201;
@@ -106,6 +107,7 @@ pub const CDOT_8_15: CurrencyId = 200080015;
 // | Heiko     | KMA          | N/A                |
 // | Heiko     | KINT         | N/A                |
 // | Heiko     | KBTC         | N/A                |
+// | Heiko     | GENS         | N/A                |
 // | Heiko     | PHKO         | N/A                |
 // | Heiko     | PKSM         | N/A                |
 // | Heiko     | PUSDT        | N/A                |
