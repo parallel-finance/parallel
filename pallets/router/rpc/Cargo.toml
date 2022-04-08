@@ -16,6 +16,7 @@ sp-blockchain       = { git = 'https://github.com/paritytech/substrate.git', bra
 sp-core             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
 sp-runtime          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
 sp-std              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
+sp-rpc              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 
 pallet-router-rpc-runtime-api = { path = 'runtime-api', default-features = false }
 
