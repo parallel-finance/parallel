@@ -853,6 +853,10 @@ impl pallet_sudo::Config for Runtime {
 )]
 pub enum ProxyType {
     Any,
+    Loans,
+    Staking,
+    Crowdloans,
+    Farming,
 }
 impl Default for ProxyType {
     fn default() -> Self {
@@ -861,14 +865,56 @@ impl Default for ProxyType {
 }
 
 impl InstanceFilter<Call> for ProxyType {
-    fn filter(&self, _c: &Call) -> bool {
+    fn filter(&self, c: &Call) -> bool {
         match self {
             ProxyType::Any => true,
+            ProxyType::Loans => {
+                matches!(
+                    c,
+                    Call::Loans(pallet_loans::Call::mint { .. })
+                        | Call::Loans(pallet_loans::Call::redeem { .. })
+                        | Call::Loans(pallet_loans::Call::redeem_all { .. })
+                        | Call::Loans(pallet_loans::Call::borrow { .. })
+                        | Call::Loans(pallet_loans::Call::repay_borrow { .. })
+                        | Call::Loans(pallet_loans::Call::repay_borrow_all { .. })
+                        | Call::Loans(pallet_loans::Call::collateral_asset { .. })
+                        | Call::Loans(pallet_loans::Call::liquidate_borrow { .. })
+                )
+            }
+            ProxyType::Staking => {
+                matches!(
+                    c,
+                    Call::LiquidStaking(pallet_liquid_staking::Call::stake { .. })
+                        | Call::LiquidStaking(pallet_liquid_staking::Call::unstake { .. })
+                )
+            }
+            ProxyType::Crowdloans => {
+                matches!(
+                    c,
+                    Call::Crowdloans(pallet_crowdloans::Call::contribute { .. },)
+                        | Call::Crowdloans(pallet_crowdloans::Call::withdraw { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::claim { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::redeem { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::withdraw_for { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::claim_for { .. })
+                )
+            }
+            ProxyType::Farming => {
+                matches!(
+                    c,
+                    Call::Farming(pallet_farming::Call::deposit { .. })
+                        | Call::Farming(pallet_farming::Call::claim { .. })
+                        | Call::Farming(pallet_farming::Call::withdraw { .. })
+                        | Call::Farming(pallet_farming::Call::redeem { .. })
+                )
+            }
         }
     }
     fn is_superset(&self, o: &Self) -> bool {
         match (self, o) {
             (ProxyType::Any, _) => true,
+            (_, ProxyType::Any) => false,
+            _ => false,
         }
     }
 }
