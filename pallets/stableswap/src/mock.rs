@@ -46,6 +46,7 @@ pub const PROTOCOL_FEE_RECEIVER: AccountId = AccountId(99);
 
 pub const DOT: CurrencyId = tokens::DOT;
 pub const SDOT: CurrencyId = tokens::SDOT;
+pub const KSM: CurrencyId = tokens::KSM;
 pub const SAMPLE_LP_TOKEN: CurrencyId = 42;
 pub const SAMPLE_LP_TOKEN_2: CurrencyId = 43;
 

@@ -2,9 +2,62 @@ use super::*;
 use crate::mock::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
-use primitives::StableSwap as _;
+use primitives::{tokens, StableSwap as _};
 
 const MINIMUM_LIQUIDITY: u128 = 1_000;
+
+#[test]
+fn create_pool_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 2_000),                  // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            2_000
+        );
+        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 1_414);
+        // should be issuance minus the min liq locked
+        assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 414);
+    })
+}
+
+#[test]
+fn double_liquidity_correct_liq_ratio_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(),              // Origin
+            (DOT, KSM), // Currency pool, in which liquidity will be added
+            (15_000_000_000_000, 50_000_000_000_000_000), // Liquidity amounts to be added in pool
+            FRANK,      // LPToken receiver
+            SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+        ));
+
+        // total liquidity after pool created
+        let total_liquidity_tokens = Assets::total_issuance(SAMPLE_LP_TOKEN);
+
+        assert_ok!(DefaultStableSwap::add_liquidity(
+            RawOrigin::Signed(FRANK).into(),              // Origin
+            (DOT, KSM), // Currency pool, in which liquidity will be added
+            (15_000_000_000_000, 50_000_000_000_000_000), // Liquidity amounts to be added in pool
+            (15_000_000_000_000, 50_000_000_000_000_000), // specifying its worst case ratio when pool already
+        ));
+
+        let total_liquidity_tokens_after_double = Assets::total_issuance(SAMPLE_LP_TOKEN);
+        let liquidity_recieved = total_liquidity_tokens_after_double - total_liquidity_tokens;
+
+        // recieved liquidity should be half of total liquidity
+        assert_eq!(
+            liquidity_recieved as f64 / total_liquidity_tokens_after_double as f64,
+            0.5
+        );
+    })
+}
 
 #[test]
 fn stable_swap_amount_out_should_work() {
@@ -308,6 +361,30 @@ fn add_liquidity_by_another_user_should_work() {
 }
 
 #[test]
+fn cannot_create_pool_twice() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 2_000),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
+        ));
+
+        assert_noop!(
+            DefaultStableSwap::create_pool(
+                RawOrigin::Signed(ALICE).into(), // Origin
+                (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+                (1_000, 2_000),                  // Liquidity amounts to be added in pool
+                ALICE,                           // LPToken receiver
+                SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
+            ),
+            Error::<Test>::PoolAlreadyExists, // Pool already not exist
+        );
+    })
+}
+
+#[test]
 fn remove_liquidity_whole_share_should_work() {
     new_test_ext().execute_with(|| {
         // A pool with a single LP provider
@@ -594,5 +671,771 @@ fn swap_should_work_quote_to_base() {
             Assets::balance(SDOT, trader),
             1_000_000_000 + amounts_out[1] // 1_000_000_996
         );
+    })
+}
+
+#[test]
+fn trade_should_work_base_to_quote_flipped_currencies_on_pool_creation() {
+    new_test_ext().execute_with(|| {
+        let trader = EVE;
+
+        // create pool and add liquidity
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (SDOT, DOT),                     // Currency pool, in which liquidity will be added
+            (100_000_000, 100_000_000),      // Liquidity amounts to be added in pool
+            CHARLIE,                         // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        // SDOT is base_asset 1001
+        // DOT is quote_asset 101
+
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            100_000_000
+        ); // SDOT
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().quote_amount,
+            100_000_000
+        ); // DOT
+
+        // calculate amount out
+        assert_ok!(DefaultStableSwap::swap(&trader, (DOT, SDOT), 1_000));
+
+        assert_eq!(
+            Assets::balance(SDOT, trader),
+            1_000_000_000 + 996 // 1_000_000_996
+        );
+
+        // pools values should be updated - we should have less SDOT
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            99_999_004
+        );
+
+        // pools values should be updated - we should have more DOT in the pool
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().quote_amount,
+            100_001_000
+        );
+    })
+}
+
+#[test]
+fn trade_should_work_quote_to_base() {
+    new_test_ext().execute_with(|| {
+        let trader = EVE;
+
+        // create pool and add liquidity
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (100_000_000, 100_000_000),      // Liquidity amounts to be added in pool
+            CHARLIE,                         // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        // SDOT is base_asset 1001
+        // DOT is quote_asset 101
+
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            100_000_000
+        ); // SDOT
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().quote_amount,
+            100_000_000
+        ); // DOT
+
+        // calculate amount out
+        // trade base for quote
+        assert_ok!(DefaultStableSwap::swap(&trader, (DOT, SDOT), 1_000));
+
+        assert_eq!(
+            Assets::balance(SDOT, trader),
+            1_000_000_000 + 996 // 1_000_000_996
+        );
+
+        // we should have more DOT in the pool since were trading it for DOT
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().quote_amount,
+            100_001_000
+        );
+
+        // we should have less SDOT since we traded it for SDOT
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            99_999_004
+        );
+    })
+}
+
+#[test]
+fn trade_should_not_work_if_insufficient_amount_in() {
+    new_test_ext().execute_with(|| {
+        let trader = EVE;
+
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (100_000, 100_000),              // Liquidity amounts to be added in pool
+            CHARLIE,                         // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultStableSwap::add_liquidity(
+            RawOrigin::Signed(CHARLIE).into(), // Origin
+            (DOT, SDOT),                       // Currency pool, in which liquidity will be added
+            (100_000, 100_000),                // Liquidity amounts to be added in pool
+            (99_999, 99_999),                  // specifying its worst case ratio when pool already
+        ));
+
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            200_000
+        ); // SDOT
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().quote_amount,
+            200_000
+        ); // DOT
+
+        // amount out is less than minimum_amount_out
+        assert_noop!(
+            DefaultStableSwap::swap(&trader, (DOT, SDOT), 332),
+            Error::<Test>::InsufficientAmountIn
+        );
+    })
+}
+
+#[test]
+fn trade_should_work_flipped_currencies() {
+    new_test_ext().execute_with(|| {
+        let trader = EVE;
+
+        // create pool and add liquidity
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (100_000, 50_000),               // Liquidity amounts to be added in pool
+            CHARLIE,                         // LPToken receiver
+            SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
+        ));
+
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().quote_amount,
+            100_000
+        ); // DOT
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            50_000
+        ); // SDOT
+
+        // calculate amount out
+        assert_ok!(DefaultStableSwap::swap(&trader, (DOT, SDOT), 500));
+
+        assert_eq!(
+            Assets::balance(SDOT, trader),
+            1_000_000_000 + 248 //
+        );
+
+        // pools values should be updated - we should have less DOT in the pool
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().quote_amount,
+            100_000 + 500
+        );
+
+        // pools values should be updated - we should have more SDOT
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            50_000 - 248
+        );
+    })
+}
+
+#[test]
+fn trade_should_not_work_if_amount_in_is_zero() {
+    new_test_ext().execute_with(|| {
+        let trader = EVE;
+
+        // create pool and add liquidity
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 1_000),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
+        ));
+
+        // fail if amount_in is zero
+        assert_noop!(
+            DefaultStableSwap::swap(&trader, (DOT, SDOT), 0),
+            Error::<Test>::InsufficientAmountIn
+        );
+    })
+}
+
+#[test]
+fn trade_should_not_work_if_pool_does_not_exist() {
+    new_test_ext().execute_with(|| {
+        let trader = EVE;
+
+        // try to trade in pool with no liquidity
+        assert_noop!(
+            DefaultStableSwap::swap(&trader, (DOT, SDOT), 10),
+            Error::<Test>::PoolDoesNotExist
+        );
+    })
+}
+
+#[test]
+fn amount_out_should_work() {
+    new_test_ext().execute_with(|| {
+        let amount_in = 1_000;
+        let supply_in = 100_000_000;
+        let supply_out = 100_000_000;
+
+        let amount_out =
+            DefaultStableSwap::get_amount_out(amount_in, supply_in, supply_out).unwrap();
+
+        // actual value == 996.9900600091017
+        // TODO: assumes we round down to int
+        assert_eq!(amount_out, 996);
+    })
+}
+
+#[test]
+fn amounts_out_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 2_000),                  // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (KSM, DOT),                      // Currency pool, in which liquidity will be added
+            (1_000, 1_000),                  // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN_2,               // Liquidity pool share representative token
+        ));
+
+        let path = vec![SDOT, DOT, KSM];
+
+        let amount_in = 1_000;
+
+        let amounts_out = DefaultStableSwap::get_amounts_out(amount_in, path).unwrap();
+
+        assert_eq!(amounts_out, [1000, 332, 249]);
+    })
+}
+
+#[test]
+fn long_route_amounts_in_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (10_000, 20_000),                // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (KSM, DOT),                      // Currency pool, in which liquidity will be added
+            (10_000, 10_000),                // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN_2,               // Liquidity pool share representative token
+        ));
+
+        let path = vec![SDOT, DOT, KSM];
+
+        let amount_out = 1_000;
+
+        let amounts_in = DefaultStableSwap::get_amounts_in(amount_out, path).unwrap();
+
+        assert_eq!(amounts_in, [2518, 1115, 1000]);
+    })
+}
+
+#[test]
+fn short_route_amounts_in_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (10_000_000, 10_000_000),        // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        let path = vec![DOT, SDOT];
+
+        let amount_out = 1_000;
+
+        let amounts_in = DefaultStableSwap::get_amounts_in(amount_out, path).unwrap();
+
+        assert_eq!(amounts_in, [1004, 1000]);
+    })
+}
+
+#[test]
+fn amount_in_should_work() {
+    new_test_ext().execute_with(|| {
+        let amount_out = 1_000;
+        let supply_in = 100_000_000;
+        let supply_out = 100_000_000;
+
+        let amount_in =
+            DefaultStableSwap::get_amount_in(amount_out, supply_in, supply_out).unwrap();
+
+        // actual value == 1004.0190572718165
+        // TODO: assumes we round down to int
+        assert_eq!(amount_in, 1004);
+    })
+}
+
+#[test]
+fn amount_in_uneven_should_work() {
+    new_test_ext().execute_with(|| {
+        let amount_out = 1_000;
+        let supply_in = 100_000_000;
+        let supply_out = 1_344_312_043;
+
+        let amount_in =
+            DefaultStableSwap::get_amount_in(amount_out, supply_in, supply_out).unwrap();
+
+        assert_eq!(amount_in, 75);
+    })
+}
+
+#[test]
+fn supply_out_should_larger_than_amount_out() {
+    // Test case for Panic when amount_out >= supply_out
+    new_test_ext().execute_with(|| {
+        let amount_out = 100_00;
+        let supply_in = 100_000;
+        let supply_out = 100_00;
+
+        assert_noop!(
+            DefaultStableSwap::get_amount_in(amount_out, supply_in, supply_out),
+            Error::<Test>::InsufficientSupplyOut
+        );
+    })
+}
+
+#[test]
+fn amount_out_and_in_should_work() {
+    new_test_ext().execute_with(|| {
+        let amount_out = 1_000;
+        let supply_in = 100_000_000;
+        let supply_out = 100_000_000;
+
+        let amount_in =
+            DefaultStableSwap::get_amount_in(amount_out, supply_in, supply_out).unwrap();
+
+        assert_eq!(amount_in, 1004);
+
+        let amount_out =
+            DefaultStableSwap::get_amount_out(amount_in, supply_in, supply_out).unwrap();
+
+        assert_eq!(amount_out, 1000);
+    })
+}
+/*
+#[test]
+fn update_oracle_should_work() {
+    new_test_ext().execute_with(|| {
+        let trader = EVE;
+
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (SDOT, DOT),                     // Currency pool, in which liquidity will be added
+            (100_000, 100_000),              // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        assert_eq!(DefaultStableSwap::pools(SDOT, DOT).unwrap().block_timestamp_last, 0);
+        assert_eq!(DefaultStableSwap::pools(SDOT, DOT).unwrap().price_0_cumulative_last, 0);
+        assert_eq!(DefaultStableSwap::pools(SDOT, DOT).unwrap().price_1_cumulative_last, 0);
+
+        run_to_block(2);
+
+        assert_ok!(DefaultStableSwap::swap(&trader, (DOT, SDOT), 1_000));
+
+        assert_eq!(DefaultStableSwap::pools(SDOT, DOT).unwrap().block_timestamp_last, 2);
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().price_0_cumulative_last,
+            2_040136143738700978
+        );
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().price_1_cumulative_last,
+            1_960653465346534653
+        );
+
+        run_to_block(4);
+
+        assert_ok!(DefaultStableSwap::swap(&trader, (DOT, SDOT), 1_000));
+
+        assert_eq!(DefaultStableSwap::pools(SDOT, DOT).unwrap().block_timestamp_last, 4);
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().price_0_cumulative_last,
+            4_120792162342213614
+        );
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().price_1_cumulative_last,
+            3_883124053581828770
+        );
+    })
+}
+
+#[test]
+fn oracle_big_block_no_overflow() {
+    new_test_ext().execute_with(|| {
+        let trader = FRANK;
+
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(),                     // Origin
+            (DOT, KSM), // Currency pool, in which liquidity will be added
+            (9_999_650_729_873_433, 30_001_051_000_000_000_000), // Liquidity amounts to be added in pool
+            FRANK,                                               // LPToken receiver
+            SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+        ));
+
+        assert_eq!(DefaultStableSwap::pools(DOT, KSM).unwrap().block_timestamp_last, 0);
+        assert_eq!(DefaultStableSwap::pools(DOT, KSM).unwrap().price_0_cumulative_last, 0);
+        assert_eq!(DefaultStableSwap::pools(DOT, KSM).unwrap().price_1_cumulative_last, 0);
+
+        let mut big_block = 30_000;
+        run_to_block(big_block);
+
+        for _ in 0..5 {
+            big_block += 1000;
+            run_to_block(big_block);
+            assert_ok!(DefaultStableSwap::swap(&trader, (DOT, KSM), 1000));
+        }
+
+        assert_eq!(
+            DefaultStableSwap::pools(DOT, KSM).unwrap().block_timestamp_last,
+            big_block
+        );
+        assert_eq!(
+            DefaultStableSwap::pools(DOT, KSM).unwrap().price_0_cumulative_last,
+            105007346_092879071079611686
+        );
+        assert_eq!(
+            DefaultStableSwap::pools(DOT, KSM).unwrap().price_1_cumulative_last,
+            11_665850491226458031
+        );
+
+        // increment a block
+        big_block += 4;
+        run_to_block(big_block);
+
+        // this would swap used to overflow
+        assert_ok!(DefaultStableSwap::swap(&trader, (DOT, KSM), 10_000_000_000));
+    })
+}
+*/
+// #[test]
+// fn oracle_huge_block_should_work() {
+//     // we may want to omit this test because it take >5 minutes to run
+//     new_test_ext().execute_with(|| {
+//         let trader = FRANK;
+//
+//         assert_ok!(DefaultStableSwap::create_pool(
+//             RawOrigin::Signed(ALICE).into(),                     // Origin
+//             (DOT, KSM), // Currency pool, in which liquidity will be added
+//             (9_999_650_729_873_433, 30_001_051_000_000_000_000), // Liquidity amounts to be added in pool
+//             FRANK,                                               // LPToken receiver
+//             SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+//         ));
+//
+//         assert_eq!(DefaultStableSwap::pools(DOT, KSM).unwrap().block_timestamp_last, 0);
+//         assert_eq!(DefaultStableSwap::pools(DOT, KSM).unwrap().price_0_cumulative_last, 0);
+//         assert_eq!(DefaultStableSwap::pools(DOT, KSM).unwrap().price_1_cumulative_last, 0);
+//
+//         // let mut big_block = 100_000_000;
+//         let mut big_block = 10_000_000;
+//
+//         // 100 Million blocks should take ~42.5 years to create at ~12 seconds a block
+//
+//         // Calculations
+//         // avg_block_time = (1645493658865 - 1639798590500) / (424950 - 1)
+//         // avg_block_time == 13401.769071112063 == 13.4 seconds per block
+//         // total_time = (avg_block_time * 100_000_000) / (1000 * 60 * 60 * 24 * 365)
+//         // total_time == 42.496730945941344
+//
+//         run_to_block(big_block);
+//
+//         for _ in 0..5 {
+//             big_block += 100_000;
+//             run_to_block(big_block);
+//             assert_ok!(DefaultStableSwap::swap(&trader, (DOT, KSM), 1000));
+//         }
+//
+//         assert_eq!(
+//             DefaultStableSwap::pools(DOT, KSM).unwrap().block_timestamp_last,
+//             big_block
+//         );
+//         assert_eq!(
+//             DefaultStableSwap::pools(DOT, KSM).unwrap().price_0_cumulative_last,
+//             // 301521093780_997938040922975491
+//             31502203827_864919649515113416
+//         );
+//         assert_eq!(
+//             DefaultStableSwap::pools(DOT, KSM).unwrap().price_1_cumulative_last,
+//             // 33497_656410519841854583
+//             3499_755147367804281224
+//         );
+//     })
+// }
+
+#[test]
+fn create_pool_large_amount_should_work() {
+    /*
+    With ample supplies
+    Recheck values
+    */
+    new_test_ext().execute_with(|| {
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::DOT,
+            ALICE,
+            3_000_000_000_000_000_000_000,
+        )
+        .ok();
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::SDOT,
+            ALICE,
+            2_000_000_000_000_000_000_000,
+        )
+        .ok();
+
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(),                            // Origin
+            (DOT, SDOT), // Currency pool, in which liquidity will be added
+            (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
+            ALICE,                                                      // LPToken receiver
+            SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+        ));
+
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            2_000_000_000_000_000_000_000
+        );
+        assert_eq!(
+            Assets::total_issuance(SAMPLE_LP_TOKEN),
+            447_213_595_499_957_939_28
+        );
+        // should be issuance minus the min liq locked
+        assert_eq!(
+            Assets::balance(SAMPLE_LP_TOKEN, ALICE),
+            447_213_595_499_957_939_28
+        );
+    })
+}
+
+#[test]
+fn create_pool_large_amount_from_an_account_without_sufficient_amount_of_tokens_should_not_panic() {
+    /*
+    With ample supplies for Alice and less for Bob :'(
+    `create_pool` with Large amount panic for Bob
+    Recheck values
+    */
+    new_test_ext().execute_with(|| {
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::DOT,
+            ALICE,
+            3_000_000_000_000_000_000_000,
+        )
+        .ok();
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::SDOT,
+            ALICE,
+            2_000_000_000_000_000_000_000,
+        )
+        .ok();
+
+        // Creating for BOB
+        // This Panics!
+        assert_noop!(
+            DefaultStableSwap::create_pool(
+                RawOrigin::Signed(ALICE).into(),                            // Origin
+                (DOT, SDOT), // Currency pool, in which liquidity will be added
+                (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
+                BOB,                                                        // LPToken receiver
+                SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+            ),
+            pallet_assets::Error::<Test>::BalanceLow
+        );
+    })
+}
+
+#[ignore]
+#[test]
+fn do_add_liquidity_exact_amounts_should_work() {
+    /*
+    substrate->frame->assets->src->functions.rs
+    ensure!(f.best_effort || actual >= amount, Error::<T, I>::BalanceLow);   // Fails here
+    replica of `add_liquidity_should_work` with larger values
+    Loss of precision?
+    */
+    new_test_ext().execute_with(|| {
+        // Already deposited 100000000
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::DOT,
+            ALICE,
+            999_999_999_999_900_000_000,
+        )
+        .ok();
+
+        // Already deposited 100000000
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::SDOT,
+            ALICE,
+            199_999_999_999_990_000_000_0,
+        )
+        .ok();
+
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(),                            // Origin
+            (DOT, SDOT), // Currency pool, in which liquidity will be added
+            (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
+            ALICE,                                                      // LPToken receiver
+            SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+        ));
+        assert_ok!(DefaultStableSwap::add_liquidity(
+            RawOrigin::Signed(ALICE).into(),                            // Origin
+            (DOT, SDOT), // Currency pool, in which liquidity will be added
+            (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
+            (5, 5), // specifying its worst case ratio when pool already
+        ));
+
+        assert_eq!(
+            DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
+            4_000
+        );
+    })
+}
+
+#[test]
+fn do_add_liquidity_large_amounts_should_work() {
+    /*
+    With ample supplies
+     */
+
+    new_test_ext().execute_with(|| {
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::DOT,
+            ALICE,
+            3_000_000_000_000_000_000_000,
+        )
+        .ok();
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::SDOT,
+            ALICE,
+            2_000_000_000_000_000_000_000,
+        )
+        .ok();
+
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (
+                1_000_000_000_000_000_000_000, // Either base amount or quote amount
+                2_000_000_000_000_000_000_000
+            ), // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+    })
+}
+
+#[test]
+fn handling_fees_should_work() {
+    new_test_ext().execute_with(|| {
+        // Pool gets created and BOB should recieve all of the LP tokens (minus the min amount)
+        //
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(),    // Origin
+            (DOT, SDOT),                        // Currency pool, in which liquidity will be added
+            (100_000_000_000, 100_000_000_000), // Liquidity amounts to be added in pool
+            BOB,                                // LPToken receiver
+            SAMPLE_LP_TOKEN                     // Liquidity pool share representative token
+        ));
+
+        // Another user makes a swap that should generate fees for the LP provider and the protocol
+        assert_ok!(DefaultStableSwap::swap(&FRANK, (DOT, SDOT), 6_000_000));
+
+        // we can check the total balance
+        //
+        // no extra fees should be minted becuase liquidty has not been added or removed
+        //
+        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 100_000_000_000);
+
+        // bob should have all of the fees minus the min amount burned/locked
+        assert_eq!(
+            Assets::balance(SAMPLE_LP_TOKEN, BOB),
+            100_000_000_000 - MINIMUM_LIQUIDITY
+        );
+
+        // now we withdraw the fees and at this point we should mint tokens
+        // for the protcol proportional to 1/6 of the total fees generated
+
+        // we know that 18_000 fees should be collected and ~3_000 are for the protocol
+        let total_fees_collected = 6_000_000.0 * 0.003;
+        let fees_to_be_collected_by_protocol = total_fees_collected * (1.0 / 6.0);
+        assert_eq!(fees_to_be_collected_by_protocol, 3000.0);
+
+        // expand the math to calculate exact amout of fees to dilute lp total supply
+        let prop_of_total_fee = 1.0 / 6.0;
+        let scalar = (1.0 / prop_of_total_fee) - 1.0;
+        assert_eq!(scalar, 5.0);
+
+        let total_lp_token_supply = 100_000_000_000.0;
+        let old_root_k = (100_000_000_000f64 * 100_000_000_000f64).sqrt();
+        let new_root_k = (99_994_018_358f64 * 100_006_000_000f64).sqrt();
+        let root_k_growth = new_root_k - old_root_k;
+
+        let numerator = total_lp_token_supply * root_k_growth;
+        let denominator = new_root_k * scalar + old_root_k;
+        let rewards_to_mint = numerator / denominator;
+
+        assert_eq!(old_root_k, 100_000_000_000.0); // 100_000_000_000
+        assert_eq!(new_root_k, 100_000_008_999.55034); // 100_000_008_999
+        assert_eq!(root_k_growth, 8999.550338745117); // 8999
+        assert_eq!(numerator, 899955033874511.8); // 899_900_000_000_000
+        assert_eq!(denominator, 600000044997.7517); // 600_000_044_995
+        assert_eq!(rewards_to_mint, 1499.9249439687692); // 1499
+
+        assert_ok!(DefaultStableSwap::remove_liquidity(
+            RawOrigin::Signed(PROTOCOL_FEE_RECEIVER).into(),
+            (DOT, SDOT),
+            1_499,
+        ));
+
+        // PROTOCOL_FEE_RECEIVER should have slightly less then 3_000 total rewards
+        // split bewteen the two pools - the small difference is due to rounding errors
+        assert_eq!(Assets::balance(DOT, PROTOCOL_FEE_RECEIVER), 1499);
+
+        assert_eq!(Assets::balance(SDOT, PROTOCOL_FEE_RECEIVER), 1498);
     })
 }
