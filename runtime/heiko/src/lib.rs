@@ -274,7 +274,7 @@ impl Contains<Call> for BaseCallFilter {
             // Farming
             Call::Farming(_) |
             // Payroll
-            Call::Streams(_)
+            Call::Streaming(_)
         )
 
         // // Consensus
@@ -1962,7 +1962,7 @@ construct_runtime!(
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Storage, Event<T>} = 91,
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
-        Streams: pallet_stream::{Pallet, Call, Storage, Event<T>} = 94,
+        Streaming: pallet_stream::{Pallet, Call, Storage, Event<T>} = 94,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
