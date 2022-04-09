@@ -35,7 +35,8 @@ extern crate primitives;
 
 use frame_support::traits::{fungibles::InspectMetadata, tokens::Balance as BalanceT, Get};
 use primitives::{
-    ExchangeRateProvider, LiquidStakingConvert, LiquidStakingCurrenciesProvider, Rate,
+    ExchangeRateProvider, LiquidStakingConvert, LiquidStakingCurrenciesProvider,
+    PersistedValidationData, Rate, ValidationDataProvider,
 };
 use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
 
@@ -43,6 +44,7 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+    use codec::Encode;
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         ensure,
@@ -50,12 +52,12 @@ pub mod pallet {
         log,
         pallet_prelude::*,
         require_transactional,
-        storage::with_transaction,
+        storage::{storage_prefix, with_transaction},
         traits::{
             fungibles::{Inspect, InspectMetadata, Mutate, Transfer},
             IsType, SortedMembers,
         },
-        transactional, PalletId,
+        transactional, PalletId, StorageHasher,
     };
     use frame_system::{
         ensure_signed,
@@ -63,10 +65,14 @@ pub mod pallet {
     };
     use pallet_xcm::ensure_response;
     use sp_runtime::{
-        traits::{AccountIdConversion, BlockNumberProvider, CheckedDiv, CheckedSub, StaticLookup},
+        traits::{
+            AccountIdConversion, BlakeTwo256, BlockNumberProvider, CheckedDiv, CheckedSub,
+            StaticLookup,
+        },
         ArithmeticError, FixedPointNumber, TransactionOutcome,
     };
-    use sp_std::{boxed::Box, result::Result, vec::Vec};
+    use sp_std::{borrow::Borrow, boxed::Box, result::Result, vec::Vec};
+    use sp_trie::StorageProof;
 
     use primitives::{
         ump::*, ArithmeticKind, Balance, CurrencyId, DerivativeIndex, EraIndex,
@@ -164,8 +170,9 @@ pub mod pallet {
         #[pallet::constant]
         type NumSlashingSpans: Get<u32>;
 
-        /// The relay's BlockNumber provider
-        type RelayChainBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
+        /// The relay's validation data provider
+        type RelayChainValidationDataProvider: ValidationDataProvider
+            + BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
@@ -248,12 +255,23 @@ pub mod pallet {
         StakingLedgerLocked,
         /// Not withdrawn unbonded yet
         NotWithdrawn,
+        /// The merkle proof is invalid
+        InvalidProof,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
     #[pallet::storage]
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
+
+    /// ValidationData of previous block
+    ///
+    /// This is needed since validation data from cumulus_pallet_parachain_system
+    /// will be updated in set_validation_data Inherent which happens before external
+    /// extrinsics
+    #[pallet::storage]
+    #[pallet::getter(fn validation_data)]
+    pub type ValidationData<T: Config> = StorageValue<_, PersistedValidationData, OptionQuery>;
 
     /// Fraction of reward currently set aside for reserves.
     #[pallet::storage]
@@ -704,13 +722,60 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Force set staking_ledger for updating exchange rate in next era
+        /// Force set staking_ledger
         #[pallet::weight(<T as Config>::WeightInfo::force_set_staking_ledger())]
         #[transactional]
         pub fn force_set_staking_ledger(
             origin: OriginFor<T>,
             derivative_index: DerivativeIndex,
             staking_ledger: StakingLedger<T::AccountId, BalanceOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+
+            Self::do_update_ledger(derivative_index, |ledger| {
+                ensure!(
+                    !Self::is_updated(derivative_index),
+                    Error::<T>::StakingLedgerLocked
+                );
+                *ledger = staking_ledger;
+                Ok(())
+            })?;
+
+            Ok(().into())
+        }
+
+        /// Set current era by providing storage proof
+        #[pallet::weight(<T as Config>::WeightInfo::force_set_current_era())]
+        #[transactional]
+        pub fn set_current_era(
+            origin: OriginFor<T>,
+            era: EraIndex,
+            proof: Vec<Vec<u8>>,
+        ) -> DispatchResultWithPostInfo {
+            Self::ensure_origin(origin)?;
+
+            let offset = era.saturating_sub(Self::current_era());
+
+            let key = Self::get_current_era_key();
+            let value = era.encode();
+            ensure!(
+                Self::verify_merkle_proof(key, value, proof),
+                Error::<T>::InvalidProof
+            );
+
+            Self::do_advance_era(offset)?;
+
+            Ok(().into())
+        }
+
+        /// Set staking_ledger by providing storage proof
+        #[pallet::weight(<T as Config>::WeightInfo::force_set_staking_ledger())]
+        #[transactional]
+        pub fn set_staking_ledger(
+            origin: OriginFor<T>,
+            derivative_index: DerivativeIndex,
+            staking_ledger: StakingLedger<T::AccountId, BalanceOf<T>>,
+            proof: Vec<Vec<u8>>,
         ) -> DispatchResultWithPostInfo {
             Self::ensure_origin(origin)?;
 
@@ -719,13 +784,18 @@ pub mod pallet {
                     !Self::is_updated(derivative_index),
                     Error::<T>::StakingLedgerLocked
                 );
+                let key = Self::get_staking_ledger_key(derivative_index);
+                let value = staking_ledger.encode();
+                ensure!(
+                    Self::verify_merkle_proof(key, value, proof),
+                    Error::<T>::InvalidProof
+                );
                 log::trace!(
-                    target: "liquidStaking::force_set_staking_ledger",
+                    target: "liquidStaking::set_staking_ledger",
                     "index: {:?}, staking_ledger: {:?}",
                     &derivative_index,
                     &staking_ledger,
                 );
-                // TODO: using storage proof to validate submitted staking_ledger
                 *ledger = staking_ledger;
                 Ok(())
             })?;
@@ -737,7 +807,8 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
-            let relaychain_block_number = T::RelayChainBlockNumberProvider::current_block_number();
+            let relaychain_block_number =
+                T::RelayChainValidationDataProvider::current_block_number();
             let offset = Self::offset(relaychain_block_number);
             log::trace!(
                 target: "liquidStaking::on_initialize",
@@ -769,6 +840,9 @@ pub mod pallet {
 
         fn on_finalize(_n: T::BlockNumber) {
             IsUpdated::<T>::remove_all(None);
+            if let Some(data) = T::RelayChainValidationDataProvider::validation_data() {
+                ValidationData::<T>::put(data);
+            }
         }
     }
 
@@ -1261,7 +1335,11 @@ pub mod pallet {
 
         #[require_transactional]
         pub(crate) fn do_advance_era(offset: EraIndex) -> DispatchResult {
-            EraStartBlock::<T>::put(T::RelayChainBlockNumberProvider::current_block_number());
+            if offset.is_zero() {
+                return Ok(());
+            }
+
+            EraStartBlock::<T>::put(T::RelayChainValidationDataProvider::current_block_number());
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
             let derivative_index = T::DerivativeIndex::get();
@@ -1326,6 +1404,54 @@ pub mod pallet {
                 query_id: Default::default(),
                 response: Default::default(),
             })
+        }
+
+        pub(crate) fn verify_merkle_proof(
+            key: Vec<u8>,
+            value: Vec<u8>,
+            proof: Vec<Vec<u8>>,
+        ) -> bool {
+            let validation_data = Self::validation_data();
+            if validation_data.is_none() {
+                return false;
+            }
+            let PersistedValidationData {
+                relay_parent_number,
+                relay_parent_storage_root,
+                ..
+            } = validation_data.expect("Could not be none, qed;");
+            log::trace!(
+                target: "liquidStaking::verify_merkle_proof",
+                "relay_parent_number: {:?}, relay_parent_storage_root: {:?}",
+                &relay_parent_number, &relay_parent_storage_root,
+            );
+            let relay_proof = StorageProof::new(proof);
+            let db = relay_proof.into_memory_db();
+            if let Ok(Some(result)) = sp_trie::read_trie_value::<sp_trie::LayoutV1<BlakeTwo256>, _>(
+                &db,
+                &relay_parent_storage_root,
+                &key,
+            ) {
+                return result == value;
+            }
+            false
+        }
+
+        pub(crate) fn get_staking_ledger_key(derivative_index: DerivativeIndex) -> Vec<u8> {
+            let storage_prefix = storage_prefix("Staking".as_bytes(), "Ledger".as_bytes());
+            let key = Self::derivative_sovereign_account_id(derivative_index);
+            let key_hashed = key.borrow().using_encoded(Blake2_128Concat::hash);
+            let mut final_key =
+                Vec::with_capacity(storage_prefix.len() + (key_hashed.as_ref() as &[u8]).len());
+
+            final_key.extend_from_slice(&storage_prefix);
+            final_key.extend_from_slice(key_hashed.as_ref() as &[u8]);
+
+            final_key
+        }
+
+        pub(crate) fn get_current_era_key() -> Vec<u8> {
+            storage_prefix("Staking".as_bytes(), "CurrentEra".as_bytes()).to_vec()
         }
     }
 }

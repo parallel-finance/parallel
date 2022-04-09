@@ -18,6 +18,7 @@ pub mod currency;
 pub mod network;
 pub mod tokens;
 pub mod ump;
+pub mod xcm_gadget;
 
 use codec::{Decode, Encode};
 use frame_support::pallet_prelude::*;
@@ -108,7 +109,7 @@ pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 // DAOFi id of a payment stream
 pub type StreamId = u128;
 
-pub use cumulus_primitives_core::ParaId;
+pub use cumulus_primitives_core::{ParaId, PersistedValidationData};
 use num_bigint::{BigUint, ToBigUint};
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
@@ -191,4 +192,18 @@ impl ConvertToBigUint for u128 {
     fn get_big_uint(&self) -> BigUint {
         self.to_biguint().unwrap()
     }
+}
+
+/// Asset Registrar Metadata
+#[derive(Clone, Default, Eq, Debug, PartialEq, Ord, PartialOrd, Encode, Decode, TypeInfo)]
+pub struct AssetRegistrarMetadata {
+    pub name: Vec<u8>,
+    pub symbol: Vec<u8>,
+    pub decimals: u8,
+    pub is_frozen: bool,
+}
+
+/// Get relaychain validation data
+pub trait ValidationDataProvider {
+    fn validation_data() -> Option<PersistedValidationData>;
 }

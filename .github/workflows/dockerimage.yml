@@ -9,7 +9,7 @@ on:
       - "qa*"
 
 jobs:
-  dockerimage:
+  parallel:
     if: github.repository == 'parallel-finance/parallel'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -45,12 +45,7 @@ jobs:
           cond: ${{ startsWith(github.ref, 'refs/tags/') }}
           if_true: ${{ steps.git_tag.outputs.tag }}
           if_false: "latest"
-      - uses: marceloprado/has-changed-path@v1
-        id: has_changed_path
-        with:
-          paths: node/ runtime/ pallets/ resources/ primitives/ Dockerfile.release .github/
       - name: Build and push
-        if: steps.has_changed_path.outputs.changed == 'true'
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -63,5 +58,51 @@ jobs:
             PROFILE=release
           tags: ${{ secrets.DOCKERHUB_ORGNAME }}/${{ matrix.bin }}:${{ steps.docker_tag.outputs.value }}
       - name: Image digest
-        if: steps.has_changed_path.outputs.changed == 'true'
+        run: echo ${{ steps.docker_build.outputs.digest }}
+  parallel-helper:
+    if: github.repository == 'parallel-finance/parallel'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        bin: ["helper"]
+
+    steps:
+      - name: Checkout github repo (+ download lfs dependencies)
+        uses: actions/checkout@v2
+        with:
+          lfs: true
+          submodules: true
+          fetch-depth: 2
+      - name: Checkout LFS objects
+        run: git lfs checkout
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Get GIT Tag
+        if: startsWith(github.ref, 'refs/tags/')
+        id: git_tag
+        run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
+      - uses: haya14busa/action-cond@v1
+        id: docker_tag
+        with:
+          cond: ${{ startsWith(github.ref, 'refs/tags/') }}
+          if_true: ${{ steps.git_tag.outputs.tag }}
+          if_false: "latest"
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: scripts/helper
+          file: scripts/helper/Dockerfile.release
+          push: true
+          platforms: linux/amd64
+          tags: ${{ secrets.DOCKERHUB_ORGNAME }}/${{ matrix.bin }}:${{ steps.docker_tag.outputs.value }}
+      - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

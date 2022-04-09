@@ -1,5 +1,8 @@
 use crate::{
-    mock::{new_test_ext, Loans, Origin, Test, ACTIVE_MARKET_MOCK, ALICE, DOT, MARKET_MOCK, SDOT},
+    mock::{
+        market_mock, new_test_ext, Loans, Origin, Test, ACTIVE_MARKET_MOCK, ALICE, DOT,
+        MARKET_MOCK, PDOT, PUSDT, SDOT,
+    },
     Error, InterestRateModel, MarketState,
 };
 use frame_support::{assert_noop, assert_ok, error::BadOrigin};
@@ -160,8 +163,23 @@ fn force_update_market_can_only_be_used_by_root() {
 #[test]
 fn force_update_market_works() {
     new_test_ext().execute_with(|| {
-        Loans::force_update_market(Origin::root(), DOT, MARKET_MOCK).unwrap();
-        assert_eq!(Loans::market(DOT).unwrap().state, MarketState::Pending);
+        let mut new_market = market_mock(PDOT);
+        new_market.state = MarketState::Active;
+        Loans::force_update_market(Origin::root(), DOT, new_market).unwrap();
+        assert_eq!(Loans::market(DOT).unwrap().state, MarketState::Active);
+        assert_eq!(Loans::market(DOT).unwrap().ptoken_id, PDOT);
+
+        // New ptoken_id must not be in use
+        assert_noop!(
+            Loans::force_update_market(Origin::root(), DOT, market_mock(PUSDT)),
+            Error::<Test>::InvalidPtokenId
+        );
+        assert_ok!(Loans::force_update_market(
+            Origin::root(),
+            DOT,
+            market_mock(1234)
+        ));
+        assert_eq!(Loans::market(DOT).unwrap().ptoken_id, 1234);
     })
 }
 
@@ -192,7 +210,8 @@ fn update_market_ensures_that_it_is_not_possible_to_modify_unknown_market_curren
                 market.reserve_factor,
                 market.close_factor,
                 market.liquidate_incentive,
-                market.cap,
+                market.supply_cap,
+                market.borrow_cap,
             ),
             Error::<Test>::MarketDoesNotExist
         );
@@ -215,11 +234,12 @@ fn update_market_works() {
             market.reserve_factor,
             Default::default(),
             market.liquidate_incentive,
-            market.cap
+            market.supply_cap,
+            market.borrow_cap,
         ));
 
         assert_eq!(Loans::market(DOT).unwrap().close_factor, Default::default());
-        assert_eq!(Loans::market(DOT).unwrap().cap, market.cap);
+        assert_eq!(Loans::market(DOT).unwrap().supply_cap, market.supply_cap);
     })
 }
 
@@ -241,7 +261,8 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 market.reserve_factor,
                 Default::default(),
                 market.liquidate_incentive,
-                market.cap
+                market.supply_cap,
+                market.borrow_cap,
             ),
             Error::<Test>::InvalidFactor
         );
@@ -253,7 +274,8 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 market.reserve_factor,
                 Default::default(),
                 market.liquidate_incentive,
-                market.cap
+                market.supply_cap,
+                market.borrow_cap,
             ),
             Error::<Test>::InvalidFactor
         );
@@ -266,7 +288,8 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Ratio::zero(),
                 Default::default(),
                 market.liquidate_incentive,
-                market.cap
+                market.supply_cap,
+                market.borrow_cap,
             ),
             Error::<Test>::InvalidFactor
         );
@@ -278,7 +301,8 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Ratio::one(),
                 Default::default(),
                 market.liquidate_incentive,
-                market.cap
+                market.supply_cap,
+                market.borrow_cap,
             ),
             Error::<Test>::InvalidFactor
         );
@@ -291,9 +315,10 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 market.reserve_factor,
                 Default::default(),
                 Rate::from_inner(Rate::DIV / 100 * 90),
-                Zero::zero()
+                Zero::zero(),
+                market.borrow_cap,
             ),
-            Error::<Test>::InvalidCap
+            Error::<Test>::InvalidSupplyCap
         );
     })
 }
