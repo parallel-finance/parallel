@@ -96,9 +96,9 @@ pub use pallet_bridge;
 pub use pallet_farming;
 pub use pallet_liquid_staking;
 pub use pallet_loans;
-pub use pallet_payroll;
 pub use pallet_prices;
 pub use pallet_router;
+pub use pallet_stream;
 
 use currency::*;
 use fee::*;
@@ -1755,12 +1755,12 @@ parameter_types! {
     pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
 }
 
-impl pallet_payroll::Config for Runtime {
+impl pallet_stream::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = StreamPalletId;
     type UnixTime = Timestamp;
-    type WeightInfo = pallet_payroll::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = pallet_stream::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {

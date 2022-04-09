@@ -91,9 +91,9 @@ pub use pallet_bridge;
 pub use pallet_farming;
 pub use pallet_liquid_staking;
 pub use pallet_loans;
-pub use pallet_payroll;
 pub use pallet_prices;
 pub use pallet_router;
+pub use pallet_stream;
 
 use currency::*;
 use fee::*;
@@ -1695,12 +1695,12 @@ parameter_types! {
     pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
 }
 
-impl pallet_payroll::Config for Runtime {
+impl pallet_stream::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = StreamPalletId;
     type UnixTime = Timestamp;
-    type WeightInfo = pallet_payroll::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = pallet_stream::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1884,7 +1884,7 @@ construct_runtime!(
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Storage, Event<T>} = 91,
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
-        Stream: pallet_payroll::{Pallet, Call, Storage, Event<T>} = 94,
+        Stream: pallet_stream::{Pallet, Call, Storage, Event<T>} = 94,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
