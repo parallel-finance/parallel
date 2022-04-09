@@ -96,7 +96,7 @@ pub use pallet_bridge;
 pub use pallet_farming;
 pub use pallet_liquid_staking;
 pub use pallet_loans;
-pub use pallet_payroll;
+// pub use pallet_payroll;
 pub use pallet_prices;
 pub use pallet_router;
 
@@ -272,9 +272,8 @@ impl Contains<Call> for BaseCallFilter {
             // Bridge
             Call::Bridge(_) |
             // Farming
-            Call::Farming(_) |
-            // Payroll
-            Call::Payroll(_)
+            Call::Farming(_) // Payroll
+                             // Call::Payroll(_)
         )
 
         // // Consensus
@@ -1059,7 +1058,7 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = DOLLARS / 40; // 0.025HKO
+        let default_gift_amount = DOLLARS / 20; // 0.05HKO
         Ok(match asset_id {
             KSM if balance >= 10_u128.pow((decimal - 1).into()) => default_gift_amount,
             EUSDT | EUSDC if balance >= 300 * 10_u128.pow(decimal.into()) => default_gift_amount,
@@ -1751,17 +1750,17 @@ impl pallet_crowdloans::Config for Runtime {
     type Members = CrowdloansAutomatorsMembership;
 }
 
-parameter_types! {
-    pub const PayrollPalletId: PalletId = PalletId(*b"par/payr");
-}
-
-impl pallet_payroll::Config for Runtime {
-    type Event = Event;
-    type Assets = CurrencyAdapter;
-    type PalletId = PayrollPalletId;
-    type UnixTime = Timestamp;
-    type WeightInfo = pallet_payroll::weights::SubstrateWeight<Runtime>;
-}
+// parameter_types! {
+//     pub const PayrollPalletId: PalletId = PalletId(*b"par/payr");
+// }
+//
+// impl pallet_payroll::Config for Runtime {
+//     type Event = Event;
+//     type Assets = CurrencyAdapter;
+//     type PalletId = PayrollPalletId;
+//     type UnixTime = Timestamp;
+//     type WeightInfo = pallet_payroll::weights::SubstrateWeight<Runtime>;
+// }
 
 parameter_types! {
     pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
@@ -1962,7 +1961,7 @@ construct_runtime!(
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Storage, Event<T>} = 91,
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
-        Payroll: pallet_payroll::{Pallet, Call, Storage, Event<T>} = 94,
+        // Payroll: pallet_payroll::{Pallet, Call, Storage, Event<T>} = 94,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
