@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # Payroll pallet
+//! # Stream pallet
 //!
 //! ## Overview
 //!
@@ -52,7 +52,7 @@ type BalanceOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 type AccountOf<T> = <T as frame_system::Config>::AccountId;
 
-// Struct for Payroll stream
+// Struct for Stream
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(T))]
 #[codec(mel_bound())]
