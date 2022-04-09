@@ -33,7 +33,7 @@ construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Payroll: crate::{Pallet, Storage, Call, Event<T>},
+        Streaming: crate::{Pallet, Storage, Call, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
@@ -143,12 +143,12 @@ impl pallet_currency_adapter::Config for Test {
 }
 
 parameter_types! {
-    pub const PayrollPalletId: PalletId = PalletId(*b"par/payr");
+    pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
 }
 
 impl Config for Test {
     type Event = Event;
-    type PalletId = PayrollPalletId;
+    type PalletId = StreamPalletId;
     type UnixTime = TimestampPallet;
     type Assets = CurrencyAdapter;
     type WeightInfo = ();
