@@ -2845,7 +2845,7 @@ dependencies = [
  "pallet-router-rpc-runtime-api",
  "pallet-scheduler",
  "pallet-session",
- "pallet-stream",
+ "pallet-streaming",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -3595,7 +3595,7 @@ dependencies = [
  "pallet-router-rpc-runtime-api",
  "pallet-scheduler",
  "pallet-session",
- "pallet-stream",
+ "pallet-streaming",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -6231,7 +6231,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-stream"
+name = "pallet-streaming"
 version = "1.7.8"
 dependencies = [
  "frame-benchmarking",
@@ -6677,7 +6677,7 @@ dependencies = [
  "pallet-router-rpc-runtime-api",
  "pallet-scheduler",
  "pallet-session",
- "pallet-stream",
+ "pallet-streaming",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -12009,7 +12009,7 @@ dependencies = [
  "pallet-router-rpc-runtime-api",
  "pallet-scheduler",
  "pallet-session",
- "pallet-stream",
+ "pallet-streaming",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
