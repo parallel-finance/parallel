@@ -33,7 +33,7 @@ construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Stream: crate::{Pallet, Storage, Call, Event<T>},
+        Streams: crate::{Pallet, Storage, Call, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
