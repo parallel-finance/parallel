@@ -619,13 +619,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         // let D2 = Self::do_get_delta((base_asset, quote_asset)).unwrap();
         // D2 and D1 in here will be the same
-
-        if d0 > 0 {
-            if total_supply > 0 && d0 > 0 {
-                liquidity = liquidity * (d1 - d0) / d0;
-            } else {
-                liquidity += d1;
-            }
+        if total_supply > 0 {
+            liquidity = liquidity * (d1 - d0) / d0;
+        } else {
+            liquidity += d1;
         }
 
         T::Assets::mint_into(pool.lp_token_id, who, liquidity)?;
