@@ -245,7 +245,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::AMM(_) |
             Call::AMMRoute(_) |
             // Payroll
-            Call::Payroll(_) |
+            Call::Stream(_) |
             // Farming
             Call::Farming(_)
         )

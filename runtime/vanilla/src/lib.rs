@@ -276,7 +276,7 @@ impl Contains<Call> for BaseCallFilter {
             // Farming
             Call::Farming(_) |
             // Payroll
-            Call::Payroll(_)
+            Call::Stream(_)
         )
     }
 }
