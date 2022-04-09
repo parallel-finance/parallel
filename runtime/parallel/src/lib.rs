@@ -1615,7 +1615,7 @@ impl pallet_crowdloans::Config for Runtime {
 }
 
 parameter_types! {
-    pub const StreamPalletId: PalletId = PalletId(*b"par/payr");
+    pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
 }
 
 impl pallet_payroll::Config for Runtime {

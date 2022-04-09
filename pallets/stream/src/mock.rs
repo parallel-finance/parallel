@@ -143,7 +143,7 @@ impl pallet_currency_adapter::Config for Test {
 }
 
 parameter_types! {
-    pub const StreamPalletId: PalletId = PalletId(*b"par/payr");
+    pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
 }
 
 impl Config for Test {
