@@ -153,7 +153,7 @@ pub mod pallet {
     /// Global storage for streams
     #[pallet::storage]
     #[pallet::getter(fn get_stream)]
-    pub type Streams<T: Config> = StorageMap<_, Twox64Concat, StreamId, Stream<T>>;
+    pub type Stream<T: Config> = StorageMap<_, Twox64Concat, StreamId, Stream<T>>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
