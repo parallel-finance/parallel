@@ -86,7 +86,7 @@ fn withdraw_from_stream_works() {
             6,
             18
         ));
-        let before_stream = Streaming::<Test>::get(0).unwrap();
+        let before_stream = Streams::<Test>::get(0).unwrap();
         // Dave cannot access
         assert_err!(
             Streaming::withdraw_from_stream(Origin::signed(DAVE), 0, 1),
@@ -95,7 +95,7 @@ fn withdraw_from_stream_works() {
         // Time passes for 1 second
         TimestampPallet::set_timestamp(7000); // 6000(init) + 1000(second)
                                               // check if 1 second has passed
-        let stream = Streaming::<Test>::get(0).unwrap();
+        let stream = Streams::<Test>::get(0).unwrap();
         assert_eq!(Streaming::delta_of(&stream), Ok(1));
         // Bob withdraws some
         assert_ok!(Streaming::withdraw_from_stream(
@@ -110,7 +110,7 @@ fn withdraw_from_stream_works() {
         );
         // balance is updated in the existing stream
         assert!(
-            Streaming::<Test>::get(0).unwrap().remaining_balance != before_stream.remaining_balance
+            Streams::<Test>::get(0).unwrap().remaining_balance != before_stream.remaining_balance
         );
     });
 }
@@ -136,7 +136,7 @@ fn withdraw_from_with_slower_rate_works() {
         // Time passes after stop time
         TimestampPallet::set_timestamp(20000); // after stop timestamp in milliseconds
                                                // check if 12 second has passed
-        let stream = Streaming::<Test>::get(0).unwrap();
+        let stream = Streams::<Test>::get(0).unwrap();
         // delta of should only increase until stop_time
         assert_eq!(Streaming::delta_of(&stream), Ok(12));
         // Bob withdraws some
@@ -151,8 +151,8 @@ fn withdraw_from_with_slower_rate_works() {
             <Test as Config>::Assets::balance(DOT, &BOB) - before_bob,
             dollar(100)
         );
-        // check whether stream has gone
-        assert_eq!(Streaming::<Test>::get(0), None);
+        // check whether stream has been removed
+        assert_eq!(Streams::<Test>::get(0), None);
     });
 }
 
@@ -166,7 +166,7 @@ fn cancel_stream_works_with_withdrawal() {
             dollar(100),
             DOT,
             6,
-            18
+            10
         ));
         // Get before bob and alice balance
         let before_alice = <Test as Config>::Assets::balance(DOT, &ALICE);
@@ -174,11 +174,16 @@ fn cancel_stream_works_with_withdrawal() {
         // Time passes for 1 second
         TimestampPallet::set_timestamp(7000); // 6000(init) + 1000(second)
                                               // check if 1 second has passed
-        let stream = Streaming::<Test>::get(0).unwrap();
+        let mut stream = Streams::<Test>::get(0).unwrap();
         assert_eq!(Streaming::delta_of(&stream), Ok(1));
         // Bob withdraws some
-        assert_ok!(Streaming::withdraw_from_stream(Origin::signed(BOB), 0, 1));
-        assert_eq!(Streaming::balance_of(&stream, &2).unwrap(), dollar(1));
+        assert_ok!(Streaming::withdraw_from_stream(
+            Origin::signed(BOB),
+            0,
+            dollar(25)
+        ));
+        stream = Streams::<Test>::get(0).unwrap();
+        assert_eq!(Streaming::balance_of(&stream, &2).unwrap(), dollar(0));
         // Time passes for 1 second
         TimestampPallet::set_timestamp(8000); // 7000(before) + 1000(second)
                                               // Alice cancels existing stream sent to bob
@@ -186,11 +191,11 @@ fn cancel_stream_works_with_withdrawal() {
         // Alice and Bob is received with 98 DOT and 2 DOT respectively as deposit == remaining_balance
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &ALICE) - before_alice,
-            dollar(98)
+            dollar(50)
         );
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &BOB) - before_bob,
-            dollar(2)
+            dollar(50)
         );
         // Bob cannot access to previous stream
         assert_err!(
