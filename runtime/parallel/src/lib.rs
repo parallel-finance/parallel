@@ -139,10 +139,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 181,
-    impl_version: 26,
+    spec_version: 182,
+    impl_version: 27,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 10,
+    transaction_version: 11,
     state_version: 0,
 };
 
@@ -244,7 +244,7 @@ impl Contains<Call> for BaseCallFilter {
             // AMM
             Call::AMM(_) |
             Call::AMMRoute(_) |
-            // Payroll
+            // Streaming
             Call::Streaming(_) |
             // Farming
             Call::Farming(_)

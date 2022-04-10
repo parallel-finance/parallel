@@ -2,7 +2,7 @@
 name = 'pallet-asset-manager'
 authors = [ 'Parallel Team' ]
 edition = '2021'
-version = '1.8.1'
+version = '1.8.2'
 
 [dependencies]
 log 				= { version = '0.4', default-features = false }

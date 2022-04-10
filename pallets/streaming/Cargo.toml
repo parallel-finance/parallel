@@ -2,7 +2,7 @@
 authors = ['Parallel Team']
 edition = '2021'
 name    = 'pallet-streaming'
-version = '1.7.8'
+version = '1.8.2'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
@@ -48,7 +48,7 @@ std                = [
   'serde',
   'scale-info/std',
 ]
-try-runtime = ['frame-support/try-runtime']
+try-runtime        = ['frame-support/try-runtime']
 
 [lib]
 doctest = false
