@@ -16,7 +16,7 @@
 //!
 //! ## Overview
 //!
-//! This pallet is part of DAOFi modules that provides payroll management
+//! This pallet is part of DAOFi modules that provides payroll streaming management
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -34,7 +34,10 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use primitives::*;
 use scale_info::TypeInfo;
-use sp_runtime::{traits::AccountIdConversion, ArithmeticError, DispatchError};
+use sp_runtime::{
+    traits::{AccountIdConversion, Zero},
+    ArithmeticError, DispatchError,
+};
 use sp_std::prelude::*;
 
 pub use pallet::*;
@@ -90,7 +93,7 @@ pub mod pallet {
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
-        /// The payroll module id, keep all collaterals of CDPs.
+        /// The streaming module id, keep all collaterals of CDPs.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
@@ -116,14 +119,14 @@ pub mod pallet {
         /// Caller is not the recipient
         NotTheRecipient,
         /// Amount exceeds balance
-        ExceedsBalance,
+        InsufficientBalance,
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Creates a payment stream. \[stream_id, sender, recipient, deposit, currency_id, start_time, stop_time\]
-        CreateStream(
+        StreamCreated(
             StreamId,
             AccountOf<T>,
             AccountOf<T>,
@@ -133,9 +136,9 @@ pub mod pallet {
             Timestamp,
         ),
         /// Withdraw payment from stream. \[stream_id, recipient, amount\]
-        WithdrawFromStream(StreamId, AccountOf<T>, AssetIdOf<T>, BalanceOf<T>),
+        StreamWithdrawn(StreamId, AccountOf<T>, AssetIdOf<T>, BalanceOf<T>),
         /// Cancel an existing stream. \[stream_id, sender, recipient, sender_balance, recipient_balance]
-        CancelStream(
+        StreamCanceled(
             StreamId,
             AccountOf<T>,
             AccountOf<T>,
@@ -174,7 +177,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             ensure!(recipient != sender, Error::<T>::RecipientIsAlsoSender);
-            ensure!(deposit > 0, Error::<T>::DepositIsZero);
+            ensure!(!deposit.is_zero(), Error::<T>::DepositIsZero);
             ensure!(
                 start_time >= T::UnixTime::now().as_secs(),
                 Error::<T>::StartBeforeBlockTime
@@ -206,7 +209,7 @@ pub mod pallet {
             NextStreamId::<T>::set(stream_id + 1);
             // transfer deposit from sender to global EOA
             T::Assets::transfer(currency_id, &sender, &Self::account_id(), deposit, false)?;
-            Self::deposit_event(Event::<T>::CreateStream(
+            Self::deposit_event(Event::<T>::StreamCreated(
                 stream_id,
                 sender,
                 recipient,
@@ -249,7 +252,7 @@ pub mod pallet {
             )?;
             // remove stream
             Streams::<T>::remove(stream_id);
-            Self::deposit_event(Event::<T>::CancelStream(
+            Self::deposit_event(Event::<T>::StreamCanceled(
                 stream_id,
                 sender,
                 stream.recipient,
@@ -274,17 +277,17 @@ pub mod pallet {
             ensure!(sender == stream.recipient, Error::<T>::NotTheRecipient);
             // Check balance
             let balance = Self::balance_of(&stream, &stream.recipient)?;
-            ensure!(balance >= amount, Error::<T>::ExceedsBalance);
+            ensure!(balance >= amount, Error::<T>::InsufficientBalance);
             stream.remaining_balance = stream
                 .remaining_balance
                 .checked_sub(amount)
                 .ok_or(ArithmeticError::Underflow)?;
             // Check if balance is zero, then remove
-            if stream.remaining_balance == 0 {
+            if stream.remaining_balance.is_zero() {
                 // remove
                 Streams::<T>::remove(stream_id);
             } else {
-                // insert new payroll
+                // insert new streaming
                 Streams::<T>::insert(stream_id, stream.clone());
             }
             // withdraw deposit from stream
@@ -295,7 +298,7 @@ pub mod pallet {
                 amount,
                 false,
             )?;
-            Self::deposit_event(Event::<T>::WithdrawFromStream(
+            Self::deposit_event(Event::<T>::StreamWithdrawn(
                 stream_id,
                 stream.recipient,
                 stream.currency_id,
@@ -314,7 +317,7 @@ impl<T: Config> Pallet<T> {
     pub fn delta_of(stream: &Stream<T>) -> Result<u64, DispatchError> {
         let now = T::UnixTime::now().as_secs();
         if now <= stream.start_time {
-            Ok(0)
+            Ok(Zero::zero())
         } else if now < stream.stop_time {
             now.checked_sub(stream.start_time)
                 .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow))
@@ -326,7 +329,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    // Measure balance of payroll with rate per sec
+    // Measure balance of streaming with rate per sec
     pub fn balance_of(
         stream: &Stream<T>,
         who: &AccountOf<T>,
@@ -369,7 +372,7 @@ impl<T: Config> Pallet<T> {
                 .ok_or(ArithmeticError::Underflow)?;
             Ok(sender_balance)
         } else {
-            Ok(0)
+            Ok(Zero::zero())
         }
     }
 }
