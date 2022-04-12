@@ -215,8 +215,6 @@ pub enum ProxyType {
     NonTransfer = 1_isize,
     Governance = 2_isize,
     Staking = 3_isize,
-    CancelProxy = 6_isize,
-    Auction = 7_isize,
 }
 
 impl Default for ProxyType {

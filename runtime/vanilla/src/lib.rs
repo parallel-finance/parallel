@@ -1818,7 +1818,7 @@ impl pallet_xcm_helper::Config for Runtime {
     type AccountIdToMultiLocation = AccountIdToMultiLocation<AccountId>;
     type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
-    type XCMOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type XcmOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_xcm_helper::weights::SubstrateWeight<Runtime>;
 }
 

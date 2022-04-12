@@ -208,12 +208,12 @@ fn send_as_sovereign_should_work() {
 }
 
 #[test]
-fn ump_transacts_should_work() {
+fn ump_transact_should_work() {
     new_test_ext().execute_with(|| {
         let xcm_weight_fee_misc = XcmHelpers::xcm_weight_fee(XcmCall::AddProxy);
         let remark = "test".as_bytes().to_vec();
         let call = TestCall::System(frame_system::Call::remark { remark });
-        assert_ok!(XcmHelpers::ump_transacts(
+        assert_ok!(XcmHelpers::ump_transact(
             frame_system::RawOrigin::Root.into(), // origin
             call.encode().into(),
             xcm_weight_fee_misc.weight,
