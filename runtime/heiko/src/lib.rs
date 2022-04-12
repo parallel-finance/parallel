@@ -525,9 +525,15 @@ parameter_types! {
     pub const MaxAssetsForTransfer: usize = 2;
 }
 
+// Min fee required when transfering asset back to reserve sibling chain
+// which use aother asset(e.g Relaychain's asset) as fee
 parameter_type_with_key! {
-    pub ParachainMinFee: |_location: MultiLocation| -> u128 {
-        u128::MAX
+    pub ParachainMinFee: |location: MultiLocation| -> u128 {
+        #[allow(clippy::match_ref_pats)] // false positive
+        match (location.parents, location.first_interior()) {
+            (1, Some(Parachain(paras::statemine::ID))) => XcmHelper::get_xcm_weight_fee_to_sibling(location.clone()).fee,//default fee should be enough even if not configured
+            _ => u128::MAX,
+        }
     };
 }
 
