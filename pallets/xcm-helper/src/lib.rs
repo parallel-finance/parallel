@@ -36,14 +36,14 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-
-use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
+use primitives::{switch_relay, ump::*, AccountId, Balance, BlockNumber, CurrencyId, ParaId};
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup};
-use sp_std::{boxed::Box, vec, vec::Vec};
-use xcm::{latest::prelude::*, DoubleEncoded};
+use sp_std::{boxed::Box, prelude::*, vec, vec::Vec};
+use xcm::{latest::prelude::*, DoubleEncoded, VersionedMultiLocation, VersionedXcm};
 use xcm_executor::traits::InvertLocation;
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+pub type CallIdOf<T> = <T as pallet_xcm::Config>::Call;
 pub type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 pub type BalanceOf<T> =
@@ -55,6 +55,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::{BlockNumberFor, OriginFor};
 
     use super::*;
+
     use sp_runtime::traits::{Convert, Zero};
 
     #[pallet::config]
@@ -94,6 +95,9 @@ pub mod pallet {
         /// The origin which can update reserve_factor, xcm_fees etc
         type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
+        /// The origin which can call XCM helper functions
+        type XcmOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
         /// Weight information
         type WeightInfo: WeightInfo;
     }
@@ -103,6 +107,31 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// Xcm fee and weight updated
         XcmWeightFeeUpdated(XcmWeightFeeMisc<Weight, BalanceOf<T>>),
+        /// Withdrawing
+        Withdrawing,
+        /// Contributing
+        Contributing,
+        /// Bonding
+        Bonding,
+        /// BondingExtra
+        BondingExtra,
+        /// Unbonding
+        Unbonding,
+        /// Rebonding
+        Rebonding,
+        /// WithdrawingUnbonded
+        WithdrawingUnbonded,
+        /// Nominating
+        Nominating,
+        /// XCM message sent. \[to, message\]
+        Sent {
+            to: Box<MultiLocation>,
+            message: Xcm<()>,
+        },
+        /// ProxyAdded
+        ProxyAdded,
+        /// ProxyRemoved
+        ProxyRemoved,
     }
 
     #[pallet::storage]
@@ -111,21 +140,29 @@ pub mod pallet {
         StorageMap<_, Twox64Concat, XcmCall, XcmWeightFeeMisc<Weight, BalanceOf<T>>, ValueQuery>;
 
     #[pallet::pallet]
+    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
-    pub struct Pallet<T>(_);
+    pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::error]
     pub enum Error<T> {
         /// `MultiLocation` value ascend more parents than known ancestors of local location.
         MultiLocationNotInvertible,
-        /// Xcm message send failure
-        SendXcmError,
         /// XcmWeightMisc cannot have zero value
         ZeroXcmWeightMisc,
         /// Xcm fees cannot be zero
         ZeroXcmFees,
         /// Insufficient xcm fees
         InsufficientXcmFees,
+        /// The message and destination combination was not recognized as being
+        /// reachable.
+        Unreachable,
+        /// The message and destination was recognized as being reachable but
+        /// the operation could not be completed.
+        SendFailure,
+        /// The version of the `Versioned` value used is not able to be
+        /// interpreted.
+        BadVersion,
     }
 
     #[pallet::call]
@@ -137,7 +174,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             xcm_call: XcmCall,
             xcm_weight_fee_misc: XcmWeightFeeMisc<Weight, BalanceOf<T>>,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
 
             ensure!(!xcm_weight_fee_misc.fee.is_zero(), Error::<T>::ZeroXcmFees);
@@ -148,15 +185,240 @@ pub mod pallet {
 
             XcmWeightFee::<T>::mutate(xcm_call, |v| *v = xcm_weight_fee_misc);
             Self::deposit_event(Event::<T>::XcmWeightFeeUpdated(xcm_weight_fee_misc));
-            Ok(().into())
+            Ok(())
+        }
+
+        #[pallet::weight(100_000_000)]
+        #[transactional]
+        pub fn withdraw(
+            origin: OriginFor<T>,
+            para_id: ParaId,
+            relay_currency: AssetIdOf<T>,
+            para_account_id: AccountIdOf<T>,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResult {
+            T::XcmOrigin::ensure_origin(origin)?;
+
+            Self::do_withdraw(para_id, relay_currency, para_account_id, *notify)?;
+
+            Self::deposit_event(Event::<T>::Withdrawing);
+            Ok(())
+        }
+
+        #[pallet::weight(100_000_000)]
+        #[transactional]
+        pub fn contribute(
+            origin: OriginFor<T>,
+            para_id: ParaId,
+            relay_currency: AssetIdOf<T>,
+            amount: BalanceOf<T>,
+            who: AccountIdOf<T>,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResult {
+            T::XcmOrigin::ensure_origin(origin)?;
+
+            Self::do_contribute(para_id, relay_currency, amount, &who, *notify)?;
+
+            Self::deposit_event(Event::<T>::Contributing);
+            Ok(())
+        }
+
+        #[pallet::weight(100_000_000)]
+        #[transactional]
+        pub fn bond(
+            origin: OriginFor<T>,
+            value: BalanceOf<T>,
+            payee: RewardDestination<AccountIdOf<T>>,
+            stash: AccountIdOf<T>,
+            relay_currency: AssetIdOf<T>,
+            index: u16,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResult {
+            T::XcmOrigin::ensure_origin(origin)?;
+
+            Self::do_bond(value, payee, stash, relay_currency, index, *notify)?;
+
+            Self::deposit_event(Event::<T>::Bonding);
+            Ok(())
+        }
+
+        #[pallet::weight(100_000_000)]
+        #[transactional]
+        pub fn bond_extra(
+            origin: OriginFor<T>,
+            value: BalanceOf<T>,
+            stash: AccountIdOf<T>,
+            relay_currency: AssetIdOf<T>,
+            index: u16,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResult {
+            T::XcmOrigin::ensure_origin(origin)?;
+
+            Self::do_bond_extra(value, stash, relay_currency, index, *notify)?;
+
+            Self::deposit_event(Event::<T>::BondingExtra);
+            Ok(())
+        }
+
+        #[pallet::weight(100_000_000)]
+        #[transactional]
+        pub fn unbond(
+            origin: OriginFor<T>,
+            value: BalanceOf<T>,
+            relay_currency: AssetIdOf<T>,
+            index: u16,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResult {
+            T::XcmOrigin::ensure_origin(origin)?;
+
+            Self::do_unbond(value, relay_currency, index, *notify)?;
+
+            Self::deposit_event(Event::<T>::Unbonding);
+            Ok(())
+        }
+
+        #[pallet::weight(100_000_000)]
+        #[transactional]
+        pub fn rebond(
+            origin: OriginFor<T>,
+            value: BalanceOf<T>,
+            relay_currency: AssetIdOf<T>,
+            index: u16,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResult {
+            T::XcmOrigin::ensure_origin(origin)?;
+
+            Self::do_rebond(value, relay_currency, index, *notify)?;
+
+            Self::deposit_event(Event::<T>::Rebonding);
+            Ok(())
+        }
+
+        #[pallet::weight(100_000_000)]
+        #[transactional]
+        pub fn withdraw_unbonded(
+            origin: OriginFor<T>,
+            num_slashing_spans: u32,
+            para_account_id: AccountIdOf<T>,
+            relay_currency: AssetIdOf<T>,
+            index: u16,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResult {
+            T::XcmOrigin::ensure_origin(origin)?;
+
+            Self::do_withdraw_unbonded(
+                num_slashing_spans,
+                para_account_id,
+                relay_currency,
+                index,
+                *notify,
+            )?;
+
+            Self::deposit_event(Event::<T>::WithdrawingUnbonded);
+            Ok(())
+        }
+
+        #[pallet::weight(100_000_000)]
+        #[transactional]
+        pub fn nominate(
+            origin: OriginFor<T>,
+            targets: Vec<AccountIdOf<T>>,
+            relay_currency: AssetIdOf<T>,
+            index: u16,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResult {
+            T::XcmOrigin::ensure_origin(origin)?;
+
+            Self::do_nominate(targets, relay_currency, index, *notify)?;
+
+            Self::deposit_event(Event::<T>::Nominating);
+            Ok(())
+        }
+
+        #[pallet::weight(100_000_000)]
+        pub fn send_as_sovereign(
+            origin: OriginFor<T>,
+            dest: Box<VersionedMultiLocation>,
+            message: Box<VersionedXcm<()>>,
+        ) -> DispatchResult {
+            T::XcmOrigin::ensure_origin(origin)?;
+
+            let dest = MultiLocation::try_from(*dest).map_err(|()| Error::<T>::BadVersion)?;
+            let message: Xcm<()> = (*message).try_into().map_err(|()| Error::<T>::BadVersion)?;
+
+            pallet_xcm::Pallet::<T>::send_xcm(Here, dest.clone(), message.clone()).map_err(
+                |e| match e {
+                    SendError::CannotReachDestination(..) => Error::<T>::Unreachable,
+                    _ => Error::<T>::SendFailure,
+                },
+            )?;
+            Self::deposit_event(Event::Sent {
+                to: Box::new(dest),
+                message,
+            });
+            Ok(())
+        }
+
+        #[pallet::weight(100_000_000)]
+        #[transactional]
+        pub fn ump_transact(
+            origin: OriginFor<T>,
+            call: DoubleEncoded<()>,
+            weight: Weight,
+            beneficiary: Box<MultiLocation>,
+            relay_currency: AssetIdOf<T>,
+            fees: BalanceOf<T>,
+        ) -> DispatchResult {
+            T::XcmOrigin::ensure_origin(origin)?;
+
+            Self::do_ump_transact(call, weight, *beneficiary, relay_currency, fees)?;
+
+            Ok(())
+        }
+
+        #[pallet::weight(100_000_000)]
+        #[transactional]
+        pub fn add_proxy(
+            origin: OriginFor<T>,
+            delegate: AccountId,
+            proxy_type: Option<ProxyType>,
+            delay: BlockNumber,
+            relay_currency: AssetIdOf<T>,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResult {
+            T::XcmOrigin::ensure_origin(origin)?;
+
+            Self::do_add_proxy(delegate, proxy_type, delay, relay_currency, *notify)?;
+
+            Self::deposit_event(Event::<T>::ProxyAdded);
+            Ok(())
+        }
+
+        #[pallet::weight(100_000_000)]
+        #[transactional]
+        pub fn remove_proxy(
+            origin: OriginFor<T>,
+            delegate: AccountId,
+            proxy_type: Option<ProxyType>,
+            delay: BlockNumber,
+            relay_currency: AssetIdOf<T>,
+            notify: Box<CallIdOf<T>>,
+        ) -> DispatchResult {
+            T::XcmOrigin::ensure_origin(origin)?;
+
+            Self::do_remove_proxy(delegate, proxy_type, delay, relay_currency, *notify)?;
+
+            Self::deposit_event(Event::<T>::ProxyRemoved);
+            Ok(())
         }
     }
 }
 
-pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
-    fn add_xcm_fees(relay_currency: AssetId, payer: &AccountId, amount: Balance) -> DispatchResult;
+pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, TAccountId> {
+    fn add_xcm_fees(relay_currency: AssetId, payer: &TAccountId, amount: Balance)
+        -> DispatchResult;
 
-    fn ump_transact(
+    fn do_ump_transact(
         call: DoubleEncoded<()>,
         weight: Weight,
         beneficiary: MultiLocation,
@@ -167,7 +429,7 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
     fn do_withdraw(
         para_id: ParaId,
         relay_currency: AssetId,
-        para_account_id: AccountId,
+        para_account_id: TAccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 
@@ -175,14 +437,14 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         para_id: ParaId,
         relay_currency: AssetId,
         amount: Balance,
-        who: &AccountId,
+        who: &TAccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_bond(
         value: Balance,
-        payee: RewardDestination<AccountId>,
-        stash: AccountId,
+        payee: RewardDestination<TAccountId>,
+        stash: TAccountId,
         relay_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
@@ -190,7 +452,7 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
 
     fn do_bond_extra(
         value: Balance,
-        stash: AccountId,
+        stash: TAccountId,
         relay_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
@@ -212,16 +474,32 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
 
     fn do_withdraw_unbonded(
         num_slashing_spans: u32,
-        para_account_id: AccountId,
+        para_account_id: TAccountId,
         staking_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_nominate(
-        targets: Vec<AccountId>,
+        targets: Vec<TAccountId>,
         relay_currency: AssetId,
         index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
+
+    fn do_add_proxy(
+        delegate: AccountId,
+        proxy_type: Option<ProxyType>,
+        delay: BlockNumber,
+        relay_currency: AssetId,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
+
+    fn do_remove_proxy(
+        delegate: AccountId,
+        proxy_type: Option<ProxyType>,
+        delay: BlockNumber,
+        relay_currency: AssetId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 }
@@ -276,7 +554,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         Ok(())
     }
 
-    fn ump_transact(
+    fn do_ump_transact(
         call: DoubleEncoded<()>,
         weight: Weight,
         beneficiary: MultiLocation,
@@ -307,21 +585,23 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         ]))
     }
 
-    fn do_withdraw(
-        para_id: ParaId,
+    fn do_add_proxy(
+        delegate: AccountId,
+        proxy_type: Option<ProxyType>,
+        delay: BlockNumber,
         relay_currency: AssetIdOf<T>,
-        para_account_id: AccountIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
-        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Withdraw);
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::AddProxy);
         Ok(switch_relay!({
             let call =
-                RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {
-                    who: para_account_id,
-                    index: para_id,
-                }));
+                RelaychainCall::<T>::Proxy(Box::new(ProxyCall::AddProxy(ProxyAddProxyCall {
+                    delegate,
+                    proxy_type,
+                    delay,
+                })));
 
-            let mut msg = Self::ump_transact(
+            let mut msg = Self::do_ump_transact(
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
@@ -337,7 +617,84 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
             )?;
 
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                return Err(Error::<T>::SendXcmError.into());
+                return Err(Error::<T>::SendFailure.into());
+            }
+
+            query_id
+        }))
+    }
+
+    fn do_remove_proxy(
+        delegate: AccountId,
+        proxy_type: Option<ProxyType>,
+        delay: BlockNumber,
+        relay_currency: AssetIdOf<T>,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::RemoveProxy);
+        Ok(switch_relay!({
+            let call = RelaychainCall::<T>::Proxy(Box::new(ProxyCall::RemoveProxy(
+                ProxyRemoveProxyCall {
+                    delegate,
+                    proxy_type,
+                    delay,
+                },
+            )));
+
+            let mut msg = Self::do_ump_transact(
+                call.encode().into(),
+                xcm_weight_fee_misc.weight,
+                Self::refund_location(),
+                relay_currency,
+                xcm_weight_fee_misc.fee,
+            )?;
+
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
+            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendFailure.into());
+            }
+
+            query_id
+        }))
+    }
+
+    fn do_withdraw(
+        para_id: ParaId,
+        relay_currency: AssetIdOf<T>,
+        para_account_id: AccountIdOf<T>,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Withdraw);
+        Ok(switch_relay!({
+            let call =
+                RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {
+                    who: para_account_id,
+                    index: para_id,
+                }));
+
+            let mut msg = Self::do_ump_transact(
+                call.encode().into(),
+                xcm_weight_fee_misc.weight,
+                Self::refund_location(),
+                relay_currency,
+                xcm_weight_fee_misc.fee,
+            )?;
+
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
+            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendFailure.into());
             }
 
             query_id
@@ -361,7 +718,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 },
             ));
 
-            let mut msg = Self::ump_transact(
+            let mut msg = Self::do_ump_transact(
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
@@ -377,7 +734,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
             )?;
 
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                return Err(Error::<T>::SendXcmError.into());
+                return Err(Error::<T>::SendFailure.into());
             }
 
             query_id
@@ -419,7 +776,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                     ],
                 })));
 
-            let mut msg = Self::ump_transact(
+            let mut msg = Self::do_ump_transact(
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
@@ -435,7 +792,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                return Err(Error::<T>::SendXcmError.into());
+                return Err(Error::<T>::SendFailure.into());
             }
 
             query_id
@@ -471,7 +828,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                     ],
                 })));
 
-            let mut msg = Self::ump_transact(
+            let mut msg = Self::do_ump_transact(
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
@@ -487,7 +844,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                return Err(Error::<T>::SendXcmError.into());
+                return Err(Error::<T>::SendFailure.into());
             }
 
             query_id
@@ -511,7 +868,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 },
             )));
 
-            let mut msg = Self::ump_transact(
+            let mut msg = Self::do_ump_transact(
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
@@ -527,7 +884,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                return Err(Error::<T>::SendXcmError.into());
+                return Err(Error::<T>::SendFailure.into());
             }
 
             query_id
@@ -551,7 +908,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 },
             )));
 
-            let mut msg = Self::ump_transact(
+            let mut msg = Self::do_ump_transact(
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
@@ -567,7 +924,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                return Err(Error::<T>::SendXcmError.into());
+                return Err(Error::<T>::SendFailure.into());
             }
 
             query_id
@@ -608,7 +965,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                     ],
                 })));
 
-            let mut msg = Self::ump_transact(
+            let mut msg = Self::do_ump_transact(
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
@@ -624,7 +981,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                return Err(Error::<T>::SendXcmError.into());
+                return Err(Error::<T>::SendFailure.into());
             }
 
             query_id
@@ -651,7 +1008,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 },
             )));
 
-            let mut msg = Self::ump_transact(
+            let mut msg = Self::do_ump_transact(
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
@@ -667,7 +1024,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                return Err(Error::<T>::SendXcmError.into());
+                return Err(Error::<T>::SendFailure.into());
             }
 
             query_id
