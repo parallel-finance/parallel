@@ -8815,7 +8815,7 @@ dependencies = [
 
 [[package]]
 name = "runtime-integration-tests"
-version = "1.8.0"
+version = "1.8.2"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
