@@ -9,8 +9,17 @@ use sp_std::{cmp::Ordering, result::Result, vec, vec::Vec};
 
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct ReservableAmount<Balance> {
-    pub free: Balance,
+    pub total: Balance,
     pub reserved: Balance,
+}
+
+impl<Balance: BalanceT + FixedPointOperand> ReservableAmount<Balance> {
+    pub fn free(&self) -> Result<Balance, DispatchError> {
+        Ok(self
+            .total
+            .checked_sub(&self.reserved)
+            .ok_or(ArithmeticError::Underflow)?)
+    }
 }
 
 /// The matching pool's total stake & unstake amount in one era
@@ -36,17 +45,17 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
 
         let (bond_amount, rebond_amount, unbond_amount) = if matches!(
             self.total_stake_amount
-                .free
-                .cmp(&self.total_unstake_amount.free),
+                .free()?
+                .cmp(&self.total_unstake_amount.free()?),
             Less | Equal
         ) {
             (
                 Zero::zero(),
                 Zero::zero(),
-                self.total_unstake_amount.free - self.total_stake_amount.free,
+                self.total_unstake_amount.free()? - self.total_stake_amount.free()?,
             )
         } else {
-            let amount = self.total_stake_amount.free - self.total_unstake_amount.free;
+            let amount = self.total_stake_amount.free()? - self.total_unstake_amount.free()?;
             if amount < unbonding_amount {
                 (Zero::zero(), amount, Zero::zero())
             } else {
@@ -58,47 +67,42 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
     }
 
     pub fn add_stake_amount(&mut self, amount: Balance) -> DispatchResult {
-        self.total_stake_amount.free = self
+        self.total_stake_amount.total = self
             .total_stake_amount
-            .free
+            .total
             .checked_add(&amount)
             .ok_or(ArithmeticError::Overflow)?;
         Ok(())
     }
 
     pub fn sub_stake_amount(&mut self, amount: Balance) -> DispatchResult {
-        self.total_stake_amount.free = self
+        self.total_stake_amount.total = self
             .total_stake_amount
-            .free
+            .total
             .checked_sub(&amount)
             .ok_or(ArithmeticError::Underflow)?;
         Ok(())
     }
 
     pub fn add_unstake_amount(&mut self, amount: Balance) -> DispatchResult {
-        self.total_unstake_amount.free = self
+        self.total_unstake_amount.total = self
             .total_unstake_amount
-            .free
+            .total
             .checked_add(&amount)
             .ok_or(ArithmeticError::Overflow)?;
         Ok(())
     }
 
     pub fn sub_unstake_amount(&mut self, amount: Balance) -> DispatchResult {
-        self.total_unstake_amount.free = self
+        self.total_unstake_amount.total = self
             .total_unstake_amount
-            .free
+            .total
             .checked_sub(&amount)
             .ok_or(ArithmeticError::Underflow)?;
         Ok(())
     }
 
     pub fn set_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
-        self.total_stake_amount.free = self
-            .total_stake_amount
-            .free
-            .checked_sub(&amount)
-            .ok_or(ArithmeticError::Underflow)?;
         self.total_stake_amount.reserved = self
             .total_stake_amount
             .reserved
@@ -113,20 +117,10 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
             .reserved
             .checked_sub(&amount)
             .ok_or(ArithmeticError::Underflow)?;
-        self.total_stake_amount.free = self
-            .total_stake_amount
-            .free
-            .checked_add(&amount)
-            .ok_or(ArithmeticError::Overflow)?;
         Ok(())
     }
 
     pub fn set_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
-        self.total_unstake_amount.free = self
-            .total_unstake_amount
-            .free
-            .checked_sub(&amount)
-            .ok_or(ArithmeticError::Underflow)?;
         self.total_unstake_amount.reserved = self
             .total_unstake_amount
             .reserved
@@ -141,21 +135,27 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
             .reserved
             .checked_sub(&amount)
             .ok_or(ArithmeticError::Underflow)?;
-        self.total_unstake_amount.free = self
-            .total_unstake_amount
-            .free
-            .checked_add(&amount)
-            .ok_or(ArithmeticError::Overflow)?;
         Ok(())
     }
 
-    pub fn clear(&mut self) {
-        if self.total_stake_amount.free != self.total_unstake_amount.free {
-            return;
+    pub fn clear(&mut self) -> DispatchResult {
+        let total_free_stake_amount = self.total_stake_amount.free()?;
+        let total_free_unstake_amount = self.total_unstake_amount.free()?;
+        if total_free_stake_amount != total_free_unstake_amount {
+            return Ok(());
         }
 
-        self.total_stake_amount.free = Zero::zero();
-        self.total_unstake_amount.free = Zero::zero();
+        self.total_stake_amount.total = self
+            .total_stake_amount
+            .total
+            .checked_sub(&total_free_stake_amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        self.total_unstake_amount.total = self
+            .total_unstake_amount
+            .total
+            .checked_sub(&total_free_stake_amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        Ok(())
     }
 }
 
