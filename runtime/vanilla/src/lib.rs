@@ -28,14 +28,13 @@ use scale_info::TypeInfo;
 use frame_support::{
     dispatch::Weight,
     log, match_type,
-    pallet_prelude::DispatchResult,
     traits::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
         ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter,
         Nothing,
     },
-    transactional, PalletId,
+    PalletId,
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
@@ -55,7 +54,7 @@ use primitives::{
         AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
         FirstAssetTrader,
     },
-    AssetRegistrarMetadata, Index, *,
+    Index, *,
 };
 use sp_api::impl_runtime_apis;
 use sp_core::{
@@ -1329,44 +1328,11 @@ impl Config for XcmConfig {
     type AssetClaims = PolkadotXcm;
 }
 
-// We instruct how to register the Assets
-// In this case, we tell it to Create an Asset in pallet-assets
-pub struct AssetRegistrar;
-
-impl pallet_asset_manager::AssetRegistrar<Runtime> for AssetRegistrar {
-    #[transactional]
-    fn create_asset(
-        asset: CurrencyId,
-        min_balance: Balance,
-        metadata: AssetRegistrarMetadata,
-        is_sufficient: bool,
-    ) -> DispatchResult {
-        Assets::force_create(
-            Origin::root(),
-            asset,
-            sp_runtime::MultiAddress::Id(AssetManager::account_id()),
-            is_sufficient,
-            min_balance,
-        )?;
-
-        Assets::force_set_metadata(
-            Origin::root(),
-            asset,
-            metadata.name,
-            metadata.symbol,
-            metadata.decimals,
-            metadata.is_frozen,
-        )
-    }
-}
-
 impl pallet_asset_manager::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type AssetId = CurrencyId;
-    type AssetRegistrarMetadata = AssetRegistrarMetadata;
     type AssetType = AssetType;
-    type AssetRegistrar = AssetRegistrar;
     type AssetModifierOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_asset_manager::weights::SubstrateWeight<Runtime>;
 }

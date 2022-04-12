@@ -34,7 +34,6 @@ use frame_support::pallet;
 pub use pallet::*;
 #[cfg(any(test, feature = "runtime-benchmarks"))]
 mod benchmarks;
-pub mod migrations;
 #[cfg(test)]
 pub mod mock;
 #[cfg(test)]
@@ -57,19 +56,7 @@ pub mod pallet {
     pub struct Pallet<T>(PhantomData<T>);
 
     /// The AssetManagers's pallet id
-    pub const PALLET_ID: PalletId = PalletId(*b"asstmngr");
-
-    // The registrar trait. We need to comply with this
-    pub trait AssetRegistrar<T: Config> {
-        // How to create an asset
-        fn create_asset(
-            asset: T::AssetId,
-            min_balance: T::Balance,
-            metadata: T::AssetRegistrarMetadata,
-            // Wether or not an asset-receiving account increments the sufficient counter
-            is_sufficient: bool,
-        ) -> DispatchResult;
-    }
+    pub const PALLET_ID: PalletId = PalletId(*b"par/assm");
 
     // We implement this trait to be able to get the AssetType and units per second registered
     impl<T: Config> primitives::xcm_gadget::AssetTypeGetter<T::AssetId, T::AssetType> for Pallet<T> {
@@ -100,17 +87,11 @@ pub mod pallet {
         /// The Asset Id. This will be used to register the asset in Assets
         type AssetId: Member + Parameter + Default + Copy + HasCompact + MaxEncodedLen;
 
-        /// The Asset Metadata we want to store
-        type AssetRegistrarMetadata: Member + Parameter + Default;
-
         /// The Asset Kind.
         type AssetType: Parameter + Member + Ord + PartialOrd + Into<Self::AssetId> + Default;
 
         /// The units in which we record balances.
         type Balance: Member + Parameter + AtLeast32BitUnsigned + Default + Copy + MaxEncodedLen;
-
-        /// The trait we use to register Assets
-        type AssetRegistrar: AssetRegistrar<Self>;
 
         /// Origin that is allowed to create and modify asset information
         type AssetModifierOrigin: EnsureOrigin<Self::Origin>;
@@ -188,31 +169,14 @@ pub mod pallet {
         pub fn register_asset(
             origin: OriginFor<T>,
             asset: T::AssetType,
-            asset_id: Option<T::AssetId>,
-            metadata: Option<T::AssetRegistrarMetadata>,
-            min_amount: T::Balance,
-            is_sufficient: bool,
+            asset_id: T::AssetId,
         ) -> DispatchResult {
             T::AssetModifierOrigin::ensure_origin(origin)?;
 
-            let asset_exist = asset_id.is_some();
-            let asset_id: T::AssetId = match asset_id {
-                Some(asset_id) => asset_id,
-                None => asset.clone().into(),
-            };
             ensure!(
                 AssetIdType::<T>::get(&asset_id).is_none(),
                 Error::<T>::AssetAlreadyExists
             );
-            if !asset_exist && metadata.is_some() {
-                T::AssetRegistrar::create_asset(
-                    asset_id,
-                    min_amount,
-                    metadata.unwrap(),
-                    is_sufficient,
-                )
-                .map_err(|_| Error::<T>::ErrorCreatingAsset)?;
-            }
             AssetIdType::<T>::insert(&asset_id, &asset);
             AssetTypeId::<T>::insert(&asset, &asset_id);
 

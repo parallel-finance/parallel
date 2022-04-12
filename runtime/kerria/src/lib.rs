@@ -31,7 +31,7 @@ use frame_support::{
         tokens::BalanceConversion,
         ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, Nothing,
     },
-    transactional, PalletId,
+    PalletId,
 };
 
 use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
@@ -49,7 +49,7 @@ use sp_runtime::{
         BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchError, DispatchResult, KeyTypeId, Perbill, Permill, RuntimeDebug,
+    ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, RuntimeDebug,
     SaturatedConversion,
 };
 use sp_std::prelude::*;
@@ -71,7 +71,7 @@ use primitives::{
         AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
         FirstAssetTrader,
     },
-    AssetRegistrarMetadata, Index, *,
+    Index, *,
 };
 
 use xcm::latest::prelude::*;
@@ -1238,44 +1238,11 @@ impl Config for XcmConfig {
     type AssetClaims = PolkadotXcm;
 }
 
-// We instruct how to register the Assets
-// In this case, we tell it to Create an Asset in pallet-assets
-pub struct AssetRegistrar;
-
-impl pallet_asset_manager::AssetRegistrar<Runtime> for AssetRegistrar {
-    #[transactional]
-    fn create_asset(
-        asset: CurrencyId,
-        min_balance: Balance,
-        metadata: AssetRegistrarMetadata,
-        is_sufficient: bool,
-    ) -> DispatchResult {
-        Assets::force_create(
-            Origin::root(),
-            asset,
-            sp_runtime::MultiAddress::Id(AssetManager::account_id()),
-            is_sufficient,
-            min_balance,
-        )?;
-
-        Assets::force_set_metadata(
-            Origin::root(),
-            asset,
-            metadata.name,
-            metadata.symbol,
-            metadata.decimals,
-            metadata.is_frozen,
-        )
-    }
-}
-
 impl pallet_asset_manager::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type AssetId = CurrencyId;
-    type AssetRegistrarMetadata = AssetRegistrarMetadata;
     type AssetType = AssetType;
-    type AssetRegistrar = AssetRegistrar;
     type AssetModifierOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_asset_manager::weights::SubstrateWeight<Runtime>;
 }
