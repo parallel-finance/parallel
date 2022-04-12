@@ -37,7 +37,7 @@ extern crate primitives;
 use frame_support::traits::{fungibles::InspectMetadata, tokens::Balance as BalanceT, Get};
 use primitives::{
     ExchangeRateProvider, LiquidStakingConvert, LiquidStakingCurrenciesProvider,
-    PersistedValidationData, Rate, ValidationDataProvider,
+    PersistedValidationData, Rate, StrategyLike, ValidationDataProvider,
 };
 use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
 
@@ -185,6 +185,9 @@ pub mod pallet {
 
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
+
+        /// Currenty strategy for distributing assets to multi-accounts
+        type CurrentStrategy: StrategyLike;
     }
 
     #[pallet::event]

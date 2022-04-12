@@ -207,3 +207,19 @@ pub struct AssetRegistrarMetadata {
 pub trait ValidationDataProvider {
     fn validation_data() -> Option<PersistedValidationData>;
 }
+
+/// Distribute liquidstaking asset to multi-accounts
+pub trait StrategyLike {
+    fn bond(
+        active_bonded_amount: &Vec<(DerivativeIndex, Balance)>,
+        input: Balance,
+    ) -> Vec<(DerivativeIndex, Balance)>;
+    fn unbond(
+        active_bonded_amount: &Vec<(DerivativeIndex, Balance)>,
+        input: Balance,
+    ) -> Vec<(DerivativeIndex, Balance)>;
+    fn rebond(
+        unlocking_amount: &Vec<(DerivativeIndex, Balance)>,
+        input: Balance,
+    ) -> Vec<(DerivativeIndex, Balance)>;
+}
