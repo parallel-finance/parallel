@@ -303,5 +303,23 @@
         "inAmount": "0"
       }
     ]
-  }
+  },
+  "farmPools": [
+    {
+      "assetId": 0,
+      "rewardAssetId": 0,
+      "lockDuration": 0,
+      "coolDownDuration": "7200",
+      "rewardAmount": "2000000000000000",
+      "rewardDuration": "50400"
+    },
+    {
+      "assetId": 100,
+      "rewardAssetId": 0,
+      "lockDuration": 0,
+      "coolDownDuration": "7200",
+      "rewardAmount": "2000000000000000",
+      "rewardDuration": "50400"
+    }
+  ]
 }

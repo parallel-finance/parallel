@@ -99,6 +99,33 @@ async function para({ logger, options: { paraWs, network } }: ActionParameters) 
     api.tx.balances.transfer(createAddress(GiftPalletId), config.gift)
   )
 
+  for (const {
+    assetId,
+    rewardAssetId,
+    lockDuration,
+    coolDownDuration,
+    rewardAmount,
+    rewardDuration
+  } of config.farmPools) {
+    logger.info(`Create farming pool for asset ${assetId}`)
+    call.push(
+      api.tx.sudo.sudo(
+        api.tx.farming.create(assetId, rewardAssetId, lockDuration, coolDownDuration)
+      ),
+      api.tx.sudo.sudo(api.tx.farming.setPoolStatus(assetId, rewardAssetId, lockDuration, true)),
+      api.tx.sudo.sudo(
+        api.tx.farming.dispatchReward(
+          assetId,
+          rewardAssetId,
+          lockDuration,
+          signer.address,
+          rewardAmount,
+          rewardDuration
+        )
+      )
+    )
+  }
+
   logger.info('Submit parachain batches.')
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextNonce(api, signer) })
 }
