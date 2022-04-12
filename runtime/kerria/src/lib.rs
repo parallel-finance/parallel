@@ -112,7 +112,7 @@ pub use frame_support::{
     },
     StorageValue,
 };
-use pallet_emergency_shutdown::EmergencyCallFilter;
+use pallet_traits::emergency_filter::EmergencyCallFilter;
 use pallet_xcm::XcmPassthrough;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;

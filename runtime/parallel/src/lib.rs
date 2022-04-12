@@ -108,12 +108,16 @@ pub use frame_support::{
     },
     StorageValue,
 };
-use pallet_emergency_shutdown::EmergencyCallFilter;
+use pallet_traits::emergency_filter::EmergencyCallFilter;
 use pallet_xcm::XcmPassthrough;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
+///
+///
+///
+///
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
 /// to even the core data structures.

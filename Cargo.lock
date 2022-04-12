@@ -2848,6 +2848,7 @@ dependencies = [
  "pallet-streaming",
  "pallet-sudo",
  "pallet-timestamp",
+ "pallet-traits",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
@@ -3598,6 +3599,7 @@ dependencies = [
  "pallet-streaming",
  "pallet-sudo",
  "pallet-timestamp",
+ "pallet-traits",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
@@ -5653,6 +5655,7 @@ version = "1.8.2"
 dependencies = [
  "frame-support",
  "frame-system",
+ "pallet-traits",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
@@ -6306,6 +6309,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-traits"
+version = "1.8.2"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-transaction-payment"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.17#22d40c761a985482f93bbbea5ba4199bdba74f8e"
@@ -6680,6 +6697,7 @@ dependencies = [
  "pallet-streaming",
  "pallet-sudo",
  "pallet-timestamp",
+ "pallet-traits",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
@@ -12012,6 +12030,7 @@ dependencies = [
  "pallet-streaming",
  "pallet-sudo",
  "pallet-timestamp",
+ "pallet-traits",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
