@@ -8,6 +8,7 @@ import { KeyringPair } from '@polkadot/keyring/types'
 import { Index } from '@polkadot/types/interfaces'
 
 const EMPTY_U8A_32 = new Uint8Array(32)
+const XCM_FEE = 50000000000
 
 export const exec = (cmd: string): shell.ShellString => {
   console.log(`$ ${cmd}`)
@@ -60,7 +61,7 @@ export const nextNonce = async (api: ApiPromise, signer: KeyringPair): Promise<I
   return await api.rpc.system.accountNextIndex(signer.address)
 }
 
-export const createXcm = (encoded: string, sovereignAccount: string) => {
+export const createXcm = (encoded: string, refundAccount: string) => {
   return {
     V2: [
       {
@@ -73,7 +74,7 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
               }
             },
             fun: {
-              Fungible: '500000000000'
+              Fungible: XCM_FEE
             }
           }
         ]
@@ -88,7 +89,7 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
               }
             },
             fun: {
-              Fungible: '500000000000'
+              Fungible: XCM_FEE
             }
           },
           weightLimit: 'Unlimited'
@@ -97,16 +98,27 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
       {
         Transact: {
           originType: 'Native',
-          requireWeightAtMost: '1000000000',
+          requireWeightAtMost: '2000000000',
           call: {
             encoded
           }
         }
       },
+      'RefundSurplus',
       {
         DepositAsset: {
           assets: {
-            Wild: 'All'
+            Wild: {
+              AllOf: {
+                id: {
+                  Concrete: {
+                    parents: 0,
+                    interior: 'Here'
+                  }
+                },
+                fun: 'Fungible'
+              }
+            }
           },
           maxAssets: 1,
           beneficiary: {
@@ -115,7 +127,7 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
               X1: {
                 AccountId32: {
                   network: 'Any',
-                  id: u8aToHex(decodeAddress(sovereignAccount))
+                  id: u8aToHex(decodeAddress(refundAccount))
                 }
               }
             }
