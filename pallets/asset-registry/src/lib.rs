@@ -91,7 +91,7 @@ pub mod pallet {
         type Balance: Member + Parameter + AtLeast32BitUnsigned + Default + Copy + MaxEncodedLen;
 
         /// Origin that is allowed to create and modify asset information
-        type AssetModifierOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
         type WeightInfo: WeightInfo;
     }
@@ -168,7 +168,7 @@ pub mod pallet {
             asset: T::AssetType,
             asset_id: T::AssetId,
         ) -> DispatchResult {
-            T::AssetModifierOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
 
             ensure!(
                 !AssetIdType::<T>::contains_key(&asset_id),
@@ -188,7 +188,7 @@ pub mod pallet {
             asset_type: T::AssetType,
             units_per_second: u128,
         ) -> DispatchResult {
-            T::AssetModifierOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
 
             ensure!(
                 AssetTypeId::<T>::contains_key(&asset_type),
@@ -222,7 +222,7 @@ pub mod pallet {
             asset_id: T::AssetId,
             new_asset_type: T::AssetType,
         ) -> DispatchResult {
-            T::AssetModifierOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
 
             // Grab supported assets
             let mut supported_assets = SupportedFeePaymentAssets::<T>::get();
@@ -269,7 +269,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset_type: T::AssetType,
         ) -> DispatchResult {
-            T::AssetModifierOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
 
             // Grab supported assets
             let mut supported_assets = SupportedFeePaymentAssets::<T>::get();
@@ -295,7 +295,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset_id: T::AssetId,
         ) -> DispatchResult {
-            T::AssetModifierOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
 
             // Grab supported assets
             let mut supported_assets = SupportedFeePaymentAssets::<T>::get();

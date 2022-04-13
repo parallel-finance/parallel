@@ -148,7 +148,7 @@ impl Config for Test {
     type Balance = u64;
     type AssetId = u32;
     type AssetType = MockAssetType;
-    type AssetModifierOrigin = EnsureRoot<u64>;
+    type UpdateOrigin = EnsureRoot<u64>;
     type WeightInfo = ();
 }
 

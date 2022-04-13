@@ -1245,7 +1245,7 @@ impl pallet_asset_registry::Config for Runtime {
     type Balance = Balance;
     type AssetId = CurrencyId;
     type AssetType = AssetType;
-    type AssetModifierOrigin = EnsureRoot<AccountId>;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_asset_registry::weights::SubstrateWeight<Runtime>;
 }
 
