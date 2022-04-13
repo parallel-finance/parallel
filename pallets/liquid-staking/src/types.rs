@@ -42,20 +42,20 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         unbonding_amount: Balance,
     ) -> Result<(Balance, Balance, Balance), DispatchError> {
         use Ordering::*;
+        let total_free_stake_amount = self.total_stake_amount.free()?;
+        let total_free_unstake_amount = self.total_unstake_amount.free()?;
 
         let (bond_amount, rebond_amount, unbond_amount) = if matches!(
-            self.total_stake_amount
-                .free()?
-                .cmp(&self.total_unstake_amount.free()?),
+            total_free_stake_amount.cmp(&total_free_unstake_amount),
             Less | Equal
         ) {
             (
                 Zero::zero(),
                 Zero::zero(),
-                self.total_unstake_amount.free()? - self.total_stake_amount.free()?,
+                total_free_unstake_amount - total_free_stake_amount,
             )
         } else {
-            let amount = self.total_stake_amount.free()? - self.total_unstake_amount.free()?;
+            let amount = total_free_stake_amount - total_free_unstake_amount;
             if amount < unbonding_amount {
                 (Zero::zero(), amount, Zero::zero())
             } else {
@@ -75,15 +75,6 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    pub fn sub_stake_amount(&mut self, amount: Balance) -> DispatchResult {
-        self.total_stake_amount.total = self
-            .total_stake_amount
-            .total
-            .checked_sub(&amount)
-            .ok_or(ArithmeticError::Underflow)?;
-        Ok(())
-    }
-
     pub fn add_unstake_amount(&mut self, amount: Balance) -> DispatchResult {
         self.total_unstake_amount.total = self
             .total_unstake_amount
@@ -93,7 +84,48 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    pub fn sub_unstake_amount(&mut self, amount: Balance) -> DispatchResult {
+    pub fn consolidate_reserve(
+        &mut self,
+        bond_amount: Balance,
+        rebond_amount: Balance,
+        unbond_amount: Balance,
+    ) -> DispatchResult {
+        if !bond_amount.is_zero() {
+            self.set_stake_amount_lock(bond_amount)?;
+        }
+        if !rebond_amount.is_zero() {
+            self.set_stake_amount_lock(rebond_amount)?;
+        }
+        if !unbond_amount.is_zero() {
+            self.set_unstake_amount_lock(unbond_amount)?;
+        }
+        Ok(())
+    }
+
+    pub fn consolidate_stake(&mut self, amount: Balance) -> DispatchResult {
+        self.remove_stake_amount_lock(amount)?;
+        self.sub_stake_amount(amount)?;
+        self.clear()?;
+        Ok(())
+    }
+
+    pub fn consolidate_unstake(&mut self, amount: Balance) -> DispatchResult {
+        self.remove_unstake_amount_lock(amount)?;
+        self.sub_unstake_amount(amount)?;
+        self.clear()?;
+        Ok(())
+    }
+
+    fn sub_stake_amount(&mut self, amount: Balance) -> DispatchResult {
+        self.total_stake_amount.total = self
+            .total_stake_amount
+            .total
+            .checked_sub(&amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        Ok(())
+    }
+
+    fn sub_unstake_amount(&mut self, amount: Balance) -> DispatchResult {
         self.total_unstake_amount.total = self
             .total_unstake_amount
             .total
@@ -102,7 +134,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    pub fn set_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+    fn set_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
         self.total_stake_amount.reserved = self
             .total_stake_amount
             .reserved
@@ -111,7 +143,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    pub fn remove_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+    fn remove_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
         self.total_stake_amount.reserved = self
             .total_stake_amount
             .reserved
@@ -120,7 +152,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    pub fn set_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+    fn set_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
         self.total_unstake_amount.reserved = self
             .total_unstake_amount
             .reserved
@@ -129,7 +161,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    pub fn remove_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+    fn remove_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
         self.total_unstake_amount.reserved = self
             .total_unstake_amount
             .reserved
@@ -138,7 +170,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    pub fn clear(&mut self) -> DispatchResult {
+    fn clear(&mut self) -> DispatchResult {
         let total_free_stake_amount = self.total_stake_amount.free()?;
         let total_free_unstake_amount = self.total_unstake_amount.free()?;
         if total_free_stake_amount != total_free_unstake_amount {

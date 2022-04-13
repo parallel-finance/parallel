@@ -898,8 +898,7 @@ pub mod pallet {
             let matching_pool = Self::matching_pool();
             T::Assets::reducible_balance(staking_currency, &Self::account_id(), false)
                 .saturating_sub(Self::total_reserves())
-                .saturating_sub(matching_pool.total_stake_amount.free)
-                .saturating_sub(matching_pool.total_stake_amount.reserved)
+                .saturating_sub(matching_pool.total_stake_amount.total)
         }
 
         /// Derivative of parachain's account
@@ -987,9 +986,6 @@ pub mod pallet {
                 &amount,
             );
 
-            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.set_stake_amount_lock(amount)
-            })?;
             let staking_currency = Self::staking_currency()?;
             let derivative_account_id = Self::derivative_sovereign_account_id(derivative_index);
             let query_id = T::XCM::do_bond(
@@ -1045,9 +1041,6 @@ pub mod pallet {
                 &amount,
             );
 
-            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.set_stake_amount_lock(amount)
-            })?;
             let query_id = T::XCM::do_bond_extra(
                 amount,
                 Self::derivative_sovereign_account_id(derivative_index),
@@ -1098,9 +1091,6 @@ pub mod pallet {
                 &amount,
             );
 
-            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.set_unstake_amount_lock(amount)
-            })?;
             let query_id = T::XCM::do_unbond(
                 amount,
                 Self::staking_currency()?,
@@ -1144,9 +1134,6 @@ pub mod pallet {
                 &amount,
             );
 
-            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.set_stake_amount_lock(amount)
-            })?;
             let query_id = T::XCM::do_rebond(
                 amount,
                 Self::staking_currency()?,
@@ -1427,10 +1414,7 @@ pub mod pallet {
                     );
                     StakingLedgers::<T>::insert(derivative_index, staking_ledger);
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.remove_stake_amount_lock(amount)?;
-                        p.sub_stake_amount(amount)?;
-                        p.clear();
-                        Ok(())
+                        p.consolidate_stake(amount)
                     })?;
                     T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), amount)?;
                 }
@@ -1443,10 +1427,7 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.remove_stake_amount_lock(amount)?;
-                        p.sub_stake_amount(amount)?;
-                        p.clear();
-                        Ok(())
+                        p.consolidate_stake(amount)
                     })?;
                     T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), amount)?;
                 }
@@ -1460,10 +1441,7 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.remove_unstake_amount_lock(amount)?;
-                        p.sub_unstake_amount(amount)?;
-                        p.clear();
-                        Ok(())
+                        p.consolidate_unstake(amount)
                     })?;
                 }
                 Rebond {
@@ -1475,10 +1453,7 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.remove_stake_amount_lock(amount)?;
-                        p.sub_stake_amount(amount)?;
-                        p.clear();
-                        Ok(())
+                        p.consolidate_stake(amount)
                     })?;
                 }
                 WithdrawUnbonded {
@@ -1568,6 +1543,10 @@ pub mod pallet {
                 let unbonding_amount = Self::get_total_unbonding();
                 let (bond_amount, rebond_amount, unbond_amount) =
                     Self::matching_pool().matching(unbonding_amount)?;
+                MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                    p.consolidate_reserve(bond_amount, rebond_amount, unbond_amount)
+                })?;
+
                 Self::do_multi_bond(bond_amount, RewardDestination::Staked)?;
                 Self::do_multi_rebond(rebond_amount)?;
 
