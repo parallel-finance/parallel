@@ -44,19 +44,16 @@ pub mod weights;
 pub mod pallet {
 
     use crate::weights::WeightInfo;
-    use frame_support::{pallet_prelude::*, PalletId};
+    use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
     use parallel_primitives as primitives;
     use parity_scale_codec::HasCompact;
-    use sp_runtime::traits::{AccountIdConversion, AtLeast32BitUnsigned};
+    use sp_runtime::traits::AtLeast32BitUnsigned;
     use sp_std::vec::Vec;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
-
-    /// The AssetRegistrys's pallet id
-    pub const PALLET_ID: PalletId = PalletId(*b"par/assm");
 
     // We implement this trait to be able to get the AssetType and units per second registered
     impl<T: Config> primitives::xcm_gadget::AssetTypeGetter<T::AssetId, T::AssetType> for Pallet<T> {
@@ -326,13 +323,6 @@ pub mod pallet {
                 asset_type,
             });
             Ok(())
-        }
-    }
-
-    impl<T: Config> Pallet<T> {
-        /// The account ID of AssetRegistry
-        pub fn account_id() -> T::AccountId {
-            PALLET_ID.into_account()
         }
     }
 }
