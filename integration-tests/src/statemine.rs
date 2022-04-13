@@ -36,7 +36,7 @@ pub fn rmrk(n: f64) -> Balance {
 
 #[test]
 fn statemine() {
-    use primitives::xcm_gadget::AssetType;
+    use primitives::xcm::AssetType;
     let statemine_rmrk_asset_location =
         MultiLocation::new(1, X3(Parachain(1000), PalletInstance(50), GeneralIndex(8)));
     let statemine_rmrk_asset_type = AssetType::Xcm(statemine_rmrk_asset_location);

@@ -56,7 +56,7 @@ pub mod pallet {
     pub struct Pallet<T>(PhantomData<T>);
 
     // We implement this trait to be able to get the AssetType and units per second registered
-    impl<T: Config> primitives::xcm_gadget::AssetTypeGetter<T::AssetId, T::AssetType> for Pallet<T> {
+    impl<T: Config> primitives::xcm::AssetTypeGetter<T::AssetId, T::AssetType> for Pallet<T> {
         fn get_asset_type(asset_id: T::AssetId) -> Option<T::AssetType> {
             AssetIdType::<T>::get(asset_id)
         }
@@ -66,7 +66,7 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> primitives::xcm_gadget::UnitsToWeightRatio<T::AssetType> for Pallet<T> {
+    impl<T: Config> primitives::xcm::UnitsToWeightRatio<T::AssetType> for Pallet<T> {
         fn payment_is_supported(asset_type: T::AssetType) -> bool {
             SupportedFeePaymentAssets::<T>::get()
                 .binary_search(&asset_type)

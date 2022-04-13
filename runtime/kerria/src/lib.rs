@@ -67,11 +67,13 @@ use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
     tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, SDOT},
-    xcm_gadget::{
+    xcm::{
         AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
         FirstAssetTrader,
     },
-    Index, *,
+    AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, DecimalProvider,
+    EraIndex, Hash, Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio,
+    Shortfall, Signature, ValidationDataProvider,
 };
 
 use xcm::latest::prelude::*;
@@ -1204,7 +1206,7 @@ pub type AssetTransactors = (LocalAssetTransactor, ForeignFungiblesTransactor);
 /// This is the struct that will handle the revenue from xcm fees
 /// We do not burn anything because we want to mimic exactly what
 /// the sovereign account has
-pub type XcmFeesToAccount = primitives::xcm_gadget::XcmFeesToAccount<
+pub type XcmFeesToAccount = primitives::xcm::XcmFeesToAccount<
     Assets,
     (
         ConvertedConcreteAssetId<
