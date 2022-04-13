@@ -1266,31 +1266,6 @@ pub mod pallet {
             let distributions =
                 T::CurrentStrategy::bond(&mut amounts, total_amount, Self::staking_ledger_cap());
 
-            // let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
-            //     .iter()
-            //     .map(|&index| (index, Self::bonded_of(index)))
-            //     .collect();
-            // let new_avg_bonded = new_total_bonded.saturating_div(amounts.len() as BalanceOf<T>);
-
-            // amounts.sort_by(|a, b| a.1.cmp(&b.1));
-
-            // let mut distributions: Vec<(DerivativeIndex, BalanceOf<T>)> = vec![];
-            // let mut remain = total_amount;
-
-            // for (index, bonded) in amounts.into_iter() {
-            //     if remain.is_zero() {
-            //         break;
-            //     }
-            //     let amount = Self::staking_ledger_cap()
-            //         .saturating_sub(bonded)
-            //         .min(new_avg_bonded.saturating_sub(bonded));
-            //     if amount.is_zero() || bonded.saturating_add(amount) < T::MinNominatorBond::get() {
-            //         continue;
-            //     }
-            //     distributions.push((index, amount));
-            //     remain = remain.saturating_sub(amount);
-            // }
-
             for (index, amount) in distributions.into_iter() {
                 Self::do_bond(index, amount, payee.clone())?;
             }
@@ -1310,46 +1285,6 @@ pub mod pallet {
             let distributions =
                 T::CurrentStrategy::unbond(&mut amounts, total_amount, Self::staking_ledger_cap());
 
-            // let total_bonded = Self::get_total_bonded();
-            // let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
-            //     .iter()
-            //     .map(|&index| (index, Self::bonded_of(index)))
-            //     .collect();
-
-            // amounts.sort_by(|a, b| b.1.cmp(&a.1));
-
-            // let mut distributions: Vec<(DerivativeIndex, BalanceOf<T>, BalanceOf<T>)> = vec![];
-            // let mut remain = total_amount;
-
-            // for (index, bonded) in amounts.into_iter() {
-            //     if remain.is_zero() {
-            //         break;
-            //     }
-            //     let share = Ratio::from_rational(bonded, total_bonded);
-            //     let amount = share.mul_floor(total_amount);
-            //     if amount.is_zero() || bonded.saturating_sub(amount) < T::MinNominatorBond::get() {
-            //         continue;
-            //     }
-            //     distributions.push((index, amount, bonded));
-            //     remain = remain.saturating_sub(amount);
-            // }
-
-            // let mut idx = 0_usize;
-            // while !remain.is_zero() && idx < distributions.len() {
-            //     let (_, amount, bonded) = &mut distributions[idx];
-            //     let extra = bonded
-            //         .saturating_sub(*amount)
-            //         .saturating_sub(T::MinNominatorBond::get())
-            //         .min(remain);
-            //     *amount = amount.saturating_add(extra);
-            //     remain = remain.saturating_sub(extra);
-            //     idx += 1;
-            // }
-
-            // for (index, amount, _) in distributions.into_iter() {
-            //     Self::do_unbond(index, amount)?;
-            // }
-
             for (index, amount) in distributions.into_iter() {
                 Self::do_unbond(index, amount)?;
             }
@@ -1368,32 +1303,6 @@ pub mod pallet {
                 .collect();
             let distributions =
                 T::CurrentStrategy::rebond(&mut amounts, total_amount, Self::staking_ledger_cap());
-
-            // let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>, BalanceOf<T>)> =
-            //     T::DerivativeIndexList::get()
-            //         .iter()
-            //         .map(|&index| (index, Self::bonded_of(index), Self::unbonding_of(index)))
-            //         .collect();
-
-            // amounts.sort_by(|a, b| a.2.cmp(&b.2));
-
-            // let mut distributions: Vec<(DerivativeIndex, BalanceOf<T>)> = vec![];
-            // let mut remain = total_amount;
-
-            // for (index, bonded, unbonding) in amounts.into_iter() {
-            //     if remain.is_zero() {
-            //         break;
-            //     }
-            //     let amount = Self::staking_ledger_cap()
-            //         .saturating_sub(bonded)
-            //         .min(unbonding)
-            //         .min(remain);
-            //     if amount.is_zero() {
-            //         continue;
-            //     }
-            //     distributions.push((index, amount));
-            //     remain = remain.saturating_sub(amount);
-            // }
 
             for (index, amount) in distributions.into_iter() {
                 Self::do_rebond(index, amount)?;
