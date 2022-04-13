@@ -89,7 +89,7 @@ orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-r
 orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Parallel dependencies
-pallet-asset-manager          = { path = '../../pallets/asset-manager', default-features = false }
+pallet-asset-registry          = { path = '../../pallets/asset-registry', default-features = false }
 pallet-amm                    = { path = '../../pallets/amm', default-features = false }
 pallet-bridge                 = { path = '../../pallets/bridge', default-features = false }
 pallet-crowdloans             = { path = '../../pallets/crowdloans', default-features = false }
@@ -126,7 +126,7 @@ runtime-benchmarks = [
   'pallet-timestamp/runtime-benchmarks',
   'pallet-loans/runtime-benchmarks',
   'pallet-liquid-staking/runtime-benchmarks',
-  'pallet-asset-manager/runtime-benchmarks',
+  'pallet-asset-registry/runtime-benchmarks',
   'pallet-amm/runtime-benchmarks',
   'pallet-collective/runtime-benchmarks',
   'pallet-xcm/runtime-benchmarks',
@@ -216,7 +216,7 @@ std                = [
   'pallet-crowdloans/std',
   'pallet-emergency-shutdown/std',
   'pallet-xcm-helper/std',
-  'pallet-asset-manager/std',
+  'pallet-asset-registry/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',
@@ -252,5 +252,5 @@ try-runtime        = [
   'pallet-prices/try-runtime',
   'pallet-crowdloans/try-runtime',
   'pallet-xcm-helper/try-runtime',
-  'pallet-asset-manager/try-runtime',
+  'pallet-asset-registry/try-runtime',
 ]

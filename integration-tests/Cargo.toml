@@ -51,7 +51,7 @@ orml-xcm-support    = { git = 'https://github.com/open-web3-stack/open-runtime-m
 orml-xtokens        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 
 # Parallel dependencies
-pallet-asset-manager          = { path = '../pallets/asset-manager' }
+pallet-asset-registry          = { path = '../pallets/asset-registry' }
 pallet-amm                    = { path = '../pallets/amm' }
 pallet-bridge                 = { path = '../pallets/bridge' }
 pallet-crowdloans             = { path = '../pallets/crowdloans' }

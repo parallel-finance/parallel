@@ -25,7 +25,6 @@ use xcm_emulator::TestExt;
 
 pub const RMRK_ASSET_ID: u32 = 8;
 pub const RMRK_DECIMAL: u8 = 10;
-pub const RMRK_MINIMAL_BALANCE: Balance = 10;
 pub const RMRK_WEIGHT_PER_SEC: u128 = 100000000000;
 pub const HEIKO_RMRK_ASSET_ID: u32 = 4187061565;
 pub const STATEMINE_FEE_AMOUNT: u128 = 8_000_000_000;
@@ -37,19 +36,13 @@ pub fn rmrk(n: f64) -> Balance {
 
 #[test]
 fn statemine() {
-    use primitives::{xcm_gadget::AssetType, AssetRegistrarMetadata};
+    use primitives::xcm::AssetType;
     let statemine_rmrk_asset_location =
         MultiLocation::new(1, X3(Parachain(1000), PalletInstance(50), GeneralIndex(8)));
     let statemine_rmrk_asset_type = AssetType::Xcm(statemine_rmrk_asset_location);
     let statemine_rmrk_asset_id: CurrencyId = statemine_rmrk_asset_type.clone().into();
-    let statemine_rmrk_asset_meta = AssetRegistrarMetadata {
-        name: b"RMRK".to_vec(),
-        symbol: b"RMRK".to_vec(),
-        decimals: RMRK_DECIMAL,
-        is_frozen: false,
-    };
     Vanilla::execute_with(|| {
-        use vanilla_runtime::{AssetManager, Origin};
+        use vanilla_runtime::{AssetRegistry, Assets, Origin};
         assert_eq!(statemine_rmrk_asset_id, HEIKO_RMRK_ASSET_ID);
         let another_asset: AssetType = AssetType::Xcm(MultiLocation::new(
             1,
@@ -58,15 +51,29 @@ fn statemine() {
         let another_asset_id: CurrencyId = another_asset.into();
         assert_eq!(another_asset_id, 23310203);
         assert_ne!(another_asset_id, statemine_rmrk_asset_id);
-        assert_ok!(AssetManager::register_asset(
+        Assets::force_create(
+            Origin::root(),
+            HEIKO_RMRK_ASSET_ID,
+            MultiAddress::Id(AccountId::from(ALICE)),
+            true,
+            1,
+        )
+        .unwrap();
+        Assets::force_set_metadata(
+            Origin::root(),
+            HEIKO_RMRK_ASSET_ID,
+            b"RMRK".to_vec(),
+            b"RMRK".to_vec(),
+            RMRK_DECIMAL,
+            false,
+        )
+        .unwrap();
+        assert_ok!(AssetRegistry::register_asset(
             Origin::root(),
             statemine_rmrk_asset_type.clone(),
-            None,
-            Some(statemine_rmrk_asset_meta.clone()),
-            RMRK_MINIMAL_BALANCE,
-            true
+            statemine_rmrk_asset_type.clone().into(),
         ));
-        assert_ok!(AssetManager::set_asset_units_per_second(
+        assert_ok!(AssetRegistry::set_asset_units_per_second(
             Origin::root(),
             statemine_rmrk_asset_type,
             RMRK_WEIGHT_PER_SEC,

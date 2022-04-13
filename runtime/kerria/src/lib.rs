@@ -31,7 +31,7 @@ use frame_support::{
         tokens::BalanceConversion,
         ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, Nothing,
     },
-    transactional, PalletId,
+    PalletId,
 };
 
 use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
@@ -49,7 +49,7 @@ use sp_runtime::{
         BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchError, DispatchResult, KeyTypeId, Perbill, Permill, RuntimeDebug,
+    ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, RuntimeDebug,
     SaturatedConversion,
 };
 use sp_std::prelude::*;
@@ -67,11 +67,13 @@ use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
     tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, SDOT},
-    xcm_gadget::{
+    xcm::{
         AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
         FirstAssetTrader,
     },
-    AssetRegistrarMetadata, Index, *,
+    AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, DecimalProvider,
+    EraIndex, Hash, Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio,
+    Shortfall, Signature, ValidationDataProvider,
 };
 
 use xcm::latest::prelude::*;
@@ -479,7 +481,7 @@ impl orml_xtokens::Config for Runtime {
     type CurrencyId = CurrencyId;
     type CurrencyIdConvert = CurrencyIdtoMultiLocation<
         CurrencyIdConvert,
-        AsAssetType<CurrencyId, AssetType, AssetManager>,
+        AsAssetType<CurrencyId, AssetType, AssetRegistry>,
     >;
     type AccountIdToMultiLocation = AccountIdToMultiLocation<AccountId>;
     type SelfLocation = SelfLocation;
@@ -1154,7 +1156,7 @@ pub type Trader = (
     FixedRateOfFungible<AcaPerSecond, ToTreasury>,
     FixedRateOfFungible<LDOTPerSecond, ToTreasury>,
     FixedRateOfFungible<LCDOTPerSecond, ToTreasury>,
-    FirstAssetTrader<AssetType, AssetManager, XcmFeesToAccount>,
+    FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
 );
 
 // Min fee required when transfering non-reserve asset back to sibling chain
@@ -1183,7 +1185,7 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
         ConvertedConcreteAssetId<
             CurrencyId,
             Balance,
-            AsAssetType<CurrencyId, AssetType, AssetManager>,
+            AsAssetType<CurrencyId, AssetType, AssetRegistry>,
             JustTry,
         >,
     ),
@@ -1204,13 +1206,13 @@ pub type AssetTransactors = (LocalAssetTransactor, ForeignFungiblesTransactor);
 /// This is the struct that will handle the revenue from xcm fees
 /// We do not burn anything because we want to mimic exactly what
 /// the sovereign account has
-pub type XcmFeesToAccount = primitives::xcm_gadget::XcmFeesToAccount<
+pub type XcmFeesToAccount = primitives::xcm::XcmFeesToAccount<
     Assets,
     (
         ConvertedConcreteAssetId<
             CurrencyId,
             Balance,
-            AsAssetType<CurrencyId, AssetType, AssetManager>,
+            AsAssetType<CurrencyId, AssetType, AssetRegistry>,
             JustTry,
         >,
     ),
@@ -1238,46 +1240,13 @@ impl Config for XcmConfig {
     type AssetClaims = PolkadotXcm;
 }
 
-// We instruct how to register the Assets
-// In this case, we tell it to Create an Asset in pallet-assets
-pub struct AssetRegistrar;
-
-impl pallet_asset_manager::AssetRegistrar<Runtime> for AssetRegistrar {
-    #[transactional]
-    fn create_asset(
-        asset: CurrencyId,
-        min_balance: Balance,
-        metadata: AssetRegistrarMetadata,
-        is_sufficient: bool,
-    ) -> DispatchResult {
-        Assets::force_create(
-            Origin::root(),
-            asset,
-            sp_runtime::MultiAddress::Id(AssetManager::account_id()),
-            is_sufficient,
-            min_balance,
-        )?;
-
-        Assets::force_set_metadata(
-            Origin::root(),
-            asset,
-            metadata.name,
-            metadata.symbol,
-            metadata.decimals,
-            metadata.is_frozen,
-        )
-    }
-}
-
-impl pallet_asset_manager::Config for Runtime {
+impl pallet_asset_registry::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type AssetId = CurrencyId;
-    type AssetRegistrarMetadata = AssetRegistrarMetadata;
     type AssetType = AssetType;
-    type AssetRegistrar = AssetRegistrar;
-    type AssetModifierOrigin = EnsureRoot<AccountId>;
-    type WeightInfo = pallet_asset_manager::weights::SubstrateWeight<Runtime>;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type WeightInfo = pallet_asset_registry::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1955,7 +1924,7 @@ construct_runtime!(
         Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>} = 46,
 
         // Asset Management
-        AssetManager: pallet_asset_manager::{Pallet, Call, Storage, Event<T>} = 48,
+        AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>} = 48,
 
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,

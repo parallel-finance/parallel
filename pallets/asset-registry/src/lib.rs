@@ -34,7 +34,6 @@ use frame_support::pallet;
 pub use pallet::*;
 #[cfg(any(test, feature = "runtime-benchmarks"))]
 mod benchmarks;
-pub mod migrations;
 #[cfg(test)]
 pub mod mock;
 #[cfg(test)]
@@ -45,34 +44,19 @@ pub mod weights;
 pub mod pallet {
 
     use crate::weights::WeightInfo;
-    use frame_support::{pallet_prelude::*, PalletId};
+    use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
     use parallel_primitives as primitives;
     use parity_scale_codec::HasCompact;
-    use sp_runtime::traits::{AccountIdConversion, AtLeast32BitUnsigned};
+    use sp_runtime::traits::AtLeast32BitUnsigned;
     use sp_std::vec::Vec;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
-    /// The AssetManagers's pallet id
-    pub const PALLET_ID: PalletId = PalletId(*b"asstmngr");
-
-    // The registrar trait. We need to comply with this
-    pub trait AssetRegistrar<T: Config> {
-        // How to create an asset
-        fn create_asset(
-            asset: T::AssetId,
-            min_balance: T::Balance,
-            metadata: T::AssetRegistrarMetadata,
-            // Wether or not an asset-receiving account increments the sufficient counter
-            is_sufficient: bool,
-        ) -> DispatchResult;
-    }
-
     // We implement this trait to be able to get the AssetType and units per second registered
-    impl<T: Config> primitives::xcm_gadget::AssetTypeGetter<T::AssetId, T::AssetType> for Pallet<T> {
+    impl<T: Config> primitives::xcm::AssetTypeGetter<T::AssetId, T::AssetType> for Pallet<T> {
         fn get_asset_type(asset_id: T::AssetId) -> Option<T::AssetType> {
             AssetIdType::<T>::get(asset_id)
         }
@@ -82,7 +66,7 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> primitives::xcm_gadget::UnitsToWeightRatio<T::AssetType> for Pallet<T> {
+    impl<T: Config> primitives::xcm::UnitsToWeightRatio<T::AssetType> for Pallet<T> {
         fn payment_is_supported(asset_type: T::AssetType) -> bool {
             SupportedFeePaymentAssets::<T>::get()
                 .binary_search(&asset_type)
@@ -100,20 +84,14 @@ pub mod pallet {
         /// The Asset Id. This will be used to register the asset in Assets
         type AssetId: Member + Parameter + Default + Copy + HasCompact + MaxEncodedLen;
 
-        /// The Asset Metadata we want to store
-        type AssetRegistrarMetadata: Member + Parameter + Default;
-
         /// The Asset Kind.
         type AssetType: Parameter + Member + Ord + PartialOrd + Into<Self::AssetId> + Default;
 
         /// The units in which we record balances.
         type Balance: Member + Parameter + AtLeast32BitUnsigned + Default + Copy + MaxEncodedLen;
 
-        /// The trait we use to register Assets
-        type AssetRegistrar: AssetRegistrar<Self>;
-
         /// Origin that is allowed to create and modify asset information
-        type AssetModifierOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
         type WeightInfo: WeightInfo;
     }
@@ -188,31 +166,14 @@ pub mod pallet {
         pub fn register_asset(
             origin: OriginFor<T>,
             asset: T::AssetType,
-            asset_id: Option<T::AssetId>,
-            metadata: Option<T::AssetRegistrarMetadata>,
-            min_amount: T::Balance,
-            is_sufficient: bool,
+            asset_id: T::AssetId,
         ) -> DispatchResult {
-            T::AssetModifierOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
 
-            let asset_exist = asset_id.is_some();
-            let asset_id: T::AssetId = match asset_id {
-                Some(asset_id) => asset_id,
-                None => asset.clone().into(),
-            };
             ensure!(
-                AssetIdType::<T>::get(&asset_id).is_none(),
+                !AssetIdType::<T>::contains_key(&asset_id),
                 Error::<T>::AssetAlreadyExists
             );
-            if !asset_exist && metadata.is_some() {
-                T::AssetRegistrar::create_asset(
-                    asset_id,
-                    min_amount,
-                    metadata.unwrap(),
-                    is_sufficient,
-                )
-                .map_err(|_| Error::<T>::ErrorCreatingAsset)?;
-            }
             AssetIdType::<T>::insert(&asset_id, &asset);
             AssetTypeId::<T>::insert(&asset, &asset_id);
 
@@ -227,10 +188,10 @@ pub mod pallet {
             asset_type: T::AssetType,
             units_per_second: u128,
         ) -> DispatchResult {
-            T::AssetModifierOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
 
             ensure!(
-                AssetTypeId::<T>::get(&asset_type).is_some(),
+                AssetTypeId::<T>::contains_key(&asset_type),
                 Error::<T>::AssetDoesNotExist
             );
 
@@ -261,7 +222,7 @@ pub mod pallet {
             asset_id: T::AssetId,
             new_asset_type: T::AssetType,
         ) -> DispatchResult {
-            T::AssetModifierOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
 
             // Grab supported assets
             let mut supported_assets = SupportedFeePaymentAssets::<T>::get();
@@ -308,7 +269,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset_type: T::AssetType,
         ) -> DispatchResult {
-            T::AssetModifierOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
 
             // Grab supported assets
             let mut supported_assets = SupportedFeePaymentAssets::<T>::get();
@@ -334,7 +295,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset_id: T::AssetId,
         ) -> DispatchResult {
-            T::AssetModifierOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
 
             // Grab supported assets
             let mut supported_assets = SupportedFeePaymentAssets::<T>::get();
@@ -362,13 +323,6 @@ pub mod pallet {
                 asset_type,
             });
             Ok(())
-        }
-    }
-
-    impl<T: Config> Pallet<T> {
-        /// The account ID of AssetManager
-        pub fn account_id() -> T::AccountId {
-            PALLET_ID.into_account()
         }
     }
 }

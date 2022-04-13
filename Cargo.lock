@@ -2819,7 +2819,7 @@ dependencies = [
  "orml-xcm-support",
  "orml-xtokens",
  "pallet-amm",
- "pallet-asset-manager",
+ "pallet-asset-registry",
  "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
@@ -3569,7 +3569,7 @@ dependencies = [
  "orml-xcm-support",
  "orml-xtokens",
  "pallet-amm",
- "pallet-asset-manager",
+ "pallet-asset-registry",
  "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
@@ -5203,7 +5203,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-asset-manager"
+name = "pallet-asset-registry"
 version = "1.8.2"
 dependencies = [
  "frame-benchmarking",
@@ -8840,7 +8840,7 @@ dependencies = [
  "orml-xcm-support",
  "orml-xtokens",
  "pallet-amm",
- "pallet-asset-manager",
+ "pallet-asset-registry",
  "pallet-balances",
  "pallet-bridge",
  "pallet-collator-selection",
@@ -11983,7 +11983,7 @@ dependencies = [
  "orml-xcm-support",
  "orml-xtokens",
  "pallet-amm",
- "pallet-asset-manager",
+ "pallet-asset-registry",
  "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
