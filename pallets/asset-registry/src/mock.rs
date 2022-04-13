@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use super::*;
-use crate as pallet_asset_manager;
+use crate as pallet_asset_registry;
 use parity_scale_codec::{Decode, Encode};
 
 use frame_support::{construct_runtime, parameter_types, traits::Everything, RuntimeDebug};
@@ -38,7 +38,7 @@ construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        AssetManager: pallet_asset_manager::{Pallet, Call, Storage, Event<T>},
+        AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -167,7 +167,7 @@ pub(crate) fn events() -> Vec<super::Event<Test>> {
         .into_iter()
         .map(|r| r.event)
         .filter_map(|e| {
-            if let Event::AssetManager(inner) = e {
+            if let Event::AssetRegistry(inner) = e {
                 Some(inner)
             } else {
                 None

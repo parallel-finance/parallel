@@ -55,7 +55,7 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
-    /// The AssetManagers's pallet id
+    /// The AssetRegistrys's pallet id
     pub const PALLET_ID: PalletId = PalletId(*b"par/assm");
 
     // We implement this trait to be able to get the AssetType and units per second registered
@@ -330,7 +330,7 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        /// The account ID of AssetManager
+        /// The account ID of AssetRegistry
         pub fn account_id() -> T::AccountId {
             PALLET_ID.into_account()
         }

@@ -42,7 +42,7 @@ fn statemine() {
     let statemine_rmrk_asset_type = AssetType::Xcm(statemine_rmrk_asset_location);
     let statemine_rmrk_asset_id: CurrencyId = statemine_rmrk_asset_type.clone().into();
     Vanilla::execute_with(|| {
-        use vanilla_runtime::{AssetManager, Assets, Origin};
+        use vanilla_runtime::{AssetRegistry, Assets, Origin};
         assert_eq!(statemine_rmrk_asset_id, HEIKO_RMRK_ASSET_ID);
         let another_asset: AssetType = AssetType::Xcm(MultiLocation::new(
             1,
@@ -68,12 +68,12 @@ fn statemine() {
             false,
         )
         .unwrap();
-        assert_ok!(AssetManager::register_asset(
+        assert_ok!(AssetRegistry::register_asset(
             Origin::root(),
             statemine_rmrk_asset_type.clone(),
             statemine_rmrk_asset_type.clone().into(),
         ));
-        assert_ok!(AssetManager::set_asset_units_per_second(
+        assert_ok!(AssetRegistry::set_asset_units_per_second(
             Origin::root(),
             statemine_rmrk_asset_type,
             RMRK_WEIGHT_PER_SEC,

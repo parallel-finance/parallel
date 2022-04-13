@@ -479,7 +479,7 @@ impl orml_xtokens::Config for Runtime {
     type CurrencyId = CurrencyId;
     type CurrencyIdConvert = CurrencyIdtoMultiLocation<
         CurrencyIdConvert,
-        AsAssetType<CurrencyId, AssetType, AssetManager>,
+        AsAssetType<CurrencyId, AssetType, AssetRegistry>,
     >;
     type AccountIdToMultiLocation = AccountIdToMultiLocation<AccountId>;
     type SelfLocation = SelfLocation;
@@ -1154,7 +1154,7 @@ pub type Trader = (
     FixedRateOfFungible<AcaPerSecond, ToTreasury>,
     FixedRateOfFungible<LDOTPerSecond, ToTreasury>,
     FixedRateOfFungible<LCDOTPerSecond, ToTreasury>,
-    FirstAssetTrader<AssetType, AssetManager, XcmFeesToAccount>,
+    FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
 );
 
 // Min fee required when transfering non-reserve asset back to sibling chain
@@ -1183,7 +1183,7 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
         ConvertedConcreteAssetId<
             CurrencyId,
             Balance,
-            AsAssetType<CurrencyId, AssetType, AssetManager>,
+            AsAssetType<CurrencyId, AssetType, AssetRegistry>,
             JustTry,
         >,
     ),
@@ -1210,7 +1210,7 @@ pub type XcmFeesToAccount = primitives::xcm_gadget::XcmFeesToAccount<
         ConvertedConcreteAssetId<
             CurrencyId,
             Balance,
-            AsAssetType<CurrencyId, AssetType, AssetManager>,
+            AsAssetType<CurrencyId, AssetType, AssetRegistry>,
             JustTry,
         >,
     ),
@@ -1238,13 +1238,13 @@ impl Config for XcmConfig {
     type AssetClaims = PolkadotXcm;
 }
 
-impl pallet_asset_manager::Config for Runtime {
+impl pallet_asset_registry::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type AssetId = CurrencyId;
     type AssetType = AssetType;
     type AssetModifierOrigin = EnsureRoot<AccountId>;
-    type WeightInfo = pallet_asset_manager::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = pallet_asset_registry::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1921,7 +1921,7 @@ construct_runtime!(
         Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>} = 46,
 
         // Asset Management
-        AssetManager: pallet_asset_manager::{Pallet, Call, Storage, Event<T>} = 48,
+        AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>} = 48,
 
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
