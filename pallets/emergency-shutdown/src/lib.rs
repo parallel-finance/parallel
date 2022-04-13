@@ -29,7 +29,7 @@ pub use pallet::*;
 use codec::{Decode, Encode};
 use frame_support::traits::Contains;
 use frame_system::pallet_prelude::OriginFor;
-use pallet_traits::emergency_filter::EmergencyCallFilter;
+use pallet_traits::EmergencyCallFilter;
 
 #[frame_support::pallet]
 pub mod pallet {

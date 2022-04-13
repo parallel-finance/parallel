@@ -47,6 +47,7 @@ pub mod pallet {
     use crate::weights::WeightInfo;
     use frame_support::{pallet_prelude::*, PalletId};
     use frame_system::pallet_prelude::*;
+    use pallet_traits::AssetRegistrar;
     use parallel_primitives as primitives;
     use parity_scale_codec::HasCompact;
     use sp_runtime::traits::{AccountIdConversion, AtLeast32BitUnsigned};
@@ -58,18 +59,6 @@ pub mod pallet {
 
     /// The AssetManagers's pallet id
     pub const PALLET_ID: PalletId = PalletId(*b"asstmngr");
-
-    // The registrar trait. We need to comply with this
-    pub trait AssetRegistrar<T: Config> {
-        // How to create an asset
-        fn create_asset(
-            asset: T::AssetId,
-            min_balance: T::Balance,
-            metadata: T::AssetRegistrarMetadata,
-            // Wether or not an asset-receiving account increments the sufficient counter
-            is_sufficient: bool,
-        ) -> DispatchResult;
-    }
 
     // We implement this trait to be able to get the AssetType and units per second registered
     impl<T: Config> primitives::xcm_gadget::AssetTypeGetter<T::AssetId, T::AssetType> for Pallet<T> {
@@ -110,7 +99,11 @@ pub mod pallet {
         type Balance: Member + Parameter + AtLeast32BitUnsigned + Default + Copy + MaxEncodedLen;
 
         /// The trait we use to register Assets
-        type AssetRegistrar: AssetRegistrar<Self>;
+        type AssetRegistrar: AssetRegistrar<
+            Self::AssetId,
+            Self::Balance,
+            Self::AssetRegistrarMetadata,
+        >;
 
         /// Origin that is allowed to create and modify asset information
         type AssetModifierOrigin: EnsureOrigin<Self::Origin>;

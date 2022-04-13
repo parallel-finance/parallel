@@ -5213,6 +5213,7 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-balances",
+ "pallet-traits",
  "parallel-primitives",
  "parity-scale-codec",
  "scale-info",

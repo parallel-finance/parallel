@@ -115,7 +115,7 @@ pub use frame_support::{
     },
     StorageValue,
 };
-use pallet_traits::emergency_filter::EmergencyCallFilter;
+use pallet_traits::EmergencyCallFilter;
 use pallet_xcm::XcmPassthrough;
 use time::*;
 
@@ -1333,7 +1333,7 @@ impl Config for XcmConfig {
 // In this case, we tell it to Create an Asset in pallet-assets
 pub struct AssetRegistrar;
 
-impl pallet_asset_manager::AssetRegistrar<Runtime> for AssetRegistrar {
+impl pallet_traits::AssetRegistrar<CurrencyId, Balance, AssetRegistrarMetadata> for AssetRegistrar {
     #[transactional]
     fn create_asset(
         asset: CurrencyId,
