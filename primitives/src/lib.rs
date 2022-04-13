@@ -209,17 +209,20 @@ pub trait ValidationDataProvider {
 }
 
 /// Distribute liquidstaking asset to multi-accounts
-pub trait StrategyLike {
+pub trait StrategyLike<Balance> {
     fn bond(
-        active_bonded_amount: &Vec<(DerivativeIndex, Balance)>,
+        active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
+        capacity: Balance,
     ) -> Vec<(DerivativeIndex, Balance)>;
     fn unbond(
-        active_bonded_amount: &Vec<(DerivativeIndex, Balance)>,
+        active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
+        capacity: Balance,
     ) -> Vec<(DerivativeIndex, Balance)>;
     fn rebond(
-        unlocking_amount: &Vec<(DerivativeIndex, Balance)>,
+        unlocking_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
+        capacity: Balance,
     ) -> Vec<(DerivativeIndex, Balance)>;
 }
