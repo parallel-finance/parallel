@@ -21,6 +21,7 @@ pub use pallet::*;
 use types::Pool;
 extern crate alloc;
 
+mod maths;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -49,6 +50,10 @@ use sp_runtime::{
 };
 use sp_std::{cmp::min, ops::Div, result::Result, vec::Vec};
 
+use crate::{
+    maths::{compute_base, compute_d},
+    weights::WeightInfo,
+};
 use num_traits::{CheckedDiv, CheckedMul, ToPrimitive};
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -433,6 +438,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         Ok(amounts_in)
     }
+
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
     //
     // reserveIn * reserveOut = (reserveIn + amountIn) * (reserveOut - amountOut)
@@ -922,6 +928,29 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         tot_base_amount: BalanceOf<T, I>,
         tot_quote_amount: BalanceOf<T, I>,
     ) -> Result<Balance, DispatchError> {
+        let d = compute_d(
+            tot_base_amount,
+            tot_quote_amount,
+            T::AmplificationCoefficient::get() as u128,
+        )?;
+
+        Ok(d)
+    }
+
+    pub fn get_base(
+        new_quote: BalanceOf<T, I>,
+        amp_coeff: BalanceOf<T, I>,
+        d: BalanceOf<T, I>,
+    ) -> Result<Balance, DispatchError> {
+        let base = compute_base(new_quote, amp_coeff, d)?;
+        Ok(base)
+    }
+
+    // Calculates delta based on amounts
+    fn delta_util_1(
+        tot_base_amount: BalanceOf<T, I>,
+        tot_quote_amount: BalanceOf<T, I>,
+    ) -> Result<Balance, DispatchError> {
         // total = x + y = C
         let total_reserves = tot_base_amount
             .get_big_uint()
@@ -1360,6 +1389,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         Ok(amounts_out)
     }
+
     fn get_protocol_fee_reciprocal_proportion() -> Result<BalanceOf<T, I>, DispatchError> {
         Ok(T::ProtocolFee::get()
             .checked_add(&T::LpFee::get())
