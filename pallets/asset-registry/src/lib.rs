@@ -171,7 +171,7 @@ pub mod pallet {
             T::AssetModifierOrigin::ensure_origin(origin)?;
 
             ensure!(
-                AssetIdType::<T>::get(&asset_id).is_none(),
+                !AssetIdType::<T>::contains_key(&asset_id),
                 Error::<T>::AssetAlreadyExists
             );
             AssetIdType::<T>::insert(&asset_id, &asset);
@@ -191,7 +191,7 @@ pub mod pallet {
             T::AssetModifierOrigin::ensure_origin(origin)?;
 
             ensure!(
-                AssetTypeId::<T>::get(&asset_type).is_some(),
+                AssetTypeId::<T>::contains_key(&asset_type),
                 Error::<T>::AssetDoesNotExist
             );
 
