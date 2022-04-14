@@ -28,25 +28,22 @@ parameter_types! {
     pub const SS58Prefix: u8 = 42;
 }
 
-pub enum CallFilterRouter {}
-impl Contains<Call> for CallFilterRouter {
-    fn contains(call: &Call) -> bool {
-        EmergencyShutdown::contains(call)
+pub struct BaseCallFilter;
+impl Contains<Call> for BaseCallFilter {
+    fn contains(c: &Call) -> bool {
+        EmergencyShutdown::contains(c)
     }
 }
 
-pub struct TestBaseCallFilter;
-impl Contains<Call> for TestBaseCallFilter {
-    fn contains(c: &Call) -> bool {
-        match *c {
-            Call::System(frame_system::Call::remark { .. }) => false,
-            _ => false,
-        }
+pub struct WhiteListFilter;
+impl Contains<Call> for WhiteListFilter {
+    fn contains(_c: &Call) -> bool {
+        false
     }
 }
 
 impl frame_system::Config for Test {
-    type BaseCallFilter = CallFilterRouter;
+    type BaseCallFilter = BaseCallFilter;
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
@@ -74,7 +71,7 @@ impl frame_system::Config for Test {
 
 impl pallet_emergency_shutdown::Config for Test {
     type Event = Event;
-    type Whitelist = TestBaseCallFilter;
+    type Whitelist = WhiteListFilter;
     type ShutdownOrigin = EnsureRoot<u64>;
     type Call = Call;
 }

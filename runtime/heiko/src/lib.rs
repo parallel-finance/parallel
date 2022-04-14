@@ -207,8 +207,8 @@ parameter_types! {
     pub const SS58Prefix: u8 = HEIKO_PREFIX;
 }
 
-pub struct BaseCallFilter;
-impl Contains<Call> for BaseCallFilter {
+pub struct WhiteListFilter;
+impl Contains<Call> for WhiteListFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
@@ -243,6 +243,7 @@ impl Contains<Call> for BaseCallFilter {
             // Consensus
             Call::Authorship(_) |
             Call::Session(_) |
+            // Call::CollatorSelection(_) |
             // Utility
             Call::Utility(_) |
             Call::Multisig(_) |
@@ -254,46 +255,47 @@ impl Contains<Call> for BaseCallFilter {
             Call::Oracle(_) |
             Call::XTokens(_) |
             Call::OrmlXcm(_) |
-            // Loans
-            Call::Loans(_) |
-            Call::Prices(_) |
-            // Crowdloans
-            Call::Crowdloans(_) |
             // Membership
             Call::OracleMembership(_) |
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
             Call::LiquidStakingAgentsMembership(_) |
             Call::CrowdloansAutomatorsMembership(_) |
-            Call::BridgeMembership(_) |
-            // AMM
-            Call::AMM(_) |
-            Call::AMMRoute(_) |
-            // Liquid Staking
-            Call::LiquidStaking(_) |
-            // Bridge
-            Call::Bridge(_) |
-            // Farming
-            Call::Farming(_) |
-            // Streaming
-            Call::Streaming(_)
+            Call::BridgeMembership(_)
         )
-
-        // // Consensus
-        // Call::CollatorSelection(_)
     }
 }
 
-pub struct CallFilterRouter;
-impl Contains<Call> for CallFilterRouter {
+pub struct BaseCallFilter;
+impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
-        BaseCallFilter::contains(call) && EmergencyShutdown::contains(call)
+        (WhiteListFilter::contains(call)
+            || matches!(
+                call,
+                // Loans
+                Call::Loans(_) |
+                Call::Prices(_) |
+                // Crowdloans
+                Call::Crowdloans(_) |
+                // AMM
+                Call::AMM(_) |
+                Call::AMMRoute(_) |
+                // Liquid Staking
+                Call::LiquidStaking(_) |
+                // Bridge
+                Call::Bridge(_) |
+                // Farming
+                Call::Farming(_) |
+                // Streaming
+                Call::Streaming(_)
+            ))
+            && EmergencyShutdown::contains(call)
     }
 }
 
 impl frame_system::Config for Runtime {
     /// The basic call filter to use in dispatchable.
-    type BaseCallFilter = CallFilterRouter;
+    type BaseCallFilter = BaseCallFilter;
     /// Block & extrinsics weights: base values and limits.
     type BlockWeights = RuntimeBlockWeights;
     /// The maximum length of a block (in bytes).
@@ -1828,67 +1830,6 @@ impl pallet_farming::Config for Runtime {
     type LockPoolMaxDuration = LockPoolMaxDuration;
     type CoolDownMaxDuration = CoolDownMaxDuration;
     type Decimal = Decimal;
-}
-
-pub struct WhiteListFilter;
-impl Contains<Call> for WhiteListFilter {
-    fn contains(call: &Call) -> bool {
-        matches!(
-            call,
-            // System, Currencies
-            Call::System(_) |
-            Call::Timestamp(_) |
-            Call::Balances(_) |
-            Call::Assets(pallet_assets::Call::mint { .. }) |
-            Call::Assets(pallet_assets::Call::transfer { .. }) |
-            Call::Assets(pallet_assets::Call::burn { .. }) |
-            Call::Assets(pallet_assets::Call::destroy { .. }) |
-            Call::Assets(pallet_assets::Call::force_create { .. }) |
-            Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
-            Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
-            // Governance
-            Call::Sudo(_) |
-            Call::Democracy(_) |
-            Call::GeneralCouncil(_) |
-            Call::TechnicalCommittee(_) |
-            Call::Treasury(_) |
-            Call::Scheduler(_) |
-            Call::Preimage(_) |
-            // Parachain
-            Call::ParachainSystem(_) |
-            Call::XcmpQueue(_) |
-            Call::DmpQueue(_) |
-            Call::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) |
-            Call::PolkadotXcm(pallet_xcm::Call::force_default_xcm_version { .. }) |
-            Call::PolkadotXcm(pallet_xcm::Call::force_subscribe_version_notify { .. }) |
-            Call::PolkadotXcm(pallet_xcm::Call::force_unsubscribe_version_notify { .. }) |
-            Call::CumulusXcm(_) |
-            // Consensus
-            Call::Authorship(_) |
-            Call::Session(_) |
-            // Utility
-            Call::Utility(_) |
-            Call::Multisig(_) |
-            Call::Proxy(_) |
-            Call::Identity(_) |
-            Call::EmergencyShutdown(_) |
-            // 3rd Party
-            Call::Vesting(_) |
-            Call::Oracle(_) |
-            Call::XTokens(_) |
-            Call::OrmlXcm(_) |
-            // Loans
-            Call::Loans(_) |
-            Call::Prices(_) |
-            // Membership
-            Call::OracleMembership(_) |
-            Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_) |
-            Call::LiquidStakingAgentsMembership(_) |
-            Call::CrowdloansAutomatorsMembership(_) |
-            Call::BridgeMembership(_)
-        )
-    }
 }
 
 impl pallet_emergency_shutdown::Config for Runtime {
