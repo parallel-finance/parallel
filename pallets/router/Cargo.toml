@@ -13,6 +13,7 @@ frame-support      = { git = 'https://github.com/paritytech/substrate.git', bran
 frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 pallet-amm         = { path = '../amm', default-features = false }
 pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
+pallet-traits      = { path = '../traits', default-features = false }
 parity-scale-codec = { version = '2.3.1', default-features = false, features = ['derive'] }
 primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 scale-info         = { version = '1.0', default-features = false, features = ['derive'] }
@@ -38,6 +39,7 @@ std                = [
   'sp-std/std',
   'sp-runtime/std',
   'scale-info/std',
+  'pallet-traits/std',
 ]
 
 [lib]

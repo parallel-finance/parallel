@@ -67,9 +67,8 @@ use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
     tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, SDOT},
-    AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, DecimalProvider,
-    EraIndex, Hash, Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio,
-    Shortfall, Signature, ValidationDataProvider,
+    AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
+    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio, Shortfall, Signature,
 };
 
 use xcm::latest::prelude::*;
@@ -110,7 +109,7 @@ pub use frame_support::{
     },
     StorageValue,
 };
-use pallet_traits::EmergencyCallFilter;
+use pallet_traits::{DecimalProvider, EmergencyCallFilter, ValidationDataProvider};
 use pallet_xcm::XcmPassthrough;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;

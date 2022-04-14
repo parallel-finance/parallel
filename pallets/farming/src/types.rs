@@ -3,7 +3,7 @@ use frame_support::traits::tokens::Balance as TokenBalance;
 use frame_support::RuntimeDebug;
 use num_traits::cast::ToPrimitive;
 use num_traits::{CheckedDiv, CheckedMul};
-use primitives::ConvertToBigUint;
+use pallet_traits::ConvertToBigUint;
 use scale_info::TypeInfo;
 use sp_runtime::{
     traits::{Saturating, UniqueSaturatedInto},

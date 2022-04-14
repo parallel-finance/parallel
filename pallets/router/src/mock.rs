@@ -24,7 +24,7 @@ use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
-pub use primitives::{tokens, Amount, Balance, CurrencyId, Ratio, AMM};
+pub use primitives::{tokens, Amount, Balance, CurrencyId, Ratio};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;

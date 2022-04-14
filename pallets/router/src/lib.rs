@@ -43,7 +43,8 @@ pub mod pallet {
         transactional, BoundedVec, PalletId,
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-    use primitives::{Balance, CurrencyId, AMM};
+    use pallet_traits::AMM;
+    use primitives::{Balance, CurrencyId};
     use sp_runtime::{traits::Zero, DispatchError};
     use sp_std::{cmp::Reverse, collections::btree_map::BTreeMap, vec::Vec};
 
