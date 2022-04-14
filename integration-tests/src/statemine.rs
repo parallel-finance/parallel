@@ -70,8 +70,8 @@ fn statemine() {
         .unwrap();
         assert_ok!(AssetRegistry::register_asset(
             Origin::root(),
-            statemine_rmrk_asset_type.clone(),
             statemine_rmrk_asset_type.clone().into(),
+            statemine_rmrk_asset_type.clone(),
         ));
         assert_ok!(AssetRegistry::set_asset_units_per_second(
             Origin::root(),

@@ -13,8 +13,8 @@ frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', bran
 frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
-pallet-utility     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 pallet-traits      = { path = '../traits', default-features = false }
+pallet-utility     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 pallet-xcm         = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17', default-features = false }
 pallet-xcm-helper  = { path = '../xcm-helper', default-features = false }
 scale-info         = { version = '1.0', default-features = false, features = ['derive'] }
@@ -52,9 +52,9 @@ cumulus-pallet-xcmp-queue       = { git = 'https://github.com/paritytech/cumulus
 parachain-info                  = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.17' }
 
 hex              = '0.4.3'
+orml-traits      = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 orml-xcm-support = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 orml-xtokens     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
-orml-traits      = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 
 [features]
 default            = ['std']

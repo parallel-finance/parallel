@@ -23,16 +23,14 @@ use frame_support::{
 };
 use scale_info::TypeInfo;
 use sp_core::H256;
-use sp_runtime::traits::{BlakeTwo256, CheckedConversion, Convert, Hash as THash, Zero};
-use sp_std::{borrow::Borrow, convert::TryFrom, marker::PhantomData, vec::Vec};
+use sp_runtime::traits::{BlakeTwo256, Convert, Hash as THash, Zero};
+use sp_std::{borrow::Borrow, marker::PhantomData};
 use xcm::latest::{
-    prelude::*,
-    AssetId as xcmAssetId, Error as XcmError, Fungibility,
-    Junction::{AccountId32, Parachain},
+    prelude::*, AssetId as xcmAssetId, Error as XcmError, Fungibility, Junction::AccountId32,
     MultiLocation, NetworkId,
 };
 use xcm_builder::TakeRevenue;
-use xcm_executor::traits::{FilterAssetLocation, MatchesFungible, MatchesFungibles, WeightTrader};
+use xcm_executor::traits::{MatchesFungibles, WeightTrader};
 
 /// Converter struct implementing `AssetIdConversion` converting a numeric asset ID
 /// (must be `TryFrom/TryInto<u128>`) into a MultiLocation Value and Viceversa through
@@ -219,43 +217,6 @@ impl<
     }
 }
 
-pub trait Reserve {
-    /// Returns assets reserve location.
-    fn reserve(&self) -> Option<MultiLocation>;
-}
-
-// Takes the chain part of a MultiAsset
-impl Reserve for MultiAsset {
-    fn reserve(&self) -> Option<MultiLocation> {
-        if let xcmAssetId::Concrete(location) = self.id.clone() {
-            let first_interior = location.first_interior();
-            let parents = location.parent_count();
-            match (parents, first_interior) {
-                (0, Some(Parachain(id))) => Some(MultiLocation::new(0, X1(Parachain(*id)))),
-                (1, Some(Parachain(id))) => Some(MultiLocation::new(1, X1(Parachain(*id)))),
-                (1, _) => Some(MultiLocation::parent()),
-                _ => None,
-            }
-        } else {
-            None
-        }
-    }
-}
-
-/// A `FilterAssetLocation` implementation. Filters multi native assets whose
-/// reserve is same with `origin`.
-pub struct MultiNativeAsset;
-impl FilterAssetLocation for MultiNativeAsset {
-    fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
-        if let Some(ref reserve) = asset.reserve() {
-            if reserve == origin {
-                return true;
-            }
-        }
-        false
-    }
-}
-
 // Defines the trait to obtain a generic AssetType from a generic AssetId and viceversa
 pub trait AssetTypeGetter<AssetId, AssetType> {
     // Get asset type from assetId
@@ -299,24 +260,6 @@ impl<
                 target: "xcm",
                 "take revenue failed matching fungible"
             ),
-        }
-    }
-}
-
-// Multi IsConcrete Implementation. Allows us to route both pre and post 0.9.16 anchoring versions
-// of our native token to the same currency
-// The incoming MultiAsset is matched against a Vec of multilocations and returned Some
-// if matches
-pub struct MultiIsConcrete<T>(PhantomData<T>);
-impl<T: Get<Vec<MultiLocation>>, B: TryFrom<u128>> MatchesFungible<B> for MultiIsConcrete<T> {
-    fn matches_fungible(a: &MultiAsset) -> Option<B> {
-        match (&a.id, &a.fun) {
-            (xcmAssetId::Concrete(ref id), Fungibility::Fungible(ref amount))
-                if T::get().contains(id) =>
-            {
-                CheckedConversion::checked_from(*amount)
-            }
-            _ => None,
         }
     }
 }

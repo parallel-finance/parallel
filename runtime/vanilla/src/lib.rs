@@ -41,8 +41,7 @@ use frame_system::{
     EnsureRoot, EnsureSigned,
 };
 
-use orml_traits::parameter_type_with_key;
-use orml_traits::{DataProvider, DataProviderExtended};
+use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
@@ -1956,9 +1955,6 @@ construct_runtime!(
         OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 45,
         Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>} = 46,
 
-        // Asset Management
-        AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>} = 48,
-
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
@@ -1986,6 +1982,7 @@ construct_runtime!(
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
         Streaming: pallet_streaming::{Pallet, Call, Storage, Event<T>} = 94,
+        AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>} = 95,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
