@@ -94,6 +94,7 @@ pub use constants::{currency, fee, paras, time};
 pub use impls::DealWithFees;
 
 pub use pallet_amm;
+pub use pallet_asset_registry;
 pub use pallet_bridge;
 pub use pallet_crowdloans;
 pub use pallet_farming;
@@ -285,7 +286,9 @@ impl Contains<Call> for BaseCallFilter {
                 // Farming
                 Call::Farming(_) |
                 // Streaming
-                Call::Streaming(_)
+                Call::Streaming(_) |
+                // Asset Management
+                Call::AssetRegistry(_)
             ))
             && EmergencyShutdown::contains(call)
     }

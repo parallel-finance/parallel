@@ -30,10 +30,10 @@ benchmarks! {
         assert_eq!(Pallet::<T>::asset_id_type(asset_id), Some(asset_type));
     }
 
-    set_asset_units_per_second {
+    update_asset_units_per_second {
         let asset_type:  T::AssetType = MultiLocation::new(0, X1(GeneralIndex(0 as u128))).into();
         Pallet::<T>::register_asset(RawOrigin::Root.into(), asset_type.clone().into(), asset_type.clone())?;
-        Pallet::<T>::set_asset_units_per_second(RawOrigin::Root.into(), asset_type, 1)?;
+        Pallet::<T>::update_asset_units_per_second(RawOrigin::Root.into(), asset_type, 1)?;
 
         // does not really matter what we register, as long as it is different than the previous
         let asset_type = T::AssetType::default();
@@ -48,7 +48,7 @@ benchmarks! {
     update_asset_type {
         let asset_type:  T::AssetType = MultiLocation::new(0, X1(GeneralIndex(0 as u128))).into();
         Pallet::<T>::register_asset(RawOrigin::Root.into(),  asset_type.clone().into(), asset_type.clone())?;
-        Pallet::<T>::set_asset_units_per_second(RawOrigin::Root.into(), asset_type, 1)?;
+        Pallet::<T>::update_asset_units_per_second(RawOrigin::Root.into(), asset_type, 1)?;
 
         let new_asset_type = T::AssetType::default();
         let asset_type_to_be_changed: T::AssetType = MultiLocation::new(
@@ -67,7 +67,7 @@ benchmarks! {
     remove_fee_payment_asset {
         let asset_type:  T::AssetType = MultiLocation::new(0, X1(GeneralIndex(0 as u128))).into();
         Pallet::<T>::register_asset(RawOrigin::Root.into(), asset_type.clone().into(), asset_type.clone())?;
-        Pallet::<T>::set_asset_units_per_second(RawOrigin::Root.into(), asset_type, 1)?;
+        Pallet::<T>::update_asset_units_per_second(RawOrigin::Root.into(), asset_type, 1)?;
         let asset_type_to_be_removed: T::AssetType = MultiLocation::new(
             0,
             X1(GeneralIndex(0 as u128))
@@ -82,7 +82,7 @@ benchmarks! {
     deregister_asset {
         let asset_type:  T::AssetType = MultiLocation::new(0, X1(GeneralIndex(0 as u128))).into();
         Pallet::<T>::register_asset(RawOrigin::Root.into(), asset_type.clone().into(), asset_type.clone())?;
-        Pallet::<T>::set_asset_units_per_second(RawOrigin::Root.into(), asset_type, 1)?;
+        Pallet::<T>::update_asset_units_per_second(RawOrigin::Root.into(), asset_type, 1)?;
 
         let asset_type_to_be_removed: T::AssetType = MultiLocation::new(
             0,

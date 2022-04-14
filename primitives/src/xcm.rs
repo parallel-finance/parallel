@@ -129,55 +129,53 @@ impl<
                 if !AssetIdInfoGetter::payment_is_supported(asset_type.clone()) {
                     return Err(XcmError::TooExpensive);
                 }
-                if let Some(units_per_second) = AssetIdInfoGetter::get_units_per_second(asset_type)
-                {
-                    let amount = units_per_second.saturating_mul(weight as u128)
-                        / (WEIGHT_PER_SECOND as u128);
 
-                    // We dont need to proceed if the amount is 0
-                    // For cases (specially tests) where the asset is very cheap with respect
-                    // to the weight needed
-                    if amount.is_zero() {
-                        return Ok(payment);
-                    }
+                let units_per_second = AssetIdInfoGetter::get_units_per_second(asset_type)
+                    .ok_or(XcmError::TooExpensive)?;
+                let amount =
+                    units_per_second.saturating_mul(weight as u128) / (WEIGHT_PER_SECOND as u128);
 
-                    let required = MultiAsset {
-                        fun: Fungibility::Fungible(amount),
-                        id: xcmAssetId::Concrete(id.clone()),
-                    };
-                    let unused = payment
-                        .checked_sub(required)
-                        .map_err(|_| XcmError::TooExpensive)?;
-                    self.0 = self.0.saturating_add(weight);
-
-                    // In case the asset matches the one the trader already stored before, add
-                    // to later refund
-
-                    // Else we are always going to substract the weight if we can, but we latter do
-                    // not refund it
-
-                    // In short, we only refund on the asset the trader first succesfully was able
-                    // to pay for an execution
-                    let new_asset = match self.1.clone() {
-                        Some((prev_id, prev_amount, units_per_second)) => {
-                            if prev_id == id {
-                                Some((id, prev_amount.saturating_add(amount), units_per_second))
-                            } else {
-                                None
-                            }
-                        }
-                        None => Some((id, amount, units_per_second)),
-                    };
-
-                    // Due to the trait bound, we can only refund one asset.
-                    if let Some(new_asset) = new_asset {
-                        self.0 = self.0.saturating_add(weight);
-                        self.1 = Some(new_asset);
-                    };
-                    Ok(unused)
-                } else {
-                    Err(XcmError::TooExpensive)
+                // We dont need to proceed if the amount is 0
+                // For cases (specially tests) where the asset is very cheap with respect
+                // to the weight needed
+                if amount.is_zero() {
+                    return Ok(payment);
                 }
+
+                let required = MultiAsset {
+                    fun: Fungibility::Fungible(amount),
+                    id: xcmAssetId::Concrete(id.clone()),
+                };
+                let unused = payment
+                    .checked_sub(required)
+                    .map_err(|_| XcmError::TooExpensive)?;
+                self.0 = self.0.saturating_add(weight);
+
+                // In case the asset matches the one the trader already stored before, add
+                // to later refund
+
+                // Else we are always going to substract the weight if we can, but we latter do
+                // not refund it
+
+                // In short, we only refund on the asset the trader first succesfully was able
+                // to pay for an execution
+                let new_asset = match self.1.clone() {
+                    Some((prev_id, prev_amount, units_per_second)) => {
+                        if prev_id == id {
+                            Some((id, prev_amount.saturating_add(amount), units_per_second))
+                        } else {
+                            None
+                        }
+                    }
+                    None => Some((id, amount, units_per_second)),
+                };
+
+                // Due to the trait bound, we can only refund one asset.
+                if let Some(new_asset) = new_asset {
+                    self.0 = self.0.saturating_add(weight);
+                    self.1 = Some(new_asset);
+                };
+                Ok(unused)
             }
             _ => Err(XcmError::TooExpensive),
         }

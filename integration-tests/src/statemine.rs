@@ -73,7 +73,7 @@ fn statemine() {
             statemine_rmrk_asset_type.clone().into(),
             statemine_rmrk_asset_type.clone(),
         ));
-        assert_ok!(AssetRegistry::set_asset_units_per_second(
+        assert_ok!(AssetRegistry::update_asset_units_per_second(
             Origin::root(),
             statemine_rmrk_asset_type,
             RMRK_WEIGHT_PER_SEC,

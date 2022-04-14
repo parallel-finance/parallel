@@ -67,6 +67,10 @@ use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
     tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, SDOT},
+    xcm::{
+        AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
+        FirstAssetTrader,
+    },
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio, Shortfall, Signature,
 };
@@ -74,12 +78,13 @@ use primitives::{
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-    AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds,
-    LocationInverter, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
-    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
+    AllowTopLevelPaidExecutionFrom, ConvertedConcreteAssetId, EnsureXcmOrigin, FixedRateOfFungible,
+    FixedWeightBounds, FungiblesAdapter, LocationInverter, ParentAsSuperuser, ParentIsPreset,
+    RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
+    TakeWeightCredit,
 };
-use xcm_executor::{Config, XcmExecutor};
+use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 pub mod constants;
 pub mod impls;
 // A few exports that help ease life for downstream crates.
@@ -88,6 +93,7 @@ pub use constants::{currency, fee, paras, time};
 pub use impls::DealWithFees;
 
 pub use pallet_amm;
+pub use pallet_asset_registry;
 pub use pallet_bridge;
 pub use pallet_farming;
 pub use pallet_liquid_staking;
@@ -282,7 +288,9 @@ impl Contains<Call> for BaseCallFilter {
                 // Farming
                 Call::Farming(_) |
                 // Streaming
-                Call::Streaming(_)
+                Call::Streaming(_) |
+                // Asset Management
+                Call::AssetRegistry(_)
             ))
             && EmergencyShutdown::contains(call)
     }
@@ -483,17 +491,6 @@ impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
     }
 }
 
-pub struct AccountIdToMultiLocation;
-impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
-    fn convert(account_id: AccountId) -> MultiLocation {
-        X1(AccountId32 {
-            network: NetworkId::Any,
-            id: account_id.into(),
-        })
-        .into()
-    }
-}
-
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 150_000_000;
@@ -517,8 +514,11 @@ impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type CurrencyId = CurrencyId;
-    type CurrencyIdConvert = CurrencyIdConvert;
-    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type CurrencyIdConvert = CurrencyIdtoMultiLocation<
+        CurrencyIdConvert,
+        AsAssetType<CurrencyId, AssetType, AssetRegistry>,
+    >;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation<AccountId>;
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
@@ -1191,7 +1191,59 @@ pub type Trader = (
     FixedRateOfFungible<AcaPerSecond, ToTreasury>,
     FixedRateOfFungible<LDOTPerSecond, ToTreasury>,
     FixedRateOfFungible<LCDOTPerSecond, ToTreasury>,
+    // Foreign Assets registered in AssetRegistry
+    // TODO: replace all above except local reserved asset later
+    FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
 );
+
+parameter_types! {
+    pub CheckingAccount: AccountId = PolkadotXcm::check_account();
+}
+
+/// The non-reserve fungible transactor type
+/// It will use pallet-assets, and the Id will be matched against AsAssetType
+pub type ForeignFungiblesTransactor = FungiblesAdapter<
+    // Use this fungibles implementation:
+    Assets,
+    // Use this currency when it is a fungible asset matching the given location or name:
+    (
+        ConvertedConcreteAssetId<
+            CurrencyId,
+            Balance,
+            AsAssetType<CurrencyId, AssetType, AssetRegistry>,
+            JustTry,
+        >,
+    ),
+    // Do a simple punn to convert an AccountId20 MultiLocation into a native chain account ID:
+    LocationToAccountId,
+    // Our chain's account ID type (we can't get away without mentioning it explicitly):
+    AccountId,
+    // We dont allow teleports.
+    Nothing,
+    // We dont track any teleports
+    CheckingAccount,
+>;
+
+/// How to withdraw and deposit an asset, try LocalAssetTransactor first
+/// and if AssetNotFound then with ForeignFungiblesTransactor as fallback
+pub type AssetTransactors = (LocalAssetTransactor, ForeignFungiblesTransactor);
+
+/// This is the struct that will handle the revenue from xcm fees
+/// We do not burn anything because we want to mimic exactly what
+/// the sovereign account has
+pub type XcmFeesToAccount = primitives::xcm::XcmFeesToAccount<
+    Assets,
+    (
+        ConvertedConcreteAssetId<
+            CurrencyId,
+            Balance,
+            AsAssetType<CurrencyId, AssetType, AssetRegistry>,
+            JustTry,
+        >,
+    ),
+    AccountId,
+    TreasuryAccount,
+>;
 
 pub struct XcmConfig;
 impl Config for XcmConfig {
@@ -1211,6 +1263,15 @@ impl Config for XcmConfig {
     type SubscriptionService = PolkadotXcm;
     type AssetTrap = PolkadotXcm;
     type AssetClaims = PolkadotXcm;
+}
+
+impl pallet_asset_registry::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type AssetId = CurrencyId;
+    type AssetType = AssetType;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type WeightInfo = pallet_asset_registry::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1727,7 +1788,7 @@ impl pallet_xcm_helper::Config for Runtime {
     type RelayNetwork = RelayNetwork;
     type PalletId = XcmHelperPalletId;
     type NotifyTimeout = NotifyTimeout;
-    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation<AccountId>;
     type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type XcmOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -1854,6 +1915,7 @@ construct_runtime!(
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
         Streaming: pallet_streaming::{Pallet, Call, Storage, Event<T>} = 94,
+        AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>} = 95,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
