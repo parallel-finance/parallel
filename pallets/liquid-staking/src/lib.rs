@@ -77,9 +77,7 @@ pub mod pallet {
     use sp_std::{borrow::Borrow, boxed::Box, result::Result, vec::Vec};
     use sp_trie::StorageProof;
 
-    use primitives::{
-        ump::*, ArithmeticKind, Balance, CurrencyId, DerivativeIndex, EraIndex, ParaId, Rate, Ratio,
-    };
+    use primitives::{ump::*, Balance, CurrencyId, DerivativeIndex, EraIndex, ParaId, Rate, Ratio};
 
     use super::{types::*, weights::WeightInfo, *};
     use pallet_xcm_helper::XcmHelper;
@@ -1340,7 +1338,6 @@ pub mod pallet {
             req: XcmRequest<T>,
             res: Option<(u32, XcmError)>,
         ) -> DispatchResult {
-            use ArithmeticKind::*;
             use XcmRequest::*;
 
             log::trace!(

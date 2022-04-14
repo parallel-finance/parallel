@@ -1,10 +1,7 @@
-use frame_support::{dispatch::DispatchResult, traits::tokens::Balance as BalanceT};
+use frame_support::traits::tokens::Balance as BalanceT;
 use pallet_traits::DistributionStrategy;
 use primitives::DerivativeIndex;
-use sp_runtime::{
-    traits::{CheckedDiv, Zero},
-    ArithmeticError, DispatchError, FixedPointOperand, RuntimeDebug,
-};
+use sp_runtime::FixedPointOperand;
 pub struct AverageStrategy;
 impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for AverageStrategy {
     fn get_bond_distributions(
@@ -33,7 +30,7 @@ impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for Av
     fn get_unbond_distributions(
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
-        cap: Balance,
+        _cap: Balance,
         min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         let length = TryInto::<Balance>::try_into(active_bonded_amount.len()).unwrap_or_default();
@@ -55,7 +52,7 @@ impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for Av
     fn get_rebond_distributions(
         unlocking_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
-        cap: Balance,
+        _cap: Balance,
         _min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         let length = TryInto::<Balance>::try_into(unlocking_amount.len()).unwrap_or_default();
@@ -111,7 +108,7 @@ impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for Qu
     fn get_unbond_distributions(
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
-        cap: Balance,
+        _cap: Balance,
         min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         // descending sequence
@@ -137,7 +134,7 @@ impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for Qu
     fn get_rebond_distributions(
         unlocking_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
-        cap: Balance,
+        _cap: Balance,
         _min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         // descending sequence

@@ -2,7 +2,7 @@ use codec::{Decode, Encode, HasCompact};
 
 use super::{BalanceOf, Config};
 use frame_support::{dispatch::DispatchResult, traits::tokens::Balance as BalanceT};
-use primitives::{ArithmeticKind, DerivativeIndex, EraIndex};
+use primitives::{DerivativeIndex, EraIndex};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, ArithmeticError, DispatchError, FixedPointOperand, RuntimeDebug};
 use sp_std::{cmp::Ordering, result::Result, vec, vec::Vec};

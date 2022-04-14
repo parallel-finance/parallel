@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::*;
-
 pub mod v3 {
-    use super::*;
-    use crate::{Config, StorageVersion};
-    use frame_support::{log, pallet_prelude::*, traits::Get};
+
+    use crate::Config;
+    use frame_support::pallet_prelude::*;
 
     #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
