@@ -50,10 +50,7 @@ use sp_runtime::{
 };
 use sp_std::{cmp::min, ops::Div, result::Result, vec::Vec};
 
-use crate::{
-    maths::{compute_base, compute_d},
-    weights::WeightInfo,
-};
+use crate::maths::{compute_base, compute_d};
 use num_traits::{CheckedDiv, CheckedMul, ToPrimitive};
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -439,6 +436,32 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(amounts_in)
     }
 
+    fn get_amount_out(
+        amount_in: BalanceOf<T, I>,
+        pool_base_aum: BalanceOf<T, I>,
+        pool_quote_aum: BalanceOf<T, I>,
+    ) -> Result<BalanceOf<T, I>, DispatchError> {
+        let fees = T::LpFee::get()
+            .checked_add(&T::ProtocolFee::get())
+            .map(|r| r.mul_floor(amount_in))
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let amount_in = amount_in
+            .checked_sub(fees)
+            .ok_or(ArithmeticError::Underflow)?;
+
+        let amp = T::AmplificationCoefficient::get() as u128;
+        let d = Self::delta_util(pool_base_aum, pool_quote_aum)?;
+        let new_quote_amount = pool_quote_aum
+            .checked_add(amount_in)
+            .ok_or(ArithmeticError::Overflow)?;
+        let new_base_amount = Self::get_base(new_quote_amount, amp, d)?;
+        let amount_out = pool_base_aum
+            .checked_sub(new_base_amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        Ok(amount_out)
+    }
+
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
     //
     // reserveIn * reserveOut = (reserveIn + amountIn) * (reserveOut - amountOut)
@@ -447,7 +470,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     //
     // amountOut = amountIn * reserveOut / (reserveIn + amountIn)
     // amountOut  = amountOut * (1 - fee_percent)
-    fn get_amount_out(
+    #[allow(dead_code)]
+    fn get_amount_out_1(
         amount_in: BalanceOf<T, I>,
         reserve_in: BalanceOf<T, I>,
         reserve_out: BalanceOf<T, I>,
@@ -848,6 +872,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 );
                 ensure!(!supply_out.is_zero(), Error::<T, I>::InsufficientAmountOut);
 
+                //let amount_out = Self::get_amount_out(amount_in, supply_in, supply_out)?;
                 let amount_out = Self::get_amount_out(amount_in, supply_in, supply_out)?;
 
                 let (new_supply_in, new_supply_out) = (
@@ -947,6 +972,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     // Calculates delta based on amounts
+    #[allow(dead_code)]
     fn delta_util_1(
         tot_base_amount: BalanceOf<T, I>,
         tot_quote_amount: BalanceOf<T, I>,
