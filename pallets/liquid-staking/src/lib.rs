@@ -1270,6 +1270,8 @@ pub mod pallet {
                 T::MinNominatorBond::get(),
             );
 
+            //TODO: reserve according to total distributions amount
+
             for (index, amount) in distributions.into_iter() {
                 Self::do_bond(index, amount, payee.clone())?;
             }
@@ -1496,9 +1498,10 @@ pub mod pallet {
                 let unbonding_amount = Self::get_total_unbonding();
                 let (bond_amount, rebond_amount, unbond_amount) =
                     Self::matching_pool().matching(unbonding_amount)?;
-                MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                    p.consolidate_reserve(bond_amount, rebond_amount, unbond_amount)
-                })?;
+                //FIXME: remove reserve logic
+                // MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                //     p.consolidate_reserve(bond_amount, rebond_amount, unbond_amount)
+                // })?;
 
                 Self::do_multi_bond(bond_amount, RewardDestination::Staked)?;
                 Self::do_multi_rebond(rebond_amount)?;
