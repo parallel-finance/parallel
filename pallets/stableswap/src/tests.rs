@@ -1609,18 +1609,24 @@ fn swap_stable_tokens() {
         let bal_dot_before = Assets::balance(DOT, trader);
         let bal_sdot_before = Assets::balance(SDOT, trader);
 
-        println!("DOT Balance Before\t{:?}", bal_dot_before);
-        println!("SDOT Balance Before\t{:?}", bal_sdot_before);
+        assert_eq!(bal_dot_before, 1_000000000);
+        assert_eq!(bal_sdot_before, 1_000000000);
+        // println!("DOT Balance Before\t{:?}", bal_dot_before);
+        // println!("SDOT Balance Before\t{:?}", bal_sdot_before);
 
+        // Swapping 1000 DOTs to SDOTs
         assert_ok!(DefaultStableSwap::swap(&trader, (DOT, SDOT), amount_in));
 
         let bal_dot_after = Assets::balance(DOT, trader);
         let bal_sdot_after = Assets::balance(SDOT, trader);
 
-        println!("DOT Balance After\t{:?}", bal_dot_after);
-        println!("SDOT Balance After\t{:?}", bal_sdot_after);
+        assert_eq!(bal_dot_after, 999999000);
+        assert_eq!(bal_sdot_after, 1000000997);
 
-        println!("DOT Diff\t{:?}", bal_dot_after - bal_dot_before);
-        println!("SDOT Diff\t{:?}", bal_sdot_after - bal_sdot_before);
+        // println!("DOT Balance After\t{:?}", bal_dot_after);
+        // println!("SDOT Balance After\t{:?}", bal_sdot_after);
+
+        // println!("DOT Diff\t{:?}", bal_dot_before - bal_dot_after);
+        // println!("SDOT Diff\t{:?}", bal_sdot_after - bal_sdot_before);
     })
 }

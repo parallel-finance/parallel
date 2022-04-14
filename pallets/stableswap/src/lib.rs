@@ -451,14 +451,25 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(ArithmeticError::Underflow)?;
 
         let amp = T::AmplificationCoefficient::get() as u128;
+        // d = 2000000
+        // poolbaseamount = 1000000
+        // amountin = 997
+        // new quote amount = 1000000 + 997
         let d = Self::delta_util(pool_base_aum, pool_quote_aum)?;
         let new_quote_amount = pool_quote_aum
             .checked_add(amount_in)
             .ok_or(ArithmeticError::Overflow)?;
+
         let new_base_amount = Self::get_base(new_quote_amount, amp, d)?;
+
+        // poolbaseamount = 1000000
+        // new base amount =  999003
+
+        // TODO: Have a check here
         let amount_out = pool_base_aum
             .checked_sub(new_base_amount)
             .ok_or(ArithmeticError::Underflow)?;
+
         Ok(amount_out)
     }
 
