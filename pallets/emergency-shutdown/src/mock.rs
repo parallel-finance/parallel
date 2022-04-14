@@ -30,8 +30,8 @@ parameter_types! {
 
 pub struct BaseCallFilter;
 impl Contains<Call> for BaseCallFilter {
-    fn contains(call: &Call) -> bool {
-        EmergencyShutdown::contains(call)
+    fn contains(c: &Call) -> bool {
+        EmergencyShutdown::contains(c)
     }
 }
 
