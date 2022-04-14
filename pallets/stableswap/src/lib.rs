@@ -21,7 +21,7 @@ pub use pallet::*;
 use types::Pool;
 extern crate alloc;
 
-mod maths;
+mod helpers;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -50,7 +50,7 @@ use sp_runtime::{
 };
 use sp_std::{cmp::min, ops::Div, result::Result, vec::Vec};
 
-use crate::maths::{compute_base, compute_d};
+use crate::helpers::{compute_base, compute_d};
 use num_traits::{CheckedDiv, CheckedMul, ToPrimitive};
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -650,7 +650,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         // let D2 = Self::do_get_delta((base_asset, quote_asset)).unwrap();
         // D2 and D1 in here will be the same
         if total_supply > 0 {
-            liquidity = liquidity * (d1 - d0) / d0;
+            liquidity = liquidity + liquidity * (d1 - d0) / d0;
         } else {
             liquidity += d1;
         }

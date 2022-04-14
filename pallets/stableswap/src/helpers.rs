@@ -1,5 +1,5 @@
-use num_traits::{CheckedDiv, CheckedMul, ToPrimitive};
-use primitives::{Balance, ConvertToBigUint, CurrencyId, Ratio};
+use num_traits::{CheckedDiv, ToPrimitive};
+use primitives::ConvertToBigUint;
 use sp_runtime::{biguint::BigUint, helpers_128bit::to_big_uint, ArithmeticError, DispatchError};
 
 fn safe_div(a: &mut BigUint, b: &mut BigUint) -> Result<BigUint, DispatchError> {
@@ -69,9 +69,9 @@ pub fn compute_d(
 
         let d_prev = d.clone();
         // d = (ann * sum + d_p * n) * d / (ann * d + (n + 1) * d_p - d)
-        let mut numerator = ann.clone().mul(&sum).add(&d_p.clone().mul(&n)).mul(&d);
+        let numerator = ann.clone().mul(&sum).add(&d_p.clone().mul(&n)).mul(&d);
 
-        let mut denominator = ann_d
+        let denominator = ann_d
             .add(&n.clone().add(&one).mul(&d_p))
             .sub(&d)
             .map_err(|_| ArithmeticError::Underflow)?;
@@ -79,15 +79,20 @@ pub fn compute_d(
         let _nu = u128::try_from(numerator.clone()).unwrap_or(0);
         let _de = u128::try_from(denominator.clone()).unwrap_or(0);
 
-        let x = _nu
-            .get_big_uint()
-            .checked_div(&_de.get_big_uint())
-            .ok_or(ArithmeticError::Underflow)?
-            .to_u128()
-            .unwrap();
+        // let x = _nu
+        //     .get_big_uint()
+        //     .checked_div(&_de.get_big_uint())
+        //     .ok_or(ArithmeticError::Underflow)?
+        //     .to_u128()
+        //     .unwrap();
 
-        d = BigUint::from(x);
-        // d = numerator.checked_div(&denominator).map_err(|_| ArithmeticError::Underflow)?;
+        d = BigUint::from(
+            _nu.get_big_uint()
+                .checked_div(&_de.get_big_uint())
+                .ok_or(ArithmeticError::Underflow)?
+                .to_u128()
+                .unwrap(),
+        );
         // d = safe_div(&mut numerator, &mut denominator)?;
 
         if d.clone() > d_prev {
@@ -147,8 +152,8 @@ pub fn compute_base(new_quote: u128, amp_coeff: u128, d: u128) -> Result<u128, D
             .add(&s)
             .sub(&d)
             .map_err(|_| ArithmeticError::Underflow)?;
-        let mut numerator = ann.clone().mul(&y).mul(&y).add(&term1);
-        let mut denominator = ann.clone().mul(&term2).add(&d);
+        let numerator = ann.clone().mul(&y).mul(&y).add(&term1);
+        let denominator = ann.clone().mul(&term2).add(&d);
 
         // *****************************************************************************
         let _nu = u128::try_from(numerator.clone()).unwrap_or(0);
@@ -163,7 +168,7 @@ pub fn compute_base(new_quote: u128, amp_coeff: u128, d: u128) -> Result<u128, D
 
         y = BigUint::from(x);
         // *****************************************************************************
-
+        // The code below has a bug? safe_div?
         // y = safe_div(&mut numerator, &mut denominator)?;
 
         if y.clone() > y_prev {
