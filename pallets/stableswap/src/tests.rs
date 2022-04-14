@@ -1568,3 +1568,59 @@ fn handling_fees_should_work() {
         assert_eq!(Assets::balance(SDOT, PROTOCOL_FEE_RECEIVER), 1498);
     })
 }
+
+#[test]
+fn amount_out_should_work_simple() {
+    new_test_ext().execute_with(|| {
+        let amount_in = 1_000_000;
+        let supply_in = 1_000_000_000;
+        let supply_out = 1_000_000_000;
+
+        // let amount_in =
+        //     DefaultStableSwap::get_amount_in(amount_out, supply_in, supply_out).unwrap();
+
+        // assert_eq!(amount_in, 1004);
+
+        let amount_out =
+            DefaultStableSwap::get_amount_out(amount_in, supply_in, supply_out).unwrap();
+
+        // old
+        // assert_eq!(amount_out, 1000);
+
+        // new
+        assert_eq!(amount_out, 996_995); // currently 999_995
+    })
+}
+
+#[test]
+fn swap_stable_tokens() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (1000000, 1000000),              // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        let amount_in = 1000;
+        let trader = EVE;
+
+        let bal_dot_before = Assets::balance(DOT, trader);
+        let bal_sdot_before = Assets::balance(SDOT, trader);
+
+        println!("DOT Balance Before\t{:?}", bal_dot_before);
+        println!("SDOT Balance Before\t{:?}", bal_sdot_before);
+
+        assert_ok!(DefaultStableSwap::swap(&trader, (DOT, SDOT), amount_in));
+
+        let bal_dot_after = Assets::balance(DOT, trader);
+        let bal_sdot_after = Assets::balance(SDOT, trader);
+
+        println!("DOT Balance After\t{:?}", bal_dot_after);
+        println!("SDOT Balance After\t{:?}", bal_sdot_after);
+
+        println!("DOT Diff\t{:?}", bal_dot_after - bal_dot_before);
+        println!("SDOT Diff\t{:?}", bal_sdot_after - bal_sdot_before);
+    })
+}
