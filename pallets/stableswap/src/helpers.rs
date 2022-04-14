@@ -79,13 +79,6 @@ pub fn compute_d(
         let _nu = u128::try_from(numerator.clone()).unwrap_or(0);
         let _de = u128::try_from(denominator.clone()).unwrap_or(0);
 
-        // let x = _nu
-        //     .get_big_uint()
-        //     .checked_div(&_de.get_big_uint())
-        //     .ok_or(ArithmeticError::Underflow)?
-        //     .to_u128()
-        //     .unwrap();
-
         d = BigUint::from(
             _nu.get_big_uint()
                 .checked_div(&_de.get_big_uint())
@@ -93,7 +86,6 @@ pub fn compute_d(
                 .to_u128()
                 .unwrap(),
         );
-        // d = safe_div(&mut numerator, &mut denominator)?;
 
         if d.clone() > d_prev {
             if d.clone() - d_prev <= one {
