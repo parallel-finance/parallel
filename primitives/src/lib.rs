@@ -209,7 +209,7 @@ pub trait ValidationDataProvider {
 }
 
 /// Distribute liquidstaking asset to multi-accounts
-pub trait StrategyLike<Balance> {
+pub trait DistributionStrategy<Balance> {
     fn get_bond_distributions(
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,

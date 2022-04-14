@@ -32,7 +32,7 @@ fn stake_should_work() {
             MatchingPool::<Test>::get(),
             MatchingLedger {
                 total_stake_amount: ReservableAmount {
-                    free: ksm(9.95f64),
+                    total: ksm(9.95f64),
                     reserved: 0
                 },
                 total_unstake_amount: Default::default(),
@@ -129,11 +129,11 @@ fn unstake_should_work() {
             MatchingPool::<Test>::get(),
             MatchingLedger {
                 total_stake_amount: ReservableAmount {
-                    free: ksm(9.95f64),
+                    total: ksm(9.95f64),
                     reserved: 0
                 },
                 total_unstake_amount: ReservableAmount {
-                    free: ksm(6f64),
+                    total: ksm(6f64),
                     reserved: 0
                 }
             }
@@ -319,14 +319,18 @@ fn test_transact_bond_extra_work() {
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(4000f64),));
-
+        let bond_amount = ksm(2f64);
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             derivative_index,
-            ksm(2f64),
+            bond_amount,
             RewardDestination::Staked
         ));
-
+        assert_ok!(MatchingPool::<Test>::mutate(|p| p.consolidate_reserve(
+            bond_amount,
+            0,
+            0
+        )));
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
             0,
@@ -356,13 +360,20 @@ fn test_transact_unbond_work() {
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
         assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(1000f64),));
+        let bond_amount = ksm(5f64);
 
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             derivative_index,
-            ksm(5f64),
+            bond_amount,
             RewardDestination::Staked
         ));
+        assert_ok!(MatchingPool::<Test>::mutate(|p| p.consolidate_reserve(
+            bond_amount,
+            0,
+            0
+        )));
+
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
             0,
@@ -400,11 +411,17 @@ fn test_transact_withdraw_unbonded_work() {
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
         assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(2000f64),));
-
+        let bond_amount = ksm(5f64);
+        let unbond_amount = ksm(2f64);
+        assert_ok!(MatchingPool::<Test>::mutate(|p| p.consolidate_reserve(
+            bond_amount,
+            0,
+            unbond_amount
+        )));
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             derivative_index,
-            ksm(5f64),
+            bond_amount,
             RewardDestination::Staked
         ));
         assert_ok!(LiquidStaking::notification_received(
@@ -415,7 +432,7 @@ fn test_transact_withdraw_unbonded_work() {
         assert_ok!(LiquidStaking::unbond(
             Origin::signed(ALICE),
             derivative_index,
-            ksm(2f64)
+            unbond_amount
         ));
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
@@ -478,13 +495,19 @@ fn test_transact_rebond_work() {
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
         assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(1000f64),));
-
+        let bond_amount = ksm(10f64);
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             derivative_index,
-            ksm(10f64),
+            bond_amount,
             RewardDestination::Staked
         ));
+        assert_ok!(MatchingPool::<Test>::mutate(|p| p.consolidate_reserve(
+            bond_amount,
+            0,
+            0
+        )));
+
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
             0,
@@ -530,13 +553,18 @@ fn test_transact_nominate_work() {
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(4000f64),));
-
+        let bond_amount = ksm(10f64);
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             derivative_index,
-            ksm(10f64),
+            bond_amount,
             RewardDestination::Staked
         ));
+        assert_ok!(MatchingPool::<Test>::mutate(|p| p.consolidate_reserve(
+            bond_amount,
+            0,
+            0
+        )));
 
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
@@ -702,7 +730,7 @@ fn test_on_initialize_work() {
             LiquidStaking::matching_pool(),
             MatchingLedger {
                 total_stake_amount: ReservableAmount {
-                    free: 0,
+                    total: total_stake_amount,
                     reserved: total_stake_amount
                 },
                 total_unstake_amount: Default::default(),
@@ -822,6 +850,13 @@ fn test_force_notification_received_work() {
             bond_amount,
             RewardDestination::Staked
         ));
+
+        assert_ok!(MatchingPool::<Test>::mutate(|p| p.consolidate_reserve(
+            bond_amount,
+            0,
+            0
+        )));
+
         let query_id = 0;
         assert_eq!(
             XcmRequests::<Test>::get(query_id),

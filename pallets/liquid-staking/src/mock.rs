@@ -44,7 +44,7 @@ use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chai
 
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
-use crate::{types::StakingLedger, BalanceOf};
+use crate::{strategy::AverageStrategy, types::StakingLedger, BalanceOf};
 pub use kusama_runtime;
 use primitives::ump::{XcmCall, XcmWeightFeeMisc};
 
@@ -491,6 +491,7 @@ impl crate::Config for Test {
     type RelayChainValidationDataProvider = RelayChainValidationDataProvider;
     type Members = BobOrigin;
     type NumSlashingSpans = NumSlashingSpans;
+    type DistributionStrategy = AverageStrategy;
 }
 
 parameter_types! {

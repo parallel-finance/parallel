@@ -1,15 +1,15 @@
 use frame_support::{dispatch::DispatchResult, traits::tokens::Balance as BalanceT};
-use primitives::{DerivativeIndex, StrategyLike};
+use primitives::{DerivativeIndex, DistributionStrategy};
 use sp_runtime::{
     traits::{CheckedDiv, Zero},
     ArithmeticError, DispatchError, FixedPointOperand, RuntimeDebug,
 };
 pub struct AverageStrategy;
-impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for AverageStrategy {
+impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for AverageStrategy {
     fn get_bond_distributions(
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
-        capacity: Balance,
+        cap: Balance,
         min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         let length = TryInto::<Balance>::try_into(active_bonded_amount.len()).unwrap_or_default();
@@ -22,7 +22,7 @@ impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for AverageStr
             if amount.saturating_add(*bonded) < min_bond_amount {
                 continue;
             }
-            let amount = capacity.saturating_sub(*bonded).min(amount);
+            let amount = cap.saturating_sub(*bonded).min(amount);
             distributions.push((*index, amount));
         }
 
@@ -72,11 +72,11 @@ impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for AverageStr
 }
 
 pub struct QueueStrategy;
-impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for QueueStrategy {
+impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for QueueStrategy {
     fn get_bond_distributions(
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
-        capacity: Balance,
+        cap: Balance,
         min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         //ascending sequence
@@ -89,10 +89,10 @@ impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for QueueStrat
             if remain.is_zero() {
                 break;
             }
-            let amount = capacity.saturating_sub(*bonded).min(remain);
+            let amount = cap.saturating_sub(*bonded).min(remain);
             if amount.is_zero() {
                 // `active_bonded_amount` is an ascending sequence
-                // if occurs an item that exceed the capacity, the items after this one must all be exceeded
+                // if occurs an item that exceed the cap, the items after this one must all be exceeded
                 break;
             }
 

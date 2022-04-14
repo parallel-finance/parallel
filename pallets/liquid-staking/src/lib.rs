@@ -37,8 +37,8 @@ extern crate primitives;
 
 use frame_support::traits::{fungibles::InspectMetadata, tokens::Balance as BalanceT, Get};
 use primitives::{
-    ExchangeRateProvider, LiquidStakingConvert, LiquidStakingCurrenciesProvider,
-    PersistedValidationData, Rate, StrategyLike, ValidationDataProvider,
+    DistributionStrategy, ExchangeRateProvider, LiquidStakingConvert,
+    LiquidStakingCurrenciesProvider, PersistedValidationData, Rate, ValidationDataProvider,
 };
 use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
 
@@ -188,7 +188,7 @@ pub mod pallet {
         type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
 
         /// Currenty strategy for distributing assets to multi-accounts
-        type DistributionStrategy: StrategyLike<BalanceOf<Self>>;
+        type DistributionStrategy: DistributionStrategy<BalanceOf<Self>>;
     }
 
     #[pallet::event]
@@ -979,11 +979,11 @@ pub mod pallet {
                 T::DerivativeIndexList::get().contains(&derivative_index),
                 Error::<T>::InvalidDerivativeIndex
             );
-            // ensure!(
-            //     amount >= T::MinNominatorBond::get(),
-            //     Error::<T>::InsufficientBond
-            // );
-            // Self::ensure_staking_ledger_cap(derivative_index, amount)?;
+            ensure!(
+                amount >= T::MinNominatorBond::get(),
+                Error::<T>::InsufficientBond
+            );
+            Self::ensure_staking_ledger_cap(derivative_index, amount)?;
 
             log::trace!(
                 target: "liquidStaking::bond",
@@ -1038,7 +1038,7 @@ pub mod pallet {
                 StakingLedgers::<T>::contains_key(&derivative_index),
                 Error::<T>::NotBonded
             );
-            // Self::ensure_staking_ledger_cap(derivative_index, amount)?;
+            Self::ensure_staking_ledger_cap(derivative_index, amount)?;
 
             log::trace!(
                 target: "liquidStaking::bond_extra",
@@ -1131,7 +1131,7 @@ pub mod pallet {
                 StakingLedgers::<T>::contains_key(&derivative_index),
                 Error::<T>::NotBonded
             );
-            // Self::ensure_staking_ledger_cap(derivative_index, amount)?;
+            Self::ensure_staking_ledger_cap(derivative_index, amount)?;
 
             log::trace!(
                 target: "liquidStaking::rebond",
@@ -1498,10 +1498,10 @@ pub mod pallet {
                 let unbonding_amount = Self::get_total_unbonding();
                 let (bond_amount, rebond_amount, unbond_amount) =
                     Self::matching_pool().matching(unbonding_amount)?;
-                //FIXME: remove reserve logic
-                // MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                //     p.consolidate_reserve(bond_amount, rebond_amount, unbond_amount)
-                // })?;
+                //FIXME: reserve amount here maybe more than actually
+                MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                    p.consolidate_reserve(bond_amount, rebond_amount, unbond_amount)
+                })?;
 
                 Self::do_multi_bond(bond_amount, RewardDestination::Staked)?;
                 Self::do_multi_rebond(rebond_amount)?;
@@ -1543,17 +1543,18 @@ pub mod pallet {
             Ok(())
         }
 
-        // fn ensure_staking_ledger_cap(
-        //     derivative_index: DerivativeIndex,
-        //     amount: BalanceOf<T>,
-        // ) -> DispatchResult {
-        //     ensure!(
-        //         Self::bonded_of(derivative_index).saturating_add(amount)
-        //             <= Self::staking_ledger_cap(),
-        //         Error::<T>::CapExceeded
-        //     );
-        //     Ok(())
-        // }
+        fn ensure_staking_ledger_cap(
+            derivative_index: DerivativeIndex,
+            amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            // FIXME: confirm use ledger.active or ledger.total
+            ensure!(
+                Self::bonded_of(derivative_index).saturating_add(amount)
+                    <= Self::staking_ledger_cap(),
+                Error::<T>::CapExceeded
+            );
+            Ok(())
+        }
 
         fn notify_placeholder() -> <T as Config>::Call {
             <T as Config>::Call::from(Call::<T>::notification_received {
