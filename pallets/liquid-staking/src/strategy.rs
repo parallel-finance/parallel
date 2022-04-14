@@ -6,7 +6,7 @@ use sp_runtime::{
 };
 pub struct AverageStrategy;
 impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for AverageStrategy {
-    fn bond(
+    fn get_bond_distributions(
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
         capacity: Balance,
@@ -29,10 +29,10 @@ impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for AverageStr
         distributions
     }
 
-    fn unbond(
+    fn get_unbond_distributions(
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
-        _capacity: Balance,
+        cap: Balance,
         min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         let length = TryInto::<Balance>::try_into(active_bonded_amount.len()).unwrap_or_default();
@@ -51,10 +51,10 @@ impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for AverageStr
         distributions
     }
 
-    fn rebond(
+    fn get_rebond_distributions(
         unlocking_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
-        _capacity: Balance,
+        cap: Balance,
         _min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         let length = TryInto::<Balance>::try_into(unlocking_amount.len()).unwrap_or_default();
@@ -73,7 +73,7 @@ impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for AverageStr
 
 pub struct QueueStrategy;
 impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for QueueStrategy {
-    fn bond(
+    fn get_bond_distributions(
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
         capacity: Balance,
@@ -107,10 +107,10 @@ impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for QueueStrat
         distributions
     }
 
-    fn unbond(
+    fn get_unbond_distributions(
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
-        _capacity: Balance,
+        cap: Balance,
         min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         // descending sequence
@@ -133,10 +133,10 @@ impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for QueueStrat
 
         distributions
     }
-    fn rebond(
+    fn get_rebond_distributions(
         unlocking_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
-        _capacity: Balance,
+        cap: Balance,
         _min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         // descending sequence

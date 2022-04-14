@@ -188,7 +188,7 @@ pub mod pallet {
         type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
 
         /// Currenty strategy for distributing assets to multi-accounts
-        type CurrentStrategy: StrategyLike<BalanceOf<Self>>;
+        type DistributionStrategy: StrategyLike<BalanceOf<Self>>;
     }
 
     #[pallet::event]
@@ -1263,7 +1263,7 @@ pub mod pallet {
                 .iter()
                 .map(|&index| (index, Self::bonded_of(index)))
                 .collect();
-            let distributions = T::CurrentStrategy::bond(
+            let distributions = T::DistributionStrategy::get_bond_distributions(
                 &mut amounts,
                 total_amount,
                 Self::staking_ledger_cap(),
@@ -1288,7 +1288,7 @@ pub mod pallet {
                 .iter()
                 .map(|&index| (index, Self::bonded_of(index)))
                 .collect();
-            let distributions = T::CurrentStrategy::unbond(
+            let distributions = T::DistributionStrategy::get_unbond_distributions(
                 &mut amounts,
                 total_amount,
                 Self::staking_ledger_cap(),
@@ -1311,7 +1311,7 @@ pub mod pallet {
                 .iter()
                 .map(|&index| (index, Self::unbonded_of(index)))
                 .collect();
-            let distributions = T::CurrentStrategy::rebond(
+            let distributions = T::DistributionStrategy::get_rebond_distributions(
                 &mut amounts,
                 total_amount,
                 Self::staking_ledger_cap(),
