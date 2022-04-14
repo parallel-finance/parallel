@@ -65,15 +65,14 @@ use frame_system::{
 
 pub use frame_support::traits::PalletInfoAccess;
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
-use pallet_emergency_shutdown::EmergencyCallFilter;
+use pallet_traits::{DecimalProvider, EmergencyCallFilter, ValidationDataProvider};
 use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
     tokens::{EUSDC, EUSDT, HKO, KAR, KBTC, KINT, KSM, KUSD, LKSM, MOVR, PHA, SKSM},
-    AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, DecimalProvider,
-    EraIndex, Hash, Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio,
-    Shortfall, Signature, ValidationDataProvider,
+    AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
+    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio, Shortfall, Signature,
 };
 use scale_info::TypeInfo;
 use xcm::latest::prelude::*;

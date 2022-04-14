@@ -34,6 +34,7 @@ use sp_runtime::{
 use sp_std::vec::Vec;
 
 pub use pallet::*;
+use pallet_traits::*;
 
 #[cfg(test)]
 mod mock;

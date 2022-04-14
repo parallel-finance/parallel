@@ -54,9 +54,8 @@ use primitives::{
         AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
         FirstAssetTrader,
     },
-    AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, DecimalProvider,
-    EraIndex, Hash, Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio,
-    Shortfall, Signature, ValidationDataProvider,
+    AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
+    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio, Shortfall, Signature,
 };
 use sp_api::impl_runtime_apis;
 use sp_core::{
@@ -116,7 +115,7 @@ pub use frame_support::{
     },
     StorageValue,
 };
-use pallet_emergency_shutdown::EmergencyCallFilter;
+use pallet_traits::{DecimalProvider, EmergencyCallFilter, ValidationDataProvider};
 use pallet_xcm::XcmPassthrough;
 use time::*;
 

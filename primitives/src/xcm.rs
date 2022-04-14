@@ -15,6 +15,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use crate::CurrencyId;
+
 use codec::{Decode, Encode};
 use frame_support::{
     traits::{tokens::fungibles::Mutate, Get},
@@ -22,12 +23,10 @@ use frame_support::{
 };
 use scale_info::TypeInfo;
 use sp_core::H256;
-use sp_runtime::traits::Convert;
-use sp_runtime::traits::{BlakeTwo256, CheckedConversion, Hash as THash, Zero};
-use sp_std::{borrow::Borrow, vec::Vec};
-use sp_std::{convert::TryFrom, marker::PhantomData};
-use xcm::latest::prelude::*;
+use sp_runtime::traits::{BlakeTwo256, CheckedConversion, Convert, Hash as THash, Zero};
+use sp_std::{borrow::Borrow, convert::TryFrom, marker::PhantomData, vec::Vec};
 use xcm::latest::{
+    prelude::*,
     AssetId as xcmAssetId, Error as XcmError, Fungibility,
     Junction::{AccountId32, Parachain},
     MultiLocation, NetworkId,
@@ -57,6 +56,7 @@ where
             Err(())
         }
     }
+
     fn reverse_ref(what: impl Borrow<AssetId>) -> Result<MultiLocation, ()> {
         if let Some(asset_type) = AssetIdInfoGetter::get_asset_type(what.borrow().clone()) {
             if let Some(location) = asset_type.into() {
@@ -109,6 +109,7 @@ impl<
     fn new() -> Self {
         FirstAssetTrader(0, None, PhantomData)
     }
+
     fn buy_weight(
         &mut self,
         weight: Weight,

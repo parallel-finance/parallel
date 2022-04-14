@@ -18,6 +18,7 @@ pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', bran
 pallet-balances    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 pallet-prices      = { path = '../prices', default-features = false }
 pallet-timestamp   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
+pallet-traits      = { path = '../traits', default-features = false }
 scale-info         = { version = '1.0', default-features = false, features = ['derive'] }
 
 primitives = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
@@ -49,6 +50,7 @@ std                = [
   'serde',
   'scale-info/std',
   'num-traits/std',
+  'pallet-traits/std',
 ]
 try-runtime        = ['frame-support/try-runtime']
 

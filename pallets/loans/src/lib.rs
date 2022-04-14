@@ -37,10 +37,8 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use num_traits::cast::ToPrimitive;
 pub use pallet::*;
-use primitives::{
-    Balance, ConvertToBigUint, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall,
-    Timestamp,
-};
+use pallet_traits::{ConvertToBigUint, PriceFeeder};
+use primitives::{Balance, CurrencyId, Liquidity, Price, Rate, Ratio, Shortfall, Timestamp};
 use sp_runtime::{
     traits::{
         AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One,

@@ -21,7 +21,6 @@ pub mod ump;
 pub mod xcm;
 
 use codec::{Decode, Encode};
-use frame_support::pallet_prelude::*;
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
@@ -110,7 +109,6 @@ pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub type StreamId = u128;
 
 pub use cumulus_primitives_core::{ParaId, PersistedValidationData};
-use num_bigint::{BigUint, ToBigUint};
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -119,91 +117,9 @@ pub enum DataProviderId {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-pub trait PriceFeeder {
-    fn get_price(asset_id: &CurrencyId) -> Option<PriceDetail>;
-}
-
-pub trait DecimalProvider<CurrencyId> {
-    fn get_decimal(asset_id: &CurrencyId) -> Option<u8>;
-}
-
-pub trait EmergencyPriceFeeder<CurrencyId, Price> {
-    fn set_emergency_price(asset_id: CurrencyId, price: Price);
-    fn reset_emergency_price(asset_id: CurrencyId);
-}
-
-pub trait ExchangeRateProvider {
-    fn get_exchange_rate() -> Rate;
-}
-
-pub trait LiquidStakingConvert<Balance> {
-    fn staking_to_liquid(amount: Balance) -> Option<Balance>;
-    fn liquid_to_staking(liquid_amount: Balance) -> Option<Balance>;
-}
-
-pub trait LiquidStakingCurrenciesProvider<CurrencyId> {
-    fn get_staking_currency() -> Option<CurrencyId>;
-    fn get_liquid_currency() -> Option<CurrencyId>;
-}
-
-/// Exported traits from our AMM pallet. These functions are to be used
-/// by the router to enable multi route token swaps
-pub trait AMM<AccountId, CurrencyId, Balance> {
-    /// Based on the path specified and the available pool balances
-    /// this will return the amounts outs when trading the specified
-    /// amount in
-    fn get_amounts_out(
-        amount_in: Balance,
-        path: Vec<CurrencyId>,
-    ) -> Result<Vec<Balance>, DispatchError>;
-
-    /// Based on the path specified and the available pool balances
-    /// this will return the amounts in needed to produce the specified
-    /// amount out
-    fn get_amounts_in(
-        amount_out: Balance,
-        path: Vec<CurrencyId>,
-    ) -> Result<Vec<Balance>, DispatchError>;
-
-    /// Handles a "swap" on the AMM side for "who".
-    /// This will move the `amount_in` funds to the AMM PalletId,
-    /// trade `pair.0` to `pair.1` and return a result with the amount
-    /// of currency that was sent back to the user.
-    fn swap(
-        who: &AccountId,
-        pair: (CurrencyId, CurrencyId),
-        amount_in: Balance,
-    ) -> Result<(), DispatchError>;
-
-    fn get_pools() -> Result<Vec<(CurrencyId, CurrencyId)>, DispatchError>;
-}
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug)]
 pub enum ArithmeticKind {
     Addition,
     Subtraction,
-}
-
-pub trait ConvertToBigUint {
-    fn get_big_uint(&self) -> BigUint;
-}
-
-impl ConvertToBigUint for u128 {
-    fn get_big_uint(&self) -> BigUint {
-        self.to_biguint().unwrap()
-    }
-}
-
-/// Asset Registrar Metadata
-#[derive(Clone, Default, Eq, Debug, PartialEq, Ord, PartialOrd, Encode, Decode, TypeInfo)]
-pub struct AssetRegistrarMetadata {
-    pub name: Vec<u8>,
-    pub symbol: Vec<u8>,
-    pub decimals: u8,
-    pub is_frozen: bool,
-}
-
-/// Get relaychain validation data
-pub trait ValidationDataProvider {
-    fn validation_data() -> Option<PersistedValidationData>;
 }

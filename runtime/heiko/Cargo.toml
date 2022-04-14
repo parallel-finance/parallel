@@ -89,8 +89,8 @@ orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-r
 orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Parallel dependencies
-pallet-asset-registry          = { path = '../../pallets/asset-registry', default-features = false }
 pallet-amm                    = { path = '../../pallets/amm', default-features = false }
+pallet-asset-registry         = { path = '../../pallets/asset-registry', default-features = false }
 pallet-bridge                 = { path = '../../pallets/bridge', default-features = false }
 pallet-crowdloans             = { path = '../../pallets/crowdloans', default-features = false }
 pallet-currency-adapter       = { path = '../../pallets/currency-adapter', default-features = false }
@@ -99,10 +99,11 @@ pallet-farming                = { path = '../../pallets/farming', default-featur
 pallet-liquid-staking         = { path = '../../pallets/liquid-staking', default-features = false }
 pallet-loans                  = { path = '../../pallets/loans', default-features = false }
 pallet-loans-rpc-runtime-api  = { path = '../../pallets/loans/rpc/runtime-api', default-features = false }
-pallet-streaming                = { path = '../../pallets/streaming', default-features = false }
 pallet-prices                 = { path = '../../pallets/prices', default-features = false }
 pallet-router                 = { path = '../../pallets/router', default-features = false }
 pallet-router-rpc-runtime-api = { path = '../../pallets/router/rpc/runtime-api', default-features = false }
+pallet-streaming              = { path = '../../pallets/streaming', default-features = false }
+pallet-traits                 = { path = '../../pallets/traits', default-features = false }
 pallet-xcm-helper             = { path = '../../pallets/xcm-helper', default-features = false }
 primitives                    = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 
@@ -215,6 +216,7 @@ std                = [
   'pallet-xcm-helper/std',
   'pallet-farming/std',
   'pallet-asset-registry/std',
+  'pallet-traits/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',

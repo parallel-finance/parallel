@@ -17,6 +17,7 @@ use super::*;
 use frame_support::{construct_runtime, parameter_types, traits::Everything, PalletId};
 use frame_system::EnsureRoot;
 use orml_traits::{DataProvider, DataProviderExtended};
+use pallet_traits::*;
 use primitives::*;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};

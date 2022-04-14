@@ -12,26 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! TODO Doc comments for the pallet
-//! # Asset Manager Pallet
+//! # Asset registry pallet
 //!
-//! This pallet allows to register new assets if certain conditions are met
-//! The main goal of this pallet is to allow moonbeam to register XCM assets
-//! The assumption is we work with AssetTypes, which can then be comperted to AssetIds
-//!
-//! This pallet has three storage items: AssetIdType, which holds a mapping from AssetId->AssetType
-//! AssetTypeUnitsPerSecond: an AssetType->u128 mapping that holds how much each AssetType should be
-//! charged per unit of second, in the case such an Asset is received as a XCM asset. Finally,
-//! AssetTypeId holds a mapping from AssetType -> AssetId.
-//!
-//! This pallet has three extrinsics: register_asset, which registers an Asset in this pallet and
-//! creates the asset as dictated by the AssetRegistrar trait. set_asset_units_per_second: which
-//! sets the unit per second that should be charged for a particular asset.
-//! change_existing_asset_type: which allows to update the correspondence between AssetId and
-//! AssetType
+//! This pallet allows to register new assets
 #![cfg_attr(not(feature = "std"), no_std)]
 use frame_support::pallet;
-pub use pallet::*;
+
 #[cfg(any(test, feature = "runtime-benchmarks"))]
 mod benchmarks;
 #[cfg(test)]
@@ -40,13 +26,14 @@ pub mod mock;
 pub mod tests;
 pub mod weights;
 
+pub use pallet::*;
+use parallel_primitives as primitives;
+
 #[pallet]
 pub mod pallet {
-
     use crate::weights::WeightInfo;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
-    use parallel_primitives as primitives;
     use parity_scale_codec::HasCompact;
     use sp_runtime::traits::AtLeast32BitUnsigned;
     use sp_std::vec::Vec;
@@ -54,28 +41,6 @@ pub mod pallet {
     #[pallet::pallet]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
-
-    // We implement this trait to be able to get the AssetType and units per second registered
-    impl<T: Config> primitives::xcm::AssetTypeGetter<T::AssetId, T::AssetType> for Pallet<T> {
-        fn get_asset_type(asset_id: T::AssetId) -> Option<T::AssetType> {
-            AssetIdType::<T>::get(asset_id)
-        }
-
-        fn get_asset_id(asset_type: T::AssetType) -> Option<T::AssetId> {
-            AssetTypeId::<T>::get(asset_type)
-        }
-    }
-
-    impl<T: Config> primitives::xcm::UnitsToWeightRatio<T::AssetType> for Pallet<T> {
-        fn payment_is_supported(asset_type: T::AssetType) -> bool {
-            SupportedFeePaymentAssets::<T>::get()
-                .binary_search(&asset_type)
-                .is_ok()
-        }
-        fn get_units_per_second(asset_type: T::AssetType) -> Option<u128> {
-            AssetTypeUnitsPerSecond::<T>::get(asset_type)
-        }
-    }
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -324,5 +289,27 @@ pub mod pallet {
             });
             Ok(())
         }
+    }
+}
+
+// We implement this trait to be able to get the AssetType and units per second registered
+impl<T: Config> primitives::xcm::AssetTypeGetter<T::AssetId, T::AssetType> for Pallet<T> {
+    fn get_asset_type(asset_id: T::AssetId) -> Option<T::AssetType> {
+        AssetIdType::<T>::get(asset_id)
+    }
+
+    fn get_asset_id(asset_type: T::AssetType) -> Option<T::AssetId> {
+        AssetTypeId::<T>::get(asset_type)
+    }
+}
+
+impl<T: Config> primitives::xcm::UnitsToWeightRatio<T::AssetType> for Pallet<T> {
+    fn payment_is_supported(asset_type: T::AssetType) -> bool {
+        SupportedFeePaymentAssets::<T>::get()
+            .binary_search(&asset_type)
+            .is_ok()
+    }
+    fn get_units_per_second(asset_type: T::AssetType) -> Option<u128> {
+        AssetTypeUnitsPerSecond::<T>::get(asset_type)
     }
 }
