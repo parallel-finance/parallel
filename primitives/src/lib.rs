@@ -21,7 +21,6 @@ pub mod ump;
 pub mod xcm;
 
 use codec::{Decode, Encode};
-use frame_support::pallet_prelude::*;
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
@@ -123,13 +122,4 @@ pub enum DataProviderId {
 pub enum ArithmeticKind {
     Addition,
     Subtraction,
-}
-
-/// Asset Registrar Metadata
-#[derive(Clone, Default, Eq, Debug, PartialEq, Ord, PartialOrd, Encode, Decode, TypeInfo)]
-pub struct AssetRegistrarMetadata {
-    pub name: Vec<u8>,
-    pub symbol: Vec<u8>,
-    pub decimals: u8,
-    pub is_frozen: bool,
 }
