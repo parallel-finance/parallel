@@ -102,9 +102,9 @@ bench-amm-router:
 bench-streaming:
 	cargo run --release --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-streaming --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/stream/src/weights.rs
 
-.PHONY: bench-asset-manager
-bench-asset-manager:
-	cargo run --release --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-asset-manager --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/asset-manager/src/weights.rs
+.PHONY: bench-asset-registry
+bench-asset-registry:
+	cargo run --release --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-asset-registry --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/asset-registry/src/weights.rs
 
 .PHONY: lint
 lint:

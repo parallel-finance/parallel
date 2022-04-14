@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use super::*;
-use crate as pallet_asset_manager;
+use crate as pallet_asset_registry;
 use parity_scale_codec::{Decode, Encode};
 
 use frame_support::{construct_runtime, parameter_types, traits::Everything, RuntimeDebug};
@@ -21,7 +21,6 @@ use frame_system::EnsureRoot;
 use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::traits::Hash as THash;
-use sp_runtime::DispatchError;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
@@ -39,7 +38,7 @@ construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        AssetManager: pallet_asset_manager::{Pallet, Call, Storage, Event<T>},
+        AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -144,30 +143,12 @@ impl Into<Option<MultiLocation>> for MockAssetType {
     }
 }
 
-pub struct MockAssetPalletRegistrar;
-
-impl AssetRegistrar<Test> for MockAssetPalletRegistrar {
-    fn create_asset(
-        _asset: u32,
-        min_balance: u64,
-        _metadata: u32,
-        _is_sufficient: bool,
-    ) -> Result<(), DispatchError> {
-        if min_balance == 0 {
-            return Err(DispatchError::from(Error::<Test>::ErrorCreatingAsset));
-        }
-        Ok(())
-    }
-}
-
 impl Config for Test {
     type Event = Event;
     type Balance = u64;
     type AssetId = u32;
-    type AssetRegistrarMetadata = u32;
     type AssetType = MockAssetType;
-    type AssetRegistrar = MockAssetPalletRegistrar;
-    type AssetModifierOrigin = EnsureRoot<u64>;
+    type UpdateOrigin = EnsureRoot<u64>;
     type WeightInfo = ();
 }
 
@@ -186,7 +167,7 @@ pub(crate) fn events() -> Vec<super::Event<Test>> {
         .into_iter()
         .map(|r| r.event)
         .filter_map(|e| {
-            if let Event::AssetManager(inner) = e {
+            if let Event::AssetRegistry(inner) = e {
                 Some(inner)
             } else {
                 None
