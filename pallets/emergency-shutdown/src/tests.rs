@@ -14,7 +14,7 @@ fn toggle_call_works() {
                 "decode input is output of Call encode; Call guaranteed to have two enums; qed",
             );
         assert_eq!(
-            EmergencyShutdown::disable_calls(pallet_idx.clone(), call_idx.clone()),
+            EmergencyShutdown::disabled_calls(pallet_idx.clone(), call_idx.clone()),
             false
         );
         assert_ok!(EmergencyShutdown::toggle_call(
@@ -23,7 +23,7 @@ fn toggle_call_works() {
             call_idx.clone()
         ));
         assert_eq!(
-            EmergencyShutdown::disable_calls(pallet_idx.clone(), call_idx.clone()),
+            EmergencyShutdown::disabled_calls(pallet_idx.clone(), call_idx.clone()),
             true
         );
         assert_ok!(EmergencyShutdown::toggle_call(
@@ -32,7 +32,7 @@ fn toggle_call_works() {
             call_idx.clone()
         ));
         assert_eq!(
-            EmergencyShutdown::disable_calls(pallet_idx, call_idx),
+            EmergencyShutdown::disabled_calls(pallet_idx, call_idx),
             false
         );
     });
@@ -44,19 +44,22 @@ fn toggle_pallet_works() {
         let pallet_idx = System::index() as u8;
 
         assert_eq!(
-            EmergencyShutdown::disable_pallets(pallet_idx.clone()),
+            EmergencyShutdown::disabled_pallets(pallet_idx.clone()),
             false
         );
         assert_ok!(EmergencyShutdown::toggle_pallet(
             Origin::root(),
             pallet_idx.clone()
         ));
-        assert_eq!(EmergencyShutdown::disable_pallets(pallet_idx.clone()), true);
+        assert_eq!(
+            EmergencyShutdown::disabled_pallets(pallet_idx.clone()),
+            true
+        );
         assert_ok!(EmergencyShutdown::toggle_pallet(
             Origin::root(),
             pallet_idx.clone()
         ));
-        assert_eq!(EmergencyShutdown::disable_pallets(pallet_idx), false);
+        assert_eq!(EmergencyShutdown::disabled_pallets(pallet_idx), false);
     });
 }
 
@@ -66,7 +69,7 @@ fn call_filter_works() {
         let pallet_idx = System::index() as u8;
 
         assert_eq!(
-            EmergencyShutdown::disable_pallets(pallet_idx.clone()),
+            EmergencyShutdown::disabled_pallets(pallet_idx.clone()),
             false
         );
         assert_ok!(EmergencyShutdown::toggle_pallet(
@@ -77,7 +80,10 @@ fn call_filter_works() {
         let remark = "test".as_bytes().to_vec();
         let call = Call::System(frame_system::Call::remark { remark });
         // When emergency shutdown toggle is on
-        assert_eq!(EmergencyShutdown::disable_pallets(pallet_idx.clone()), true);
+        assert_eq!(
+            EmergencyShutdown::disabled_pallets(pallet_idx.clone()),
+            true
+        );
         assert_noop!(
             call.clone().dispatch(Origin::signed(1)),
             frame_system::Error::<Test>::CallFiltered,

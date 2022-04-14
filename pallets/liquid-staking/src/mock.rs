@@ -16,10 +16,11 @@ use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::{IsSystem, Sibling};
 
+use pallet_traits::ValidationDataProvider;
 use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::{
     currency::MultiCurrencyAdapter, tokens::*, Balance, EraIndex, ParaId, PersistedValidationData,
-    Rate, Ratio, ValidationDataProvider,
+    Rate, Ratio,
 };
 use sp_core::H256;
 use sp_runtime::{
@@ -387,6 +388,7 @@ impl pallet_xcm_helper::Config for Test {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Test>;
+    type XcmOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
 }
 

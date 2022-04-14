@@ -36,10 +36,11 @@ pub mod weights;
 extern crate primitives;
 
 use frame_support::traits::{fungibles::InspectMetadata, tokens::Balance as BalanceT, Get};
-use primitives::{
+use pallet_traits::{
     DistributionStrategy, ExchangeRateProvider, LiquidStakingConvert,
-    LiquidStakingCurrenciesProvider, PersistedValidationData, Rate, ValidationDataProvider,
+    LiquidStakingCurrenciesProvider, ValidationDataProvider,
 };
+use primitives::{PersistedValidationData, Rate};
 use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
 
 pub use pallet::*;
@@ -77,8 +78,7 @@ pub mod pallet {
     use sp_trie::StorageProof;
 
     use primitives::{
-        ump::*, ArithmeticKind, Balance, CurrencyId, DerivativeIndex, EraIndex,
-        LiquidStakingConvert, ParaId, Rate, Ratio,
+        ump::*, ArithmeticKind, Balance, CurrencyId, DerivativeIndex, EraIndex, ParaId, Rate, Ratio,
     };
 
     use super::{types::*, weights::WeightInfo, *};

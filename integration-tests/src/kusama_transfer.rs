@@ -42,8 +42,8 @@ fn transfer_from_relay_chain() {
     });
 
     Vanilla::execute_with(|| {
-        assert_eq!(Assets::balance(KSM, &AccountId::from(BOB)), 999_952_000_000);
-        //ksm fee in heiko is 48_000_000
+        assert_eq!(Assets::balance(KSM, &AccountId::from(BOB)), 999_904_000_000);
+        //ksm fee in heiko is 96_000_000
     });
 }
 

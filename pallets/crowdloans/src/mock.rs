@@ -1,11 +1,11 @@
 use core::marker::PhantomData;
-use frame_support::traits::OriginTrait;
 use frame_support::{
     construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
     traits::{
-        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers,
+        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, OriginTrait,
+        SortedMembers,
     },
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
@@ -14,8 +14,7 @@ use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
-use polkadot_parachain::primitives::IsSystem;
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain::primitives::{IsSystem, Sibling};
 use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
 use sp_core::H256;
@@ -36,8 +35,7 @@ pub use xcm_builder::{
     RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
     SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
-use xcm_executor::traits::ConvertOrigin;
-use xcm_executor::{Config, XcmExecutor};
+use xcm_executor::{traits::ConvertOrigin, Config, XcmExecutor};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 pub type AccountId = AccountId32;
@@ -499,6 +497,7 @@ impl pallet_xcm_helper::Config for Test {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Test>;
+    type XcmOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
 }
 

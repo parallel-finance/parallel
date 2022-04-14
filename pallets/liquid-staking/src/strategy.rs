@@ -1,5 +1,6 @@
 use frame_support::{dispatch::DispatchResult, traits::tokens::Balance as BalanceT};
-use primitives::{DerivativeIndex, DistributionStrategy};
+use pallet_traits::DistributionStrategy;
+use primitives::DerivativeIndex;
 use sp_runtime::{
     traits::{CheckedDiv, Zero},
     ArithmeticError, DispatchError, FixedPointOperand, RuntimeDebug,

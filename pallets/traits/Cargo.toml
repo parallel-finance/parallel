@@ -1,7 +1,7 @@
 [package]
 authors = ['Parallel Team']
 edition = '2021'
-name    = 'pallet-emergency-shutdown'
+name    = 'pallet-traits'
 version = '1.8.2'
 
 [package.metadata.docs.rs]
@@ -11,7 +11,9 @@ targets = ['x86_64-unknown-linux-gnu']
 codec         = { package = 'parity-scale-codec', version = '2.3.1', features = ['max-encoded-len'], default-features = false }
 frame-support = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 frame-system  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
-pallet-traits = { path = '../traits', default-features = false }
+num-bigint    = { default-features = false, version = '0.3' }
+num-traits    = { default-features = false, version = '0.2' }
+primitives    = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 scale-info    = { version = '1.0', default-features = false, features = ['derive'] }
 sp-io         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 sp-runtime    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
@@ -26,10 +28,12 @@ std         = [
   'codec/std',
   'frame-support/std',
   'frame-system/std',
-  'pallet-traits/std',
   'sp-runtime/std',
   'scale-info/std',
   'sp-std/std',
+  'primitives/std',
+  'num-bigint/std',
+  'num-traits/std',
 ]
 try-runtime = ['frame-support/try-runtime']
 

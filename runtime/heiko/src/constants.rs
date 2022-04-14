@@ -71,10 +71,9 @@ pub mod fee {
     impl WeightToFeePolynomial for WeightToFee {
         type Balance = Balance;
         fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-            // in Kusama, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
-            // in Statemine, we map to 1/10 of that, or 1/100 CENT
-            let p = super::currency::CENTS;
-            let q = 100 * Balance::from(ExtrinsicBaseWeight::get());
+            // in heiko, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
+            let p = super::currency::CENTS / 10;
+            let q = Balance::from(ExtrinsicBaseWeight::get());
             smallvec![WeightToFeeCoefficient {
                 degree: 1,
                 negative: false,
@@ -88,7 +87,7 @@ pub mod fee {
         let base_weight = Balance::from(ExtrinsicBaseWeight::get());
         let base_tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
         let hko_per_second = base_tx_per_second * super::currency::CENTS / 10;
-        hko_per_second / 100
+        hko_per_second / 50
     }
 }
 
