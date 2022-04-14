@@ -65,7 +65,7 @@ use frame_system::{
 
 pub use frame_support::traits::PalletInfoAccess;
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
-use pallet_traits::EmergencyCallFilter;
+use pallet_traits::{DecimalProvider, EmergencyCallFilter, ValidationDataProvider};
 use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,

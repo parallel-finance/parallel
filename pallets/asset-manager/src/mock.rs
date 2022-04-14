@@ -18,6 +18,7 @@ use parity_scale_codec::{Decode, Encode};
 
 use frame_support::{construct_runtime, parameter_types, traits::Everything, RuntimeDebug};
 use frame_system::EnsureRoot;
+use pallet_traits::AssetRegistrar;
 use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::traits::Hash as THash;
@@ -146,7 +147,7 @@ impl Into<Option<MultiLocation>> for MockAssetType {
 
 pub struct MockAssetPalletRegistrar;
 
-impl AssetRegistrar<Test> for MockAssetPalletRegistrar {
+impl AssetRegistrar<u32, u64, u32> for MockAssetPalletRegistrar {
     fn create_asset(
         _asset: u32,
         min_balance: u64,

@@ -41,7 +41,8 @@ use frame_support::{
     transactional, Blake2_128Concat, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-use primitives::{Balance, ConvertToBigUint, CurrencyId, Ratio};
+use pallet_traits::ConvertToBigUint;
+use primitives::{Balance, CurrencyId, Ratio};
 use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedSub, One, Saturating, Zero},
     ArithmeticError, DispatchError, FixedPointNumber, FixedU128, SaturatedConversion,
@@ -1049,7 +1050,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 }
 
-impl<T: Config<I>, I: 'static> primitives::AMM<AccountIdOf<T>, AssetIdOf<T, I>, BalanceOf<T, I>>
+impl<T: Config<I>, I: 'static> pallet_traits::AMM<AccountIdOf<T>, AssetIdOf<T, I>, BalanceOf<T, I>>
     for Pallet<T, I>
 {
     /// Based on the path specified and the available pool balances

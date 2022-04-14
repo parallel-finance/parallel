@@ -115,7 +115,7 @@ pub use frame_support::{
     },
     StorageValue,
 };
-use pallet_traits::EmergencyCallFilter;
+use pallet_traits::{DecimalProvider, EmergencyCallFilter, ValidationDataProvider};
 use pallet_xcm::XcmPassthrough;
 use time::*;
 

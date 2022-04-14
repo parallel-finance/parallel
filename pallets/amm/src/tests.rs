@@ -2,7 +2,8 @@ use super::*;
 use crate::mock::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
-use primitives::{tokens, AMM as _};
+use pallet_traits::AMM as _;
+use primitives::tokens;
 
 const MINIMUM_LIQUIDITY: u128 = 1_000;
 
