@@ -93,6 +93,7 @@ pub use constants::{currency, fee, paras, time};
 pub use impls::DealWithFees;
 
 pub use pallet_amm;
+pub use pallet_asset_registry;
 pub use pallet_bridge;
 pub use pallet_crowdloans;
 pub use pallet_farming;
@@ -286,7 +287,9 @@ impl Contains<Call> for BaseCallFilter {
                 // Farming
                 Call::Farming(_) |
                 // Streaming
-                Call::Streaming(_)
+                Call::Streaming(_) |
+                // Asset Management
+                Call::AssetRegistry(_)
             ))
             && EmergencyShutdown::contains(call)
     }
@@ -1867,9 +1870,6 @@ construct_runtime!(
         OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 45,
         Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>} = 46,
 
-        // Asset Management
-        AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>} = 48,
-
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
@@ -1897,6 +1897,7 @@ construct_runtime!(
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
         Streaming: pallet_streaming::{Pallet, Call, Storage, Event<T>} = 94,
+        AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>} = 95,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,

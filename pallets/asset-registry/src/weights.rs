@@ -48,7 +48,7 @@ use sp_std::marker::PhantomData;
 /// Weight functions needed for pallet_asset_registry.
 pub trait WeightInfo {
     fn register_asset() -> Weight;
-    fn set_asset_units_per_second() -> Weight;
+    fn update_asset_units_per_second() -> Weight;
     fn update_asset_type() -> Weight;
     fn remove_fee_payment_asset() -> Weight;
     fn deregister_asset() -> Weight;
@@ -62,7 +62,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(7 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
     }
-    fn set_asset_units_per_second() -> Weight {
+    fn update_asset_units_per_second() -> Weight {
         (40_601_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(6 as Weight))
             .saturating_add(T::DbWeight::get().writes(4 as Weight))
@@ -91,7 +91,7 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))
     }
-    fn set_asset_units_per_second() -> Weight {
+    fn update_asset_units_per_second() -> Weight {
         (40_601_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(6 as Weight))
             .saturating_add(RocksDbWeight::get().writes(4 as Weight))

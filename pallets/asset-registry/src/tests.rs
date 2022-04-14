@@ -75,7 +75,7 @@ fn test_root_can_change_units_per_second() {
             MockAssetType::MockAsset(1),
         ));
 
-        assert_ok!(AssetRegistry::set_asset_units_per_second(
+        assert_ok!(AssetRegistry::update_asset_units_per_second(
             Origin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
@@ -115,7 +115,7 @@ fn test_regular_user_cannot_call_extrinsics() {
         );
 
         assert_noop!(
-            AssetRegistry::set_asset_units_per_second(
+            AssetRegistry::update_asset_units_per_second(
                 Origin::signed(1),
                 MockAssetType::MockAsset(1),
                 200u128.into(),
@@ -139,7 +139,7 @@ fn test_root_can_change_asset_id_type() {
             MockAssetType::MockAsset(1),
         ));
 
-        assert_ok!(AssetRegistry::set_asset_units_per_second(
+        assert_ok!(AssetRegistry::update_asset_units_per_second(
             Origin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
@@ -199,7 +199,7 @@ fn test_change_units_per_second_after_setting_it_once() {
             MockAssetType::MockAsset(1),
         ));
 
-        assert_ok!(AssetRegistry::set_asset_units_per_second(
+        assert_ok!(AssetRegistry::update_asset_units_per_second(
             Origin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
@@ -213,7 +213,7 @@ fn test_change_units_per_second_after_setting_it_once() {
             AssetRegistry::supported_fee_payment_assets().contains(&MockAssetType::MockAsset(1))
         );
 
-        assert_ok!(AssetRegistry::set_asset_units_per_second(
+        assert_ok!(AssetRegistry::update_asset_units_per_second(
             Origin::root(),
             MockAssetType::MockAsset(1),
             100u128.into(),
@@ -253,7 +253,7 @@ fn test_root_can_change_units_per_second_and_then_remove() {
             MockAssetType::MockAsset(1),
         ));
 
-        assert_ok!(AssetRegistry::set_asset_units_per_second(
+        assert_ok!(AssetRegistry::update_asset_units_per_second(
             Origin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
@@ -301,7 +301,7 @@ fn test_weight_hint_error() {
             MockAssetType::MockAsset(1),
         ));
 
-        assert_ok!(AssetRegistry::set_asset_units_per_second(
+        assert_ok!(AssetRegistry::update_asset_units_per_second(
             Origin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
@@ -318,7 +318,7 @@ fn test_weight_hint_error() {
 fn test_asset_id_non_existent_error() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            AssetRegistry::set_asset_units_per_second(
+            AssetRegistry::update_asset_units_per_second(
                 Origin::root(),
                 MockAssetType::MockAsset(1),
                 200u128.into(),
@@ -341,7 +341,7 @@ fn test_root_can_remove_asset_association() {
             MockAssetType::MockAsset(1),
         ));
 
-        assert_ok!(AssetRegistry::set_asset_units_per_second(
+        assert_ok!(AssetRegistry::update_asset_units_per_second(
             Origin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),

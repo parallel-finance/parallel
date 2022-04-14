@@ -150,8 +150,8 @@ pub mod pallet {
         }
 
         /// Change the amount of units we are charging per execution second for a given AssetType
-        #[pallet::weight(T::WeightInfo::set_asset_units_per_second())]
-        pub fn set_asset_units_per_second(
+        #[pallet::weight(T::WeightInfo::update_asset_units_per_second())]
+        pub fn update_asset_units_per_second(
             origin: OriginFor<T>,
             asset_type: T::AssetType,
             units_per_second: u128,
