@@ -251,4 +251,5 @@ try-runtime        = [
   'pallet-streaming/try-runtime',
   'pallet-prices/try-runtime',
   'pallet-xcm-helper/try-runtime',
+  'pallet-asset-registry/try-runtime',
 ]
