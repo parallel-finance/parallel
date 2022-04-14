@@ -5,8 +5,7 @@ homepage    = 'https://parallel.fi'
 license     = 'Apache'
 name        = 'runtime-integration-tests'
 repository  = 'https://github.com/parallel-finance/parallel'
-version     = '1.8.0'
-
+version     = '1.8.2'
 
 [dependencies]
 codec               = { package = 'parity-scale-codec', version = '2.3.1', default-features = false, features = ['derive'] }
@@ -52,7 +51,7 @@ orml-xcm-support    = { git = 'https://github.com/open-web3-stack/open-runtime-m
 orml-xtokens        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 
 # Parallel dependencies
-pallet-asset-manager          = { path = '../pallets/asset-manager' }
+pallet-asset-registry          = { path = '../pallets/asset-registry' }
 pallet-amm                    = { path = '../pallets/amm' }
 pallet-bridge                 = { path = '../pallets/bridge' }
 pallet-crowdloans             = { path = '../pallets/crowdloans' }

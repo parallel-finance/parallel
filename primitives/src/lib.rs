@@ -18,7 +18,7 @@ pub mod currency;
 pub mod network;
 pub mod tokens;
 pub mod ump;
-pub mod xcm_gadget;
+pub mod xcm;
 
 use codec::{Decode, Encode};
 use frame_support::pallet_prelude::*;

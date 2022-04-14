@@ -93,6 +93,9 @@ pub mod fee {
 
 /// Parachains-related
 pub mod paras {
+    pub mod statemint {
+        pub const ID: u32 = 1000;
+    }
 
     pub mod acala {
         pub const ID: u32 = 2000;
