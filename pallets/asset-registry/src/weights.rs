@@ -49,9 +49,9 @@ use sp_std::marker::PhantomData;
 pub trait WeightInfo {
     fn register_asset() -> Weight;
     fn set_asset_units_per_second() -> Weight;
-    fn change_existing_asset_type() -> Weight;
-    fn remove_supported_asset() -> Weight;
-    fn remove_existing_asset_type() -> Weight;
+    fn update_asset_type() -> Weight;
+    fn remove_fee_payment_asset() -> Weight;
+    fn deregister_asset() -> Weight;
 }
 
 /// Weights for pallet_asset_registry using the Substrate node and recommended hardware.
@@ -67,17 +67,17 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(6 as Weight))
             .saturating_add(T::DbWeight::get().writes(4 as Weight))
     }
-    fn change_existing_asset_type() -> Weight {
+    fn update_asset_type() -> Weight {
         (52_401_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(7 as Weight))
             .saturating_add(T::DbWeight::get().writes(8 as Weight))
     }
-    fn remove_supported_asset() -> Weight {
+    fn remove_fee_payment_asset() -> Weight {
         (33_100_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(5 as Weight))
             .saturating_add(T::DbWeight::get().writes(4 as Weight))
     }
-    fn remove_existing_asset_type() -> Weight {
+    fn deregister_asset() -> Weight {
         (41_901_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(6 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
@@ -96,17 +96,17 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().reads(6 as Weight))
             .saturating_add(RocksDbWeight::get().writes(4 as Weight))
     }
-    fn change_existing_asset_type() -> Weight {
+    fn update_asset_type() -> Weight {
         (52_401_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(8 as Weight))
     }
-    fn remove_supported_asset() -> Weight {
+    fn remove_fee_payment_asset() -> Weight {
         (33_100_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(5 as Weight))
             .saturating_add(RocksDbWeight::get().writes(4 as Weight))
     }
-    fn remove_existing_asset_type() -> Weight {
+    fn deregister_asset() -> Weight {
         (41_901_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(6 as Weight))
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))
