@@ -2,6 +2,7 @@ use num_traits::{CheckedDiv, ToPrimitive};
 use primitives::ConvertToBigUint;
 use sp_runtime::{biguint::BigUint, helpers_128bit::to_big_uint, ArithmeticError, DispatchError};
 
+#[allow(dead_code)]
 fn safe_div(a: &mut BigUint, b: &mut BigUint) -> Result<BigUint, DispatchError> {
     a.lstrip();
     b.lstrip();
@@ -11,6 +12,20 @@ fn safe_div(a: &mut BigUint, b: &mut BigUint) -> Result<BigUint, DispatchError> 
     }
     let div = a.div(b, false).ok_or(ArithmeticError::Overflow)?;
     Ok(div.0)
+}
+
+fn safe_div_alt(a: &mut BigUint, b: &mut BigUint) -> Result<BigUint, DispatchError> {
+    let _nu = u128::try_from(a.clone()).unwrap_or(0);
+    let _de = u128::try_from(b.clone()).unwrap_or(0);
+
+    let x = _nu
+        .get_big_uint()
+        .checked_div(&_de.get_big_uint())
+        .ok_or(ArithmeticError::Underflow)?
+        .to_u128()
+        .unwrap();
+
+    Ok(BigUint::from(x))
 }
 
 /// # Notes
@@ -32,14 +47,6 @@ pub fn compute_d(
     quote_asset_aum: u128,
     amp_coeff: u128,
 ) -> Result<u128, DispatchError> {
-    /*
-
-    Test :- amount_out_should_work
-    base_asset_aum = 100000000
-    quote_asset_aum = 100000000
-    amc_coeff = 85
-
-    */
     let base_asset_amount = to_big_uint(base_asset_aum);
     let quote_asset_amount = to_big_uint(quote_asset_aum);
     let amplification_coefficient = to_big_uint(amp_coeff);
@@ -69,23 +76,12 @@ pub fn compute_d(
 
         let d_prev = d.clone();
         // d = (ann * sum + d_p * n) * d / (ann * d + (n + 1) * d_p - d)
-        let numerator = ann.clone().mul(&sum).add(&d_p.clone().mul(&n)).mul(&d);
-
-        let denominator = ann_d
+        let mut numerator = ann.clone().mul(&sum).add(&d_p.clone().mul(&n)).mul(&d);
+        let mut denominator = ann_d
             .add(&n.clone().add(&one).mul(&d_p))
             .sub(&d)
             .map_err(|_| ArithmeticError::Underflow)?;
-
-        let _nu = u128::try_from(numerator.clone()).unwrap_or(0);
-        let _de = u128::try_from(denominator.clone()).unwrap_or(0);
-
-        d = BigUint::from(
-            _nu.get_big_uint()
-                .checked_div(&_de.get_big_uint())
-                .ok_or(ArithmeticError::Underflow)?
-                .to_u128()
-                .unwrap(),
-        );
+        d = safe_div_alt(&mut numerator, &mut denominator)?;
 
         if d.clone() > d_prev {
             if d.clone() - d_prev <= one {
@@ -144,25 +140,10 @@ pub fn compute_base(new_quote: u128, amp_coeff: u128, d: u128) -> Result<u128, D
             .add(&s)
             .sub(&d)
             .map_err(|_| ArithmeticError::Underflow)?;
-        let numerator = ann.clone().mul(&y).mul(&y).add(&term1);
-        let denominator = ann.clone().mul(&term2).add(&d);
+        let mut numerator = ann.clone().mul(&y).mul(&y).add(&term1);
+        let mut denominator = ann.clone().mul(&term2).add(&d);
 
-        // *****************************************************************************
-        let _nu = u128::try_from(numerator.clone()).unwrap_or(0);
-        let _de = u128::try_from(denominator.clone()).unwrap_or(0);
-
-        let x = _nu
-            .get_big_uint()
-            .checked_div(&_de.get_big_uint())
-            .ok_or(ArithmeticError::Underflow)?
-            .to_u128()
-            .unwrap();
-
-        y = BigUint::from(x);
-        // *****************************************************************************
-        // The code below has a bug? safe_div?
-        // y = safe_div(&mut numerator, &mut denominator)?;
-
+        y = safe_div_alt(&mut numerator, &mut denominator)?;
         if y.clone() > y_prev {
             if y.clone() - y_prev <= one {
                 y.lstrip();

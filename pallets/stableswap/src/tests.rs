@@ -143,7 +143,7 @@ fn unbalanced_stable_swap_amount_out_should_work() {
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
 
-        let amount_in = 500;
+        //let amount_in = 500;
         // let y = DefaultStableSwap::do_get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
         // y = 1048189
         // TODO: Fix this scenario since it returns more value
