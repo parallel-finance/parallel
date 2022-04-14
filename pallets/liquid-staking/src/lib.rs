@@ -979,10 +979,10 @@ pub mod pallet {
                 T::DerivativeIndexList::get().contains(&derivative_index),
                 Error::<T>::InvalidDerivativeIndex
             );
-            ensure!(
-                amount >= T::MinNominatorBond::get(),
-                Error::<T>::InsufficientBond
-            );
+            // ensure!(
+            //     amount >= T::MinNominatorBond::get(),
+            //     Error::<T>::InsufficientBond
+            // );
             // Self::ensure_staking_ledger_cap(derivative_index, amount)?;
 
             log::trace!(
@@ -1085,10 +1085,10 @@ pub mod pallet {
                 ledger.unlocking.len() < MAX_UNLOCKING_CHUNKS,
                 Error::<T>::NoMoreChunks
             );
-            ensure!(
-                ledger.active.saturating_sub(amount) >= T::MinNominatorBond::get(),
-                Error::<T>::InsufficientBond
-            );
+            // ensure!(
+            //     ledger.active.saturating_sub(amount) >= T::MinNominatorBond::get(),
+            //     Error::<T>::InsufficientBond
+            // );
 
             log::trace!(
                 target: "liquidStaking::unbond",
@@ -1263,8 +1263,12 @@ pub mod pallet {
                 .iter()
                 .map(|&index| (index, Self::bonded_of(index)))
                 .collect();
-            let distributions =
-                T::CurrentStrategy::bond(&mut amounts, total_amount, Self::staking_ledger_cap());
+            let distributions = T::CurrentStrategy::bond(
+                &mut amounts,
+                total_amount,
+                Self::staking_ledger_cap(),
+                T::MinNominatorBond::get(),
+            );
 
             for (index, amount) in distributions.into_iter() {
                 Self::do_bond(index, amount, payee.clone())?;
@@ -1282,8 +1286,12 @@ pub mod pallet {
                 .iter()
                 .map(|&index| (index, Self::bonded_of(index)))
                 .collect();
-            let distributions =
-                T::CurrentStrategy::unbond(&mut amounts, total_amount, Self::staking_ledger_cap());
+            let distributions = T::CurrentStrategy::unbond(
+                &mut amounts,
+                total_amount,
+                Self::staking_ledger_cap(),
+                T::MinNominatorBond::get(),
+            );
 
             for (index, amount) in distributions.into_iter() {
                 Self::do_unbond(index, amount)?;
@@ -1301,8 +1309,12 @@ pub mod pallet {
                 .iter()
                 .map(|&index| (index, Self::unbonded_of(index)))
                 .collect();
-            let distributions =
-                T::CurrentStrategy::rebond(&mut amounts, total_amount, Self::staking_ledger_cap());
+            let distributions = T::CurrentStrategy::rebond(
+                &mut amounts,
+                total_amount,
+                Self::staking_ledger_cap(),
+                T::MinNominatorBond::get(),
+            );
 
             for (index, amount) in distributions.into_iter() {
                 Self::do_rebond(index, amount)?;

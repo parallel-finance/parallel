@@ -214,15 +214,18 @@ pub trait StrategyLike<Balance> {
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
         capacity: Balance,
+        min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)>;
     fn unbond(
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
         capacity: Balance,
+        min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)>;
     fn rebond(
         unlocking_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
         capacity: Balance,
+        min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)>;
 }

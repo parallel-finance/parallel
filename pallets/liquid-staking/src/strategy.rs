@@ -10,6 +10,7 @@ impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for AverageStr
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
         capacity: Balance,
+        min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         //TODO: use capacity as limit
         let length = TryInto::<Balance>::try_into(active_bonded_amount.len()).unwrap_or_default();
@@ -26,16 +27,18 @@ impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for AverageStr
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
         capacity: Balance,
+        min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
-        Self::bond(active_bonded_amount, input, capacity)
+        Self::bond(active_bonded_amount, input, capacity, min_bond_amount)
     }
 
     fn rebond(
         unlocking_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
         capacity: Balance,
+        min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
-        Self::bond(unlocking_amount, input, capacity)
+        Self::bond(unlocking_amount, input, capacity, min_bond_amount)
     }
 }
 
@@ -45,6 +48,7 @@ impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for QueueStrat
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
         capacity: Balance,
+        min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         //ascending sequence
         active_bonded_amount.sort_by(|a, b| a.1.cmp(&b.1));
@@ -73,6 +77,7 @@ impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for QueueStrat
         active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
         capacity: Balance,
+        min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         // descending sequence
         active_bonded_amount.sort_by(|a, b| b.1.cmp(&a.1));
@@ -95,7 +100,8 @@ impl<Balance: BalanceT + FixedPointOperand> StrategyLike<Balance> for QueueStrat
         unlocking_amount: &mut Vec<(DerivativeIndex, Balance)>,
         input: Balance,
         capacity: Balance,
+        min_bond_amount: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
-        Self::unbond(unlocking_amount, input, capacity)
+        Self::unbond(unlocking_amount, input, capacity, min_bond_amount)
     }
 }
