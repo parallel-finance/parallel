@@ -18,6 +18,10 @@ fn safe_div_alt(a: &mut BigUint, b: &mut BigUint) -> Result<BigUint, DispatchErr
     let _nu = u128::try_from(a.clone()).unwrap_or(0);
     let _de = u128::try_from(b.clone()).unwrap_or(0);
 
+    if _de == 0u128 {
+        return Ok(BigUint::from(0u128));
+    }
+
     let x = _nu
         .get_big_uint()
         .checked_div(&_de.get_big_uint())
@@ -70,9 +74,9 @@ pub fn compute_d(
         // d_p = d_p * d / (x * n)
 
         let mut d_p_d = d_p.mul(&d);
-        d_p = safe_div(&mut d_p_d, &mut base_n)?;
+        d_p = safe_div_alt(&mut d_p_d, &mut base_n)?;
         let mut d_p_d = d_p.mul(&d);
-        d_p = safe_div(&mut d_p_d, &mut quote_n)?;
+        d_p = safe_div_alt(&mut d_p_d, &mut quote_n)?;
 
         let d_prev = d.clone();
         // d = (ann * sum + d_p * n) * d / (ann * d + (n + 1) * d_p - d)
@@ -125,9 +129,9 @@ pub fn compute_base(new_quote: u128, amp_coeff: u128, d: u128) -> Result<u128, D
     // term1 = d^(n + 1) / n^n * p
     // term2 = 2*y + s - d
 
-    let d_n = safe_div(&mut d, &mut n)?;
+    let d_n = safe_div_alt(&mut d, &mut n)?;
     let mut c = d_n.clone().mul(&d_n).mul(&d);
-    let term1 = safe_div(&mut c, &mut p)?;
+    let term1 = safe_div_alt(&mut c, &mut p)?;
 
     let mut y = d.clone();
 

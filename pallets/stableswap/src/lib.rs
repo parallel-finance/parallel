@@ -748,7 +748,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_sub(quote_amount)
             .ok_or(Error::<T, I>::InsufficientLiquidity)?;
 
+        let l = liquidity;
+        let k = T::Assets::total_issuance(pool.lp_token_id);
+        let who_amt = T::Assets::balance(base_asset, who);
+
         T::Assets::burn_from(pool.lp_token_id, who, liquidity)?;
+
         T::Assets::transfer(base_asset, &Self::account_id(), who, base_amount, false)?;
         T::Assets::transfer(quote_asset, &Self::account_id(), who, quote_amount, false)?;
 
