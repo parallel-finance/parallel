@@ -848,8 +848,8 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
 
-            Self::borrow_allowed(asset_id, &who, borrow_amount)?;
             Self::accrue_interest(asset_id)?;
+            Self::borrow_allowed(asset_id, &who, borrow_amount)?;
 
             // update borrow index after accureInterest.
             Self::update_reward_borrow_index(asset_id)?;
@@ -1212,7 +1212,6 @@ impl<T: Config> Pallet<T> {
         voucher_amount: BalanceOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
         Self::redeem_allowed(asset_id, who, voucher_amount)?;
-        Self::accrue_interest(asset_id)?;
 
         // update supply index before modify supply balance.
         Self::update_reward_supply_index(asset_id)?;
@@ -1272,10 +1271,10 @@ impl<T: Config> Pallet<T> {
         if account_borrows < repay_amount {
             return Err(Error::<T>::TooMuchRepay.into());
         }
-        Self::accrue_interest(asset_id)?;
-        // update borrow index after accureInterest.
+
         Self::update_reward_borrow_index(asset_id)?;
         Self::distribute_borrower_reward(asset_id, borrower)?;
+
         T::Assets::transfer(asset_id, borrower, &Self::account_id(), repay_amount, false)?;
         let account_borrows_new = account_borrows
             .checked_sub(repay_amount)
