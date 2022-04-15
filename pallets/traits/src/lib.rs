@@ -98,7 +98,7 @@ pub trait DistributionStrategy<Balance> {
         min_nominator_bond: Balance,
     ) -> Vec<(DerivativeIndex, Balance)>;
     fn get_rebond_distributions(
-        unlocking_amount: &mut Vec<(DerivativeIndex, Balance)>,
+        unlocking_amount: &mut Vec<(DerivativeIndex, Balance, Balance)>,
         input: Balance,
         cap: Balance,
         min_nominator_bond: Balance,

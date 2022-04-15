@@ -5,8 +5,7 @@ use crate::{
 };
 
 use frame_support::{
-    assert_noop, assert_ok, dispatch::DispatchResult, error::BadOrigin, storage::with_transaction,
-    traits::Hooks,
+    assert_noop, assert_ok, error::BadOrigin, storage::with_transaction, traits::Hooks,
 };
 
 use primitives::{

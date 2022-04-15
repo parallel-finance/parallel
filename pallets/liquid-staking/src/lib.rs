@@ -27,8 +27,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod distribution;
 pub mod migrations;
-pub mod strategy;
 pub mod types;
 pub mod weights;
 
@@ -918,11 +918,11 @@ pub mod pallet {
             Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| ledger.active)
         }
 
-        fn unbonding_of(index: DerivativeIndex) -> BalanceOf<T> {
-            Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
-                ledger.total.saturating_sub(ledger.active)
-            })
-        }
+        // fn unbonding_of(index: DerivativeIndex) -> BalanceOf<T> {
+        //     Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
+        //         ledger.total.saturating_sub(ledger.active)
+        //     })
+        // }
 
         fn unbonded_of(index: DerivativeIndex) -> BalanceOf<T> {
             let current_era = Self::current_era();
@@ -939,6 +939,7 @@ pub mod pallet {
 
         fn get_total_unbonding() -> BalanceOf<T> {
             StakingLedgers::<T>::iter_values().fold(Zero::zero(), |acc, ledger| {
+                // FIXME: Confirm if it's better to calculate total unlocking amount
                 acc.saturating_add(ledger.total.saturating_sub(ledger.active))
             })
         }
@@ -949,10 +950,10 @@ pub mod pallet {
             })
         }
 
-        fn get_total_bonded() -> BalanceOf<T> {
-            StakingLedgers::<T>::iter_values()
-                .fold(Zero::zero(), |acc, ledger| acc.saturating_add(ledger.total))
-        }
+        // fn get_total_bonded() -> BalanceOf<T> {
+        //     StakingLedgers::<T>::iter_values()
+        //         .fold(Zero::zero(), |acc, ledger| acc.saturating_add(ledger.total))
+        // }
 
         fn get_market_cap() -> BalanceOf<T> {
             Self::staking_ledger_cap()
@@ -1319,10 +1320,11 @@ pub mod pallet {
             if total_amount.is_zero() {
                 return Ok(());
             }
-            let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
-                .iter()
-                .map(|&index| (index, Self::unbonded_of(index)))
-                .collect();
+            let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>, BalanceOf<T>)> =
+                T::DerivativeIndexList::get()
+                    .iter()
+                    .map(|&index| (index, Self::unbonded_of(index), Self::bonded_of(index)))
+                    .collect();
             let distributions = T::DistributionStrategy::get_rebond_distributions(
                 &mut amounts,
                 total_amount,
@@ -1544,7 +1546,7 @@ pub mod pallet {
 
         fn ensure_market_cap(amount: BalanceOf<T>) -> DispatchResult {
             ensure!(
-                Self::get_total_bonded().saturating_add(amount) <= Self::get_market_cap(),
+                Self::get_total_active_bonded().saturating_add(amount) <= Self::get_market_cap(),
                 Error::<T>::CapExceeded
             );
             Ok(())
