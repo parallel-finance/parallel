@@ -18,10 +18,7 @@ use polkadot_parachain::primitives::{IsSystem, Sibling};
 
 use pallet_traits::ValidationDataProvider;
 use polkadot_runtime_parachains::configuration::HostConfiguration;
-use primitives::{
-    currency::MultiCurrencyAdapter, tokens::*, Balance, EraIndex, ParaId, PersistedValidationData,
-    Rate, Ratio,
-};
+use primitives::{tokens::*, Balance, EraIndex, ParaId, PersistedValidationData, Rate, Ratio};
 use sp_core::H256;
 use sp_runtime::{
     generic,
@@ -47,7 +44,10 @@ pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 use crate::{distribution::AverageDistribution, types::StakingLedger, BalanceOf};
 pub use kusama_runtime;
-use pallet_traits::ump::{XcmCall, XcmWeightFeeMisc};
+use pallet_traits::{
+    ump::{XcmCall, XcmWeightFeeMisc},
+    xcm::MultiCurrencyAdapter,
+};
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;

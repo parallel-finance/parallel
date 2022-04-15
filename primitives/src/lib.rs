@@ -25,7 +25,6 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
-pub mod currency;
 pub mod network;
 pub mod tokens;
 

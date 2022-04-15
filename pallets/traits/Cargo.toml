@@ -29,8 +29,8 @@ xcm-executor  = { git = 'https://github.com/paritytech/polkadot.git', branch = '
 sp-core = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
 
 [features]
-default     = ['std']
-std         = [
+default = ['std']
+std     = [
   'codec/std',
   'frame-support/std',
   'frame-system/std',
@@ -45,6 +45,7 @@ std         = [
   'xcm/std',
   'xcm-builder/std',
 ]
+
 try-runtime = ['frame-support/try-runtime']
 
 [lib]

@@ -1280,8 +1280,6 @@ pub mod pallet {
             total_amount: BalanceOf<T>,
             payee: RewardDestination<T::AccountId>,
         ) -> DispatchResult {
-            // Already `ensure_market_cap` in `stake` operation
-            // so `total_amount + Self::get_total_bonded()` will not exceed the market_cap
             if total_amount.is_zero() {
                 return Ok(());
             }

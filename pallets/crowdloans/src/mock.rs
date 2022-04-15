@@ -16,7 +16,7 @@ use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::{IsSystem, Sibling};
 use polkadot_runtime_parachains::configuration::HostConfiguration;
-use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
+use primitives::{tokens::*, Balance, ParaId};
 use sp_core::H256;
 use sp_runtime::{
     generic,
@@ -41,7 +41,10 @@ use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chai
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub use kusama_runtime;
-use pallet_traits::ump::{XcmCall, XcmWeightFeeMisc};
+use pallet_traits::{
+    ump::{XcmCall, XcmWeightFeeMisc},
+    xcm::MultiCurrencyAdapter,
+};
 
 pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
 
@@ -427,7 +430,7 @@ impl SortedMembers<AccountId> for EveOrigin {
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub const MinContribution: Balance = 0;
-    pub const MigrateKeysLimit: u32 = 10;
+    pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub SelfParaId: ParaId = para_a_id();
     pub RefundLocation: AccountId = para_a_id().into_account();
