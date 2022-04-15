@@ -27,6 +27,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod distribution;
+pub mod migrations;
 pub mod types;
 pub mod weights;
 
@@ -35,8 +37,8 @@ extern crate primitives;
 
 use frame_support::traits::{fungibles::InspectMetadata, tokens::Balance as BalanceT, Get};
 use pallet_traits::{
-    ExchangeRateProvider, LiquidStakingConvert, LiquidStakingCurrenciesProvider,
-    ValidationDataProvider,
+    DistributionStrategy, ExchangeRateProvider, LiquidStakingConvert,
+    LiquidStakingCurrenciesProvider, ValidationDataProvider,
 };
 use primitives::{PersistedValidationData, Rate};
 use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
@@ -75,9 +77,7 @@ pub mod pallet {
     use sp_std::{borrow::Borrow, boxed::Box, result::Result, vec::Vec};
     use sp_trie::StorageProof;
 
-    use primitives::{
-        ump::*, ArithmeticKind, Balance, CurrencyId, DerivativeIndex, EraIndex, ParaId, Rate, Ratio,
-    };
+    use primitives::{ump::*, Balance, CurrencyId, DerivativeIndex, EraIndex, ParaId, Rate, Ratio};
 
     use super::{types::*, weights::WeightInfo, *};
     use pallet_xcm_helper::XcmHelper;
@@ -95,6 +95,14 @@ pub mod pallet {
     #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
+
+    /// Utility type for managing upgrades/migrations.
+    #[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+    pub enum Versions {
+        V1,
+        V2,
+        V3,
+    }
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_utility::Config + pallet_xcm::Config {
@@ -127,10 +135,6 @@ pub mod pallet {
         #[pallet::constant]
         type SelfParaId: Get<ParaId>;
 
-        /// Derivative index
-        #[pallet::constant]
-        type DerivativeIndex: Get<DerivativeIndex>;
-
         /// Derivative index list
         #[pallet::constant]
         type DerivativeIndexList: Get<Vec<DerivativeIndex>>;
@@ -162,6 +166,10 @@ pub mod pallet {
         #[pallet::constant]
         type BondingDuration: Get<EraIndex>;
 
+        /// The minimum active bond to become and maintain the role of a nominator.
+        #[pallet::constant]
+        type MinNominatorBond: Get<BalanceOf<Self>>;
+
         /// Number of blocknumbers that each period contains.
         /// SessionsPerEra * EpochDuration / MILLISECS_PER_BLOCK
         #[pallet::constant]
@@ -176,6 +184,9 @@ pub mod pallet {
 
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
+
+        /// Currenty strategy for distributing assets to multi-accounts
+        type DistributionStrategy: DistributionStrategy<BalanceOf<Self>>;
     }
 
     #[pallet::event]
@@ -204,8 +215,8 @@ pub mod pallet {
         WithdrawingUnbonded(DerivativeIndex, u32),
         /// Sent staking.nominate call to relaychain
         Nominating(DerivativeIndex, Vec<T::AccountId>),
-        /// Liquid currency's market cap was updated
-        MarketCapUpdated(BalanceOf<T>),
+        /// Staking ledger's cap was updated
+        StakingLedgerCapUpdated(BalanceOf<T>),
         /// Reserve_factor was updated
         ReserveFactorUpdated(Ratio),
         /// Exchange rate was updated
@@ -217,8 +228,12 @@ pub mod pallet {
         /// [account_id, amount]
         ClaimedFor(T::AccountId, BalanceOf<T>),
         /// New era
-        /// [era_index, bond_amount, rebond_amount, unbond_amount]
-        NewEra(EraIndex, BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
+        /// [era_index]
+        NewEra(EraIndex),
+        /// Matching stakes & unstakes for optimizing operations to be done
+        /// on relay chain
+        /// [bond_amount, rebond_amount, unbond_amount]
+        Matching(BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -255,6 +270,9 @@ pub mod pallet {
         StakingLedgerLocked,
         /// Not withdrawn unbonded yet
         NotWithdrawn,
+        /// Cannot have a nominator role with value less than the minimum defined by
+        /// `MinNominatorBond`
+        InsufficientBond,
         /// The merkle proof is invalid
         InvalidProof,
     }
@@ -288,10 +306,10 @@ pub mod pallet {
     #[pallet::getter(fn matching_pool)]
     pub type MatchingPool<T: Config> = StorageValue<_, MatchingLedger<BalanceOf<T>>, ValueQuery>;
 
-    /// Liquid currency's market cap
+    /// Staking ledger's cap
     #[pallet::storage]
-    #[pallet::getter(fn market_cap)]
-    pub type MarketCap<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+    #[pallet::getter(fn staking_ledger_cap)]
+    pub type StakingLedgerCap<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     /// Flying & failed xcm requests
     #[pallet::storage]
@@ -318,7 +336,7 @@ pub mod pallet {
 
     /// Platform's staking ledgers
     #[pallet::storage]
-    #[pallet::getter(fn staking_ledgers)]
+    #[pallet::getter(fn staking_ledger)]
     pub type StakingLedgers<T: Config> = StorageMap<
         _,
         Blake2_128Concat,
@@ -331,6 +349,16 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn is_updated)]
     pub type IsUpdated<T: Config> = StorageMap<_, Twox64Concat, DerivativeIndex, bool, ValueQuery>;
+
+    /// DefaultVersion is using for initialize the StorageVersion
+    #[pallet::type_value]
+    pub(super) fn DefaultVersion<T: Config>() -> Versions {
+        Versions::V2
+    }
+    /// Storage version of the pallet.
+    #[pallet::storage]
+    pub(crate) type StorageVersion<T: Config> =
+        StorageValue<_, Versions, ValueQuery, DefaultVersion<T>>;
 
     #[derive(Default)]
     #[pallet::genesis_config]
@@ -385,7 +413,7 @@ pub mod pallet {
             let liquid_amount =
                 Self::staking_to_liquid(amount).ok_or(Error::<T>::InvalidExchangeRate)?;
             let liquid_currency = Self::liquid_currency()?;
-            Self::ensure_market_cap(liquid_currency, liquid_amount)?;
+            Self::ensure_market_cap(amount)?;
 
             T::Assets::mint_into(liquid_currency, &who, liquid_amount)?;
 
@@ -397,9 +425,7 @@ pub mod pallet {
                 &reserves
             );
 
-            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.update_total_stake_amount(amount, ArithmeticKind::Addition)
-            })?;
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult { p.add_stake_amount(amount) })?;
             TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
@@ -460,9 +486,7 @@ pub mod pallet {
                 &liquid_amount,
             );
 
-            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.update_total_unstake_amount(amount, ArithmeticKind::Addition)
-            })?;
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult { p.add_unstake_amount(amount) })?;
 
             Self::deposit_event(Event::<T>::Unstaked(who, liquid_amount, amount));
             Ok(().into())
@@ -493,11 +517,10 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Update liquid currency's market cap
-        /// stake will be blocked if passed liquid currency's market cap
-        #[pallet::weight(<T as Config>::WeightInfo::update_market_cap())]
+        /// Update ledger's max bonded cap
+        #[pallet::weight(<T as Config>::WeightInfo::update_staking_ledger_cap())]
         #[transactional]
-        pub fn update_market_cap(
+        pub fn update_staking_ledger_cap(
             origin: OriginFor<T>,
             #[pallet::compact] cap: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
@@ -506,12 +529,12 @@ pub mod pallet {
             ensure!(!cap.is_zero(), Error::<T>::InvalidCap);
 
             log::trace!(
-                target: "liquidStaking::update_market_cap",
+                target: "liquidStaking::update_staking_ledger_cap",
                 "cap: {:?}",
                 &cap,
             );
-            MarketCap::<T>::mutate(|v| *v = cap);
-            Self::deposit_event(Event::<T>::MarketCapUpdated(cap));
+            StakingLedgerCap::<T>::mutate(|v| *v = cap);
+            Self::deposit_event(Event::<T>::StakingLedgerCapUpdated(cap));
             Ok(().into())
         }
 
@@ -576,7 +599,7 @@ pub mod pallet {
             derivative_index: DerivativeIndex,
             num_slashing_spans: u32,
         ) -> DispatchResult {
-            Self::ensure_origin(origin)?;
+            T::RelayOrigin::ensure_origin(origin)?;
             Self::do_withdraw_unbonded(derivative_index, num_slashing_spans)?;
             Ok(())
         }
@@ -589,7 +612,7 @@ pub mod pallet {
             derivative_index: DerivativeIndex,
             targets: Vec<T::AccountId>,
         ) -> DispatchResult {
-            Self::ensure_origin(origin)?;
+            T::RelayOrigin::ensure_origin(origin)?;
             Self::do_nominate(derivative_index, targets)?;
             Ok(())
         }
@@ -644,13 +667,7 @@ pub mod pallet {
                     }
                 });
 
-                let total_unclaimed = T::Assets::reducible_balance(
-                    Self::staking_currency()?,
-                    &Self::account_id(),
-                    false,
-                )
-                .saturating_sub(Self::total_reserves())
-                .saturating_sub(Self::matching_pool().total_stake_amount);
+                let total_unclaimed = Self::get_total_unclaimed(Self::staking_currency()?);
 
                 log::trace!(
                     target: "liquidStaking::claim_for",
@@ -784,6 +801,10 @@ pub mod pallet {
                     !Self::is_updated(derivative_index),
                     Error::<T>::StakingLedgerLocked
                 );
+                ensure!(
+                    ledger.active >= T::MinNominatorBond::get(),
+                    Error::<T>::InsufficientBond
+                );
                 let key = Self::get_staking_ledger_key(derivative_index);
                 let value = staking_ledger.encode();
                 ensure!(
@@ -871,10 +892,18 @@ pub mod pallet {
                 .map_err(Into::into)
         }
 
+        /// Get total unclaimed
+        pub fn get_total_unclaimed(staking_currency: AssetIdOf<T>) -> BalanceOf<T> {
+            let matching_pool = Self::matching_pool();
+            T::Assets::reducible_balance(staking_currency, &Self::account_id(), false)
+                .saturating_sub(Self::total_reserves())
+                .saturating_sub(matching_pool.total_stake_amount.total)
+        }
+
         /// Derivative of parachain's account
-        pub fn derivative_sovereign_account_id(derivative_index: DerivativeIndex) -> T::AccountId {
+        pub fn derivative_sovereign_account_id(index: DerivativeIndex) -> T::AccountId {
             let para_account = Self::sovereign_account_id();
-            pallet_utility::Pallet::<T>::derivative_account_id(para_account, derivative_index)
+            pallet_utility::Pallet::<T>::derivative_account_id(para_account, index)
         }
 
         fn offset(relaychain_block_number: BlockNumberFor<T>) -> EraIndex {
@@ -885,26 +914,50 @@ pub mod pallet {
                 .unwrap_or_else(Zero::zero)
         }
 
-        #[allow(dead_code)]
         fn bonded_of(index: DerivativeIndex) -> BalanceOf<T> {
-            StakingLedgers::<T>::get(&index).map_or(Zero::zero(), |ledger| ledger.active)
+            Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| ledger.active)
         }
 
-        fn unbonding_of(index: DerivativeIndex) -> BalanceOf<T> {
-            StakingLedgers::<T>::get(&index).map_or(Zero::zero(), |ledger| {
-                ledger.total.saturating_sub(ledger.active)
+        // fn unbonding_of(index: DerivativeIndex) -> BalanceOf<T> {
+        //     Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
+        //         ledger.total.saturating_sub(ledger.active)
+        //     })
+        // }
+
+        fn unbonded_of(index: DerivativeIndex) -> BalanceOf<T> {
+            let current_era = Self::current_era();
+            Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
+                ledger.unlocking.iter().fold(Zero::zero(), |acc, chunk| {
+                    if chunk.era <= current_era {
+                        acc.saturating_add(chunk.value)
+                    } else {
+                        acc
+                    }
+                })
             })
         }
 
-        fn has_unbonded(index: DerivativeIndex) -> bool {
-            StakingLedgers::<T>::get(&index)
-                .map_or(false, |ledger| ledger.has_unbonded(Self::current_era()))
+        fn get_total_unbonding() -> BalanceOf<T> {
+            StakingLedgers::<T>::iter_values().fold(Zero::zero(), |acc, ledger| {
+                // FIXME: Confirm if it's better to calculate total unlocking amount
+                acc.saturating_add(ledger.total.saturating_sub(ledger.active))
+            })
         }
 
-        fn get_total_bonded() -> BalanceOf<T> {
+        fn get_total_active_bonded() -> BalanceOf<T> {
             StakingLedgers::<T>::iter_values().fold(Zero::zero(), |acc, ledger| {
                 acc.saturating_add(ledger.active)
             })
+        }
+
+        // fn get_total_bonded() -> BalanceOf<T> {
+        //     StakingLedgers::<T>::iter_values()
+        //         .fold(Zero::zero(), |acc, ledger| acc.saturating_add(ledger.total))
+        // }
+
+        fn get_market_cap() -> BalanceOf<T> {
+            Self::staking_ledger_cap()
+                .saturating_mul(T::DerivativeIndexList::get().len() as BalanceOf<T>)
         }
 
         #[require_transactional]
@@ -917,14 +970,19 @@ pub mod pallet {
                 return Ok(());
             }
 
+            if StakingLedgers::<T>::contains_key(&derivative_index) {
+                return Self::do_bond_extra(derivative_index, amount);
+            }
+
             ensure!(
                 T::DerivativeIndexList::get().contains(&derivative_index),
                 Error::<T>::InvalidDerivativeIndex
             );
             ensure!(
-                !StakingLedgers::<T>::contains_key(&derivative_index),
-                Error::<T>::AlreadyBonded
+                amount >= T::MinNominatorBond::get(),
+                Error::<T>::InsufficientBond
             );
+            Self::ensure_staking_ledger_cap(derivative_index, amount)?;
 
             log::trace!(
                 target: "liquidStaking::bond",
@@ -932,6 +990,10 @@ pub mod pallet {
                 &derivative_index,
                 &amount,
             );
+
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.set_stake_amount_lock(amount)
+            })?;
 
             let staking_currency = Self::staking_currency()?;
             let derivative_account_id = Self::derivative_sovereign_account_id(derivative_index);
@@ -979,6 +1041,7 @@ pub mod pallet {
                 StakingLedgers::<T>::contains_key(&derivative_index),
                 Error::<T>::NotBonded
             );
+            Self::ensure_staking_ledger_cap(derivative_index, amount)?;
 
             log::trace!(
                 target: "liquidStaking::bond_extra",
@@ -986,6 +1049,10 @@ pub mod pallet {
                 &derivative_index,
                 &amount,
             );
+
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.set_stake_amount_lock(amount)
+            })?;
 
             let query_id = T::XCM::do_bond_extra(
                 amount,
@@ -1020,11 +1087,19 @@ pub mod pallet {
             );
 
             let ledger: StakingLedger<T::AccountId, BalanceOf<T>> =
-                Self::staking_ledgers(&derivative_index).ok_or(Error::<T>::NotBonded)?;
+                Self::staking_ledger(&derivative_index).ok_or(Error::<T>::NotBonded)?;
             ensure!(
                 ledger.unlocking.len() < MAX_UNLOCKING_CHUNKS,
                 Error::<T>::NoMoreChunks
             );
+            ensure!(
+                ledger.active.saturating_sub(amount) >= T::MinNominatorBond::get(),
+                Error::<T>::InsufficientBond
+            );
+
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.set_unstake_amount_lock(amount)
+            })?;
 
             log::trace!(
                 target: "liquidStaking::unbond",
@@ -1067,6 +1142,7 @@ pub mod pallet {
                 StakingLedgers::<T>::contains_key(&derivative_index),
                 Error::<T>::NotBonded
             );
+            Self::ensure_staking_ledger_cap(derivative_index, amount)?;
 
             log::trace!(
                 target: "liquidStaking::rebond",
@@ -1074,6 +1150,10 @@ pub mod pallet {
                 &derivative_index,
                 &amount,
             );
+
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.set_stake_amount_lock(amount)
+            })?;
 
             let query_id = T::XCM::do_rebond(
                 amount,
@@ -1100,7 +1180,7 @@ pub mod pallet {
             derivative_index: DerivativeIndex,
             num_slashing_spans: u32,
         ) -> DispatchResult {
-            if !Self::has_unbonded(derivative_index) {
+            if Self::unbonded_of(derivative_index).is_zero() {
                 return Ok(());
             }
 
@@ -1185,12 +1265,95 @@ pub mod pallet {
         }
 
         #[require_transactional]
+        fn do_multi_bond(
+            total_amount: BalanceOf<T>,
+            payee: RewardDestination<T::AccountId>,
+        ) -> DispatchResult {
+            // Already `ensure_market_cap` in `stake` operation
+            // so `total_amount + Self::get_total_bonded()` will not exceed the market_cap
+            if total_amount.is_zero() {
+                return Ok(());
+            }
+            let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
+                .iter()
+                .map(|&index| (index, Self::bonded_of(index)))
+                .collect();
+            let distributions = T::DistributionStrategy::get_bond_distributions(
+                &mut amounts,
+                total_amount,
+                Self::staking_ledger_cap(),
+                T::MinNominatorBond::get(),
+            );
+
+            for (index, amount) in distributions.into_iter() {
+                Self::do_bond(index, amount, payee.clone())?;
+            }
+
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_multi_unbond(total_amount: BalanceOf<T>) -> DispatchResult {
+            if total_amount.is_zero() {
+                return Ok(());
+            }
+            let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
+                .iter()
+                .map(|&index| (index, Self::bonded_of(index)))
+                .collect();
+            let distributions = T::DistributionStrategy::get_unbond_distributions(
+                &mut amounts,
+                total_amount,
+                Self::staking_ledger_cap(),
+                T::MinNominatorBond::get(),
+            );
+
+            for (index, amount) in distributions.into_iter() {
+                Self::do_unbond(index, amount)?;
+            }
+
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_multi_rebond(total_amount: BalanceOf<T>) -> DispatchResult {
+            if total_amount.is_zero() {
+                return Ok(());
+            }
+            let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>, BalanceOf<T>)> =
+                T::DerivativeIndexList::get()
+                    .iter()
+                    .map(|&index| (index, Self::unbonded_of(index), Self::bonded_of(index)))
+                    .collect();
+            let distributions = T::DistributionStrategy::get_rebond_distributions(
+                &mut amounts,
+                total_amount,
+                Self::staking_ledger_cap(),
+                T::MinNominatorBond::get(),
+            );
+
+            for (index, amount) in distributions.into_iter() {
+                Self::do_rebond(index, amount)?;
+            }
+
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_multi_withdraw_unbonded(num_slashing_spans: u32) -> DispatchResult {
+            for derivative_index in StakingLedgers::<T>::iter_keys() {
+                Self::do_withdraw_unbonded(derivative_index, num_slashing_spans)?;
+            }
+
+            Ok(())
+        }
+
+        #[require_transactional]
         fn do_notification_received(
             query_id: QueryId,
             req: XcmRequest<T>,
             res: Option<(u32, XcmError)>,
         ) -> DispatchResult {
-            use ArithmeticKind::*;
             use XcmRequest::*;
 
             log::trace!(
@@ -1220,9 +1383,7 @@ pub mod pallet {
                     );
                     StakingLedgers::<T>::insert(derivative_index, staking_ledger);
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.update_total_stake_amount(amount, Subtraction)?;
-                        p.clear();
-                        Ok(())
+                        p.consolidate_stake(amount)
                     })?;
                     T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), amount)?;
                 }
@@ -1235,9 +1396,7 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.update_total_stake_amount(amount, Subtraction)?;
-                        p.clear();
-                        Ok(())
+                        p.consolidate_stake(amount)
                     })?;
                     T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), amount)?;
                 }
@@ -1251,9 +1410,7 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.update_total_unstake_amount(amount, Subtraction)?;
-                        p.clear();
-                        Ok(())
+                        p.consolidate_unstake(amount)
                     })?;
                 }
                 Rebond {
@@ -1265,9 +1422,7 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.update_total_stake_amount(amount, Subtraction)?;
-                        p.clear();
-                        Ok(())
+                        p.consolidate_stake(amount)
                     })?;
                 }
                 WithdrawUnbonded {
@@ -1294,15 +1449,16 @@ pub mod pallet {
         #[require_transactional]
         fn do_update_exchange_rate() -> DispatchResult {
             let matching_ledger = Self::matching_pool();
-            let total_bonded = Self::get_total_bonded();
+            //TODO: use ledger.total or ledger.active?
+            let total_bonded = Self::get_total_active_bonded();
             let issuance = T::Assets::total_issuance(Self::liquid_currency()?);
             if issuance.is_zero() {
                 return Ok(());
             }
             let new_exchange_rate = Rate::checked_from_rational(
                 total_bonded
-                    .checked_add(matching_ledger.total_stake_amount)
-                    .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount))
+                    .checked_add(matching_ledger.total_stake_amount.total)
+                    .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount.total))
                     .ok_or(ArithmeticError::Overflow)?,
                 issuance,
             )
@@ -1342,40 +1498,37 @@ pub mod pallet {
             EraStartBlock::<T>::put(T::RelayChainValidationDataProvider::current_block_number());
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
-            let derivative_index = T::DerivativeIndex::get();
-            let unbonding_amount = Self::unbonding_of(derivative_index);
-
-            let (bond_amount, rebond_amount, unbond_amount) =
-                Self::matching_pool().matching(unbonding_amount)?;
-            if !StakingLedgers::<T>::contains_key(&derivative_index) {
-                Self::do_bond(derivative_index, bond_amount, RewardDestination::Staked)?;
-            } else {
-                Self::do_bond_extra(derivative_index, bond_amount)?;
-            }
-
-            Self::do_unbond(derivative_index, unbond_amount)?;
-            Self::do_rebond(derivative_index, rebond_amount)?;
-
-            Self::do_withdraw_unbonded(derivative_index, T::NumSlashingSpans::get())?;
-
-            Self::do_update_exchange_rate()?;
-
             log::trace!(
                 target: "liquidStaking::do_advance_era",
-                "index: {:?}, offset: {:?}, bond_amount: {:?}, rebond_amount: {:?}, unbond_amount: {:?}",
-                &derivative_index,
+                "offset: {:?}",
                 &offset,
-                &bond_amount,
-                &rebond_amount,
-                &unbond_amount,
             );
 
-            Self::deposit_event(Event::<T>::NewEra(
-                Self::current_era(),
-                bond_amount,
-                rebond_amount,
-                unbond_amount,
-            ));
+            // ignore error
+            let _ = || -> DispatchResult {
+                let unbonding_amount = Self::get_total_unbonding();
+                let (bond_amount, rebond_amount, unbond_amount) =
+                    Self::matching_pool().matching(unbonding_amount)?;
+
+                Self::do_multi_bond(bond_amount, RewardDestination::Staked)?;
+                Self::do_multi_rebond(rebond_amount)?;
+
+                Self::do_multi_unbond(unbond_amount)?;
+
+                Self::do_multi_withdraw_unbonded(T::NumSlashingSpans::get())?;
+
+                Self::do_update_exchange_rate()?;
+
+                Self::deposit_event(Event::<T>::Matching(
+                    bond_amount,
+                    rebond_amount,
+                    unbond_amount,
+                ));
+
+                Ok(())
+            }();
+
+            Self::deposit_event(Event::<T>::NewEra(Self::current_era()));
             Ok(())
         }
 
@@ -1390,12 +1543,24 @@ pub mod pallet {
             Ok(())
         }
 
-        fn ensure_market_cap(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
-            let issuance = T::Assets::total_issuance(asset_id);
-            let new_issurance = issuance
-                .checked_add(amount)
-                .ok_or(ArithmeticError::Overflow)?;
-            ensure!(new_issurance <= Self::market_cap(), Error::<T>::CapExceeded);
+        fn ensure_market_cap(amount: BalanceOf<T>) -> DispatchResult {
+            ensure!(
+                Self::get_total_active_bonded().saturating_add(amount) <= Self::get_market_cap(),
+                Error::<T>::CapExceeded
+            );
+            Ok(())
+        }
+
+        fn ensure_staking_ledger_cap(
+            derivative_index: DerivativeIndex,
+            amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            // FIXME: confirm use ledger.active or ledger.total
+            ensure!(
+                Self::bonded_of(derivative_index).saturating_add(amount)
+                    <= Self::staking_ledger_cap(),
+                Error::<T>::CapExceeded
+            );
             Ok(())
         }
 

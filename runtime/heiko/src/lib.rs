@@ -601,7 +601,6 @@ impl pallet_loans::Config for Runtime {
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const DerivativeIndex: u16 = 0;
     pub const EraLength: BlockNumber = 6 * 1 * 3600 / 6; // 6HOURS
     pub const MinStake: Balance = 100_000_000_000; // 0.1KSM
     pub const MinUnstake: Balance = 50_000_000_000; // 0.05sKSM
@@ -609,6 +608,7 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = SKSM;
     pub const XcmFees: Balance = 5_000_000_000; // 0.005KSM
     pub const BondingDuration: EraIndex = 28; // 7Days
+    pub const MinNominatorBond: Balance = 100_000_000_000; // 0.1KSM
     pub const NumSlashingSpans: u32 = 0;
     pub DerivativeIndexList: Vec<u16> = vec![0];
 }
@@ -623,8 +623,8 @@ impl pallet_liquid_staking::Config for Runtime {
     type Assets = Assets;
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type DerivativeIndex = DerivativeIndex;
     type DerivativeIndexList = DerivativeIndexList;
+    type DistributionStrategy = pallet_liquid_staking::distribution::MaximizationDistribution;
     type XcmFees = XcmFees;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
@@ -633,6 +633,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
+    type MinNominatorBond = MinNominatorBond;
     type RelayChainValidationDataProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
@@ -2014,25 +2015,25 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (),
+    LiquidStakingMigrationV3,
 >;
 
-// Migration for loans pallet to add borrow limit in market.
-pub struct LoansMigrationV2;
+// Migration for liquid staking pallet to add multiple ledgers support
+pub struct LiquidStakingMigrationV3;
 
-impl OnRuntimeUpgrade for LoansMigrationV2 {
+impl OnRuntimeUpgrade for LiquidStakingMigrationV3 {
     fn on_runtime_upgrade() -> frame_support::weights::Weight {
-        pallet_loans::migrations::v2::migrate::<Runtime>()
+        pallet_liquid_staking::migrations::v3::migrate::<Runtime>()
     }
 
     #[cfg(feature = "try-runtime")]
     fn pre_upgrade() -> Result<(), &'static str> {
-        pallet_loans::migrations::v2::pre_migrate::<Runtime>()
+        pallet_liquid_staking::migrations::v3::pre_migrate::<Runtime>()
     }
 
     #[cfg(feature = "try-runtime")]
     fn post_upgrade() -> Result<(), &'static str> {
-        pallet_loans::migrations::v2::post_migrate::<Runtime>()
+        pallet_liquid_staking::migrations::v3::post_migrate::<Runtime>()
     }
 }
 

@@ -590,7 +590,6 @@ impl pallet_loans::Config for Runtime {
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const DerivativeIndex: u16 = 0;
     pub const EraLength: BlockNumber = 1 * 3 * 60 / 6;
     pub const MinStake: Balance = 100_000_000_000; // 0.1KSM
     pub const MinUnstake: Balance = 50_000_000_000; // 0.05sKSM
@@ -598,6 +597,7 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = SKSM;
     pub const XcmFees: Balance = 5_000_000_000; // 0.005KSM
     pub const BondingDuration: EraIndex = 3; // 9Minutes
+    pub const MinNominatorBond: Balance = 100_000_000_000; // 0.1KSM
     pub const NumSlashingSpans: u32 = 0;
     pub DerivativeIndexList: Vec<u16> = vec![0];
 }
@@ -614,14 +614,15 @@ impl pallet_liquid_staking::Config for Runtime {
     type Assets = Assets;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type DerivativeIndex = DerivativeIndex;
     type DerivativeIndexList = DerivativeIndexList;
+    type DistributionStrategy = pallet_liquid_staking::distribution::AverageDistribution;
     type XcmFees = XcmFees;
     type EraLength = EraLength;
     type MinStake = MinStake;
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
+    type MinNominatorBond = MinNominatorBond;
     type RelayChainValidationDataProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;

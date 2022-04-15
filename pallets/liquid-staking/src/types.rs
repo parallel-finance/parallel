@@ -2,18 +2,33 @@ use codec::{Decode, Encode, HasCompact};
 
 use super::{BalanceOf, Config};
 use frame_support::{dispatch::DispatchResult, traits::tokens::Balance as BalanceT};
-use primitives::{ArithmeticKind, DerivativeIndex, EraIndex};
+use primitives::{DerivativeIndex, EraIndex};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, ArithmeticError, DispatchError, FixedPointOperand, RuntimeDebug};
 use sp_std::{cmp::Ordering, result::Result, vec, vec::Vec};
 
+#[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct ReservableAmount<Balance> {
+    pub total: Balance,
+    pub reserved: Balance,
+}
+
+impl<Balance: BalanceT + FixedPointOperand> ReservableAmount<Balance> {
+    pub fn free(&self) -> Result<Balance, DispatchError> {
+        Ok(self
+            .total
+            .checked_sub(&self.reserved)
+            .ok_or(ArithmeticError::Underflow)?)
+    }
+}
+
 /// The matching pool's total stake & unstake amount in one era
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct MatchingLedger<Balance: BalanceT> {
+pub struct MatchingLedger<Balance> {
     /// The total stake amount in one era
-    pub total_stake_amount: Balance,
+    pub total_stake_amount: ReservableAmount<Balance>,
     /// The total unstake amount in one era
-    pub total_unstake_amount: Balance,
+    pub total_unstake_amount: ReservableAmount<Balance>,
 }
 
 impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
@@ -27,18 +42,20 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         unbonding_amount: Balance,
     ) -> Result<(Balance, Balance, Balance), DispatchError> {
         use Ordering::*;
+        let total_free_stake_amount = self.total_stake_amount.free()?;
+        let total_free_unstake_amount = self.total_unstake_amount.free()?;
 
         let (bond_amount, rebond_amount, unbond_amount) = if matches!(
-            self.total_stake_amount.cmp(&self.total_unstake_amount),
+            total_free_stake_amount.cmp(&total_free_unstake_amount),
             Less | Equal
         ) {
             (
                 Zero::zero(),
                 Zero::zero(),
-                self.total_unstake_amount - self.total_stake_amount,
+                total_free_unstake_amount - total_free_stake_amount,
             )
         } else {
-            let amount = self.total_stake_amount - self.total_unstake_amount;
+            let amount = total_free_stake_amount - total_free_unstake_amount;
             if amount < unbonding_amount {
                 (Zero::zero(), amount, Zero::zero())
             } else {
@@ -49,59 +66,110 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok((bond_amount, rebond_amount, unbond_amount))
     }
 
-    pub fn update_total_stake_amount(
-        &mut self,
-        amount: Balance,
-        kind: ArithmeticKind,
-    ) -> DispatchResult {
-        use ArithmeticKind::*;
-        match kind {
-            Addition => {
-                self.total_stake_amount = self
-                    .total_stake_amount
-                    .checked_add(&amount)
-                    .ok_or(ArithmeticError::Overflow)?;
-            }
-            Subtraction => {
-                self.total_stake_amount = self
-                    .total_stake_amount
-                    .checked_sub(&amount)
-                    .ok_or(ArithmeticError::Underflow)?;
-            }
-        }
+    pub fn add_stake_amount(&mut self, amount: Balance) -> DispatchResult {
+        self.total_stake_amount.total = self
+            .total_stake_amount
+            .total
+            .checked_add(&amount)
+            .ok_or(ArithmeticError::Overflow)?;
         Ok(())
     }
 
-    pub fn update_total_unstake_amount(
-        &mut self,
-        amount: Balance,
-        kind: ArithmeticKind,
-    ) -> DispatchResult {
-        use ArithmeticKind::*;
-        match kind {
-            Addition => {
-                self.total_unstake_amount = self
-                    .total_unstake_amount
-                    .checked_add(&amount)
-                    .ok_or(ArithmeticError::Overflow)?;
-            }
-            Subtraction => {
-                self.total_unstake_amount = self
-                    .total_unstake_amount
-                    .checked_sub(&amount)
-                    .ok_or(ArithmeticError::Underflow)?;
-            }
-        }
+    pub fn add_unstake_amount(&mut self, amount: Balance) -> DispatchResult {
+        self.total_unstake_amount.total = self
+            .total_unstake_amount
+            .total
+            .checked_add(&amount)
+            .ok_or(ArithmeticError::Overflow)?;
         Ok(())
     }
 
-    pub fn clear(&mut self) {
-        if self.total_stake_amount != self.total_unstake_amount {
-            return;
+    pub fn consolidate_stake(&mut self, amount: Balance) -> DispatchResult {
+        self.remove_stake_amount_lock(amount)?;
+        self.sub_stake_amount(amount)?;
+        self.clear()?;
+        Ok(())
+    }
+
+    pub fn consolidate_unstake(&mut self, amount: Balance) -> DispatchResult {
+        self.remove_unstake_amount_lock(amount)?;
+        self.sub_unstake_amount(amount)?;
+        self.clear()?;
+        Ok(())
+    }
+
+    fn sub_stake_amount(&mut self, amount: Balance) -> DispatchResult {
+        self.total_stake_amount.total = self
+            .total_stake_amount
+            .total
+            .checked_sub(&amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        Ok(())
+    }
+
+    fn sub_unstake_amount(&mut self, amount: Balance) -> DispatchResult {
+        self.total_unstake_amount.total = self
+            .total_unstake_amount
+            .total
+            .checked_sub(&amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        Ok(())
+    }
+
+    pub fn set_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+        self.total_stake_amount.reserved = self
+            .total_stake_amount
+            .reserved
+            .checked_add(&amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        Ok(())
+    }
+
+    fn remove_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+        self.total_stake_amount.reserved = self
+            .total_stake_amount
+            .reserved
+            .checked_sub(&amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        Ok(())
+    }
+
+    pub fn set_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+        self.total_unstake_amount.reserved = self
+            .total_unstake_amount
+            .reserved
+            .checked_add(&amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        Ok(())
+    }
+
+    fn remove_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+        self.total_unstake_amount.reserved = self
+            .total_unstake_amount
+            .reserved
+            .checked_sub(&amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        Ok(())
+    }
+
+    fn clear(&mut self) -> DispatchResult {
+        let total_free_stake_amount = self.total_stake_amount.free()?;
+        let total_free_unstake_amount = self.total_unstake_amount.free()?;
+        if total_free_stake_amount != total_free_unstake_amount {
+            return Ok(());
         }
 
-        self.total_stake_amount = Zero::zero();
-        self.total_unstake_amount = Zero::zero();
+        self.total_stake_amount.total = self
+            .total_stake_amount
+            .total
+            .checked_sub(&total_free_stake_amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        self.total_unstake_amount.total = self
+            .total_unstake_amount
+            .total
+            .checked_sub(&total_free_stake_amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        Ok(())
     }
 }
 
@@ -247,13 +315,5 @@ impl<AccountId, Balance: BalanceT + FixedPointOperand> StakingLedger<AccountId, 
         // 1. No chill call is needed
         // 2. No minimum balance check
         self.active -= value;
-    }
-
-    /// If the first item is smaller or equal to current_era,
-    /// then it has unbonded and is withdrawable on relaychain.
-    pub fn has_unbonded(&self, current_era: EraIndex) -> bool {
-        self.unlocking
-            .first()
-            .map_or(false, |chunk| chunk.era <= current_era)
     }
 }

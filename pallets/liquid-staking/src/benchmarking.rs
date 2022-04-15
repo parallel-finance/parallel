@@ -83,7 +83,7 @@ fn initial_set_up<
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(KSM, &caller, INITIAL_AMOUNT).unwrap();
 
-    LiquidStaking::<T>::update_market_cap(SystemOrigin::Root.into(), MARKET_CAP).unwrap();
+    LiquidStaking::<T>::update_staking_ledger_cap(SystemOrigin::Root.into(), MARKET_CAP).unwrap();
 
     pallet_xcm_helper::Pallet::<T>::update_xcm_weight_fee(
         SystemOrigin::Root.into(),
@@ -259,7 +259,7 @@ benchmarks! {
         assert_eq!(ReserveFactor::<T>::get(), RESERVE_FACTOR);
     }
 
-    update_market_cap {
+    update_staking_ledger_cap {
     }: _(SystemOrigin::Root, MARKET_CAP)
     verify {
     }
@@ -345,7 +345,7 @@ benchmarks! {
         let real_stake = STAKE_AMOUNT - xcm_fee - reserve;
         assert_eq!(EraStartBlock::<T>::get(), 0u32.into());
         assert_eq!(CurrentEra::<T>::get(), 1);
-        assert_last_event::<T>(Event::<T>::NewEra(1, real_stake-UNBOND_AMOUNT, UNBOND_AMOUNT, 0).into());
+        assert_last_event::<T>(Event::<T>::NewEra(1).into());
     }
 
     force_advance_era {
@@ -373,7 +373,7 @@ benchmarks! {
         let real_stake = STAKE_AMOUNT - xcm_fee - reserve;
         assert_eq!(EraStartBlock::<T>::get(), 0u32.into());
         assert_eq!(CurrentEra::<T>::get(), 1);
-        assert_last_event::<T>(Event::<T>::NewEra(1, real_stake-UNBOND_AMOUNT, UNBOND_AMOUNT, 0).into());
+        assert_last_event::<T>(Event::<T>::NewEra(1).into());
     }
 }
 

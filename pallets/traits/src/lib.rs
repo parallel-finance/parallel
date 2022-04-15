@@ -2,7 +2,7 @@
 
 use frame_support::dispatch::DispatchError;
 use num_bigint::{BigUint, ToBigUint};
-use primitives::{CurrencyId, PersistedValidationData, PriceDetail, Rate};
+use primitives::{CurrencyId, DerivativeIndex, PersistedValidationData, PriceDetail, Rate};
 use sp_std::prelude::*;
 
 pub trait EmergencyCallFilter<Call> {
@@ -81,4 +81,26 @@ impl ConvertToBigUint for u128 {
 /// Get relaychain validation data
 pub trait ValidationDataProvider {
     fn validation_data() -> Option<PersistedValidationData>;
+}
+
+/// Distribute liquidstaking asset to multi-accounts
+pub trait DistributionStrategy<Balance> {
+    fn get_bond_distributions(
+        active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
+        input: Balance,
+        cap: Balance,
+        min_nominator_bond: Balance,
+    ) -> Vec<(DerivativeIndex, Balance)>;
+    fn get_unbond_distributions(
+        active_bonded_amount: &mut Vec<(DerivativeIndex, Balance)>,
+        input: Balance,
+        cap: Balance,
+        min_nominator_bond: Balance,
+    ) -> Vec<(DerivativeIndex, Balance)>;
+    fn get_rebond_distributions(
+        unlocking_amount: &mut Vec<(DerivativeIndex, Balance, Balance)>,
+        input: Balance,
+        cap: Balance,
+        min_nominator_bond: Balance,
+    ) -> Vec<(DerivativeIndex, Balance)>;
 }
