@@ -131,7 +131,6 @@ fn large_stable_swap_amount_out_should_work() {
 }
 
 // TODO: Fix this test
-#[ignore]
 #[test]
 fn unbalanced_stable_swap_amount_out_should_work() {
     new_test_ext().execute_with(|| {
