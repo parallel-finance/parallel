@@ -966,9 +966,7 @@ pub mod pallet {
             );
 
             'outer: for kind in [Contributed, Flying, Pending] {
-                for (who, (amount, referral_code)) in
-                    Self::contribution_iterator(vault.trie_index, kind)
-                {
+                for (who, (amount, _)) in Self::contribution_iterator(vault.trie_index, kind) {
                     if refund_count >= T::RemoveKeysLimit::get() {
                         all_refunded = false;
                         break 'outer;
@@ -994,7 +992,7 @@ pub mod pallet {
                         &who,
                         &mut vault,
                         amount,
-                        Some(referral_code.clone()),
+                        None,
                         ArithmeticKind::Subtraction,
                         kind,
                     )?;

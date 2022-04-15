@@ -1,7 +1,7 @@
 use super::*;
 use crate::mock::{Call as TestCall, *};
 use frame_support::{assert_noop, assert_ok};
-use pallet_traits::ump::*;
+
 use primitives::tokens::DOT;
 use sp_runtime::traits::{One, Zero};
 
