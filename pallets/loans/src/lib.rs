@@ -1536,7 +1536,7 @@ impl<T: Config> Pallet<T> {
             |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
-                    .checked_add(collateral_amount)
+                    .checked_add(Ratio::from_percent(97) * collateral_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             },
