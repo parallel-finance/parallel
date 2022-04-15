@@ -143,6 +143,7 @@ export const getApi = async (endpoint: string): Promise<ApiPromise> => {
     provider: new WsProvider(endpoint)
   })
 }
+
 export const getRelayApi = async (endpoint: string): Promise<ApiPromise> => {
   return ApiPromise.create({
     provider: new WsProvider(endpoint)
