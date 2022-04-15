@@ -990,6 +990,10 @@ pub mod pallet {
                 &amount,
             );
 
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.set_stake_amount_lock(amount)
+            })?;
+
             let staking_currency = Self::staking_currency()?;
             let derivative_account_id = Self::derivative_sovereign_account_id(derivative_index);
             let query_id = T::XCM::do_bond(
@@ -1045,6 +1049,10 @@ pub mod pallet {
                 &amount,
             );
 
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.set_stake_amount_lock(amount)
+            })?;
+
             let query_id = T::XCM::do_bond_extra(
                 amount,
                 Self::derivative_sovereign_account_id(derivative_index),
@@ -1083,10 +1091,14 @@ pub mod pallet {
                 ledger.unlocking.len() < MAX_UNLOCKING_CHUNKS,
                 Error::<T>::NoMoreChunks
             );
-            // ensure!(
-            //     ledger.active.saturating_sub(amount) >= T::MinNominatorBond::get(),
-            //     Error::<T>::InsufficientBond
-            // );
+            ensure!(
+                ledger.active.saturating_sub(amount) >= T::MinNominatorBond::get(),
+                Error::<T>::InsufficientBond
+            );
+
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.set_unstake_amount_lock(amount)
+            })?;
 
             log::trace!(
                 target: "liquidStaking::unbond",
@@ -1137,6 +1149,10 @@ pub mod pallet {
                 &derivative_index,
                 &amount,
             );
+
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.set_stake_amount_lock(amount)
+            })?;
 
             let query_id = T::XCM::do_rebond(
                 amount,
@@ -1267,8 +1283,6 @@ pub mod pallet {
                 Self::staking_ledger_cap(),
                 T::MinNominatorBond::get(),
             );
-
-            //TODO: reserve according to total distributions amount
 
             for (index, amount) in distributions.into_iter() {
                 Self::do_bond(index, amount, payee.clone())?;
@@ -1495,10 +1509,6 @@ pub mod pallet {
                 let unbonding_amount = Self::get_total_unbonding();
                 let (bond_amount, rebond_amount, unbond_amount) =
                     Self::matching_pool().matching(unbonding_amount)?;
-                //FIXME: reserve amount here maybe more than actually
-                MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                    p.consolidate_reserve(bond_amount, rebond_amount, unbond_amount)
-                })?;
 
                 Self::do_multi_bond(bond_amount, RewardDestination::Staked)?;
                 Self::do_multi_rebond(rebond_amount)?;

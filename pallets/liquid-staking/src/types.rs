@@ -84,24 +84,6 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    pub fn consolidate_reserve(
-        &mut self,
-        bond_amount: Balance,
-        rebond_amount: Balance,
-        unbond_amount: Balance,
-    ) -> DispatchResult {
-        if !bond_amount.is_zero() {
-            self.set_stake_amount_lock(bond_amount)?;
-        }
-        if !rebond_amount.is_zero() {
-            self.set_stake_amount_lock(rebond_amount)?;
-        }
-        if !unbond_amount.is_zero() {
-            self.set_unstake_amount_lock(unbond_amount)?;
-        }
-        Ok(())
-    }
-
     pub fn consolidate_stake(&mut self, amount: Balance) -> DispatchResult {
         self.remove_stake_amount_lock(amount)?;
         self.sub_stake_amount(amount)?;
@@ -134,7 +116,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    fn set_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+    pub fn set_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
         self.total_stake_amount.reserved = self
             .total_stake_amount
             .reserved
@@ -152,7 +134,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    fn set_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
+    pub fn set_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
         self.total_unstake_amount.reserved = self
             .total_unstake_amount
             .reserved

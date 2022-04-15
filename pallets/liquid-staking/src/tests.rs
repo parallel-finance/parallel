@@ -5,7 +5,8 @@ use crate::{
 };
 
 use frame_support::{
-    assert_noop, assert_ok, error::BadOrigin, storage::with_transaction, traits::Hooks,
+    assert_noop, assert_ok, dispatch::DispatchResult, error::BadOrigin, storage::with_transaction,
+    traits::Hooks,
 };
 
 use primitives::{
@@ -326,11 +327,6 @@ fn test_transact_bond_extra_work() {
             bond_amount,
             RewardDestination::Staked
         ));
-        assert_ok!(MatchingPool::<Test>::mutate(|p| p.consolidate_reserve(
-            bond_amount,
-            0,
-            0
-        )));
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
             0,
@@ -368,11 +364,6 @@ fn test_transact_unbond_work() {
             bond_amount,
             RewardDestination::Staked
         ));
-        assert_ok!(MatchingPool::<Test>::mutate(|p| p.consolidate_reserve(
-            bond_amount,
-            0,
-            0
-        )));
 
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
@@ -413,11 +404,6 @@ fn test_transact_withdraw_unbonded_work() {
         assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(2000f64),));
         let bond_amount = ksm(5f64);
         let unbond_amount = ksm(2f64);
-        assert_ok!(MatchingPool::<Test>::mutate(|p| p.consolidate_reserve(
-            bond_amount,
-            0,
-            unbond_amount
-        )));
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             derivative_index,
@@ -502,11 +488,6 @@ fn test_transact_rebond_work() {
             bond_amount,
             RewardDestination::Staked
         ));
-        assert_ok!(MatchingPool::<Test>::mutate(|p| p.consolidate_reserve(
-            bond_amount,
-            0,
-            0
-        )));
 
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
@@ -560,11 +541,6 @@ fn test_transact_nominate_work() {
             bond_amount,
             RewardDestination::Staked
         ));
-        assert_ok!(MatchingPool::<Test>::mutate(|p| p.consolidate_reserve(
-            bond_amount,
-            0,
-            0
-        )));
 
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
@@ -850,12 +826,6 @@ fn test_force_notification_received_work() {
             bond_amount,
             RewardDestination::Staked
         ));
-
-        assert_ok!(MatchingPool::<Test>::mutate(|p| p.consolidate_reserve(
-            bond_amount,
-            0,
-            0
-        )));
 
         let query_id = 0;
         assert_eq!(
