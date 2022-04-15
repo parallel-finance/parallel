@@ -17,22 +17,19 @@
 #![recursion_limit = "256"]
 
 use codec::{Decode, Encode, MaxEncodedLen};
-pub use frame_support::{
-    construct_runtime, log, parameter_types,
-    traits::{InstanceFilter, KeyOwnerProofSystem, Randomness},
-    weights::{
-        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
-        DispatchClass, IdentityFee,
-    },
-    StorageValue,
-};
 use frame_support::{
+    construct_runtime,
     dispatch::Weight,
-    match_type,
+    log, match_type, parameter_types,
     traits::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
-        ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, Nothing,
+        ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter,
+        Nothing,
+    },
+    weights::{
+        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
+        DispatchClass,
     },
     PalletId,
 };
@@ -80,10 +77,17 @@ use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 
 // A few exports that help ease life for downstream crates.
 // re-exports
-pub use constants::{currency, fee, paras, time};
+mod weights;
+
+pub mod constants;
+pub mod impls;
+
+use constants::{currency, fee, paras, time};
 use currency::*;
 use fee::*;
-pub use impls::DealWithFees;
+use impls::*;
+use time::*;
+
 pub use pallet_amm;
 pub use pallet_asset_registry;
 pub use pallet_bridge;
@@ -94,27 +98,24 @@ pub use pallet_loans;
 pub use pallet_prices;
 pub use pallet_router;
 pub use pallet_streaming;
-use pallet_traits::xcm::{
-    AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation, FirstAssetTrader,
+
+use pallet_traits::{
+    xcm::{
+        AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
+        FirstAssetTrader, MultiCurrencyAdapter,
+    },
+    DecimalProvider, EmergencyCallFilter, ValidationDataProvider,
 };
-use pallet_traits::{DecimalProvider, EmergencyCallFilter, ValidationDataProvider};
 use primitives::{
-    currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
     tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, SDOT},
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio, Shortfall, Signature,
 };
-use time::*;
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
-
-mod weights;
-
-pub mod constants;
-pub mod impls;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -1688,7 +1689,7 @@ impl pallet_amm::Config for Runtime {
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub const MinContribution: Balance = 50_000_000_000;
-    pub const MigrateKeysLimit: u32 = 10;
+    pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }

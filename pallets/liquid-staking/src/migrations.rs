@@ -13,7 +13,6 @@
 // limitations under the License.
 
 pub mod v3 {
-
     use crate::Config;
     use frame_support::pallet_prelude::*;
 
