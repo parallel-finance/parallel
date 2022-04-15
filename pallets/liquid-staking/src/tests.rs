@@ -1,17 +1,5 @@
-use crate::{
-    mock::*,
-    types::{MatchingLedger, ReservableAmount, StakingLedger, UnlockChunk, XcmRequest},
-    *,
-};
-
 use frame_support::{
     assert_noop, assert_ok, error::BadOrigin, storage::with_transaction, traits::Hooks,
-};
-
-use primitives::{
-    tokens::{KSM, SKSM},
-    ump::RewardDestination,
-    Balance, Rate, Ratio,
 };
 use sp_runtime::traits::BlakeTwo256;
 use sp_runtime::{
@@ -21,6 +9,18 @@ use sp_runtime::{
 };
 use sp_trie::StorageProof;
 use xcm_simulator::TestExt;
+
+use pallet_traits::ump::RewardDestination;
+use primitives::{
+    tokens::{KSM, SKSM},
+    Balance, Rate, Ratio,
+};
+
+use crate::{
+    mock::*,
+    types::{MatchingLedger, ReservableAmount, StakingLedger, UnlockChunk, XcmRequest},
+    *,
+};
 
 #[test]
 fn stake_should_work() {

@@ -27,7 +27,6 @@ pub mod tests;
 pub mod weights;
 
 pub use pallet::*;
-use parallel_primitives as primitives;
 
 #[pallet]
 pub mod pallet {
@@ -293,7 +292,7 @@ pub mod pallet {
 }
 
 // We implement this trait to be able to get the AssetType and units per second registered
-impl<T: Config> primitives::xcm::AssetTypeGetter<T::AssetId, T::AssetType> for Pallet<T> {
+impl<T: Config> pallet_traits::xcm::AssetTypeGetter<T::AssetId, T::AssetType> for Pallet<T> {
     fn get_asset_type(asset_id: T::AssetId) -> Option<T::AssetType> {
         AssetIdType::<T>::get(asset_id)
     }
@@ -303,7 +302,7 @@ impl<T: Config> primitives::xcm::AssetTypeGetter<T::AssetId, T::AssetType> for P
     }
 }
 
-impl<T: Config> primitives::xcm::UnitsToWeightRatio<T::AssetType> for Pallet<T> {
+impl<T: Config> pallet_traits::xcm::UnitsToWeightRatio<T::AssetType> for Pallet<T> {
     fn payment_is_supported(asset_type: T::AssetType) -> bool {
         SupportedFeePaymentAssets::<T>::get()
             .binary_search(&asset_type)

@@ -47,7 +47,7 @@ pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 use crate::{distribution::AverageDistribution, types::StakingLedger, BalanceOf};
 pub use kusama_runtime;
-use primitives::ump::{XcmCall, XcmWeightFeeMisc};
+use pallet_traits::ump::{XcmCall, XcmWeightFeeMisc};
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;

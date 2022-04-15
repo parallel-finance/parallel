@@ -1,8 +1,5 @@
 //! Liquid staking pallet benchmarking.
 #![cfg(feature = "runtime-benchmarks")]
-use super::*;
-
-use crate::{types::StakingLedger, Pallet as LiquidStaking};
 
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
 use frame_support::pallet_prelude::Weight;
@@ -11,18 +8,22 @@ use frame_support::{
     traits::{fungibles::Mutate, Hooks},
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::ump::{XcmCall, XcmWeightFeeMisc};
-use primitives::{
-    tokens::{KSM, SKSM},
-    ump::RewardDestination,
-    Balance, CurrencyId, Rate, Ratio,
-};
 use sp_runtime::{
     traits::{One, StaticLookup},
     TransactionOutcome,
 };
 use sp_std::{prelude::*, vec};
 use xcm::latest::prelude::*;
+
+use pallet_traits::ump::{RewardDestination, XcmCall, XcmWeightFeeMisc};
+use primitives::{
+    tokens::{KSM, SKSM},
+    Balance, CurrencyId, Rate, Ratio,
+};
+
+use crate::{types::StakingLedger, Pallet as LiquidStaking};
+
+use super::*;
 
 const SEED: u32 = 0;
 const MARKET_CAP: u128 = 10000000000000000u128;
