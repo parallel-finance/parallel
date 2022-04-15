@@ -799,12 +799,17 @@ pub mod pallet {
 
             Self::do_update_ledger(derivative_index, |ledger| {
                 ensure!(
-                    !Self::is_updated(derivative_index),
+                    !Self::is_updated(derivative_index)
+                        || !XcmRequests::<T>::iter().count().is_zero(),
                     Error::<T>::StakingLedgerLocked
                 );
+                // only allow to feed rewards
+                // slashes should be handled properly offchain
                 ensure!(
-                    ledger.active >= T::MinNominatorBond::get(),
-                    Error::<T>::InsufficientBond
+                    staking_ledger.total > ledger.total
+                        && staking_ledger.active > ledger.active
+                        && staking_ledger.unlocking == ledger.unlocking,
+                    Error::<T>::InvalidStakingLedger
                 );
                 let key = Self::get_staking_ledger_key(derivative_index);
                 let value = staking_ledger.encode();
@@ -895,10 +900,9 @@ pub mod pallet {
 
         /// Get total unclaimed
         pub fn get_total_unclaimed(staking_currency: AssetIdOf<T>) -> BalanceOf<T> {
-            let matching_pool = Self::matching_pool();
             T::Assets::reducible_balance(staking_currency, &Self::account_id(), false)
                 .saturating_sub(Self::total_reserves())
-                .saturating_sub(matching_pool.total_stake_amount.total)
+                .saturating_sub(Self::matching_pool().total_stake_amount.total)
         }
 
         /// Derivative of parachain's account
@@ -919,11 +923,18 @@ pub mod pallet {
             Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| ledger.active)
         }
 
-        // fn unbonding_of(index: DerivativeIndex) -> BalanceOf<T> {
-        //     Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
-        //         ledger.total.saturating_sub(ledger.active)
-        //     })
-        // }
+        fn unbonding_of(index: DerivativeIndex) -> BalanceOf<T> {
+            let current_era = Self::current_era();
+            Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
+                ledger.unlocking.iter().fold(Zero::zero(), |acc, chunk| {
+                    if chunk.era > current_era {
+                        acc.saturating_add(chunk.value)
+                    } else {
+                        acc
+                    }
+                })
+            })
+        }
 
         fn unbonded_of(index: DerivativeIndex) -> BalanceOf<T> {
             let current_era = Self::current_era();
@@ -940,7 +951,6 @@ pub mod pallet {
 
         fn get_total_unbonding() -> BalanceOf<T> {
             StakingLedgers::<T>::iter_values().fold(Zero::zero(), |acc, ledger| {
-                // FIXME: Confirm if it's better to calculate total unlocking amount
                 acc.saturating_add(ledger.total.saturating_sub(ledger.active))
             })
         }
@@ -1275,12 +1285,13 @@ pub mod pallet {
             if total_amount.is_zero() {
                 return Ok(());
             }
-            let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
+
+            let amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
                 .iter()
                 .map(|&index| (index, Self::bonded_of(index)))
                 .collect();
             let distributions = T::DistributionStrategy::get_bond_distributions(
-                &mut amounts,
+                amounts,
                 total_amount,
                 Self::staking_ledger_cap(),
                 T::MinNominatorBond::get(),
@@ -1298,12 +1309,13 @@ pub mod pallet {
             if total_amount.is_zero() {
                 return Ok(());
             }
-            let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
+
+            let amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
                 .iter()
                 .map(|&index| (index, Self::bonded_of(index)))
                 .collect();
             let distributions = T::DistributionStrategy::get_unbond_distributions(
-                &mut amounts,
+                amounts,
                 total_amount,
                 Self::staking_ledger_cap(),
                 T::MinNominatorBond::get(),
@@ -1321,13 +1333,14 @@ pub mod pallet {
             if total_amount.is_zero() {
                 return Ok(());
             }
-            let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>, BalanceOf<T>)> =
+
+            let amounts: Vec<(DerivativeIndex, BalanceOf<T>, BalanceOf<T>)> =
                 T::DerivativeIndexList::get()
                     .iter()
-                    .map(|&index| (index, Self::unbonded_of(index), Self::bonded_of(index)))
+                    .map(|&index| (index, Self::unbonding_of(index), Self::bonded_of(index)))
                     .collect();
             let distributions = T::DistributionStrategy::get_rebond_distributions(
-                &mut amounts,
+                amounts,
                 total_amount,
                 Self::staking_ledger_cap(),
                 T::MinNominatorBond::get(),
@@ -1450,7 +1463,6 @@ pub mod pallet {
         #[require_transactional]
         fn do_update_exchange_rate() -> DispatchResult {
             let matching_ledger = Self::matching_pool();
-            //TODO: use ledger.total or ledger.active?
             let total_bonded = Self::get_total_active_bonded();
             let issuance = T::Assets::total_issuance(Self::liquid_currency()?);
             if issuance.is_zero() {
@@ -1556,7 +1568,6 @@ pub mod pallet {
             derivative_index: DerivativeIndex,
             amount: BalanceOf<T>,
         ) -> DispatchResult {
-            // FIXME: confirm use ledger.active or ledger.total
             ensure!(
                 Self::bonded_of(derivative_index).saturating_add(amount)
                     <= Self::staking_ledger_cap(),
