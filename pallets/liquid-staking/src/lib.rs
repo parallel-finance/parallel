@@ -1504,8 +1504,6 @@ pub mod pallet {
                 &offset,
             );
 
-            Self::deposit_event(Event::<T>::NewEra(Self::current_era()));
-
             // ignore error
             let _ = || -> DispatchResult {
                 let unbonding_amount = Self::get_total_unbonding();
@@ -1530,6 +1528,7 @@ pub mod pallet {
                 Ok(())
             }();
 
+            Self::deposit_event(Event::<T>::NewEra(Self::current_era()));
             Ok(())
         }
 

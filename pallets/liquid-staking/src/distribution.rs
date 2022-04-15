@@ -2,6 +2,8 @@ use frame_support::traits::tokens::Balance as BalanceT;
 use pallet_traits::DistributionStrategy;
 use primitives::DerivativeIndex;
 use sp_runtime::FixedPointOperand;
+use sp_std::vec::Vec;
+
 pub struct AverageDistribution;
 impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for AverageDistribution {
     fn get_bond_distributions(
