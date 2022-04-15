@@ -64,6 +64,7 @@ pallet-loans-rpc-runtime-api  = { path = '../pallets/loans/rpc/runtime-api' }
 pallet-prices                 = { path = '../pallets/prices' }
 pallet-router                 = { path = '../pallets/router' }
 pallet-router-rpc-runtime-api = { path = '../pallets/router/rpc/runtime-api' }
+pallet-traits                 = { path = '../pallets/traits' }
 pallet-xcm-helper             = { path = '../pallets/xcm-helper' }
 primitives                    = { package = 'parallel-primitives', path = '../primitives' }
 vanilla-runtime                 = { path = '../runtime/vanilla' }

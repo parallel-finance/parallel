@@ -40,7 +40,7 @@ use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chai
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub use kusama_runtime;
-use primitives::ump::{XcmCall, XcmWeightFeeMisc};
+use pallet_traits::ump::{XcmCall, XcmWeightFeeMisc};
 
 pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
 

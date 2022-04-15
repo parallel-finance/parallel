@@ -8,9 +8,6 @@ version = '1.8.2'
 log   = { version = '0.4', default-features = false }
 serde = { version = '1.0.136', optional = true }
 
-# Primitives
-parallel-primitives = { path = '../../primitives', default-features = false }
-
 # Substrate
 frame-support      = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17', default-features = false }
 frame-system       = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17', default-features = false }
@@ -44,7 +41,6 @@ std     = [
   'sp-runtime/std',
   'sp-std/std',
   'xcm/std',
-  'parallel-primitives/std',
 ]
 
 runtime-benchmarks = ['frame-benchmarking']

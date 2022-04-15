@@ -14,21 +14,20 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub mod currency;
-pub mod network;
-pub mod tokens;
-pub mod ump;
-pub mod xcm;
-
 use codec::{Decode, Encode};
+pub use cumulus_primitives_core::{ParaId, PersistedValidationData};
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::prelude::*;
 
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
+pub mod currency;
+pub mod network;
+pub mod tokens;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -103,12 +102,8 @@ pub type EraIndex = u32;
 
 pub type DerivativeIndex = u16;
 
-pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-
 // DAOFi id of a payment stream
 pub type StreamId = u128;
-
-pub use cumulus_primitives_core::{ParaId, PersistedValidationData};
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]

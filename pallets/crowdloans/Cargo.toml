@@ -13,6 +13,7 @@ frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', bran
 frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
+pallet-traits      = { path = '../traits', default-features = false }
 pallet-xcm         = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17', default-features = false }
 pallet-xcm-helper  = { path = '../xcm-helper', default-features = false }
 primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
@@ -63,6 +64,7 @@ std                = [
   'xcm/std',
   'pallet-xcm-helper/std',
   'pallet-xcm/std',
+  'pallet-traits/std',
 ]
 try-runtime        = ['frame-support/try-runtime']
 

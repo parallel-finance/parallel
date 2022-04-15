@@ -5215,7 +5215,6 @@ dependencies = [
  "log",
  "pallet-balances",
  "pallet-traits",
- "parallel-primitives",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -5560,6 +5559,7 @@ dependencies = [
  "pallet-balances",
  "pallet-session",
  "pallet-timestamp",
+ "pallet-traits",
  "pallet-utility",
  "pallet-xcm",
  "pallet-xcm-helper",
@@ -6321,6 +6321,7 @@ version = "1.8.2"
 dependencies = [
  "frame-support",
  "frame-system",
+ "log",
  "num-bigint 0.3.3",
  "num-traits",
  "parallel-primitives",
@@ -6330,6 +6331,9 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
 ]
 
 [[package]]
@@ -6494,6 +6498,7 @@ dependencies = [
  "pallet-balances",
  "pallet-session",
  "pallet-timestamp",
+ "pallet-traits",
  "pallet-utility",
  "pallet-xcm",
  "parachain-info",
@@ -8881,6 +8886,7 @@ dependencies = [
  "pallet-prices",
  "pallet-router",
  "pallet-router-rpc-runtime-api",
+ "pallet-traits",
  "pallet-xcm",
  "pallet-xcm-helper",
  "parachain-info",

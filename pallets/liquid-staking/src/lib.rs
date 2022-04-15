@@ -20,6 +20,16 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use frame_support::traits::{fungibles::InspectMetadata, tokens::Balance as BalanceT, Get};
+use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
+
+pub use pallet::*;
+use pallet_traits::{
+    DistributionStrategy, ExchangeRateProvider, LiquidStakingConvert,
+    LiquidStakingCurrenciesProvider, ValidationDataProvider,
+};
+use primitives::{PersistedValidationData, Rate};
+
 mod benchmarking;
 
 #[cfg(test)]
@@ -34,16 +44,6 @@ pub mod weights;
 
 #[macro_use]
 extern crate primitives;
-
-use frame_support::traits::{fungibles::InspectMetadata, tokens::Balance as BalanceT, Get};
-use pallet_traits::{
-    DistributionStrategy, ExchangeRateProvider, LiquidStakingConvert,
-    LiquidStakingCurrenciesProvider, ValidationDataProvider,
-};
-use primitives::{PersistedValidationData, Rate};
-use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
-
-pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -76,12 +76,13 @@ pub mod pallet {
     };
     use sp_std::{borrow::Borrow, boxed::Box, result::Result, vec::Vec};
     use sp_trie::StorageProof;
+    use xcm::latest::prelude::*;
 
-    use primitives::{ump::*, Balance, CurrencyId, DerivativeIndex, EraIndex, ParaId, Rate, Ratio};
+    use pallet_traits::ump::*;
+    use pallet_xcm_helper::XcmHelper;
+    use primitives::{Balance, CurrencyId, DerivativeIndex, EraIndex, ParaId, Rate, Ratio};
 
     use super::{types::*, weights::WeightInfo, *};
-    use pallet_xcm_helper::XcmHelper;
-    use xcm::latest::prelude::*;
 
     pub const MAX_UNLOCKING_CHUNKS: usize = 32;
 
