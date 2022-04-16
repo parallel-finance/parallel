@@ -285,7 +285,7 @@ impl Contains<Call> for BaseCallFilter {
                 // Farming
                 Call::Farming(_) |
                 // Streaming
-                Call::Streaming(_) |
+                // Call::Streaming(_) |
                 // Asset Management
                 Call::AssetRegistry(_)
             ))
