@@ -59,7 +59,7 @@ impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for Av
     fn get_rebond_distributions(
         unbonding_bonded_amounts: Vec<(DerivativeIndex, Balance, Balance)>,
         input: Balance,
-        _cap: Balance,
+        cap: Balance,
         _min_nominator_bond: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         let length =
@@ -70,7 +70,11 @@ impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for Av
 
         let mut distributions: Vec<(DerivativeIndex, Balance)> = vec![];
         let amount = input.checked_div(&length).unwrap_or_default();
-        for (index, _, _) in unbonding_bonded_amounts.into_iter() {
+        for (index, unbonding, bonded) in unbonding_bonded_amounts.into_iter() {
+            let amount = unbonding.min(amount).min(cap.saturating_sub(bonded));
+            if amount.is_zero() {
+                continue;
+            }
             distributions.push((index, amount));
         }
 
@@ -142,6 +146,7 @@ impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance>
 
         distributions
     }
+
     fn get_rebond_distributions(
         mut unbonding_bonded_amounts: Vec<(DerivativeIndex, Balance, Balance)>,
         input: Balance,

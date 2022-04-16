@@ -356,6 +356,7 @@ pub mod pallet {
     pub(super) fn DefaultVersion<T: Config>() -> Versions {
         Versions::V2
     }
+
     /// Storage version of the pallet.
     #[pallet::storage]
     pub(crate) type StorageVersion<T: Config> =
@@ -740,6 +741,17 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Force matching
+        #[pallet::weight(<T as Config>::WeightInfo::force_matching())]
+        #[transactional]
+        pub fn force_matching(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+
+            Self::do_matching()?;
+
+            Ok(().into())
+        }
+
         /// Force set staking_ledger
         #[pallet::weight(<T as Config>::WeightInfo::force_set_staking_ledger())]
         #[transactional]
@@ -800,7 +812,7 @@ pub mod pallet {
             Self::do_update_ledger(derivative_index, |ledger| {
                 ensure!(
                     !Self::is_updated(derivative_index)
-                        || !XcmRequests::<T>::iter().count().is_zero(),
+                        && XcmRequests::<T>::iter().count().is_zero(),
                     Error::<T>::StakingLedgerLocked
                 );
                 // only allow to feed rewards
@@ -924,15 +936,8 @@ pub mod pallet {
         }
 
         fn unbonding_of(index: DerivativeIndex) -> BalanceOf<T> {
-            let current_era = Self::current_era();
             Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
-                ledger.unlocking.iter().fold(Zero::zero(), |acc, chunk| {
-                    if chunk.era > current_era {
-                        acc.saturating_add(chunk.value)
-                    } else {
-                        acc
-                    }
-                })
+                ledger.total.saturating_sub(ledger.active)
             })
         }
 
@@ -955,16 +960,11 @@ pub mod pallet {
             })
         }
 
-        fn get_total_active_bonded() -> BalanceOf<T> {
+        fn get_total_bonded() -> BalanceOf<T> {
             StakingLedgers::<T>::iter_values().fold(Zero::zero(), |acc, ledger| {
                 acc.saturating_add(ledger.active)
             })
         }
-
-        // fn get_total_bonded() -> BalanceOf<T> {
-        //     StakingLedgers::<T>::iter_values()
-        //         .fold(Zero::zero(), |acc, ledger| acc.saturating_add(ledger.total))
-        // }
 
         fn get_market_cap() -> BalanceOf<T> {
             Self::staking_ledger_cap()
@@ -1461,7 +1461,7 @@ pub mod pallet {
         #[require_transactional]
         fn do_update_exchange_rate() -> DispatchResult {
             let matching_ledger = Self::matching_pool();
-            let total_bonded = Self::get_total_active_bonded();
+            let total_bonded = Self::get_total_bonded();
             let issuance = T::Assets::total_issuance(Self::liquid_currency()?);
             if issuance.is_zero() {
                 return Ok(());
@@ -1501,13 +1501,42 @@ pub mod pallet {
         }
 
         #[require_transactional]
+        pub(crate) fn do_matching() -> DispatchResult {
+            let total_unbonding = Self::get_total_unbonding();
+            let (bond_amount, rebond_amount, unbond_amount) =
+                Self::matching_pool().matching(total_unbonding)?;
+
+            log::trace!(
+                target: "liquidStaking::do_matching",
+                "bond_amount: {:?}, rebond_amount: {:?}, unbond_amount: {:?}",
+                &bond_amount,
+                &rebond_amount,
+                &unbond_amount
+            );
+
+            Self::do_multi_bond(bond_amount, RewardDestination::Staked)?;
+            Self::do_multi_rebond(rebond_amount)?;
+
+            Self::do_multi_unbond(unbond_amount)?;
+
+            Self::do_multi_withdraw_unbonded(T::NumSlashingSpans::get())?;
+
+            Self::do_update_exchange_rate()?;
+
+            Self::deposit_event(Event::<T>::Matching(
+                bond_amount,
+                rebond_amount,
+                unbond_amount,
+            ));
+
+            Ok(())
+        }
+
+        #[require_transactional]
         pub(crate) fn do_advance_era(offset: EraIndex) -> DispatchResult {
             if offset.is_zero() {
                 return Ok(());
             }
-
-            EraStartBlock::<T>::put(T::RelayChainValidationDataProvider::current_block_number());
-            CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
             log::trace!(
                 target: "liquidStaking::do_advance_era",
@@ -1515,29 +1544,11 @@ pub mod pallet {
                 &offset,
             );
 
+            EraStartBlock::<T>::put(T::RelayChainValidationDataProvider::current_block_number());
+            CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
+
             // ignore error
-            let _ = || -> DispatchResult {
-                let unbonding_amount = Self::get_total_unbonding();
-                let (bond_amount, rebond_amount, unbond_amount) =
-                    Self::matching_pool().matching(unbonding_amount)?;
-
-                Self::do_multi_bond(bond_amount, RewardDestination::Staked)?;
-                Self::do_multi_rebond(rebond_amount)?;
-
-                Self::do_multi_unbond(unbond_amount)?;
-
-                Self::do_multi_withdraw_unbonded(T::NumSlashingSpans::get())?;
-
-                Self::do_update_exchange_rate()?;
-
-                Self::deposit_event(Event::<T>::Matching(
-                    bond_amount,
-                    rebond_amount,
-                    unbond_amount,
-                ));
-
-                Ok(())
-            }();
+            let _ = Self::do_matching();
 
             Self::deposit_event(Event::<T>::NewEra(Self::current_era()));
             Ok(())
@@ -1556,7 +1567,7 @@ pub mod pallet {
 
         fn ensure_market_cap(amount: BalanceOf<T>) -> DispatchResult {
             ensure!(
-                Self::get_total_active_bonded().saturating_add(amount) <= Self::get_market_cap(),
+                Self::get_total_bonded().saturating_add(amount) <= Self::get_market_cap(),
                 Error::<T>::CapExceeded
             );
             Ok(())

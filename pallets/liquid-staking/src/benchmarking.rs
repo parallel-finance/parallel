@@ -2,7 +2,6 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
-use frame_support::pallet_prelude::Weight;
 use frame_support::{
     storage::with_transaction,
     traits::{fungibles::Mutate, Hooks},
@@ -15,7 +14,7 @@ use sp_runtime::{
 use sp_std::{prelude::*, vec};
 use xcm::latest::prelude::*;
 
-use pallet_traits::ump::{RewardDestination, XcmCall, XcmWeightFeeMisc};
+use pallet_traits::ump::RewardDestination;
 use primitives::{
     tokens::{KSM, SKSM},
     Balance, CurrencyId, Rate, Ratio,
@@ -26,11 +25,7 @@ use crate::{types::StakingLedger, Pallet as LiquidStaking};
 use super::*;
 
 const SEED: u32 = 0;
-const MARKET_CAP: u128 = 10000000000000000u128;
-const XCM_WEIGHT_FEE: XcmWeightFeeMisc<Weight, Balance> = XcmWeightFeeMisc {
-    weight: 3_000_000_000,
-    fee: 50000000000u128,
-};
+const STAKING_LEDGER_CAP: u128 = 10000000000000000u128;
 const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
 const INITIAL_XCM_FEES: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
@@ -84,14 +79,8 @@ fn initial_set_up<
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(KSM, &caller, INITIAL_AMOUNT).unwrap();
 
-    LiquidStaking::<T>::update_staking_ledger_cap(SystemOrigin::Root.into(), MARKET_CAP).unwrap();
-
-    pallet_xcm_helper::Pallet::<T>::update_xcm_weight_fee(
-        SystemOrigin::Root.into(),
-        XcmCall::AddMemo,
-        XCM_WEIGHT_FEE,
-    )
-    .unwrap();
+    LiquidStaking::<T>::update_staking_ledger_cap(SystemOrigin::Root.into(), STAKING_LEDGER_CAP)
+        .unwrap();
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
         KSM,
@@ -173,31 +162,21 @@ benchmarks! {
         assert_last_event::<T>(Event::<T>::BondingExtra(0, BOND_AMOUNT).into());
     }
 
-    // force_set_staking_ledger {
-    //     let alice: T::AccountId = account("Sample", 100, SEED);
-    //     initial_set_up::<T>(alice.clone());
-    //     LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
-    //     LiquidStaking::<T>::bond(SystemOrigin::Root.into(), 0, BOND_AMOUNT, RewardDestination::Staked).unwrap();
-    //     LiquidStaking::<T>::notification_received(
-    //         pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-    //         0u64,
-    //         Response::ExecutionResult(None)
-    //     ).unwrap();
-    //     let staking_ledger = get_mock_staking_ledger::<T>(0);
-    //     let proof = get_mock_proof_bytes();
-    //     let data = PersistedValidationData {
-    //         parent_head: Default::default(),
-    //         relay_parent_number: 100,
-    //         relay_parent_storage_root: sp_core::hash::H256::from_slice(
-    //             &hex::decode(ROOT_HASH).unwrap(),
-    //         ),
-    //         max_pov_size: Default::default(),
-    //     };
-    //     ValidationData::<T>::put(data);
-    // }: _(SystemOrigin::Root, 0u16,  staking_ledger.clone(), proof)
-    // verify {
-    //     assert_last_event::<T>(Event::<T>::StakingLedgerUpdated(0, staking_ledger).into());
-    // }
+    force_set_staking_ledger {
+        let alice: T::AccountId = account("Sample", 100, SEED);
+        initial_set_up::<T>(alice.clone());
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
+        LiquidStaking::<T>::bond(SystemOrigin::Root.into(), 0, BOND_AMOUNT, RewardDestination::Staked).unwrap();
+        LiquidStaking::<T>::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0u64,
+            Response::ExecutionResult(None)
+        ).unwrap();
+        let staking_ledger = StakingLedgers::<T>::get(0).unwrap();
+    }: _(SystemOrigin::Root, 0u16,  staking_ledger.clone())
+    verify {
+        assert_last_event::<T>(Event::<T>::StakingLedgerUpdated(0, staking_ledger).into());
+    }
 
     unbond {
         let alice: T::AccountId = account("Sample", 100, SEED);
@@ -261,7 +240,7 @@ benchmarks! {
     }
 
     update_staking_ledger_cap {
-    }: _(SystemOrigin::Root, MARKET_CAP)
+    }: _(SystemOrigin::Root, STAKING_LEDGER_CAP)
     verify {
     }
 
@@ -369,12 +348,35 @@ benchmarks! {
 
     }
     verify {
-        let xcm_fee = T::XcmFees::get();
-        let reserve = ReserveFactor::<T>::get().mul_floor(STAKE_AMOUNT);
-        let real_stake = STAKE_AMOUNT - xcm_fee - reserve;
         assert_eq!(EraStartBlock::<T>::get(), 0u32.into());
         assert_eq!(CurrentEra::<T>::get(), 1);
         assert_last_event::<T>(Event::<T>::NewEra(1).into());
+    }
+
+    force_matching {
+        let alice: T::AccountId = account("Sample", 100, SEED);
+        initial_set_up::<T>(alice.clone());
+        // Insert a ledger, let `on_initialize` process three xcm:
+        // do_withdraw_unbonded/do_bond_extra/do_rebond
+        let mut staking_ledger = <StakingLedger<T::AccountId, BalanceOf<T>>>::new(
+            LiquidStaking::<T>::derivative_sovereign_account_id(0u16),
+            BOND_AMOUNT,
+        );
+        staking_ledger.unbond(UNBOND_AMOUNT, 10);
+        StakingLedgers::<T>::insert(0u16,staking_ledger);
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
+    }: {
+        with_transaction(|| {
+            LiquidStaking::<T>::do_matching().unwrap();
+            TransactionOutcome::Commit(0)
+        });
+
+    }
+    verify {
+        let xcm_fee = T::XcmFees::get();
+        let reserve = ReserveFactor::<T>::get().mul_floor(STAKE_AMOUNT);
+        let bond_amount = STAKE_AMOUNT - xcm_fee - reserve - UNBOND_AMOUNT;
+        assert_last_event::<T>(Event::<T>::Matching(bond_amount, UNBOND_AMOUNT, 0).into());
     }
 }
 
