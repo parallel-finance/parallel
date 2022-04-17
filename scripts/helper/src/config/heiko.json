@@ -65,14 +65,14 @@
       "symbol": "sKSM",
       "assetId": 1000,
       "decimal": 12,
-      "balances": []
+      "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
     },
     {
       "name": "Parallel Crowdloans Kusama - (0 ~ 7)",
       "symbol": "cKSM-0/7",
       "assetId": 4000,
       "decimal": 12,
-      "balances": []
+      "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
     },
     {
       "name": "Parallel LP-USDT/HKO",
@@ -92,6 +92,20 @@
       "name": "Parallel LP-KSM/HKO",
       "symbol": "LP-KSM/HKO",
       "assetId": 5002,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Parallel LP-KSM/sKSM",
+      "symbol": "LP-KSM/sKSM",
+      "assetId": 5003,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Parallel LP-KSM/cKSM-0/7",
+      "symbol": "LP-KSM/cKSM-0/7",
+      "assetId": 5004,
       "decimal": 12,
       "balances": []
     },
@@ -221,6 +235,18 @@
       "liquidityAmounts": ["10000000000000000", "30000000000000000000"],
       "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
       "liquidityProviderToken": 5002
+    },
+    {
+      "pool": [1000, 100],
+      "liquidityAmounts": ["10000000000000000", "10000000000000000"],
+      "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
+      "liquidityProviderToken": 5003
+    },
+    {
+      "pool": [4000, 100],
+      "liquidityAmounts": ["10000000000000000", "12000000000000000"],
+      "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
+      "liquidityProviderToken": 5004
     }
   ],
   "crowdloans": [
