@@ -60,6 +60,7 @@ pub trait WeightInfo {
     fn force_set_era_start_block() -> Weight;
     fn force_set_current_era() -> Weight;
     fn on_initialize() -> Weight;
+    fn on_initialize_with_advance_era() -> Weight;
     fn force_advance_era() -> Weight;
     fn force_matching() -> Weight;
 }
@@ -140,6 +141,11 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     }
     fn on_initialize() -> Weight {
         (6_296_000 as Weight).saturating_add(T::DbWeight::get().reads(2 as Weight))
+    }
+    fn on_initialize_with_advance_era() -> Weight {
+        (345_252_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(22 as Weight))
+            .saturating_add(T::DbWeight::get().writes(13 as Weight))
     }
     fn force_advance_era() -> Weight {
         (342_672_000 as Weight)
@@ -228,6 +234,11 @@ impl WeightInfo for () {
     }
     fn on_initialize() -> Weight {
         (6_296_000 as Weight).saturating_add(RocksDbWeight::get().reads(2 as Weight))
+    }
+    fn on_initialize_with_advance_era() -> Weight {
+        (345_252_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(22 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(13 as Weight))
     }
     fn force_advance_era() -> Weight {
         (342_672_000 as Weight)
