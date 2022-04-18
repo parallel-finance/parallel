@@ -13,20 +13,81 @@
 // limitations under the License.
 
 pub mod v3 {
-    use crate::Config;
+    use crate::{
+        types::{MatchingLedger, ReservableAmount},
+        BalanceOf, Config, MatchingPool, StakingLedgerCap, StorageVersion,
+    };
     use frame_support::pallet_prelude::*;
+    use frame_support::{
+        generate_storage_alias, log,
+        traits::{tokens::Balance as BalanceT, Get},
+        weights::Weight,
+    };
+
+    generate_storage_alias!(LiquidStaking, MarketCap => Value<u128,ValueQuery>);
+
+    #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
+    pub struct OldMatchingLedger<Balance: BalanceT> {
+        /// The total stake amount in one era
+        pub total_stake_amount: Balance,
+        /// The total unstake amount in one era
+        pub total_unstake_amount: Balance,
+    }
 
     #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
+        log::info!("MarketCap.get()? {:?}", MarketCap::get());
+        log::info!("MatchingPool.get()? {:?}", MatchingPool::<T>::get());
+        assert!(MarketCap::exists(), "MarketCap storage item not found!");
         Ok(())
     }
 
     pub fn migrate<T: Config>() -> Weight {
-        0
+        if StorageVersion::<T>::get() == crate::Versions::V2 {
+            log::info!("migrating liquidStaking to Versions::V3",);
+            // 1. from MarketCap to StakingLedgerCap
+            let cap = MarketCap::get();
+            MarketCap::kill();
+            StakingLedgerCap::<T>::put(cap);
+
+            // 2. update MatchingPool, MatchingLedger
+            let r = MatchingPool::<T>::translate::<OldMatchingLedger<BalanceOf<T>>, _>(
+                |matching_ledger| {
+                    let new_matching_ledger = MatchingLedger {
+                        total_stake_amount: ReservableAmount {
+                            total: 123u128,
+                            reserved: 456u128,
+                        },
+                        total_unstake_amount: ReservableAmount {
+                            total: 789u128,
+                            reserved: 777u128,
+                        },
+                    };
+                    Some(new_matching_ledger)
+                },
+            );
+            log::info!("result:{:?}", r);
+
+            StorageVersion::<T>::put(crate::Versions::V3);
+            log::info!("👜 completed liquidStaking migration to Versions::V3",);
+
+            T::BlockWeights::get().max_block
+        } else {
+            T::DbWeight::get().reads(1)
+        }
     }
 
     #[cfg(feature = "try-runtime")]
     pub fn post_migrate<T: Config>() -> Result<(), &'static str> {
+        frame_support::ensure!(
+            StorageVersion::<T>::get() == crate::Versions::V3,
+            "must upgrade to V3"
+        );
+        log::info!("StakingLedgerCap.get()? {:?}", StakingLedgerCap::<T>::get());
+        log::info!("MatchingPool.get()? {:?}", MatchingPool::<T>::get());
+
+        log::info!("👜 liquidStaking migration passes POST migrate checks ✅",);
+
         Ok(())
     }
 }
