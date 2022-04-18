@@ -1274,60 +1274,6 @@ fn oracle_big_block_no_overflow() {
     })
 }
 
-// #[test]
-// fn oracle_huge_block_should_work() {
-//     // we may want to omit this test because it take >5 minutes to run
-//     new_test_ext().execute_with(|| {
-//         let trader = FRANK;
-//
-//         assert_ok!(DefaultStableSwap::create_pool(
-//             RawOrigin::Signed(ALICE).into(),                     // Origin
-//             (DOT, KSM), // Currency pool, in which liquidity will be added
-//             (9_999_650_729_873_433, 30_001_051_000_000_000_000), // Liquidity amounts to be added in pool
-//             FRANK,                                               // LPToken receiver
-//             SAMPLE_LP_TOKEN, // Liquidity pool share representative token
-//         ));
-//
-//         assert_eq!(DefaultStableSwap::pools(DOT, KSM).unwrap().block_timestamp_last, 0);
-//         assert_eq!(DefaultStableSwap::pools(DOT, KSM).unwrap().price_0_cumulative_last, 0);
-//         assert_eq!(DefaultStableSwap::pools(DOT, KSM).unwrap().price_1_cumulative_last, 0);
-//
-//         // let mut big_block = 100_000_000;
-//         let mut big_block = 10_000_000;
-//
-//         // 100 Million blocks should take ~42.5 years to create at ~12 seconds a block
-//
-//         // Calculations
-//         // avg_block_time = (1645493658865 - 1639798590500) / (424950 - 1)
-//         // avg_block_time == 13401.769071112063 == 13.4 seconds per block
-//         // total_time = (avg_block_time * 100_000_000) / (1000 * 60 * 60 * 24 * 365)
-//         // total_time == 42.496730945941344
-//
-//         run_to_block(big_block);
-//
-//         for _ in 0..5 {
-//             big_block += 100_000;
-//             run_to_block(big_block);
-//             assert_ok!(DefaultStableSwap::swap(&trader, (DOT, KSM), 1000));
-//         }
-//
-//         assert_eq!(
-//             DefaultStableSwap::pools(DOT, KSM).unwrap().block_timestamp_last,
-//             big_block
-//         );
-//         assert_eq!(
-//             DefaultStableSwap::pools(DOT, KSM).unwrap().price_0_cumulative_last,
-//             // 301521093780_997938040922975491
-//             31502203827_864919649515113416
-//         );
-//         assert_eq!(
-//             DefaultStableSwap::pools(DOT, KSM).unwrap().price_1_cumulative_last,
-//             // 33497_656410519841854583
-//             3499_755147367804281224
-//         );
-//     })
-// }
-
 #[test]
 fn create_pool_large_amount_should_work() {
     /*
@@ -1502,7 +1448,7 @@ fn do_add_liquidity_large_amounts_should_work() {
 fn handling_fees_should_work() {
     new_test_ext().execute_with(|| {
         // Pool gets created and BOB should recieve all of the LP tokens (minus the min amount)
-        //
+        // Created Pool for Bob
         assert_ok!(DefaultStableSwap::create_pool(
             RawOrigin::Signed(ALICE).into(),    // Origin
             (DOT, SDOT),                        // Currency pool, in which liquidity will be added
@@ -1516,7 +1462,7 @@ fn handling_fees_should_work() {
 
         // we can check the total balance
         //
-        // no extra fees should be minted becuase liquidty has not been added or removed
+        // no extra fees should be minted because liquid has not been added or removed
         //
         assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 100_000_000_000);
 
@@ -1527,14 +1473,14 @@ fn handling_fees_should_work() {
         );
 
         // now we withdraw the fees and at this point we should mint tokens
-        // for the protcol proportional to 1/6 of the total fees generated
+        // for the protocol proportional to 1/6 of the total fees generated
 
         // we know that 18_000 fees should be collected and ~3_000 are for the protocol
         let total_fees_collected = 6_000_000.0 * 0.003;
         let fees_to_be_collected_by_protocol = total_fees_collected * (1.0 / 6.0);
         assert_eq!(fees_to_be_collected_by_protocol, 3000.0);
 
-        // expand the math to calculate exact amout of fees to dilute lp total supply
+        // expand the math to calculate exact amount of fees to dilute lp total supply
         let prop_of_total_fee = 1.0 / 6.0;
         let scalar = (1.0 / prop_of_total_fee) - 1.0;
         assert_eq!(scalar, 5.0);
@@ -1556,16 +1502,19 @@ fn handling_fees_should_work() {
         assert_eq!(rewards_to_mint, 1499.9249439687692); // 1499
 
         assert_ok!(DefaultStableSwap::remove_liquidity(
-            RawOrigin::Signed(PROTOCOL_FEE_RECEIVER).into(),
+            RawOrigin::Signed(BOB).into(),
+            // RawOrigin::Signed(PROTOCOL_FEE_RECEIVER).into(),
             (DOT, SDOT),
             1_499,
         ));
 
         // PROTOCOL_FEE_RECEIVER should have slightly less then 3_000 total rewards
         // split between the two pools - the small difference is due to rounding errors
-        assert_eq!(Assets::balance(DOT, PROTOCOL_FEE_RECEIVER), 1499);
+        // assert_eq!(Assets::balance(DOT, PROTOCOL_FEE_RECEIVER), 1499);
+        // assert_eq!(Assets::balance(SDOT, PROTOCOL_FEE_RECEIVER), 1498);
 
-        assert_eq!(Assets::balance(SDOT, PROTOCOL_FEE_RECEIVER), 1498);
+        assert_eq!(Assets::balance(DOT, BOB), 99999999900000001499);
+        assert_eq!(Assets::balance(SDOT, BOB), 99999999900000001498);
     })
 }
 
