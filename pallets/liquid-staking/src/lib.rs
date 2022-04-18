@@ -846,9 +846,9 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
-            let relaychain_block_number = Self::current_relaychain_block_number();
+            let relaychain_block_number =
+                T::RelayChainValidationDataProvider::current_block_number();
             let offset = Self::offset(relaychain_block_number);
-            let mut weight = <T as Config>::WeightInfo::on_initialize();
             log::trace!(
                 target: "liquidStaking::on_initialize",
                 "relaychain_block_number: {:?}, block_number: {:?}, advance_offset: {:?}",
@@ -857,12 +857,23 @@ pub mod pallet {
                 &offset
             );
             if offset.is_zero() {
-                return weight;
+                return <T as Config>::WeightInfo::on_initialize();
             }
-            weight += <T as Config>::WeightInfo::force_advance_era();
             with_transaction(|| match Self::do_advance_era(offset) {
-                Ok(()) => TransactionOutcome::Commit(weight),
-                Err(_) => TransactionOutcome::Rollback(weight),
+                Ok(()) => TransactionOutcome::Commit(
+                    <T as Config>::WeightInfo::on_initialize_with_advance_era(),
+                ),
+                Err(err) => {
+                    log::error!(
+                        target: "liquidStaking::do_advance_era",
+                        "Could not advance era! block_number: {:#?}, err: {:?}",
+                        &block_number,
+                        &err
+                    );
+                    TransactionOutcome::Rollback(
+                        <T as Config>::WeightInfo::on_initialize_with_advance_era(),
+                    )
+                }
             })
         }
 
@@ -958,13 +969,6 @@ pub mod pallet {
         fn get_market_cap() -> BalanceOf<T> {
             Self::staking_ledger_cap()
                 .saturating_mul(T::DerivativeIndexList::get().len() as BalanceOf<T>)
-        }
-
-        fn current_relaychain_block_number() -> BlockNumberFor<T> {
-            Self::validation_data()
-                .map(|d| d.relay_parent_number)
-                .unwrap_or_default()
-                .into()
         }
 
         #[require_transactional]
@@ -1530,7 +1534,7 @@ pub mod pallet {
 
         #[require_transactional]
         pub(crate) fn do_advance_era(offset: EraIndex) -> DispatchResult {
-            if offset.is_zero() || Self::validation_data().is_none() {
+            if offset.is_zero() {
                 return Ok(());
             }
 
@@ -1540,7 +1544,7 @@ pub mod pallet {
                 &offset,
             );
 
-            EraStartBlock::<T>::put(Self::current_relaychain_block_number());
+            EraStartBlock::<T>::put(T::RelayChainValidationDataProvider::current_block_number());
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
             // ignore error

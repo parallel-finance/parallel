@@ -580,7 +580,7 @@ parameter_types! {
     pub const BondingDuration: EraIndex = 28; // 28Days
     pub const MinNominatorBond: Balance = 100_000_000_000; // 10DOT
     pub const NumSlashingSpans: u32 = 0;
-    pub DerivativeIndexList: Vec<u16> = vec![0];
+    pub DerivativeIndexList: Vec<u16> = vec![0, 1, 2, 3, 4, 5];
 }
 
 impl pallet_liquid_staking::Config for Runtime {
