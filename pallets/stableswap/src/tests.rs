@@ -169,8 +169,8 @@ fn unbalanced_small_stable_swap_amount_out_should_work() {
 
         let amount_in = 162;
         let y = DefaultStableSwap::do_get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
-        // y = 1051916
-        let dy = 1051916u128.checked_sub(1_000_000u128).unwrap();
+        assert_eq!(y, 1_051_916);
+        let dy = y.checked_sub(1_000_000u128).unwrap();
         let ex_ratio = dy.checked_div(amount_in).unwrap();
 
         // assert_eq!(ex_ratio, 10);
@@ -1442,8 +1442,6 @@ fn do_add_liquidity_large_amounts_should_work() {
     })
 }
 
-// TODO: Fix this scenario
-// #[ignore]
 #[test]
 fn handling_fees_should_work() {
     new_test_ext().execute_with(|| {
@@ -1459,6 +1457,7 @@ fn handling_fees_should_work() {
 
         // Another user makes a swap that should generate fees for the LP provider and the protocol
         assert_ok!(DefaultStableSwap::swap(&FRANK, (DOT, SDOT), 6_000_000));
+        assert_eq!(Assets::balance(SDOT, FRANK), 5_981_998); // 18_002
 
         // we can check the total balance
         //
@@ -1486,35 +1485,34 @@ fn handling_fees_should_work() {
         assert_eq!(scalar, 5.0);
 
         let total_lp_token_supply = 100_000_000_000.0;
-        let old_root_k = (100_000_000_000f64 * 100_000_000_000f64).sqrt();
-        let new_root_k = (99_994_018_358f64 * 100_006_000_000f64).sqrt();
+        let old_root_k =
+            DefaultStableSwap::delta_util(100_000_000_000, 100_000_000_000).unwrap() as f64;
+        let new_root_k =
+            DefaultStableSwap::delta_util(100_000_000_000 - 5_981_998, 100_000_000_000 + 6_000_000)
+                .unwrap() as f64;
         let root_k_growth = new_root_k - old_root_k;
 
         let numerator = total_lp_token_supply * root_k_growth;
         let denominator = new_root_k * scalar + old_root_k;
         let rewards_to_mint = numerator / denominator;
 
-        assert_eq!(old_root_k, 100_000_000_000.0); // 100_000_000_000
-        assert_eq!(new_root_k, 100_000_008_999.55034); // 100_000_008_999
-        assert_eq!(root_k_growth, 8999.550338745117); // 8999
-        assert_eq!(numerator, 899955033874511.8); // 899_900_000_000_000
-        assert_eq!(denominator, 600000044997.7517); // 600_000_044_995
-        assert_eq!(rewards_to_mint, 1499.9249439687692); // 1499
+        assert_eq!(old_root_k, 200_000_000_000.0); // 200_000_000_000
+        assert_eq!(new_root_k, 200_000_017_999.0); // 200_000_017_999
+        assert_eq!(root_k_growth, 17_999.0); // 17_999
+        assert_eq!(numerator, 1_799_900_000_000_000.0); // 1_799_900_000_000_000
+        assert_eq!(denominator, 1_200_000_089_995.0); // 1_200_000_089_995
+        assert_eq!(rewards_to_mint, 1499.9165541791747); // 1499
 
         assert_ok!(DefaultStableSwap::remove_liquidity(
-            RawOrigin::Signed(BOB).into(),
-            // RawOrigin::Signed(PROTOCOL_FEE_RECEIVER).into(),
+            RawOrigin::Signed(PROTOCOL_FEE_RECEIVER).into(),
             (DOT, SDOT),
             1_499,
         ));
 
         // PROTOCOL_FEE_RECEIVER should have slightly less then 3_000 total rewards
         // split between the two pools - the small difference is due to rounding errors
-        // assert_eq!(Assets::balance(DOT, PROTOCOL_FEE_RECEIVER), 1499);
-        // assert_eq!(Assets::balance(SDOT, PROTOCOL_FEE_RECEIVER), 1498);
-
-        assert_eq!(Assets::balance(DOT, BOB), 99999999900000001499);
-        assert_eq!(Assets::balance(SDOT, BOB), 99999999900000001498);
+        assert_eq!(Assets::balance(DOT, PROTOCOL_FEE_RECEIVER), 1499);
+        assert_eq!(Assets::balance(SDOT, PROTOCOL_FEE_RECEIVER), 1498);
     })
 }
 
