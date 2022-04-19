@@ -54,6 +54,8 @@ pub struct Market<Balance> {
     pub close_factor: Ratio,
     /// Liquidation incentive ratio
     pub liquidate_incentive: Rate,
+    /// Liquidation incentive reserved ratio
+    pub liquidate_incentive_reserved_factor: Ratio,
     /// Current interest rate model being used
     pub rate_model: InterestRateModel,
     /// Current market state

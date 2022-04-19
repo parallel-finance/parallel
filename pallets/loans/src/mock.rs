@@ -355,6 +355,7 @@ pub const fn market_mock(ptoken_id: u32) -> Market<Balance> {
         close_factor: Ratio::from_percent(50),
         collateral_factor: Ratio::from_percent(50),
         liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
+        liquidate_incentive_reserved_factor: Ratio::from_percent(3),
         state: MarketState::Pending,
         rate_model: InterestRateModel::Jump(JumpModel {
             base_rate: Rate::from_inner(Rate::DIV / 100 * 2),

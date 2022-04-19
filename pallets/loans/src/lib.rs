@@ -48,6 +48,7 @@ use sp_runtime::{
 };
 use sp_std::result::Result;
 
+use sp_io::hashing::blake2_256;
 pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState, RewardMarketState};
 pub use weights::WeightInfo;
 
@@ -72,6 +73,7 @@ pub const MIN_INTEREST_CALCULATING_INTERVAL: u64 = 100; // 100 seconds
 
 pub const MAX_EXCHANGE_RATE: u128 = 1_000_000_000_000_000_000; // 1
 pub const MIN_EXCHANGE_RATE: u128 = 20_000_000_000_000_000; // 0.02
+pub const DEFAULT_LIQUIDATE_INCENTIVE_RESERVED_FACTOR: Ratio = Ratio::from_percent(3);
 
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -480,6 +482,11 @@ pub mod pallet {
                 Error::<T>::InvalidFactor,
             );
             ensure!(
+                market.liquidate_incentive_reserved_factor > Ratio::zero()
+                    && market.liquidate_incentive_reserved_factor < Ratio::one(),
+                Error::<T>::InvalidFactor,
+            );
+            ensure!(
                 market.supply_cap > Zero::zero(),
                 Error::<T>::InvalidSupplyCap,
             );
@@ -560,6 +567,7 @@ pub mod pallet {
             collateral_factor: Ratio,
             reserve_factor: Ratio,
             close_factor: Ratio,
+            liquidate_incentive_reserved_factor: Ratio,
             liquidate_incentive: Rate,
             #[pallet::compact] supply_cap: BalanceOf<T>,
             #[pallet::compact] borrow_cap: BalanceOf<T>,
@@ -585,6 +593,7 @@ pub mod pallet {
                     reserve_factor,
                     close_factor,
                     liquidate_incentive,
+                    liquidate_incentive_reserved_factor,
                     supply_cap,
                     borrow_cap,
                 };
@@ -1535,7 +1544,22 @@ impl<T: Config> Pallet<T> {
             |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
-                    .checked_add(Ratio::from_percent(97) * collateral_amount)
+                    .checked_add(
+                        (Ratio::one().saturating_sub(DEFAULT_LIQUIDATE_INCENTIVE_RESERVED_FACTOR))
+                            * collateral_amount,
+                    )
+                    .ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            },
+        )?;
+        // increase reserve's voucher_balance
+        AccountDeposits::<T>::try_mutate(
+            collateral_asset_id,
+            Self::incentive_reward_account_id()?,
+            |deposits| -> DispatchResult {
+                deposits.voucher_balance = deposits
+                    .voucher_balance
+                    .checked_add(DEFAULT_LIQUIDATE_INCENTIVE_RESERVED_FACTOR * collateral_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             },
@@ -1744,5 +1768,12 @@ impl<T: Config> Pallet<T> {
         } else {
             Err(Error::<T>::MarketDoesNotExist.into())
         }
+    }
+
+    // Returns the incentive reward account
+    pub fn incentive_reward_account_id() -> Result<T::AccountId, DispatchError> {
+        let account_id: T::AccountId = T::PalletId::get().into_account();
+        let entropy = (b"loans/incentive", &[account_id]).using_encoded(blake2_256);
+        Ok(T::AccountId::decode(&mut &entropy[..]).map_err(|_| Error::<T>::CodecError)?)
     }
 }

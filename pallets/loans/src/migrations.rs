@@ -66,6 +66,7 @@ pub mod v2 {
                     collateral_factor: market.collateral_factor,
                     reserve_factor: market.reserve_factor,
                     close_factor: market.close_factor,
+                    liquidate_incentive_reserved_factor: Ratio::from_percent(3),
                     liquidate_incentive: market.liquidate_incentive,
                     rate_model: market.rate_model,
                     state: market.state,
