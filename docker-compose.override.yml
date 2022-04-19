@@ -30,22 +30,6 @@ services:
     image: parallelfinance/stake-client:latest
     command: sync ledger --relay-ws=ws://relaychain-bob:9944 --para-ws=ws://parachain-${PARA_ID}-1:9944 --derivative-index 1
     restart: always
-  stake-client-sync-ledger-2:
-    image: parallelfinance/stake-client:latest
-    command: sync ledger --relay-ws=ws://relaychain-charlie:9944 --para-ws=ws://parachain-${PARA_ID}-2:9944 --derivative-index 2
-    restart: always
-  stake-client-sync-ledger-3:
-    image: parallelfinance/stake-client:latest
-    command: sync ledger --relay-ws=ws://relaychain-alice:9944 --para-ws=ws://parachain-${PARA_ID}-0:9944 --derivative-index 3
-    restart: always
-  stake-client-sync-ledger-4:
-    image: parallelfinance/stake-client:latest
-    command: sync ledger --relay-ws=ws://relaychain-bob:9944 --para-ws=ws://parachain-${PARA_ID}-1:9944 --derivative-index 4
-    restart: always
-  stake-client-sync-ledger-5:
-    image: parallelfinance/stake-client:latest
-    command: sync ledger --relay-ws=ws://relaychain-charlie:9944 --para-ws=ws://parachain-${PARA_ID}-2:9944 --derivative-index 5
-    restart: always
   liquidation-client:
     image: parallelfinance/liquidation-client:latest
     command: --endpoint ws://parachain-${PARA_ID}-0:9944

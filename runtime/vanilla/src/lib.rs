@@ -596,7 +596,7 @@ parameter_types! {
     pub const BondingDuration: EraIndex = 3; // 9Minutes
     pub const MinNominatorBond: Balance = 100_000_000_000; // 0.1KSM
     pub const NumSlashingSpans: u32 = 0;
-    pub DerivativeIndexList: Vec<u16> = vec![0, 1, 2, 3, 4, 5];
+    pub DerivativeIndexList: Vec<u16> = vec![0, 1];
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -612,7 +612,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type DerivativeIndexList = DerivativeIndexList;
-    type DistributionStrategy = pallet_liquid_staking::distribution::AverageDistribution;
+    type DistributionStrategy = pallet_liquid_staking::distribution::MaximizationDistribution;
     type XcmFees = XcmFees;
     type EraLength = EraLength;
     type MinStake = MinStake;
