@@ -1,7 +1,7 @@
 name: Deploy Docs to S3
 
 on:
-  workflow_dispatch
+  workflow_dispatch:
   #push:
     #branches:
       #- Deploy-Docs-To-s3
