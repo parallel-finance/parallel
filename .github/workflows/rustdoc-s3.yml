@@ -50,7 +50,7 @@ jobs:
 
       - name: Use Custom Domain
         run: |
-          echo "api-docs.parallel.fi" > target/doc/CNAME/rustdocs
+          echo "api-docs.parallel.fi/rustdocs" > target/doc/CNAME
 
       - name: Deploy Documentation to s3
         uses: jakejarvis/s3-sync-action@master
