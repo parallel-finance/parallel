@@ -1,10 +1,7 @@
 name: Deploy Docs to S3
 
-on:
-  workflow_dispatch:
-  #push:
-    #branches:
-      #- Deploy-Docs-To-s3
+on: workflow_dispatch
+ 
 env:
   AWS_S3_STAGING_BUCKET_NAME: parallel-rust-apidoc
   AWS_REGION: us-east-2
