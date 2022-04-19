@@ -1,4 +1,4 @@
-name: Deploy Docs to S3
+name: Deploy to S3
 
 on: workflow_dispatch
  
