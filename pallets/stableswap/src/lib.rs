@@ -748,10 +748,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_sub(quote_amount)
             .ok_or(Error::<T, I>::InsufficientLiquidity)?;
 
-        let l = liquidity;
-        let k = T::Assets::total_issuance(pool.lp_token_id);
-        let who_amt = T::Assets::balance(base_asset, who);
-
         T::Assets::burn_from(pool.lp_token_id, who, liquidity)?;
 
         T::Assets::transfer(base_asset, &Self::account_id(), who, base_amount, false)?;
@@ -802,20 +798,16 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             return Ok(Zero::zero());
         }
 
+        let root_k_last = Self::delta_util(pool.base_amount_last, pool.quote_amount_last)
+            .unwrap()
+            .get_big_uint();
+
         // if the early exits do not return we know that k_last is not zero
         // and that protocol fees are on
 
-        let root_k = pool
-            .base_amount
-            .get_big_uint()
-            .checked_mul(&pool.quote_amount.get_big_uint())
-            // loss of precision due to truncated sqrt
-            .map(|r| r.sqrt())
-            .ok_or(ArithmeticError::Overflow)?;
-
-        let root_k_last = k_last
-            // loss of precision due to truncated sqrt
-            .sqrt();
+        let root_k = Self::delta_util(pool.base_amount, pool.quote_amount)
+            .unwrap()
+            .get_big_uint();
 
         if root_k <= root_k_last {
             return Ok(Zero::zero());
