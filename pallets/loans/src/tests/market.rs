@@ -252,20 +252,17 @@ fn update_market_should_not_work_if_with_invalid_params() {
         );
 
         let market = MARKET_MOCK;
-        // check error code while collateral_factor is 0% or 100%
-        assert_noop!(
-            Loans::update_market(
-                Origin::root(),
-                DOT,
-                Ratio::zero(),
-                market.reserve_factor,
-                Default::default(),
-                market.liquidate_incentive,
-                market.supply_cap,
-                market.borrow_cap,
-            ),
-            Error::<Test>::InvalidFactor
-        );
+        // check error code while collateral_factor is [0%, 100%)
+        assert_ok!(Loans::update_market(
+            Origin::root(),
+            DOT,
+            Ratio::zero(),
+            market.reserve_factor,
+            Default::default(),
+            market.liquidate_incentive,
+            market.supply_cap,
+            market.borrow_cap,
+        ));
         assert_noop!(
             Loans::update_market(
                 Origin::root(),
