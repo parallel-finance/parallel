@@ -24,6 +24,7 @@ sp-runtime          = { git = 'https://github.com/paritytech/substrate', branch 
 sp-std              = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17' }
 
 # Polkadot dependencies
+karura-runtime 			= { git = 'https://github.com/AcalaNetwork/Acala.git', branch = 'release-acala-2.4.0'}
 pallet-xcm              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17'}
 polkadot-parachain      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17'}
 polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17'}

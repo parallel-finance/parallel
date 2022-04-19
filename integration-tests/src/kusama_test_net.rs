@@ -42,6 +42,16 @@ decl_test_parachain! {
 }
 
 decl_test_parachain! {
+    pub struct Karura {
+        Runtime = karura_runtime::Runtime,
+        Origin = karura_runtime::Origin,
+        XcmpMessageHandler = karura_runtime::XcmpQueue,
+        DmpMessageHandler = karura_runtime::DmpQueue,
+        new_ext = para_ext(2000),
+    }
+}
+
+decl_test_parachain! {
     pub struct Statemine {
         Runtime = statemine_runtime::Runtime,
         Origin = statemine_runtime::Origin,
@@ -56,6 +66,7 @@ decl_test_network! {
         relay_chain = KusamaNet,
         parachains = vec![
             (1000, Statemine),
+            (2000, Karura),
             (2085, Vanilla),
         ],
     }
