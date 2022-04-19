@@ -472,7 +472,8 @@ pub mod pallet {
                 Error::<T>::InvalidRateModelParam
             );
             ensure!(
-                market.collateral_factor > Ratio::zero() && market.collateral_factor < Ratio::one(),
+                market.collateral_factor >= Ratio::zero()
+                    && market.collateral_factor < Ratio::one(),
                 Error::<T>::InvalidFactor,
             );
             ensure!(
@@ -567,7 +568,7 @@ pub mod pallet {
             T::UpdateOrigin::ensure_origin(origin)?;
 
             ensure!(
-                collateral_factor > Ratio::zero() && collateral_factor < Ratio::one(),
+                collateral_factor >= Ratio::zero() && collateral_factor < Ratio::one(),
                 Error::<T>::InvalidFactor
             );
             ensure!(
