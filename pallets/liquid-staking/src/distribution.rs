@@ -50,6 +50,9 @@ impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for Av
             if bonded.saturating_sub(amount) < min_nominator_bond {
                 continue;
             }
+            if amount.is_zero() {
+                continue;
+            }
             distributions.push((index, amount));
         }
 

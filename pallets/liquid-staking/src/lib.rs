@@ -764,7 +764,8 @@ pub mod pallet {
 
             Self::do_update_ledger(derivative_index, |ledger| {
                 ensure!(
-                    !Self::is_updated(derivative_index),
+                    !Self::is_updated(derivative_index)
+                        && XcmRequests::<T>::iter().count().is_zero(),
                     Error::<T>::StakingLedgerLocked
                 );
                 *ledger = staking_ledger;
@@ -849,6 +850,7 @@ pub mod pallet {
             let relaychain_block_number =
                 T::RelayChainValidationDataProvider::current_block_number();
             let offset = Self::offset(relaychain_block_number);
+            let mut weight = <T as Config>::WeightInfo::on_initialize();
             log::trace!(
                 target: "liquidStaking::on_initialize",
                 "relaychain_block_number: {:?}, block_number: {:?}, advance_offset: {:?}",
@@ -857,23 +859,12 @@ pub mod pallet {
                 &offset
             );
             if offset.is_zero() {
-                return <T as Config>::WeightInfo::on_initialize();
+                return weight;
             }
+            weight += <T as Config>::WeightInfo::force_advance_era();
             with_transaction(|| match Self::do_advance_era(offset) {
-                Ok(()) => TransactionOutcome::Commit(
-                    <T as Config>::WeightInfo::on_initialize_with_advance_era(),
-                ),
-                Err(err) => {
-                    log::error!(
-                        target: "liquidStaking::do_advance_era",
-                        "Could not advance era! block_number: {:#?}, err: {:?}",
-                        &block_number,
-                        &err
-                    );
-                    TransactionOutcome::Rollback(
-                        <T as Config>::WeightInfo::on_initialize_with_advance_era(),
-                    )
-                }
+                Ok(()) => TransactionOutcome::Commit(weight),
+                Err(_) => TransactionOutcome::Rollback(weight),
             })
         }
 
@@ -1548,7 +1539,9 @@ pub mod pallet {
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
             // ignore error
-            let _ = Self::do_matching();
+            if let Err(e) = Self::do_matching() {
+                log::error!(target: "liquidStaking::do_advance_era", "Could not advance era! error: {:?}", &e);
+            }
 
             Self::deposit_event(Event::<T>::NewEra(Self::current_era()));
             Ok(())
