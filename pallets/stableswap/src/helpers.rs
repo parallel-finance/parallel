@@ -2,18 +2,6 @@ use num_traits::{CheckedDiv, ToPrimitive};
 use primitives::ConvertToBigUint;
 use sp_runtime::{biguint::BigUint, helpers_128bit::to_big_uint, ArithmeticError, DispatchError};
 
-#[allow(dead_code)]
-fn safe_div(a: &mut BigUint, b: &mut BigUint) -> Result<BigUint, DispatchError> {
-    a.lstrip();
-    b.lstrip();
-    let a = a.clone();
-    if b.len() == 1 {
-        return Ok(a.div_unit(b.get(0)));
-    }
-    let div = a.div(b, false).ok_or(ArithmeticError::Overflow)?;
-    Ok(div.0)
-}
-
 fn safe_div_alt(a: &mut BigUint, b: &mut BigUint) -> Result<BigUint, DispatchError> {
     let _nu = u128::try_from(a.clone()).unwrap_or(0);
     let _de = u128::try_from(b.clone()).unwrap_or(0);

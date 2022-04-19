@@ -51,7 +51,7 @@ fn double_liquidity_correct_liq_ratio_should_work() {
         let total_liquidity_tokens_after_double = Assets::total_issuance(SAMPLE_LP_TOKEN);
         let liquidity_recieved = total_liquidity_tokens_after_double - total_liquidity_tokens;
 
-        // recieved liquidity should be half of total liquidity
+        // received liquidity should be half of total liquidity
         assert_eq!(
             liquidity_recieved as f64 / total_liquidity_tokens_after_double as f64,
             0.6666666666666666
@@ -130,7 +130,6 @@ fn large_stable_swap_amount_out_should_work() {
     })
 }
 
-// TODO: Fix this test
 #[test]
 fn unbalanced_stable_swap_amount_out_should_work() {
     new_test_ext().execute_with(|| {
@@ -142,16 +141,16 @@ fn unbalanced_stable_swap_amount_out_should_work() {
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
 
-        //let amount_in = 500;
-        // let y = DefaultStableSwap::do_get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
+        let amount_in = 500;
+        let y = DefaultStableSwap::do_get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
         // y = 1048189
         // TODO: Fix this scenario since it returns more value
         // Correct Test
-        // let dy = 1_000_000u128.checked_sub(y).unwrap();
-        // let ex_ratio = dy.checked_div(amount_in).unwrap();
+        let dy = y.checked_sub(1_000_000u128).unwrap();
+        let ex_ratio = dy.checked_div(amount_in).unwrap();
 
-        // assert_eq!(ex_ratio, 10);
-        // assert_eq!(dy, 5167);
+        assert_eq!(ex_ratio, 96);
+        assert_eq!(dy, 48189);
     })
 }
 
@@ -223,7 +222,6 @@ fn add_liquidity_with_variant_should_work() {
         ));
         // assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 1414390653);
         assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 1415842255);
-        // This fails
         assert_eq!(
             DefaultStableSwap::pools(SDOT, DOT).unwrap().base_amount,
             2002000
