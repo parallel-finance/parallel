@@ -93,7 +93,7 @@ async function para({ logger, options: { paraWs, network } }: ActionParameters) 
   )
 
   call.push(
-    api.tx.sudo.sudo(api.tx.liquidStaking.updateMarketCap(config.liquidMarketCap)),
+    api.tx.sudo.sudo(api.tx.liquidStaking.updateStakingLedgerCap(config.stakingLedgerCap)),
     api.tx.sudo.sudo(api.tx.liquidStaking.forceSetEraStartBlock(61)),
     api.tx.sudo.sudo(api.tx.liquidStaking.forceSetCurrentEra(3)),
     api.tx.balances.transfer(createAddress(GiftPalletId), config.gift)

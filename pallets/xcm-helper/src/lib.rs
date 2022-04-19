@@ -19,6 +19,22 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use frame_support::{
+    dispatch::{DispatchResult, GetDispatchInfo},
+    pallet_prelude::*,
+    traits::fungibles::{Inspect, Mutate, Transfer},
+    transactional, PalletId,
+};
+use frame_system::pallet_prelude::BlockNumberFor;
+use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup};
+use sp_std::{boxed::Box, prelude::*, vec, vec::Vec};
+use xcm::{latest::prelude::*, DoubleEncoded, VersionedMultiLocation, VersionedXcm};
+use xcm_executor::traits::InvertLocation;
+
+pub use pallet::*;
+use pallet_traits::{switch_relay, ump::*};
+use primitives::{AccountId, Balance, BlockNumber, CurrencyId, ParaId};
+
 mod benchmarking;
 
 #[cfg(test)]
@@ -27,20 +43,6 @@ mod mock;
 mod tests;
 
 pub mod weights;
-pub use pallet::*;
-
-use frame_support::{
-    dispatch::{DispatchResult, GetDispatchInfo},
-    pallet_prelude::*,
-    traits::fungibles::{Inspect, Mutate, Transfer},
-    transactional, PalletId,
-};
-use frame_system::pallet_prelude::BlockNumberFor;
-use primitives::{switch_relay, ump::*, AccountId, Balance, BlockNumber, CurrencyId, ParaId};
-use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup};
-use sp_std::{boxed::Box, prelude::*, vec, vec::Vec};
-use xcm::{latest::prelude::*, DoubleEncoded, VersionedMultiLocation, VersionedXcm};
-use xcm_executor::traits::InvertLocation;
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type CallIdOf<T> = <T as pallet_xcm::Config>::Call;
@@ -51,12 +53,12 @@ pub type BalanceOf<T> =
 
 #[frame_support::pallet]
 pub mod pallet {
-    use crate::weights::WeightInfo;
     use frame_system::pallet_prelude::{BlockNumberFor, OriginFor};
+    use sp_runtime::traits::{Convert, Zero};
+
+    use crate::weights::WeightInfo;
 
     use super::*;
-
-    use sp_runtime::traits::{Convert, Zero};
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_xcm::Config {

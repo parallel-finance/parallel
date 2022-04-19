@@ -16,8 +16,8 @@ use crate::{kusama_test_net::*, setup::*};
 use cumulus_primitives_core::ParaId;
 use frame_support::assert_ok;
 use frame_support::traits::Currency;
+use pallet_traits::ump::{XcmCall, XcmWeightFeeMisc};
 use polkadot_parachain::primitives::Sibling;
-use primitives::ump::{XcmCall, XcmWeightFeeMisc};
 use primitives::{tokens::*, AccountId, Balance, CurrencyId};
 use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::*;
@@ -36,7 +36,7 @@ pub fn rmrk(n: f64) -> Balance {
 
 #[test]
 fn statemine() {
-    use primitives::xcm::AssetType;
+    use pallet_traits::xcm::AssetType;
     let statemine_rmrk_asset_location =
         MultiLocation::new(1, X3(Parachain(1000), PalletInstance(50), GeneralIndex(8)));
     let statemine_rmrk_asset_type = AssetType::Xcm(statemine_rmrk_asset_location);

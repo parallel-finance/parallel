@@ -1,8 +1,8 @@
 use super::*;
 use crate::mock::{Call as TestCall, *};
 use frame_support::{assert_noop, assert_ok};
+
 use primitives::tokens::DOT;
-use primitives::ump::*;
 use sp_runtime::traits::{One, Zero};
 
 #[test]

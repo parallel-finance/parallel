@@ -16,23 +16,20 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
-// Make the WASM binary available.
-#[cfg(feature = "std")]
-include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
-
-mod weights;
-
 use codec::{Decode, Encode, MaxEncodedLen};
-use scale_info::TypeInfo;
-
 use frame_support::{
+    construct_runtime,
     dispatch::Weight,
-    log, match_type,
+    log, match_type, parameter_types,
     traits::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
         ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter,
         Nothing,
+    },
+    weights::{
+        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
+        DispatchClass,
     },
     PalletId,
 };
@@ -40,22 +37,12 @@ use frame_system::{
     limits::{BlockLength, BlockWeights},
     EnsureRoot, EnsureSigned,
 };
-
 use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
+use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
-use primitives::{
-    currency::MultiCurrencyAdapter,
-    network::HEIKO_PREFIX,
-    tokens::{EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KSM, KUSD, LKSM, MOVR, PHA, SKSM},
-    xcm::{
-        AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
-        FirstAssetTrader,
-    },
-    AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
-    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio, Shortfall, Signature,
-};
+use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
 use sp_core::{
     u32_trait::{_1, _2, _3, _4, _5},
@@ -86,12 +73,19 @@ use xcm_builder::{
 };
 use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 
-pub mod constants;
-pub mod impls;
 // A few exports that help ease life for downstream crates.
 // re-exports
-pub use constants::{currency, fee, paras, time};
-pub use impls::DealWithFees;
+//
+mod weights;
+
+pub mod constants;
+pub mod impls;
+
+use constants::{currency, fee, paras, time};
+use currency::*;
+use fee::*;
+use impls::*;
+use time::*;
 
 pub use pallet_amm;
 pub use pallet_asset_registry;
@@ -104,29 +98,32 @@ pub use pallet_prices;
 pub use pallet_router;
 pub use pallet_streaming;
 
-use currency::*;
-use fee::*;
-pub use frame_support::{
-    construct_runtime, parameter_types,
-    traits::{KeyOwnerProofSystem, Randomness},
-    weights::{
-        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
-        DispatchClass, IdentityFee,
+use pallet_traits::{
+    xcm::{
+        AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
+        FirstAssetTrader, MultiCurrencyAdapter,
     },
-    StorageValue,
+    DecimalProvider, EmergencyCallFilter, ValidationDataProvider,
 };
-use pallet_traits::{DecimalProvider, EmergencyCallFilter, ValidationDataProvider};
-use pallet_xcm::XcmPassthrough;
-use time::*;
+use primitives::{
+    network::HEIKO_PREFIX,
+    tokens::{EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KSM, KUSD, LKSM, MOVR, PHA, SKSM},
+    AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
+    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio, Shortfall, Signature,
+};
+
+// Make the WASM binary available.
+#[cfg(feature = "std")]
+include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
 /// to even the core data structures.
 pub mod opaque {
-    use super::*;
-
     pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+
+    use super::*;
 
     /// Opaque block type.
     pub type Block = generic::Block<Header, UncheckedExtrinsic>;
@@ -145,10 +142,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 182,
-    impl_version: 27,
+    spec_version: 183,
+    impl_version: 28,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 11,
+    transaction_version: 12,
     state_version: 0,
 };
 
@@ -590,7 +587,6 @@ impl pallet_loans::Config for Runtime {
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const DerivativeIndex: u16 = 0;
     pub const EraLength: BlockNumber = 1 * 3 * 60 / 6;
     pub const MinStake: Balance = 100_000_000_000; // 0.1KSM
     pub const MinUnstake: Balance = 50_000_000_000; // 0.05sKSM
@@ -598,8 +594,9 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = SKSM;
     pub const XcmFees: Balance = 5_000_000_000; // 0.005KSM
     pub const BondingDuration: EraIndex = 3; // 9Minutes
+    pub const MinNominatorBond: Balance = 100_000_000_000; // 0.1KSM
     pub const NumSlashingSpans: u32 = 0;
-    pub DerivativeIndexList: Vec<u16> = vec![0];
+    pub DerivativeIndexList: Vec<u16> = vec![0, 1, 2, 3, 4, 5];
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -614,14 +611,15 @@ impl pallet_liquid_staking::Config for Runtime {
     type Assets = Assets;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type DerivativeIndex = DerivativeIndex;
     type DerivativeIndexList = DerivativeIndexList;
+    type DistributionStrategy = pallet_liquid_staking::distribution::AverageDistribution;
     type XcmFees = XcmFees;
     type EraLength = EraLength;
     type MinStake = MinStake;
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
+    type MinNominatorBond = MinNominatorBond;
     type RelayChainValidationDataProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
@@ -1301,7 +1299,7 @@ pub type AssetTransactors = (LocalAssetTransactor, ForeignFungiblesTransactor);
 /// This is the struct that will handle the revenue from xcm fees
 /// We do not burn anything because we want to mimic exactly what
 /// the sovereign account has
-pub type XcmFeesToAccount = primitives::xcm::XcmFeesToAccount<
+pub type XcmFeesToAccount = pallet_traits::xcm::XcmFeesToAccount<
     Assets,
     (
         ConvertedConcreteAssetId<
@@ -1780,7 +1778,7 @@ impl pallet_amm::Config for Runtime {
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub const MinContribution: Balance = 100_000_000_000;
-    pub const MigrateKeysLimit: u32 = 10;
+    pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }

@@ -16,25 +16,32 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
-// Make the WASM binary available.
-#[cfg(feature = "std")]
-include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
-
-mod weights;
-
 use codec::{Decode, Encode, MaxEncodedLen};
+
 use frame_support::{
+    construct_runtime,
     dispatch::Weight,
-    match_type,
+    log, match_type, parameter_types,
     traits::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
-        ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, Nothing,
+        ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter,
+        Nothing,
+    },
+    weights::{
+        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
+        DispatchClass,
     },
     PalletId,
 };
-
+use frame_system::{
+    limits::{BlockLength, BlockWeights},
+    EnsureRoot,
+};
 use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
+use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
+use pallet_xcm::XcmPassthrough;
+use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
@@ -42,6 +49,8 @@ use sp_core::{
     u32_trait::{_1, _2, _3, _4, _5},
     OpaqueMetadata,
 };
+#[cfg(any(feature = "std", test))]
+pub use sp_runtime::BuildStorage;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
@@ -56,25 +65,6 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-
-use frame_system::{
-    limits::{BlockLength, BlockWeights},
-    EnsureRoot,
-};
-use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
-use polkadot_parachain::primitives::Sibling;
-use primitives::{
-    currency::MultiCurrencyAdapter,
-    network::PARALLEL_PREFIX,
-    tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, SDOT},
-    xcm::{
-        AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
-        FirstAssetTrader,
-    },
-    AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
-    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio, Shortfall, Signature,
-};
-
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
@@ -85,12 +75,19 @@ use xcm_builder::{
     TakeWeightCredit,
 };
 use xcm_executor::{traits::JustTry, Config, XcmExecutor};
-pub mod constants;
-pub mod impls;
+
 // A few exports that help ease life for downstream crates.
 // re-exports
-pub use constants::{currency, fee, paras, time};
-pub use impls::DealWithFees;
+mod weights;
+
+pub mod constants;
+pub mod impls;
+
+use constants::{currency, fee, paras, time};
+use currency::*;
+use fee::*;
+use impls::*;
+use time::*;
 
 pub use pallet_amm;
 pub use pallet_asset_registry;
@@ -102,23 +99,23 @@ pub use pallet_prices;
 pub use pallet_router;
 pub use pallet_streaming;
 
-use currency::*;
-use fee::*;
-use time::*;
-
-pub use frame_support::{
-    construct_runtime, log, parameter_types,
-    traits::{InstanceFilter, KeyOwnerProofSystem, Randomness},
-    weights::{
-        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
-        DispatchClass, IdentityFee,
+use pallet_traits::{
+    xcm::{
+        AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
+        FirstAssetTrader, MultiCurrencyAdapter,
     },
-    StorageValue,
+    DecimalProvider, EmergencyCallFilter, ValidationDataProvider,
 };
-use pallet_traits::{DecimalProvider, EmergencyCallFilter, ValidationDataProvider};
-use pallet_xcm::XcmPassthrough;
-#[cfg(any(feature = "std", test))]
-pub use sp_runtime::BuildStorage;
+use primitives::{
+    network::PARALLEL_PREFIX,
+    tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, SDOT},
+    AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
+    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio, Shortfall, Signature,
+};
+
+// Make the WASM binary available.
+#[cfg(feature = "std")]
+include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 ///
@@ -129,9 +126,9 @@ pub use sp_runtime::BuildStorage;
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
 /// to even the core data structures.
 pub mod opaque {
-    use super::*;
-
     pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+
+    use super::*;
 
     /// Opaque block type.
     pub type Block = generic::Block<Header, UncheckedExtrinsic>;
@@ -150,10 +147,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 182,
-    impl_version: 27,
+    spec_version: 183,
+    impl_version: 28,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 11,
+    transaction_version: 12,
     state_version: 0,
 };
 
@@ -288,7 +285,7 @@ impl Contains<Call> for BaseCallFilter {
                 // Farming
                 Call::Farming(_) |
                 // Streaming
-                Call::Streaming(_) |
+                // Call::Streaming(_) |
                 // Asset Management
                 Call::AssetRegistry(_)
             ))
@@ -574,7 +571,6 @@ impl pallet_loans::Config for Runtime {
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const DerivativeIndex: u16 = 0;
     pub const EraLength: BlockNumber = 6 * 4 * 3600 / 6;
     pub const MinStake: Balance = 10_000_000_000; // 1DOT
     pub const MinUnstake: Balance = 5_000_000_000; // 0.5sDOT
@@ -582,8 +578,9 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = SDOT;
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
     pub const BondingDuration: EraIndex = 28; // 28Days
+    pub const MinNominatorBond: Balance = 100_000_000_000; // 10DOT
     pub const NumSlashingSpans: u32 = 0;
-    pub DerivativeIndexList: Vec<u16> = vec![0];
+    pub DerivativeIndexList: Vec<u16> = vec![0, 1, 2, 3, 4, 5];
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -596,9 +593,9 @@ impl pallet_liquid_staking::Config for Runtime {
     type Assets = Assets;
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type DerivativeIndex = DerivativeIndex;
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
+    type DistributionStrategy = pallet_liquid_staking::distribution::AverageDistribution;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type EraLength = EraLength;
@@ -606,6 +603,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
+    type MinNominatorBond = MinNominatorBond;
     type RelayChainValidationDataProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
@@ -1231,7 +1229,7 @@ pub type AssetTransactors = (LocalAssetTransactor, ForeignFungiblesTransactor);
 /// This is the struct that will handle the revenue from xcm fees
 /// We do not burn anything because we want to mimic exactly what
 /// the sovereign account has
-pub type XcmFeesToAccount = primitives::xcm::XcmFeesToAccount<
+pub type XcmFeesToAccount = pallet_traits::xcm::XcmFeesToAccount<
     Assets,
     (
         ConvertedConcreteAssetId<
@@ -1710,7 +1708,7 @@ impl pallet_amm::Config for Runtime {
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub const MinContribution: Balance = 50_000_000_000;
-    pub const MigrateKeysLimit: u32 = 10;
+    pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }

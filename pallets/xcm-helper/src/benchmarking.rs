@@ -3,7 +3,6 @@
 #![cfg(feature = "runtime-benchmarks")]
 use super::*;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite};
-use frame_support::pallet_prelude::*;
 use frame_system::{self, RawOrigin as SystemOrigin};
 
 const XCM_WEIGHT_FEE: XcmWeightFeeMisc<Weight, Balance> = XcmWeightFeeMisc {

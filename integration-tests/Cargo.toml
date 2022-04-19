@@ -5,7 +5,7 @@ homepage    = 'https://parallel.fi'
 license     = 'Apache'
 name        = 'runtime-integration-tests'
 repository  = 'https://github.com/parallel-finance/parallel'
-version     = '1.8.2'
+version     = '1.8.3'
 
 [dependencies]
 codec               = { package = 'parity-scale-codec', version = '2.3.1', default-features = false, features = ['derive'] }
@@ -64,6 +64,7 @@ pallet-loans-rpc-runtime-api  = { path = '../pallets/loans/rpc/runtime-api' }
 pallet-prices                 = { path = '../pallets/prices' }
 pallet-router                 = { path = '../pallets/router' }
 pallet-router-rpc-runtime-api = { path = '../pallets/router/rpc/runtime-api' }
+pallet-traits                 = { path = '../pallets/traits' }
 pallet-xcm-helper             = { path = '../pallets/xcm-helper' }
 primitives                    = { package = 'parallel-primitives', path = '../primitives' }
 vanilla-runtime                 = { path = '../runtime/vanilla' }
