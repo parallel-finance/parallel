@@ -126,4 +126,8 @@ pub mod paras {
         pub const KBTC_KEY: &[u8] = &[0, 11];
         pub const KINT_KEY: &[u8] = &[0, 12];
     }
+
+    pub mod genshiro {
+        pub const ID: u32 = 2024;
+    }
 }
