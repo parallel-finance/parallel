@@ -120,7 +120,7 @@ pub mod pallet {
         type MaxLengthRoute: Get<u32>;
 
         #[pallet::constant]
-        type GetNativeCurrencyId: Get<u32>;
+        type GetNativeCurrencyId: Get<AssetIdOf<Self, I>>;
     }
 
     #[pallet::error]
