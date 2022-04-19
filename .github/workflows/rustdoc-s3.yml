@@ -6,7 +6,7 @@ on:
       
  
 env:
-  AWS_S3_STAGING_BUCKET_NAME: parallel-rust-apidoc
+  AWS_S3_STAGING_BUCKET_NAME: parallel-rust-apidoc/rustdocs
   AWS_REGION: us-east-2
   AWS_CLOUDFRONT_DISTRIBUTION_ID: E1BA2Q1D4V2QLX
   CLOUDFLARE_PURGE_URLS: '["https://api-docs.parallel.fi/"]'
@@ -50,7 +50,7 @@ jobs:
 
       - name: Use Custom Domain
         run: |
-          echo "api-docs.parallel.fi" > target/doc/CNAME
+          echo "api-docs.parallel.fi" > target/doc/CNAME/rustdocs
 
       - name: Deploy Documentation to s3
         uses: jakejarvis/s3-sync-action@master
