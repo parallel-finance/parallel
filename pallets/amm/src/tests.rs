@@ -1166,3 +1166,53 @@ fn handling_fees_should_work() {
         assert_eq!(Assets::balance(SDOT, PROTOCOL_FEE_RECEIVER), 1498);
     })
 }
+
+#[test]
+fn swap_full_balance_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),    // Origin
+            (DOT, SDOT),                        // Currency pool, in which liquidity will be added
+            (100_000_000_000, 100_000_000_000), // Liquidity amounts to be added in pool
+            BOB,                                // LPToken receiver
+            SAMPLE_LP_TOKEN                     // Liquidity pool share representative token
+        ));
+
+        // user can swap all of their non native assets
+        assert_ok!(AMM::swap(&FRANK, (DOT, SDOT), Assets::balance(DOT, FRANK)));
+
+        assert_eq!(Assets::balance(DOT, FRANK), 0);
+    })
+}
+
+#[test]
+fn can_only_all_if_non_native_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            AMM::create_pool(
+                RawOrigin::Signed(ALICE).into(), // Origin
+                (0, SDOT),                       // Currency pool, in which liquidity will be added
+                (100000000, 100000000),          // Liquidity amounts to be added in pool
+                BOB,                             // LPToken receiver
+                SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
+            ),
+            pallet_balances::Error::<Test>::KeepAlive
+        );
+
+        assert_eq!(Balances::free_balance(BOB), 100000000);
+
+        let all_dot = Assets::balance(DOT, BOB);
+        let all_sdot = Assets::balance(SDOT, BOB);
+
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
+            (all_dot, all_sdot),             // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
+        ));
+
+        assert_eq!(Assets::balance(DOT, BOB), 0);
+        assert_eq!(Assets::balance(SDOT, BOB), 0);
+    })
+}
