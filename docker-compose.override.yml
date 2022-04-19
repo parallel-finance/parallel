@@ -18,9 +18,17 @@ services:
     image: parallelfinance/stake-client:latest
     command: claim --para-ws=ws://parachain-${PARA_ID}-0:9944 --batch-size 50
     restart: always
-  stake-client-sync:
+  stake-client-sync-era:
     image: parallelfinance/stake-client:latest
-    command: sync --relay-ws=ws://relaychain-alice:9944 --para-ws=ws://parachain-${PARA_ID}-0:9944
+    command: sync era --relay-ws=ws://relaychain-alice:9944 --para-ws=ws://parachain-${PARA_ID}-0:9944
+    restart: always
+  stake-client-sync-ledger-0:
+    image: parallelfinance/stake-client:latest
+    command: sync ledger --relay-ws=ws://relaychain-alice:9944 --para-ws=ws://parachain-${PARA_ID}-0:9944 --derivative-index 0
+    restart: always
+  stake-client-sync-ledger-1:
+    image: parallelfinance/stake-client:latest
+    command: sync ledger --relay-ws=ws://relaychain-bob:9944 --para-ws=ws://parachain-${PARA_ID}-1:9944 --derivative-index 1
     restart: always
   liquidation-client:
     image: parallelfinance/liquidation-client:latest
