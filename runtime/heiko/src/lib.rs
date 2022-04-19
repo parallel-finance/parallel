@@ -107,7 +107,7 @@ use pallet_traits::{
 };
 use primitives::{
     network::HEIKO_PREFIX,
-    tokens::{EUSDC, EUSDT, HKO, KAR, KBTC, KINT, KSM, KUSD, LKSM, MOVR, PHA, SKSM},
+    tokens::{EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KSM, KUSD, LKSM, MOVR, PHA, SKSM},
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio, Shortfall, Signature,
 };
@@ -423,6 +423,8 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(paras::kintsugi::KBTC_KEY.to_vec()),
                 ),
             )),
+            // Genshiro
+            GENS => Some(MultiLocation::new(1, X1(Parachain(paras::genshiro::ID)))),
             _ => None,
         }
     }
@@ -491,6 +493,11 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             } if id == paras::kintsugi::ID && key == paras::kintsugi::KBTC_KEY.to_vec() => {
                 Some(KBTC)
             }
+            // Genshiro
+            MultiLocation {
+                parents: 1,
+                interior: X1(Parachain(id)),
+            } if id == paras::genshiro::ID => Some(GENS),
             _ => None,
         }
     }
@@ -1195,6 +1202,14 @@ parameter_types! {
         ).into(),
         ksm_per_second() / 1_500_000
     );
+    // Genshiro
+    pub GensPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X1(Parachain(paras::genshiro::ID)),
+        ).into(),
+        ksm_per_second() * 5000
+    );
 }
 
 match_type! {
@@ -1243,6 +1258,8 @@ pub type Trader = (
     // Kintsugi
     FixedRateOfFungible<KintPerSecond, ToTreasury>,
     FixedRateOfFungible<KbtcPerSecond, ToTreasury>,
+    // Genshiro
+    FixedRateOfFungible<GensPerSecond, ToTreasury>,
     // Foreign Assets registered in AssetRegistry
     // TODO: replace all above except local reserved asset later
     FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
