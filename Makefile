@@ -157,7 +157,7 @@ launch: shutdown
 		&& (cp -r keystore* output || true) \
 		&& cp docker-compose.override.yml output \
 		&& cd output \
-		&& DOCKER_CLIENT_TIMEOUT=180 COMPOSE_HTTP_TIMEOUT=180 PARA_ID=$(PARA_ID) docker-compose up -d --build
+		&& DOCKER_CLIENT_TIMEOUT=1080 COMPOSE_HTTP_TIMEOUT=1080 PARA_ID=$(PARA_ID) docker-compose up -d --build
 	cd scripts/helper && yarn start launch --network $(CHAIN)
 
 .PHONY: launch-vanilla
