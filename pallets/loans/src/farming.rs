@@ -178,7 +178,7 @@ impl<T: Config> Pallet<T> {
                     *total_reward = total_reward
                         .checked_add(reward_delta)
                         .ok_or(ArithmeticError::Overflow)?;
-                    Self::deposit_event(Event::<T>::DistributedSupplierReward(
+                    Self::deposit_event(Event::<T>::DistributedBorrowerReward(
                         asset_id,
                         borrower.clone(),
                         reward_delta,
