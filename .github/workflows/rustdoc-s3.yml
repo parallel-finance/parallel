@@ -1,4 +1,4 @@
-name: Deploy to S3
+name: Deploy Rustdocs to S3
 
 on: 
   push:
@@ -6,7 +6,8 @@ on:
       
  
 env:
-  AWS_S3_STAGING_BUCKET_NAME: parallel-rust-apidoc/rustdocs
+  AWS_S3_STAGING_BUCKET_NAME: parallel-rust-apidoc
+  AWS_S3_STAGING_BUCKET_DIR: parallel-rust-apidoc/rustdocs
   AWS_REGION: us-east-2
   AWS_CLOUDFRONT_DISTRIBUTION_ID: E1BA2Q1D4V2QLX
   CLOUDFLARE_PURGE_URLS: '["https://api-docs.parallel.fi/"]'
@@ -50,14 +51,14 @@ jobs:
 
       - name: Use Custom Domain
         run: |
-          echo "api-docs.parallel.fi/rustdocs" > target/doc/CNAME
+          echo "api-docs.parallel.fi" > target/doc/CNAME
 
       - name: Deploy Documentation to s3
         uses: jakejarvis/s3-sync-action@master
         with:
           args: --acl public-read --follow-symlinks --delete
         env:
-          AWS_S3_BUCKET: ${{ env.AWS_S3_STAGING_BUCKET_NAME }}
+          AWS_S3_BUCKET: ${{ env.AWS_S3_STAGING_BUCKET_DIR }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}
