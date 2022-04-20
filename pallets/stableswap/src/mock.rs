@@ -49,6 +49,8 @@ pub const SDOT: CurrencyId = tokens::SDOT;
 pub const KSM: CurrencyId = tokens::KSM;
 pub const SAMPLE_LP_TOKEN: CurrencyId = 42;
 pub const SAMPLE_LP_TOKEN_2: CurrencyId = 43;
+pub const USDT: CurrencyId = tokens::USDT;
+pub const USDC: CurrencyId = tokens::USDC;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;

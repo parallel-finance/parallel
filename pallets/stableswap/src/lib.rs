@@ -21,11 +21,12 @@ pub use pallet::*;
 use types::Pool;
 extern crate alloc;
 
+#[cfg(test)]
+//mod tests;
+mod c_tests;
 mod helpers;
 #[cfg(test)]
 mod mock;
-#[cfg(test)]
-mod tests;
 mod types;
 pub mod weights;
 
@@ -980,6 +981,28 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     ) -> Result<Balance, DispatchError> {
         let base = compute_base(new_quote, amp_coeff, d)?;
         Ok(base)
+    }
+
+    fn get_exchange_value(
+        pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
+        asset_id: AssetIdOf<T, I>,
+        amount: BalanceOf<T, I>,
+    ) -> Result<Balance, DispatchError> {
+        let (_, base_asset, quote_asset) = Self::sort_assets(pair)?;
+        let pool = Pools::<T, I>::try_get(base_asset, quote_asset)
+            .map_err(|_err| Error::<T, I>::PoolDoesNotExist)?;
+        let amp = T::AmplificationCoefficient::get() as u128;
+        let pool_base_aum = pool.base_amount;
+        let pool_quote_aum = pool.quote_amount;
+        let d = Self::delta_util(pool_base_aum, pool_quote_aum)?;
+        let new_quote_amount = pool_quote_aum
+            .checked_add(amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        let new_base_amount = Self::get_base(new_quote_amount, amp, d)?;
+        let exchange_value = pool_base_aum
+            .checked_sub(new_base_amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        Ok(exchange_value)
     }
 
     // Calculates delta on the fly

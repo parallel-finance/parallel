@@ -38,6 +38,7 @@ pub const PHA: CurrencyId = 115;
 pub const KMA: CurrencyId = 116;
 pub const KINT: CurrencyId = 118;
 pub const KBTC: CurrencyId = 119;
+pub const USDC: CurrencyId = 120;
 
 // Ethereum ecosystem
 pub const EUSDT: CurrencyId = 201;
