@@ -324,7 +324,7 @@ pub fn almost_equal(target: u128, value: u128) -> bool {
     let target = target as i128;
     let value = value as i128;
     let diff = (target - value).abs() as u128;
-    diff < micro_dollar(2)
+    diff < micro_dollar(1)
 }
 
 pub fn accrue_interest_per_block(asset_id: CurrencyId, block_delta_secs: u64, run_to_block: u64) {
