@@ -6,8 +6,8 @@ on:
       
  
 env:
-  AWS_S3_STAGING_BUCKET_NAME: parallel-apidoc
-  AWS_S3_STAGING_BUCKET_DIR: parallel-apidoc/rustdocs
+  AWS_S3_STAGING_BUCKET_NAME: parallel-apidocs
+  AWS_S3_STAGING_BUCKET_DIR: parallel-apidocs/rustdocs
   AWS_REGION: us-east-2
   AWS_CLOUDFRONT_DISTRIBUTION_ID: E1BA2Q1D4V2QLX
   CLOUDFLARE_PURGE_URLS: '["https://api-docs.parallel.fi/rustdocs/"]'
