@@ -596,7 +596,7 @@ parameter_types! {
     pub const BondingDuration: EraIndex = 3; // 9Minutes
     pub const MinNominatorBond: Balance = 100_000_000_000; // 0.1KSM
     pub const NumSlashingSpans: u32 = 0;
-    pub DerivativeIndexList: Vec<u16> = vec![0, 1, 2, 3, 4, 5];
+    pub DerivativeIndexList: Vec<u16> = vec![0, 1];
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -612,7 +612,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type DerivativeIndexList = DerivativeIndexList;
-    type DistributionStrategy = pallet_liquid_staking::distribution::AverageDistribution;
+    type DistributionStrategy = pallet_liquid_staking::distribution::MaximizationDistribution;
     type XcmFees = XcmFees;
     type EraLength = EraLength;
     type MinStake = MinStake;
@@ -1055,7 +1055,7 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = DOLLARS / 40; // 0.025HKO
+        let default_gift_amount = DOLLARS / 4; // 0.25HKO
         Ok(match asset_id {
             KSM if balance >= 10_u128.pow((decimal - 1).into()) => default_gift_amount,
             EUSDT | EUSDC if balance >= 300 * 10_u128.pow(decimal.into()) => default_gift_amount,
@@ -1773,6 +1773,7 @@ impl pallet_amm::Config for Runtime {
     type MinimumLiquidity = MinimumLiquidity;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
     type MaxLengthRoute = MaxLengthRoute;
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 parameter_types! {

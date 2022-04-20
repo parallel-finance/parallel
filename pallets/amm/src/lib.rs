@@ -118,6 +118,9 @@ pub mod pallet {
         /// How many routes we support at most
         #[pallet::constant]
         type MaxLengthRoute: Get<u32>;
+
+        #[pallet::constant]
+        type GetNativeCurrencyId: Get<AssetIdOf<Self, I>>;
     }
 
     #[pallet::error]
@@ -789,14 +792,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             who,
             &Self::account_id(),
             ideal_base_amount,
-            true,
+            base_asset == T::GetNativeCurrencyId::get(), // should keep alive if is native
         )?;
         T::Assets::transfer(
             quote_asset,
             who,
             &Self::account_id(),
             ideal_quote_amount,
-            true,
+            quote_asset == T::GetNativeCurrencyId::get(), // should keep alive if is native
         )?;
 
         if Self::protocol_fee_on() {
@@ -865,8 +868,20 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(Error::<T, I>::InsufficientLiquidity)?;
 
         T::Assets::burn_from(pool.lp_token_id, who, liquidity)?;
-        T::Assets::transfer(base_asset, &Self::account_id(), who, base_amount, false)?;
-        T::Assets::transfer(quote_asset, &Self::account_id(), who, quote_amount, false)?;
+        T::Assets::transfer(
+            base_asset,
+            &Self::account_id(),
+            who,
+            base_amount,
+            base_asset == T::GetNativeCurrencyId::get(), // should keep alive if is native
+        )?;
+        T::Assets::transfer(
+            quote_asset,
+            &Self::account_id(),
+            who,
+            quote_amount,
+            quote_asset == T::GetNativeCurrencyId::get(), // should keep alive if is native
+        )?;
 
         if Self::protocol_fee_on() {
             // we cannot hold k_last for really large values
@@ -1020,8 +1035,20 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
                 Self::do_update_oracle(pool)?;
 
-                T::Assets::transfer(asset_in, who, &Self::account_id(), amount_in, true)?;
-                T::Assets::transfer(asset_out, &Self::account_id(), who, amount_out, false)?;
+                T::Assets::transfer(
+                    asset_in,
+                    who,
+                    &Self::account_id(),
+                    amount_in,
+                    asset_in == T::GetNativeCurrencyId::get(), // should keep alive if is native
+                )?;
+                T::Assets::transfer(
+                    asset_out,
+                    &Self::account_id(),
+                    who,
+                    amount_out,
+                    asset_out == T::GetNativeCurrencyId::get(), // should keep alive if is native
+                )?;
 
                 log::trace!(
                     target: "amm::do_trade",
