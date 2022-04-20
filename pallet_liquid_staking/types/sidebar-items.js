@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["XcmRequest",""]],"struct":[["MatchingLedger","The matching pool’s total stake & unstake amount in one era"],["ReservableAmount",""],["StakingLedger","The ledger of a (bonded) stash."],["UnlockChunk","Just a Balance/BlockNumber tuple to encode when a chunk of funds will be unlocked."]]});

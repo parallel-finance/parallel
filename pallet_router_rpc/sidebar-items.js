@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Error",""]],"mod":[["gen_client","The generated client module."]],"struct":[["Router","A struct that implements the [`RouteApi`]."],["RouterApiClient","The Client."]],"trait":[["RouterApi",""],["RouterRuntimeApi",""]]});

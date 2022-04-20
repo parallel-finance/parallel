@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["pallet_liquid_staking"] = [{"text":"impl&lt;T:&nbsp;<a class=\"trait\" href=\"pallet_liquid_staking/pallet/trait.Config.html\" title=\"trait pallet_liquid_staking::pallet::Config\">Config</a>&gt; BuildModuleGenesisStorage&lt;T, <a class=\"primitive\" href=\"https://doc.rust-lang.org/nightly/std/primitive.unit.html\">()</a>&gt; for <a class=\"struct\" href=\"pallet_liquid_staking/pallet/struct.GenesisConfig.html\" title=\"struct pallet_liquid_staking::pallet::GenesisConfig\">GenesisConfig</a>","synthetic":false,"types":["pallet_liquid_staking::pallet::GenesisConfig"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

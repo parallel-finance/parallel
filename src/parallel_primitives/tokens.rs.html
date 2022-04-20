@@ -1,0 +1,310 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `primitives&#x2F;src&#x2F;tokens.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>tokens.rs - source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings" ></script><script src="../../storage.js"></script><script src="../../crates.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../parallel_primitives/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img width="18" height="18" alt="Pick another theme!" src="../../brush.svg"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../../settings.html" title="settings"><img width="18" height="18" alt="Change settings" src="../../wheel.svg"></a></div></form></nav><section id="main" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">  1</span>
+<span id="2">  2</span>
+<span id="3">  3</span>
+<span id="4">  4</span>
+<span id="5">  5</span>
+<span id="6">  6</span>
+<span id="7">  7</span>
+<span id="8">  8</span>
+<span id="9">  9</span>
+<span id="10"> 10</span>
+<span id="11"> 11</span>
+<span id="12"> 12</span>
+<span id="13"> 13</span>
+<span id="14"> 14</span>
+<span id="15"> 15</span>
+<span id="16"> 16</span>
+<span id="17"> 17</span>
+<span id="18"> 18</span>
+<span id="19"> 19</span>
+<span id="20"> 20</span>
+<span id="21"> 21</span>
+<span id="22"> 22</span>
+<span id="23"> 23</span>
+<span id="24"> 24</span>
+<span id="25"> 25</span>
+<span id="26"> 26</span>
+<span id="27"> 27</span>
+<span id="28"> 28</span>
+<span id="29"> 29</span>
+<span id="30"> 30</span>
+<span id="31"> 31</span>
+<span id="32"> 32</span>
+<span id="33"> 33</span>
+<span id="34"> 34</span>
+<span id="35"> 35</span>
+<span id="36"> 36</span>
+<span id="37"> 37</span>
+<span id="38"> 38</span>
+<span id="39"> 39</span>
+<span id="40"> 40</span>
+<span id="41"> 41</span>
+<span id="42"> 42</span>
+<span id="43"> 43</span>
+<span id="44"> 44</span>
+<span id="45"> 45</span>
+<span id="46"> 46</span>
+<span id="47"> 47</span>
+<span id="48"> 48</span>
+<span id="49"> 49</span>
+<span id="50"> 50</span>
+<span id="51"> 51</span>
+<span id="52"> 52</span>
+<span id="53"> 53</span>
+<span id="54"> 54</span>
+<span id="55"> 55</span>
+<span id="56"> 56</span>
+<span id="57"> 57</span>
+<span id="58"> 58</span>
+<span id="59"> 59</span>
+<span id="60"> 60</span>
+<span id="61"> 61</span>
+<span id="62"> 62</span>
+<span id="63"> 63</span>
+<span id="64"> 64</span>
+<span id="65"> 65</span>
+<span id="66"> 66</span>
+<span id="67"> 67</span>
+<span id="68"> 68</span>
+<span id="69"> 69</span>
+<span id="70"> 70</span>
+<span id="71"> 71</span>
+<span id="72"> 72</span>
+<span id="73"> 73</span>
+<span id="74"> 74</span>
+<span id="75"> 75</span>
+<span id="76"> 76</span>
+<span id="77"> 77</span>
+<span id="78"> 78</span>
+<span id="79"> 79</span>
+<span id="80"> 80</span>
+<span id="81"> 81</span>
+<span id="82"> 82</span>
+<span id="83"> 83</span>
+<span id="84"> 84</span>
+<span id="85"> 85</span>
+<span id="86"> 86</span>
+<span id="87"> 87</span>
+<span id="88"> 88</span>
+<span id="89"> 89</span>
+<span id="90"> 90</span>
+<span id="91"> 91</span>
+<span id="92"> 92</span>
+<span id="93"> 93</span>
+<span id="94"> 94</span>
+<span id="95"> 95</span>
+<span id="96"> 96</span>
+<span id="97"> 97</span>
+<span id="98"> 98</span>
+<span id="99"> 99</span>
+<span id="100">100</span>
+<span id="101">101</span>
+<span id="102">102</span>
+<span id="103">103</span>
+<span id="104">104</span>
+<span id="105">105</span>
+<span id="106">106</span>
+<span id="107">107</span>
+<span id="108">108</span>
+<span id="109">109</span>
+<span id="110">110</span>
+<span id="111">111</span>
+<span id="112">112</span>
+<span id="113">113</span>
+<span id="114">114</span>
+<span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
+<span id="125">125</span>
+<span id="126">126</span>
+<span id="127">127</span>
+<span id="128">128</span>
+<span id="129">129</span>
+<span id="130">130</span>
+<span id="131">131</span>
+<span id="132">132</span>
+<span id="133">133</span>
+<span id="134">134</span>
+<span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
+<span id="150">150</span>
+<span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+</pre><pre class="rust"><code><span class="comment">// Copyright 2021 Parallel Finance Developer.</span>
+<span class="comment">// This file is part of Parallel Finance.</span>
+
+<span class="comment">// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="comment">// you may not use this file except in compliance with the License.</span>
+<span class="comment">// You may obtain a copy of the License at</span>
+<span class="comment">// http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="comment">// Unless required by applicable law or agreed to in writing, software</span>
+<span class="comment">// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="comment">// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="comment">// See the License for the specific language governing permissions and</span>
+<span class="comment">// limitations under the License.</span>
+
+<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::CurrencyId</span>;
+
+<span class="comment">// Native Token</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">HKO</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">0</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PARA</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">1</span>;
+
+<span class="comment">// Polkadot ecosystem</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">KSM</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">100</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">DOT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">101</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">USDT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">102</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">KUSD</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">103</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">AUSD</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">104</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LC_KSM</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">105</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LC_DOT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">106</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">KAR</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">107</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">ACA</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">108</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LKSM</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">109</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LDOT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">110</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">SDN</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">111</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">ASTR</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">112</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">MOVR</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">113</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">GLMR</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">114</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PHA</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">115</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">KMA</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">116</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">KINT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">118</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">KBTC</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">119</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">GENS</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">120</span>;
+
+<span class="comment">// Ethereum ecosystem</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">EUSDT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">201</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">EUSDC</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">202</span>;
+
+<span class="comment">// Liquid Staking Derivative</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">SKSM</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">1000</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">SDOT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">1001</span>;
+
+<span class="comment">// Money Market Derivative</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PHKO</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2000</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PPARA</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2001</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PKSM</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2100</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PDOT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2101</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PUSDT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2102</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PKUSD</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2103</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PAUSD</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2104</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PLC_KSM</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2105</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PLC_DOT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2106</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PKAR</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2107</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PACA</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2108</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PLKSM</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2109</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PLDOT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2110</span>;
+
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PEUSDT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2201</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PEUSDC</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">2202</span>;
+
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PSKSM</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">3000</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PSDOT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">3001</span>;
+
+<span class="comment">// AMM LP Token</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LP_USDT_HKO</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">5000</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LP_KSM_USDT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">5001</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LP_KSM_HKO</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">5002</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LP_KSM_SKSM</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">5003</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LP_KSM_CKSM_20_27</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">5004</span>;
+
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LP_USDT_PARA</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">6000</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LP_DOT_USDT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">6001</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LP_DOT_PARA</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">6002</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LP_DOT_SDOT</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">6003</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LP_DOT_CDOT_6_13</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">6004</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LP_DOT_CDOT_7_14</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">6005</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">LP_PARA_CDOT_6_13</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">6006</span>;
+
+<span class="comment">// Crowdloan Derivative</span>
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">CKSM_15_22</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">100150022</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">CKSM_20_27</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">100200027</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">CKSM_21_28</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">100210028</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">CDOT_6_13</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">200060013</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">CDOT_7_14</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">200070014</span>;
+<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">CDOT_8_15</span>: <span class="ident">CurrencyId</span> <span class="op">=</span> <span class="number">200080015</span>;
+
+<span class="comment">// Token Registration Information</span>
+<span class="comment">// +───────────+──────────────+────────────────────+</span>
+<span class="comment">// | Network   | Token        | Register in block  |</span>
+<span class="comment">// +───────────+──────────────+────────────────────+</span>
+<span class="comment">// | Heiko     | HKO          | Native             |</span>
+<span class="comment">// | Heiko     | KSM          | N/A                |</span>
+<span class="comment">// | Heiko     | USDT         | N/A                |</span>
+<span class="comment">// | Heiko     | KUSD         | N/A                |</span>
+<span class="comment">// | Heiko     | EUSDC        | N/A                |</span>
+<span class="comment">// | Heiko     | EUSDT        | N/A                |</span>
+<span class="comment">// | Heiko     | KAR          | N/A                |</span>
+<span class="comment">// | Heiko     | SKSM         | N/A                |</span>
+<span class="comment">// | Heiko     | CKSM         | N/A                |</span>
+<span class="comment">// | Heiko     | LKSM         | N/A                |</span>
+<span class="comment">// | Heiko     | MOVR         | N/A                |</span>
+<span class="comment">// | Heiko     | SDN          | N/A                |</span>
+<span class="comment">// | Heiko     | PHA          | N/A                |</span>
+<span class="comment">// | Heiko     | KMA          | N/A                |</span>
+<span class="comment">// | Heiko     | KINT         | N/A                |</span>
+<span class="comment">// | Heiko     | KBTC         | N/A                |</span>
+<span class="comment">// | Heiko     | GENS         | N/A                |</span>
+<span class="comment">// | Heiko     | PHKO         | N/A                |</span>
+<span class="comment">// | Heiko     | PKSM         | N/A                |</span>
+<span class="comment">// | Heiko     | PUSDT        | N/A                |</span>
+<span class="comment">// | Heiko     | PKUSD        | N/A                |</span>
+<span class="comment">// | Heiko     | PEUSDT       | N/A                |</span>
+<span class="comment">// | Heiko     | PEUSDC       | N/A                |</span>
+<span class="comment">// | Heiko     | PKAR         | N/A                |</span>
+<span class="comment">// | Heiko     | PSKSM        | N/A                |</span>
+<span class="comment">// | Heiko     | PLKSM        | N/A                |</span>
+<span class="comment">// | Heiko     | PLCKSM       | N/A                |</span>
+<span class="comment">// | Heiko     | PCKSM        | N/A                |</span>
+<span class="comment">// | Parallel  | PARA         | Native             |</span>
+<span class="comment">// | Parallel  | KSM          | N/A                |</span>
+<span class="comment">// | Parallel  | DOT          | N/A                |</span>
+<span class="comment">// | Parallel  | USDT         | N/A                |</span>
+<span class="comment">// | Parallel  | AUSD         | N/A                |</span>
+<span class="comment">// | Parallel  | EUSDC        | N/A                |</span>
+<span class="comment">// | Parallel  | EUSDT        | N/A                |</span>
+<span class="comment">// | Parallel  | ACA          | N/A                |</span>
+<span class="comment">// | Parallel  | SDOT         | N/A                |</span>
+<span class="comment">// | Parallel  | CDOT         | N/A                |</span>
+<span class="comment">// | Parallel  | LDOT         | N/A                |</span>
+<span class="comment">// | Parallel  | LCDOT        | N/A                |</span>
+<span class="comment">// | Parallel  | GLMR         | N/A                |</span>
+<span class="comment">// | Parallel  | ASTR         | N/A                |</span>
+<span class="comment">// | Parallel  | PPARA        | Native             |</span>
+<span class="comment">// | Parallel  | PKSM         | N/A                |</span>
+<span class="comment">// | Parallel  | PDOT         | N/A                |</span>
+<span class="comment">// | Parallel  | PUSDT        | N/A                |</span>
+<span class="comment">// | Parallel  | PAUSD        | N/A                |</span>
+<span class="comment">// | Parallel  | PEUSDC       | N/A                |</span>
+<span class="comment">// | Parallel  | PEUSDT       | N/A                |</span>
+<span class="comment">// | Parallel  | PACA         | N/A                |</span>
+<span class="comment">// | Parallel  | PSDOT        | N/A                |</span>
+<span class="comment">// | Parallel  | PLDOT        | N/A                |</span>
+<span class="comment">// | Parallel  | PLCDOT       | N/A                |</span>
+<span class="comment">// | Parallel  | PCDOT        | N/A                |</span>
+<span class="comment">// +──────────+───────────────+────────────────────+</span>
+</code></pre></div>
+</section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="parallel_primitives" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>
+    <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script>
+</body></html>
