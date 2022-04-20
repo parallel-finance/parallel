@@ -1147,7 +1147,7 @@ fn reward_calculation_after_liquidate_borrow_works() {
             true
         );
         assert_eq!(
-            almost_equal(Loans::reward_accured(BOB), milli_dollar(36250)),
+            almost_equal(Loans::reward_accured(BOB), 36167499694983,),
             true
         );
     })

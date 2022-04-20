@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::*;
+pub use super::*;
 
 use frame_support::{construct_runtime, parameter_types, traits::Everything, PalletId};
 use frame_system::EnsureRoot;

@@ -1,12 +1,14 @@
 use crate::{
     mock::{
-        new_test_ext, Assets, Loans, MockPriceFeeder, Origin, Test, ALICE, BOB, DOT, KSM, USDT,
+        new_test_ext, Assets, Loans, MockPriceFeeder, Origin, Ratio, Test, ALICE, BOB,
+        DEFAULT_LIQUIDATE_INCENTIVE_RESERVED_FACTOR, DOT, KSM, USDT,
     },
-    tests::dollar,
+    tests::{dollar, milli_dollar},
     Error, MarketState,
 };
 use frame_support::{assert_noop, assert_ok};
 use primitives::Rate;
+use sp_runtime::traits::Saturating;
 use sp_runtime::FixedPointNumber;
 
 #[test]
@@ -96,7 +98,7 @@ fn full_workflow_works_as_expected() {
         // Alice KSM: cash + borrow = 1000 + 100 = 1100
         // Alice KSM borrow balance: origin borrow balance - liquidate amount = 100 - 50 = 50
         // Bob KSM: cash - deposit - repay = 1000 - 200 - 50 = 750
-        // Bob DOT collateral: incentive = 110
+        // Bob DOT collateral: incentive = 110*0.97=106.7
         assert_eq!(Assets::balance(DOT, &ALICE), dollar(800),);
         assert_eq!(
             Loans::exchange_rate(DOT)
@@ -109,7 +111,29 @@ fn full_workflow_works_as_expected() {
         assert_eq!(
             Loans::exchange_rate(DOT)
                 .saturating_mul_int(Loans::account_deposits(DOT, BOB).voucher_balance),
-            dollar(110),
+            Ratio::one().saturating_sub(DEFAULT_LIQUIDATE_INCENTIVE_RESERVED_FACTOR) * dollar(110),
+        );
+        // 3300 milli_dollar reserved in our incentive reward account
+        let incentive_reward_account = Loans::incentive_reward_account_id().unwrap();
+        assert_eq!(
+            Loans::exchange_rate(DOT).saturating_mul_int(
+                Loans::account_deposits(DOT, incentive_reward_account).voucher_balance
+            ),
+            milli_dollar(3300),
+        );
+        // redeem 3000 back with sudo
+        assert_ok!(Loans::redeem_incentive_reserve(
+            Origin::root(),
+            incentive_reward_account,
+            DOT,
+            milli_dollar(3000),
+        ));
+        // still 300 left
+        assert_eq!(
+            Loans::exchange_rate(DOT).saturating_mul_int(
+                Loans::account_deposits(DOT, incentive_reward_account).voucher_balance
+            ),
+            milli_dollar(300),
         );
     })
 }

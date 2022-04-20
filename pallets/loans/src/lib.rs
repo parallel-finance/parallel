@@ -1093,6 +1093,31 @@ pub mod pallet {
 
             Ok(().into())
         }
+
+        /// Sender redeems some of internal supplies in exchange for the underlying asset.
+        ///
+        /// - `asset_id`: the asset to be redeemed.
+        /// - `redeem_amount`: the amount to be redeemed.
+        #[pallet::weight(T::WeightInfo::redeem())]
+        #[transactional]
+        pub fn redeem_incentive_reserve(
+            origin: OriginFor<T>,
+            receiver: <T::Lookup as StaticLookup>::Source,
+            asset_id: AssetIdOf<T>,
+            #[pallet::compact] redeem_amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::ReserveOrigin::ensure_origin(origin)?;
+            ensure!(!redeem_amount.is_zero(), Error::<T>::InvalidAmount);
+            let who = T::Lookup::lookup(receiver)?;
+            Self::ensure_active_market(asset_id)?;
+            Self::accrue_interest(asset_id)?;
+            Self::update_earned_stored(&who, asset_id)?;
+            let exchange_rate = Self::exchange_rate(asset_id);
+            let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
+            let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount)?;
+            Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
+            Ok(().into())
+        }
     }
 }
 
@@ -1458,6 +1483,7 @@ impl<T: Config> Pallet<T> {
             collateral_asset_id,
             repay_amount,
             real_collateral_underlying_amount,
+            market.liquidate_incentive_reserved_factor,
         )?;
 
         Ok(())
@@ -1471,6 +1497,7 @@ impl<T: Config> Pallet<T> {
         collateral_asset_id: AssetIdOf<T>,
         repay_amount: BalanceOf<T>,
         collateral_underlying_amount: BalanceOf<T>,
+        incentive_ratio: Ratio,
     ) -> DispatchResult {
         log::trace!(
             target: "loans::liquidated_transfer",
@@ -1544,10 +1571,7 @@ impl<T: Config> Pallet<T> {
             |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
-                    .checked_add(
-                        (Ratio::one().saturating_sub(DEFAULT_LIQUIDATE_INCENTIVE_RESERVED_FACTOR))
-                            * collateral_amount,
-                    )
+                    .checked_add(Ratio::one().saturating_sub(incentive_ratio) * collateral_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             },
@@ -1559,7 +1583,7 @@ impl<T: Config> Pallet<T> {
             |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
-                    .checked_add(DEFAULT_LIQUIDATE_INCENTIVE_RESERVED_FACTOR * collateral_amount)
+                    .checked_add(incentive_ratio * collateral_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             },
