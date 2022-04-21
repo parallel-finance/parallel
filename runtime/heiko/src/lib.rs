@@ -2025,7 +2025,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (LiquidStakingMigrationV3, MoneyMarketMigrationV3),
+    MoneyMarketMigrationV3,
 >;
 
 // Migration for liquid staking pallet to add multiple ledgers support

@@ -481,7 +481,7 @@ pub mod pallet {
             );
             ensure!(
                 market.loose_collateral_factor < Ratio::one()
-                    && market.loose_collateral_factor > market.collateral_factor,
+                    && market.loose_collateral_factor >= market.collateral_factor,
                 Error::<T>::InvalidFactor
             );
             ensure!(
@@ -587,7 +587,7 @@ pub mod pallet {
                 Error::<T>::InvalidFactor
             );
             ensure!(
-                loose_collateral_factor > collateral_factor
+                loose_collateral_factor >= collateral_factor
                     && loose_collateral_factor < Ratio::one(),
                 Error::<T>::InvalidFactor
             );
