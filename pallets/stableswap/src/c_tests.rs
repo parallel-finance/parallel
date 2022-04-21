@@ -9,7 +9,16 @@ const MINIMUM_LIQUIDITY: u128 = 1_000;
 #[test]
 fn test_dex_demo() {
     new_test_ext().execute_with(|| {
-        let unit = 1_000_000_000_000_u128;
+        assert_ok!(DefaultStableSwap::create_pool(
+            RawOrigin::Signed(ALICE).into(),              // Origin
+            (DOT, KSM), // Currency pool, in which liquidity will be added
+            (10_000_000_000_000, 50_000_000_000_000_000), // Liquidity amounts to be added in pool
+            FRANK,      // LPToken receiver
+            SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+        ));
+
+        // let unit = 1_000_000_000_000_u128;
+        let unit = 1_000_000_u128;
         let usdc_price = 1 * unit;
 
         let nb_of_usdc = 1_000_000_000;
@@ -17,29 +26,34 @@ fn test_dex_demo() {
 
         let nb_of_usdt = 1_000_000_000;
 
+        // TODO: Change this to DOT/KSM
         // 10^9 USDC/10^9 USDT
         let initial_usdc = nb_of_usdc * usdc_price;
         let initial_usdt = nb_of_usdt * usdt_price;
+        //
+        //
+        //
+        // assert_ok!(DefaultStableSwap::create_pool(
+        //     RawOrigin::Signed(ALICE).into(), // Origin
+        //     (DOT, KSM),
+        //     (10_000_000_000_000, 10_000_000_000_000_000), // Currency pool, in which liquidity will be added
+        //     // (initial_usdc, initial_usdt),    // Liquidity amounts to be added in pool
+        //     ALICE,                           // LPToken receiver
+        //     SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
+        // ));
 
-        assert_ok!(DefaultStableSwap::create_pool(
-            RawOrigin::Signed(ALICE).into(), // Origin
-            (USDC, USDT),                    // Currency pool, in which liquidity will be added
-            (initial_usdc, initial_usdt),    // Liquidity amounts to be added in pool
-            ALICE,                           // LPToken receiver
-            SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
-        ));
-
+        //
         assert_ok!(DefaultStableSwap::add_liquidity(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (USDC, USDT),                    // Currency pool, in which liquidity will be added
-            (initial_usdc, initial_usdt),    // Liquidity amounts to be added in pool
+            (DOT, KSM),                      // Currency pool, in which liquidity will be added
+            (100_000, 100_000),              // Liquidity amounts to be added in pool
             (0, 0),                          // specifying its worst case ratio when pool already
         ));
-
-        let precision = 100;
-        let epsilon = 1;
-        // 1 unit of usdc == 1 unit of usdt
-        let ratio = DefaultStableSwap::get_exchange_value((USDC, USDT), USDC, unit)
+        //
+        // let precision = 100;
+        // let epsilon = 1;
+        // // 1 unit of usdc == 1 unit of usdt
+        let ratio = DefaultStableSwap::get_exchange_value((DOT, KSM), USDC, unit)
             .expect("get_exchange_value failed");
         /*assert_ok!(acceptable_computation_error(ratio, unit, precision, epsilon));
 
