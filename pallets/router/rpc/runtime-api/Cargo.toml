@@ -5,11 +5,11 @@ name    = 'pallet-router-rpc-runtime-api'
 version = '1.8.4'
 
 [dependencies]
-codec      = { package = 'parity-scale-codec', version = '2.3.1', default-features = false, features = ['derive'] }
+codec      = { package = 'parity-scale-codec', version = '3.0.0', default-features = false, features = ['derive'] }
 primitives = { package = 'parallel-primitives', path = '../../../../primitives', default-features = false }
-sp-api     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
-sp-runtime = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
-sp-std     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
+sp-api     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false }
+sp-runtime = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false }
+sp-std     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false }
 
 [features]
 default = ['std']

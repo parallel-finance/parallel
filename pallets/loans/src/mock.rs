@@ -16,7 +16,7 @@ use super::*;
 
 use frame_support::{construct_runtime, parameter_types, traits::Everything, PalletId};
 use frame_system::EnsureRoot;
-use orml_traits::{DataProvider, DataProviderExtended};
+use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
 use pallet_traits::*;
 use primitives::*;
 use sp_core::H256;
@@ -133,6 +133,12 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for MockDataProvider {
 
     fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
         vec![]
+    }
+}
+
+impl DataFeeder<CurrencyId, TimeStampedPrice, AccountId> for MockDataProvider {
+    fn feed_value(_: AccountId, _: CurrencyId, _: TimeStampedPrice) -> sp_runtime::DispatchResult {
+        Ok(())
     }
 }
 

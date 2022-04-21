@@ -180,6 +180,7 @@ impl cumulus_pallet_xcmp_queue::Config for Test {
     type VersionWrapper = ();
     type ControllerOrigin = EnsureRoot<AccountId>;
     type ControllerOriginConverter = SystemParachainAsSuperuser<Origin>;
+    type WeightInfo = cumulus_pallet_xcmp_queue::weights::SubstrateWeight<Test>;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Test {

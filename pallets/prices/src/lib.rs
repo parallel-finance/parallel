@@ -24,8 +24,7 @@
 
 use frame_support::{log, pallet_prelude::*, transactional, weights::DispatchClass};
 use frame_system::pallet_prelude::*;
-use orml_oracle::DataProviderExtended;
-use orml_traits::DataProvider;
+use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
 use primitives::*;
 use sp_runtime::{
     traits::{CheckedDiv, CheckedMul},
@@ -55,7 +54,8 @@ pub mod pallet {
 
         /// The data source, such as Oracle.
         type Source: DataProvider<CurrencyId, TimeStampedPrice>
-            + DataProviderExtended<CurrencyId, TimeStampedPrice>;
+            + DataProviderExtended<CurrencyId, TimeStampedPrice>
+            + DataFeeder<CurrencyId, TimeStampedPrice, Self::AccountId>;
 
         /// The origin which may set prices feed to system.
         type FeederOrigin: EnsureOrigin<Self::Origin>;
