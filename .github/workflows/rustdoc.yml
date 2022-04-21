@@ -2,7 +2,7 @@ name: Deploy Rustdocs S3
 
 on:
   push:
-    branches: Deploy-Docs-s3
+    branches: master
 
 env:
   AWS_S3_STAGING_BUCKET_NAME: parallel-apidocs
