@@ -24,7 +24,6 @@ sp-runtime          = { git = 'https://github.com/paritytech/substrate', branch 
 sp-std              = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17' }
 
 # Polkadot dependencies
-karura-runtime 			= { git = 'https://github.com/AcalaNetwork/Acala.git', branch = 'release-acala-2.4.0', optional = true }
 pallet-xcm              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17'}
 polkadot-parachain      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17'}
 polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17'}
@@ -82,12 +81,4 @@ cumulus-primitives-parachain-inherent   = { git = 'https://github.com/paritytech
 cumulus-test-relay-sproof-builder       = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.17' }
 statemine-runtime                       = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.17' }
 xcm-emulator                            = { git = 'https://github.com/shaunxw/xcm-simulator', rev = '24ccbce563d1f99019b4cdfa2f3af4e99bac0dfc' }
-
-[features]
-default = ["std"]
-no_std = []
-with-karura-runtime = [
-	"karura-runtime",
-	"karura-runtime/integration-tests",
-]
-std = []
+karura-runtime 							= { git = 'https://github.com/AcalaNetwork/Acala.git', branch = 'release-acala-2.4.2'}
