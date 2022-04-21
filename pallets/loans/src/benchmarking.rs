@@ -27,6 +27,7 @@ fn market_mock<T: Config>() -> Market<BalanceOf<T>> {
     Market {
         close_factor: Ratio::from_percent(50),
         collateral_factor: Ratio::from_percent(50),
+        loose_collateral_factor: Ratio::from_percent(55),
         liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
         state: MarketState::Active,
         rate_model: InterestRateModel::Jump(JumpModel {
@@ -182,6 +183,7 @@ benchmarks! {
             SystemOrigin::Root,
             KSM,
             Ratio::from_percent(50),
+            Ratio::from_percent(55),
             Ratio::from_percent(50),
             Ratio::from_percent(15),
             Ratio::from_percent(3),

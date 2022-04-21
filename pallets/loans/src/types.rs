@@ -47,6 +47,8 @@ pub enum MarketState {
 pub struct Market<Balance> {
     /// The collateral utilization ratio
     pub collateral_factor: Ratio,
+    /// A loose ratio than collateral_factor to avoid liquidate_borrow too casual
+    pub loose_collateral_factor: Ratio,
     /// Fraction of interest currently set aside for reserves
     pub reserve_factor: Ratio,
     /// The percent, ranging from 0% to 100%, of a liquidatable account's

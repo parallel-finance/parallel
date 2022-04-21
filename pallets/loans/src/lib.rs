@@ -479,6 +479,11 @@ pub mod pallet {
                 Error::<T>::InvalidFactor,
             );
             ensure!(
+                market.loose_collateral_factor < Ratio::one()
+                    && market.loose_collateral_factor > market.collateral_factor,
+                Error::<T>::InvalidFactor
+            );
+            ensure!(
                 market.reserve_factor > Ratio::zero() && market.reserve_factor < Ratio::one(),
                 Error::<T>::InvalidFactor,
             );
@@ -566,6 +571,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
             collateral_factor: Ratio,
+            loose_collateral_factor: Ratio,
             reserve_factor: Ratio,
             close_factor: Ratio,
             liquidate_incentive_reserved_factor: Ratio,
@@ -580,6 +586,11 @@ pub mod pallet {
                 Error::<T>::InvalidFactor
             );
             ensure!(
+                loose_collateral_factor > collateral_factor
+                    && loose_collateral_factor < Ratio::one(),
+                Error::<T>::InvalidFactor
+            );
+            ensure!(
                 reserve_factor > Ratio::zero() && reserve_factor < Ratio::one(),
                 Error::<T>::InvalidFactor
             );
@@ -591,6 +602,7 @@ pub mod pallet {
                     ptoken_id: stored_market.ptoken_id,
                     rate_model: stored_market.rate_model,
                     collateral_factor,
+                    loose_collateral_factor,
                     reserve_factor,
                     close_factor,
                     liquidate_incentive,
@@ -1152,6 +1164,31 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    pub fn get_account_loose_liquidity(
+        account: &T::AccountId,
+    ) -> Result<(Liquidity, Shortfall), DispatchError> {
+        let total_borrow_value = Self::total_borrowed_value(account)?;
+        let total_collateral_value = Self::total_loose_collateral_value(account)?;
+        log::trace!(
+            target: "loans::get_account_liquidity",
+            "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}",
+            account,
+            total_borrow_value.into_inner(),
+            total_collateral_value.into_inner(),
+        );
+        if total_collateral_value > total_borrow_value {
+            Ok((
+                total_collateral_value - total_borrow_value,
+                FixedU128::zero(),
+            ))
+        } else {
+            Ok((
+                FixedU128::zero(),
+                total_borrow_value - total_collateral_value,
+            ))
+        }
+    }
+
     fn total_borrowed_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
         let mut total_borrow_value: FixedU128 = FixedU128::zero();
         for (asset_id, _) in Self::active_markets() {
@@ -1190,11 +1227,45 @@ impl<T: Config> Pallet<T> {
         Self::get_asset_value(asset_id, effects_amount)
     }
 
+    fn loose_collateral_asset_value(
+        borrower: &T::AccountId,
+        asset_id: AssetIdOf<T>,
+    ) -> Result<FixedU128, DispatchError> {
+        if !AccountDeposits::<T>::contains_key(asset_id, borrower) {
+            return Ok(FixedU128::zero());
+        }
+        let deposits = Self::account_deposits(asset_id, borrower);
+        if !deposits.is_collateral {
+            return Ok(FixedU128::zero());
+        }
+        if deposits.voucher_balance.is_zero() {
+            return Ok(FixedU128::zero());
+        }
+        let exchange_rate = Self::exchange_rate(asset_id);
+        let underlying_amount =
+            Self::calc_underlying_amount(deposits.voucher_balance, exchange_rate)?;
+        let market = Self::market(asset_id)?;
+        let effects_amount = market.loose_collateral_factor.mul_ceil(underlying_amount);
+
+        Self::get_asset_value(asset_id, effects_amount)
+    }
+
     fn total_collateral_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
         let mut total_asset_value: FixedU128 = FixedU128::zero();
         for (asset_id, _market) in Self::active_markets() {
             total_asset_value = total_asset_value
                 .checked_add(&Self::collateral_asset_value(borrower, asset_id)?)
+                .ok_or(ArithmeticError::Overflow)?;
+        }
+
+        Ok(total_asset_value)
+    }
+
+    fn total_loose_collateral_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
+        let mut total_asset_value: FixedU128 = FixedU128::zero();
+        for (asset_id, _market) in Self::active_markets() {
+            total_asset_value = total_asset_value
+                .checked_add(&Self::loose_collateral_asset_value(borrower, asset_id)?)
                 .ok_or(ArithmeticError::Overflow)?;
         }
 
@@ -1401,7 +1472,7 @@ impl<T: Config> Pallet<T> {
             repay_amount,
             market
         );
-        let (_, shortfall) = Self::get_account_liquidity(borrower)?;
+        let (_, shortfall) = Self::get_account_loose_liquidity(borrower)?;
         if shortfall.is_zero() {
             return Err(Error::<T>::InsufficientShortfall.into());
         }
