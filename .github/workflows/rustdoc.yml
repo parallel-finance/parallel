@@ -1,9 +1,15 @@
-name: Deploy Docs to GitHub Pages
+name: Deploy Rustdocs S3
 
 on:
   push:
-    branches:
-      - master
+    branches: Deploy-Docs-s3
+
+env:
+  AWS_S3_STAGING_BUCKET_NAME: parallel-apidocs
+  AWS_S3_STAGING_BUCKET_DIR: parallel-apidocs/rustdocs
+  AWS_REGION: us-east-2
+  AWS_CLOUDFRONT_DISTRIBUTION_ID: E1BA2Q1D4V2QLX
+  CLOUDFLARE_PURGE_URLS: '["https://api-docs.parallel.fi/rustdocs/"]'
 
 jobs:
   docs:
@@ -40,16 +46,48 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           command: doc
-          args: --workspace --exclude heiko-runtime --exclude parallel-runtime --exclude vanilla-runtime --exclude kerria-runtime --exclude parallel --exclude runtime-integration-tests --no-deps
+          args: --workspace --exclude heiko-runtime --exclude parallel-runtime --exclude vanilla-runtime --exclude parallel --no-deps
 
       - name: Use Custom Domain
         run: |
           echo "api-docs.parallel.fi" > target/doc/CNAME
-
-      - name: Deploy Documentation
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Deploy Documentation to s3
+        uses: jakejarvis/s3-sync-action@master
         with:
-          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-          publish_branch: gh-pages
-          publish_dir: ./target/doc
-          force_orphan: true
+          args: --acl public-read --follow-symlinks --delete
+        env:
+          AWS_S3_BUCKET: ${{ env.AWS_S3_STAGING_BUCKET_DIR }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          SOURCE_DIR: "./target/doc"
+
+  clear-cache:
+    name: Clear-cache
+    needs: docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Purge cloudflare cache
+        uses: jakejarvis/cloudflare-purge-action@master
+        env:
+          CLOUDFLARE_ZONE: ${{ secrets.CLOUDFLARE_ZONE }}
+          CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN }}
+          PURGE_URLS: ${{ env.CLOUDFLARE_PURGE_URLS }}
+
+      - name: Purge s3 cache
+        uses: leroy-merlin-br/action-s3-cache@v1
+        with:
+          action: delete
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          bucket: ${{ env.AWS_S3_STAGING_BUCKET_NAME }}
+          key: ${{ hashFiles('yarn.lock') }}
+
+      - name: Purge cloudfront cache
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - run: aws cloudfront create-invalidation --distribution-id "${{env.AWS_CLOUDFRONT_DISTRIBUTION_ID}}" --paths '/*'
