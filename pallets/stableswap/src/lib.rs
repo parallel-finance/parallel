@@ -21,17 +21,15 @@ pub use pallet::*;
 use types::Pool;
 extern crate alloc;
 
-#[cfg(test)]
-//mod tests;
-mod c_tests;
 mod helpers;
 #[cfg(test)]
 mod mock;
+#[cfg(test)]
+mod tests;
 mod types;
 pub mod weights;
 
 use frame_support::{
-    // dispatch::DispatchResult,
     log,
     pallet_prelude::*,
     require_transactional,
@@ -39,9 +37,7 @@ use frame_support::{
         fungibles::{Inspect, Mutate, Transfer},
         Get, IsType,
     },
-    transactional,
-    Blake2_128Concat,
-    PalletId,
+    transactional, Blake2_128Concat, PalletId,
 };
 
 use primitives::{Balance, ConvertToBigUint, CurrencyId, Ratio};

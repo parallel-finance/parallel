@@ -2,7 +2,7 @@ use num_traits::{CheckedDiv, ToPrimitive};
 use primitives::ConvertToBigUint;
 use sp_runtime::{biguint::BigUint, helpers_128bit::to_big_uint, ArithmeticError, DispatchError};
 
-fn safe_div_alt(a: &mut BigUint, b: &mut BigUint) -> Result<BigUint, DispatchError> {
+fn div(a: &mut BigUint, b: &mut BigUint) -> Result<BigUint, DispatchError> {
     let _nu = u128::try_from(a.clone()).unwrap_or(0);
     let _de = u128::try_from(b.clone()).unwrap_or(0);
 
@@ -20,10 +20,6 @@ fn safe_div_alt(a: &mut BigUint, b: &mut BigUint) -> Result<BigUint, DispatchErr
     Ok(BigUint::from(x))
 }
 
-/// # Notes
-///
-/// D invariant calculation in non-overflowing integer operations iteratively
-///
 /// ```pseudocode
 ///  A * sum(x_i) * n^n + D = A * D * n^n + D^(n+1) / (n^n * prod(x_i))
 /// ```
@@ -62,9 +58,9 @@ pub fn compute_d(
         // d_p = d_p * d / (x * n)
 
         let mut d_p_d = d_p.mul(&d);
-        d_p = safe_div_alt(&mut d_p_d, &mut base_n)?;
+        d_p = div(&mut d_p_d, &mut base_n)?;
         let mut d_p_d = d_p.mul(&d);
-        d_p = safe_div_alt(&mut d_p_d, &mut quote_n)?;
+        d_p = div(&mut d_p_d, &mut quote_n)?;
 
         let d_prev = d.clone();
         // d = (ann * sum + d_p * n) * d / (ann * d + (n + 1) * d_p - d)
@@ -73,7 +69,7 @@ pub fn compute_d(
             .add(&n.clone().add(&one).mul(&d_p))
             .sub(&d)
             .map_err(|_| ArithmeticError::Underflow)?;
-        d = safe_div_alt(&mut numerator, &mut denominator)?;
+        d = div(&mut numerator, &mut denominator)?;
 
         if d.clone() > d_prev {
             if d.clone() - d_prev <= one {
@@ -88,11 +84,8 @@ pub fn compute_d(
     Err(DispatchError::Other("could not compute d"))
 }
 
-/// See https://github.com/equilibrium-eosdt/equilibrium-curve-amm/blob/master/docs/deducing-get_y-formulas.pdf
-/// for detailed explanation about formulas this function uses.
-///
 /// # Notes
-///
+/// Reference :- https://github.com/equilibrium-eosdt/equilibrium-curve-amm/blob/master/docs/deducing-get_y-formulas.pdf
 /// Done by solving quadratic equation iteratively.
 ///
 /// ```pseudocode
@@ -117,9 +110,9 @@ pub fn compute_base(new_quote: u128, amp_coeff: u128, d: u128) -> Result<u128, D
     // term1 = d^(n + 1) / n^n * p
     // term2 = 2*y + s - d
 
-    let d_n = safe_div_alt(&mut d, &mut n)?;
+    let d_n = div(&mut d, &mut n)?;
     let mut c = d_n.clone().mul(&d_n).mul(&d);
-    let term1 = safe_div_alt(&mut c, &mut p)?;
+    let term1 = div(&mut c, &mut p)?;
 
     let mut y = d.clone();
 
@@ -135,7 +128,7 @@ pub fn compute_base(new_quote: u128, amp_coeff: u128, d: u128) -> Result<u128, D
         let mut numerator = ann.clone().mul(&y).mul(&y).add(&term1);
         let mut denominator = ann.clone().mul(&term2).add(&d);
 
-        y = safe_div_alt(&mut numerator, &mut denominator)?;
+        y = div(&mut numerator, &mut denominator)?;
         if y.clone() > y_prev {
             if y.clone() - y_prev <= one {
                 y.lstrip();
@@ -146,5 +139,5 @@ pub fn compute_base(new_quote: u128, amp_coeff: u128, d: u128) -> Result<u128, D
             return Ok(y.try_into().map_err(|_| ArithmeticError::Overflow)?);
         }
     }
-    Err(DispatchError::Other("could not compute d"))
+    Err(DispatchError::Other("Error computing d"))
 }
