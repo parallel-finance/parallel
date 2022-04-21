@@ -186,7 +186,6 @@ std                = [
   'pallet-router-rpc-runtime-api/std',
   'pallet-liquid-staking/std',
   'pallet-streaming/std',
-  'pallet-stableswap/std',
   'pallet-prices/std',
   'pallet-multisig/std',
   'pallet-utility/std',

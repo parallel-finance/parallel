@@ -1906,6 +1906,7 @@ construct_runtime!(
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
         Streaming: pallet_streaming::{Pallet, Call, Storage, Event<T>} = 94,
         AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>} = 95,
+
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
     }
