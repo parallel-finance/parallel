@@ -341,25 +341,43 @@ pub fn run() -> Result<()> {
                 })
             })
         }
-        Some(Subcommand::Benchmark(cmd)) => match cmd {
-            BenchmarkCmd::Pallet(cmd) => {
-                if cfg!(feature = "runtime-benchmarks") {
-                    let runner = cli.create_runner(cmd)?;
-                    let chain_spec = &runner.config().chain_spec;
+        Some(Subcommand::Benchmark(cmd)) => {
+            let runner = cli.create_runner(cmd)?;
+            let chain_spec = &runner.config().chain_spec;
 
-                    set_default_ss58_version(chain_spec);
+            switch_runtime!(chain_spec, {
+                match cmd {
+                    BenchmarkCmd::Pallet(cmd) => {
+                        if cfg!(feature = "runtime-benchmarks") {
+                            let runner = cli.create_runner(cmd)?;
+                            let chain_spec = &runner.config().chain_spec;
 
-                    switch_runtime!(chain_spec, {
-                        runner.sync_run(|config| cmd.run::<Block, Executor>(config))
-                    })
-                } else {
-                    Err("Benchmarking wasn't enabled when building the node. \
-				You can enable it with `--features runtime-benchmarks`."
-                        .into())
+                            set_default_ss58_version(chain_spec);
+
+                            runner.sync_run(|config| cmd.run::<Block, Executor>(config))
+                        } else {
+                            Err("Benchmarking wasn't enabled when building the node. \
+                        You can enable it with `--features runtime-benchmarks`."
+                                .into())
+                        }
+                    }
+                    BenchmarkCmd::Block(cmd) => runner.sync_run(|config| {
+                        let partials =
+                            crate::service::new_partial::<RuntimeApi, Executor>(&config)?;
+                        cmd.run(partials.client)
+                    }),
+                    BenchmarkCmd::Storage(cmd) => runner.sync_run(|config| {
+                        let partials =
+                            crate::service::new_partial::<RuntimeApi, Executor>(&config)?;
+                        let db = partials.backend.expose_db();
+                        let storage = partials.backend.expose_storage();
+
+                        cmd.run(config, partials.client.clone(), db, storage)
+                    }),
+                    BenchmarkCmd::Overhead(_) => Err("Unsupported benchmarking command".into()),
                 }
-            }
-            _ => Err("Unsupported benchmarking command".into()),
-        },
+            })
+        }
         Some(Subcommand::ExportGenesisState(params)) => {
             let mut builder = sc_cli::LoggerBuilder::new("");
             builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
