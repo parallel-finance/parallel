@@ -38,11 +38,11 @@ use frame_support::{
 };
 use frame_system::{ensure_signed_or_root, pallet_prelude::*};
 use primitives::{Balance, BridgeInterval, ChainId, ChainNonce, CurrencyId, Ratio};
-use scale_info::prelude::{vec, vec::Vec};
 use sp_runtime::{
     traits::{AccountIdConversion, Zero},
     ArithmeticError,
 };
+use sp_std::{vec, vec::Vec};
 
 mod benchmarking;
 mod mock;
@@ -830,7 +830,6 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Records completed bridge transactions
-    #[require_transactional]
     fn update_bridge_registry(chain_id: ChainId, nonce: ChainNonce) {
         match Self::bridge_registry(&chain_id) {
             None => {}

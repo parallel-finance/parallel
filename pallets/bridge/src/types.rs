@@ -1,8 +1,8 @@
 use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
 use primitives::{Balance, CurrencyId};
-use scale_info::prelude::vec::Vec;
-use scale_info::{prelude::vec, TypeInfo};
+use scale_info::TypeInfo;
+use sp_std::{vec, vec::Vec};
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
 pub struct BridgeToken {

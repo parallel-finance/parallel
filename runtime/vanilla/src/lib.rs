@@ -19,8 +19,8 @@
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     construct_runtime,
-    dispatch::Weight,
-    log, match_type, parameter_types,
+    dispatch::{DispatchResult, Weight},
+    log, match_types, parameter_types,
     traits::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
@@ -29,7 +29,7 @@ use frame_support::{
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
-        DispatchClass,
+        ConstantMultiplier, DispatchClass,
     },
     PalletId,
 };
@@ -37,17 +37,17 @@ use frame_system::{
     limits::{BlockLength, BlockWeights},
     EnsureRoot, EnsureSigned,
 };
-use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
+use orml_traits::{
+    location::AbsoluteReserveProvider, parameter_type_with_key, DataFeeder, DataProvider,
+    DataProviderExtended,
+};
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
-use sp_core::{
-    u32_trait::{_1, _2, _3, _4, _5},
-    OpaqueMetadata,
-};
+use sp_core::OpaqueMetadata;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
@@ -539,6 +539,8 @@ impl orml_xtokens::Config for Runtime {
     type LocationInverter = LocationInverter<Ancestry>;
     type MaxAssetsForTransfer = MaxAssetsForTransfer;
     type MinXcmFee = ParachainMinFee;
+    type MultiLocationsFilter = Everything;
+    type ReserveProvider = AbsoluteReserveProvider;
 }
 
 parameter_types! {
@@ -823,10 +825,10 @@ parameter_types! {
 impl pallet_transaction_payment::Config for Runtime {
     type OnChargeTransaction =
         pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
-    type TransactionByteFee = TransactionByteFee;
     type WeightToFee = WeightToFee;
     type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
+    type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -994,6 +996,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
     type VersionWrapper = PolkadotXcm;
     type ControllerOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
+    type WeightInfo = cumulus_pallet_xcmp_queue::weights::SubstrateWeight<Runtime>;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
@@ -1199,7 +1202,7 @@ parameter_types! {
     );
 }
 
-match_type! {
+match_types! {
     pub type ParentOrSiblings: impl Contains<MultiLocation> = {
         MultiLocation { parents: 1, interior: Here } |
         MultiLocation { parents: 1, interior: X1(_) }
@@ -1320,7 +1323,7 @@ impl Config for XcmConfig {
     // How to withdraw and deposit an asset.
     type AssetTransactor = AssetTransactors;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
-    type IsReserve = MultiNativeAsset;
+    type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
     // Teleporting is disabled.
     type IsTeleporter = ();
     type LocationInverter = LocationInverter<Ancestry>;
@@ -1379,6 +1382,12 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
 
     fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
         Oracle::get_all_values()
+    }
+}
+
+impl DataFeeder<CurrencyId, TimeStampedPrice, AccountId> for AggregatedDataProvider {
+    fn feed_value(_: AccountId, _: CurrencyId, _: TimeStampedPrice) -> DispatchResult {
+        Err("Not supported".into())
     }
 }
 
@@ -1453,16 +1462,16 @@ impl pallet_identity::Config for Runtime {
 
 type EnsureRootOrMoreThanHalfGeneralCouncil = EnsureOneOf<
     EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, GeneralCouncilCollective>,
+    pallet_collective::EnsureProportionMoreThan<AccountId, GeneralCouncilCollective, 1, 2>,
 >;
 type EnsureRootOrAtLeastThreeFifthsGeneralCouncil = EnsureOneOf<
     EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionAtLeast<_3, _5, AccountId, GeneralCouncilCollective>,
+    pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 3, 5>,
 >;
 
 type EnsureRootOrAllTechnicalComittee = EnsureOneOf<
     EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>,
+    pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
 >;
 
 parameter_types! {
@@ -1488,25 +1497,25 @@ impl pallet_democracy::Config for Runtime {
     type MinimumDeposit = MinimumDeposit;
     /// A straight majority of the council can decide what their next motion is.
     type ExternalOrigin =
-        pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, GeneralCouncilCollective>;
+        pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 1, 2>;
     /// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
     type ExternalMajorityOrigin =
-        pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, GeneralCouncilCollective>;
+        pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 3, 4>;
     /// A unanimous council can have the next scheduled referendum be a straight default-carries
     /// (NTB) vote.
     type ExternalDefaultOrigin =
-        pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, GeneralCouncilCollective>;
+        pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 1, 1>;
     /// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
     /// be tabled immediately and with a shorter voting/enactment period.
     type FastTrackOrigin =
-        pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, TechnicalCollective>;
+        pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 2, 3>;
     type InstantOrigin =
-        pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>;
+        pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>;
     type InstantAllowed = InstantAllowed;
     type FastTrackVotingPeriod = FastTrackVotingPeriod;
     // To cancel a proposal which has been passed, 2/3 of the council must agree to it.
     type CancellationOrigin =
-        pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, GeneralCouncilCollective>;
+        pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 2, 3>;
     // To cancel a proposal before it has been passed, the technical committee must be unanimous or
     // Root must agree.
     type CancelProposalOrigin = EnsureRootOrAllTechnicalComittee;

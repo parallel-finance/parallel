@@ -28,7 +28,7 @@ pub const RMRK_DECIMAL: u8 = 10;
 pub const RMRK_WEIGHT_PER_SEC: u128 = 100000000000;
 pub const HEIKO_RMRK_ASSET_ID: u32 = 4187061565;
 pub const STATEMINE_FEE_AMOUNT: u128 = 8_000_000_000;
-pub const RELAY_FEE_AMOUNT: u128 = 106_666_660;
+pub const RELAY_FEE_AMOUNT: u128 = 165_940_672;
 
 pub fn rmrk(n: f64) -> Balance {
     (n as u128) * 10u128.pow(RMRK_DECIMAL.into())

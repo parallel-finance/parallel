@@ -17,7 +17,7 @@
 use crate::setup::*;
 use cumulus_primitives_core::ParaId;
 use frame_support::traits::GenesisBuild;
-use polkadot_primitives::v1::{BlockNumber, MAX_CODE_SIZE, MAX_POV_SIZE};
+use polkadot_primitives::v2::{BlockNumber, MAX_CODE_SIZE, MAX_POV_SIZE};
 use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::AccountId;
 use sp_runtime::traits::AccountIdConversion;
@@ -63,9 +63,8 @@ decl_test_network! {
 
 fn default_parachains_host_configuration() -> HostConfiguration<BlockNumber> {
     HostConfiguration {
-        minimum_validation_upgrade_delay: 5,
-        validation_upgrade_cooldown: 5u32,
-        validation_upgrade_delay: 5,
+        validation_upgrade_cooldown: 2u32,
+        validation_upgrade_delay: 2,
         code_retention_period: 1200,
         max_code_size: MAX_CODE_SIZE,
         max_pov_size: MAX_POV_SIZE,
@@ -75,9 +74,9 @@ fn default_parachains_host_configuration() -> HostConfiguration<BlockNumber> {
         thread_availability_period: 4,
         max_upward_queue_count: 8,
         max_upward_queue_size: 1024 * 1024,
-        max_downward_message_size: 1024,
-        ump_service_total_weight: 4 * 1_000_000_000,
-        max_upward_message_size: 1024 * 1024,
+        max_downward_message_size: 1024 * 1024,
+        ump_service_total_weight: 100_000_000_000,
+        max_upward_message_size: 50 * 1024,
         max_upward_message_num_per_candidate: 5,
         hrmp_sender_deposit: 0,
         hrmp_recipient_deposit: 0,
@@ -95,6 +94,7 @@ fn default_parachains_host_configuration() -> HostConfiguration<BlockNumber> {
         needed_approvals: 2,
         relay_vrf_modulo_samples: 2,
         zeroth_delay_tranche_width: 0,
+        minimum_validation_upgrade_delay: 5,
         ..Default::default()
     }
 }
