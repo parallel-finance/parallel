@@ -983,9 +983,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(base)
     }
 
+    #[allow(dead_code)]
+    // Responsible to get ratio
     fn get_exchange_value(
         pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
-        asset_id: AssetIdOf<T, I>,
+        _asset_id: AssetIdOf<T, I>,
         amount: BalanceOf<T, I>,
     ) -> Result<Balance, DispatchError> {
         let (_, base_asset, quote_asset) = Self::sort_assets(pair)?;

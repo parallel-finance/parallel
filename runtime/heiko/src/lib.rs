@@ -99,7 +99,6 @@ pub use pallet_loans;
 pub use pallet_payroll;
 pub use pallet_prices;
 pub use pallet_router;
-pub use pallet_stableswap;
 
 use currency::*;
 use fee::*;
@@ -1766,30 +1765,6 @@ impl pallet_farming::Config for Runtime {
     type Decimal = Decimal;
 }
 
-parameter_types! {
-    pub const StableSwapPalletId: PalletId = PalletId(*b"par/sswp");
-    pub const NumTokens: u8 = 2;
-    pub const Precision: u32 = 100;
-    pub const AmplificationCoefficient: u8 = 85;
-
-}
-
-impl pallet_stableswap::Config for Runtime {
-    type Event = Event;
-    type Assets = CurrencyAdapter;
-    type WeightInfo = pallet_stableswap::weights::SubstrateWeight<Runtime>;
-    type PalletId = StableSwapPalletId;
-    type NumTokens = NumTokens;
-    type Precision = Precision;
-    type AmplificationCoefficient = AmplificationCoefficient;
-    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
-    type LpFee = DefaultLpFee;
-    type LockAccountId = OneAccount;
-    type ProtocolFee = DefaultProtocolFee;
-    type MinimumLiquidity = MinimumLiquidity;
-    type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-}
-
 pub struct WhiteListFilter;
 impl Contains<Call> for WhiteListFilter {
     fn contains(call: &Call) -> bool {
@@ -1932,7 +1907,6 @@ construct_runtime!(
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
         Payroll: pallet_payroll::{Pallet, Call, Storage, Event<T>} = 94,
-        StableSwap: pallet_stableswap::{Pallet, Call, Storage, Event<T>} = 95,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
