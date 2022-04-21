@@ -1,7 +1,7 @@
 {
   "relaychain": {
     "bin": "../polkadot/target/release/polkadot",
-    "chain": "kusama-local",
+    "chain": "polkadot-local",
     "nodes": [
       {
         "name": "alice",
@@ -63,8 +63,8 @@
   "parachains": [
     {
       "bin": "./target/release/parallel",
-      "id": 2085,
-      "chain": "vanilla-dev",
+      "id": 2012,
+      "chain": "kerria-dev",
       "nodes": [
         {
           "wsPort": 9948,
@@ -82,40 +82,6 @@
             "0"
           ],
           "basePath": "data/9948"
-        },
-        {
-          "wsPort": 9949,
-          "port": 30338,
-          "rpcPort": 9938,
-          "name": "bob",
-          "flags": [
-            "-l",
-            "xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace",
-            "--state-cache-size",
-            "0",
-            "--",
-            "--execution=wasm",
-            "--state-cache-size",
-            "0"
-          ],
-          "basePath": "data/9949"
-        },
-        {
-          "wsPort": 9950,
-          "port": 30339,
-          "rpcPort": 9939,
-          "name": "charlie",
-          "flags": [
-            "-l",
-            "xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace",
-            "--state-cache-size",
-            "0",
-            "--",
-            "--execution=wasm",
-            "--state-cache-size",
-            "0"
-          ],
-          "basePath": "data/9950"
         }
       ]
     }

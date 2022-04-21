@@ -1,19 +1,22 @@
+use core::marker::PhantomData;
 use frame_support::{
     construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
     traits::{
-        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers,
+        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, OriginTrait,
+        SortedMembers,
     },
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
+use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain::primitives::{IsSystem, Sibling};
 use polkadot_runtime_parachains::configuration::HostConfiguration;
-use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
+use primitives::{tokens::*, Balance, ParaId};
 use sp_core::H256;
 use sp_runtime::{
     generic,
@@ -28,17 +31,20 @@ pub use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
     ChildParachainAsNative, ChildParachainConvertsVia, ChildSystemParachainAsSuperuser,
     CurrencyAdapter as XcmCurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds,
-    IsConcrete, LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsDefault,
+    IsConcrete, LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsPreset,
     RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
     SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
-use xcm_executor::{Config, XcmExecutor};
+use xcm_executor::{traits::ConvertOrigin, Config, XcmExecutor};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub use kusama_runtime;
-use primitives::ump::{XcmCall, XcmWeightFeeMisc};
+use pallet_traits::{
+    ump::{XcmCall, XcmWeightFeeMisc},
+    xcm::MultiCurrencyAdapter,
+};
 
 pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
 
@@ -81,7 +87,7 @@ parameter_types! {
 }
 
 pub type LocationToAccountId = (
-    ParentIsDefault<AccountId>,
+    ParentIsPreset<AccountId>,
     SiblingParachainConvertsVia<Sibling, AccountId>,
     AccountId32Aliases<RelayNetwork, AccountId>,
 );
@@ -186,12 +192,38 @@ impl Config for RelayXcmConfig {
     type AssetClaims = KusamaXcmPallet;
 }
 
+pub struct SystemParachainAsSuperuser<Origin>(PhantomData<Origin>);
+impl<Origin: OriginTrait> ConvertOrigin<Origin> for SystemParachainAsSuperuser<Origin> {
+    fn convert_origin(
+        origin: impl Into<MultiLocation>,
+        kind: OriginKind,
+    ) -> Result<Origin, MultiLocation> {
+        let origin = origin.into();
+        if kind == OriginKind::Superuser
+            && matches!(
+                origin,
+                MultiLocation {
+                    parents: 1,
+                    interior: X1(Parachain(id)),
+                } if ParaId::from(id).is_system(),
+            )
+        {
+            Ok(Origin::root())
+        } else {
+            Err(origin)
+        }
+    }
+}
+
 impl cumulus_pallet_xcmp_queue::Config for Test {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = ();
+    type ControllerOrigin = EnsureRoot<AccountId>;
+    type ControllerOriginConverter = SystemParachainAsSuperuser<Origin>;
+    type WeightInfo = cumulus_pallet_xcmp_queue::weights::SubstrateWeight<Test>;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Test {
@@ -292,6 +324,12 @@ parameter_types! {
     pub const MaxAssetsForTransfer: usize = 2;
 }
 
+parameter_type_with_key! {
+    pub ParachainMinFee: |_location: MultiLocation| -> u128 {
+        u128::MAX
+    };
+}
+
 impl orml_xtokens::Config for Test {
     type Event = Event;
     type Balance = Balance;
@@ -304,6 +342,9 @@ impl orml_xtokens::Config for Test {
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
     type MaxAssetsForTransfer = MaxAssetsForTransfer;
+    type MinXcmFee = ParachainMinFee;
+    type MultiLocationsFilter = Everything;
+    type ReserveProvider = AbsoluteReserveProvider;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -392,7 +433,7 @@ impl SortedMembers<AccountId> for EveOrigin {
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub const MinContribution: Balance = 0;
-    pub const MigrateKeysLimit: u32 = 10;
+    pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub SelfParaId: ParaId = para_a_id();
     pub RefundLocation: AccountId = para_a_id().into_account();
@@ -462,6 +503,7 @@ impl pallet_xcm_helper::Config for Test {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Test>;
+    type XcmOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
 }
 

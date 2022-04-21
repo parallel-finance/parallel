@@ -4,10 +4,10 @@
 # the repo. Unless a later match takes precedence,
 # @backend-leads will be requested for review when 
 # someone opens a pull request.
-*                  @backend-leads
+*                  @parallel-finance/backend-leads
 
 # Order is important; the last matching pattern takes the most
 # precedence. When someone opens a pull request that only
 # modifies github workflows files, only @workflows-owner and not 
 # the global owner(s) will be requested for a review.
-.github/workflows  @workflows-owner
+.github/workflows  @parallel-finance/workflows-owner

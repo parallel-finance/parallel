@@ -1,27 +1,36 @@
 version: "3.7"
 services:
-  parallel-dapp:
+  heiko-dapp:
     ports:
       - "8080:80"
+    image: parallelfinance/heiko-dapp:latest
+    restart: always
+  parallel-dapp:
+    ports:
+      - "8081:80"
     image: parallelfinance/parallel-dapp:latest
     restart: always
-
   oracle-client:
     image: parallelfinance/oracle-client:latest
-    command: start -m 12000 -w ws://parachain-2085-0:9944
+    command: start -m 12000 -w ws://parachain-${PARA_ID}-0:9944
     restart: always
-
-  nominate-client:
-    image: parallelfinance/nominate-client:latest
-    command: --relay-ws ws://relaychain-alice:9944 --para-ws ws://parachain-2085-0:9944 --tick 120000
-    restart: always
-
-  stake-client:
+  stake-client-claim:
     image: parallelfinance/stake-client:latest
-    command: --relay-ws=ws://relaychain-alice:9944 --para-ws=ws://parachain-2085-0:9944
+    command: claim --para-ws=ws://parachain-${PARA_ID}-0:9944 --batch-size 50
     restart: always
-
+  stake-client-sync-era:
+    image: parallelfinance/stake-client:latest
+    command: sync era --relay-ws=ws://relaychain-alice:9944 --para-ws=ws://parachain-${PARA_ID}-0:9944
+    restart: always
+  stake-client-sync-ledger-0:
+    image: parallelfinance/stake-client:latest
+    command: sync ledger --relay-ws=ws://relaychain-alice:9944 --para-ws=ws://parachain-${PARA_ID}-0:9944 --derivative-index 0
+    restart: always
+  stake-client-sync-ledger-1:
+    image: parallelfinance/stake-client:latest
+    command: sync ledger --relay-ws=ws://relaychain-bob:9944 --para-ws=ws://parachain-${PARA_ID}-1:9944 --derivative-index 1
+    restart: always
   liquidation-client:
     image: parallelfinance/liquidation-client:latest
-    command: --endpoint ws://parachain-2085-0:9944
+    command: --endpoint ws://parachain-${PARA_ID}-0:9944
     restart: always

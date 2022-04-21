@@ -20,28 +20,36 @@ use sp_runtime::{traits::Zero, DispatchResult};
 use crate::*;
 
 impl<T: Config> Pallet<T> {
-    /// Accrue interest per block and update corresponding storage
-    pub(crate) fn accrue_interest(delta_time: u64) -> DispatchResult {
-        for (asset_id, market) in Self::active_markets() {
-            let total_cash = Self::get_total_cash(asset_id);
-            let total_borrows = Self::total_borrows(asset_id);
-            let total_reserves = Self::total_reserves(asset_id);
-            let util = Self::calc_utilization_ratio(total_cash, total_borrows, total_reserves)?;
-
-            let borrow_rate = market
-                .rate_model
-                .get_borrow_rate(util)
-                .ok_or(ArithmeticError::Overflow)?;
-            let supply_rate =
-                InterestRateModel::get_supply_rate(borrow_rate, util, market.reserve_factor);
-
-            UtilizationRatio::<T>::insert(asset_id, util);
-            BorrowRate::<T>::insert(asset_id, &borrow_rate);
-            SupplyRate::<T>::insert(asset_id, supply_rate);
-
-            Self::update_borrow_index(borrow_rate, asset_id, &market, delta_time)?;
-            Self::update_exchange_rate(asset_id)?;
+    /// Accrue interest and update corresponding storage
+    pub(crate) fn accrue_interest(asset_id: AssetIdOf<T>) -> DispatchResult {
+        let now = T::UnixTime::now().as_secs();
+        let last_accrued_interest_time = Self::last_accrued_interest_time(asset_id);
+        if last_accrued_interest_time.is_zero() {
+            // For the initialization
+            Self::update_last_accrued_interest_time(asset_id, now)?;
+            return Ok(());
         }
+        if now <= last_accrued_interest_time {
+            return Ok(());
+        }
+        Self::update_last_accrued_interest_time(asset_id, now)?;
+        let delta_time = now - last_accrued_interest_time;
+        let market = Self::market(asset_id)?;
+        let total_cash = Self::get_total_cash(asset_id);
+        let total_borrows = Self::total_borrows(asset_id);
+        let total_reserves = Self::total_reserves(asset_id);
+        let util = Self::calc_utilization_ratio(total_cash, total_borrows, total_reserves)?;
+        let borrow_rate = market
+            .rate_model
+            .get_borrow_rate(util)
+            .ok_or(ArithmeticError::Overflow)?;
+        let supply_rate =
+            InterestRateModel::get_supply_rate(borrow_rate, util, market.reserve_factor);
+        UtilizationRatio::<T>::insert(asset_id, util);
+        BorrowRate::<T>::insert(asset_id, &borrow_rate);
+        SupplyRate::<T>::insert(asset_id, supply_rate);
+        Self::update_borrow_index(borrow_rate, asset_id, &market, delta_time)?;
+        Self::update_exchange_rate(asset_id)?;
 
         Ok(())
     }
@@ -65,6 +73,7 @@ impl<T: Config> Pallet<T> {
         let exchange_rate =
             Rate::checked_from_rational(cash_plus_borrows_minus_reserves, total_supply)
                 .ok_or(ArithmeticError::Underflow)?;
+        Self::ensure_valid_exchange_rate(exchange_rate)?;
 
         ExchangeRate::<T>::insert(asset_id, exchange_rate);
 
@@ -126,6 +135,27 @@ impl<T: Config> Pallet<T> {
         BorrowIndex::<T>::insert(asset_id, borrow_index_new);
 
         Ok(())
+    }
+
+    /// The exchange rate should be greater than 0.02 and less than 1
+    pub(crate) fn ensure_valid_exchange_rate(exchange_rate: Rate) -> DispatchResult {
+        ensure!(
+            exchange_rate >= Rate::from_inner(MIN_EXCHANGE_RATE)
+                && exchange_rate < Rate::from_inner(MAX_EXCHANGE_RATE),
+            Error::<T>::InvalidExchangeRate
+        );
+
+        Ok(())
+    }
+
+    pub(crate) fn update_last_accrued_interest_time(
+        asset_id: AssetIdOf<T>,
+        time: Timestamp,
+    ) -> DispatchResult {
+        LastAccruedInterestTime::<T>::try_mutate(asset_id, |last_time| -> DispatchResult {
+            *last_time = time;
+            Ok(())
+        })
     }
 
     fn accrued_interest(

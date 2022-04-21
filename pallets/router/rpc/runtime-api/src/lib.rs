@@ -15,13 +15,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Codec;
-use primitives::{Balance, CurrencyId};
+use primitives::CurrencyId;
 use sp_runtime::DispatchError;
 use sp_std::vec::Vec;
 
 sp_api::decl_runtime_apis! {
-    pub trait RouterApi<AccountId> where
-        AccountId: Codec, {
+    pub trait RouterApi<Balance> where
+        Balance: Codec, {
         fn get_best_route(
             amount_in: Balance,
             token_in: CurrencyId,

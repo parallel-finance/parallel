@@ -44,11 +44,7 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
         ChainType::Development,
         move || {
             let root_key = get_account_id_from_seed::<sr25519::Public>("Dave");
-            let invulnerables = vec![
-                get_authority_keys_from_seed("Alice"),
-                get_authority_keys_from_seed("Bob"),
-                get_authority_keys_from_seed("Charlie"),
-            ];
+            let invulnerables = vec![get_authority_keys_from_seed("Alice")];
             let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
             let bridge_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Alice")];
             let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];

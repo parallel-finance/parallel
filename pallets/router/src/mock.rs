@@ -24,7 +24,7 @@ use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
-pub use primitives::{tokens, Amount, Balance, CurrencyId, Ratio, AMM};
+pub use primitives::{tokens, Amount, Balance, CurrencyId, Ratio};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
@@ -147,6 +147,7 @@ impl pallet_amm::Config for Runtime {
     type MinimumLiquidity = MinimumLiquidity;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
     type MaxLengthRoute = MaxLengthRoute;
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 parameter_types! {

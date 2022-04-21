@@ -26,60 +26,99 @@ mod tests;
 
 pub use pallet::*;
 
+use codec::{Decode, Encode};
 use frame_support::traits::Contains;
 use frame_system::pallet_prelude::OriginFor;
+use pallet_traits::EmergencyCallFilter;
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use frame_support::pallet_prelude::*;
+    use frame_support::{
+        dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
+        pallet_prelude::*,
+    };
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// This can be used by the runtime to define which calls should be allowed in an emergency shutdown state.
-        type Whitelist: Contains<Self::Call>;
+        type Whitelist: Contains<<Self as Config>::Call>;
 
         /// The origin which can shutdown.
         type ShutdownOrigin: EnsureOrigin<Self::Origin>;
+
+        /// The overarching call type.
+        type Call: Parameter
+            + Dispatchable<Origin = Self::Origin, PostInfo = PostDispatchInfo>
+            + GetDispatchInfo
+            + From<frame_system::Call<Self>>;
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Toggled Shutdown Flag
+        /// Toggled Pallet
         /// [flag]
-        ToggledShutdownFlag(bool),
+        ToggledPallet(bool),
+        /// Toggled Call
+        /// [flag]
+        ToggledCall(bool),
     }
 
     #[pallet::pallet]
+    #[pallet::generate_store(pub(super) trait Store)]
+    #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    /// Represent shutdown flag
     #[pallet::storage]
-    #[pallet::getter(fn is_shut_down_flag)]
-    pub type IsShutDownFlagOn<T> = StorageValue<_, bool, ValueQuery>;
+    #[pallet::getter(fn disabled_pallets)]
+    pub type DisabledPallets<T: Config> = StorageMap<_, Blake2_128Concat, u8, bool, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn disabled_calls)]
+    pub type DisabledCalls<T: Config> =
+        StorageDoubleMap<_, Blake2_128Concat, u8, Blake2_128Concat, u8, bool, ValueQuery>;
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Toggle the shutdown flag
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn toggle_shutdown_flag(origin: OriginFor<T>) -> DispatchResult {
+        pub fn toggle_pallet(origin: OriginFor<T>, pallet_idx: u8) -> DispatchResult {
             T::ShutdownOrigin::ensure_origin(origin)?;
 
-            let updated_flag = !<IsShutDownFlagOn<T>>::get();
-            <IsShutDownFlagOn<T>>::put(updated_flag);
+            let updated_flag = !<DisabledPallets<T>>::get(pallet_idx);
+            <DisabledPallets<T>>::insert(pallet_idx, updated_flag);
 
             // Emit an event.
-            Self::deposit_event(Event::ToggledShutdownFlag(updated_flag));
+            Self::deposit_event(Event::ToggledPallet(updated_flag));
+            Ok(())
+        }
+
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        pub fn toggle_call(origin: OriginFor<T>, pallet_idx: u8, call_idx: u8) -> DispatchResult {
+            T::ShutdownOrigin::ensure_origin(origin)?;
+
+            let updated_flag = !<DisabledCalls<T>>::get(pallet_idx, call_idx);
+            <DisabledCalls<T>>::insert(pallet_idx, call_idx, updated_flag);
+
+            // Emit an event.
+            Self::deposit_event(Event::ToggledCall(updated_flag));
             Ok(())
         }
     }
 }
 
-impl<T: Config> Contains<T::Call> for Pallet<T> {
-    fn contains(call: &T::Call) -> bool {
-        !Self::is_shut_down_flag() || T::Whitelist::contains(call)
+impl<T: Config> EmergencyCallFilter<<T as Config>::Call> for Pallet<T> {
+    fn contains(call: &<T as Config>::Call) -> bool {
+        let (pallet_idx, call_idx): (u8, u8) = call
+            .using_encoded(|mut bytes| Decode::decode(&mut bytes))
+            .expect(
+                "decode input is output of Call encode; Call guaranteed to have two enums; qed",
+            );
+
+        T::Whitelist::contains(call)
+            || !Self::disabled_pallets(pallet_idx) && !Self::disabled_calls(pallet_idx, call_idx)
     }
 }

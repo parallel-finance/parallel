@@ -2,13 +2,13 @@ import '@polkadot/api-augment'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import shell from 'shelljs'
 import { blake2AsU8a } from '@polkadot/util-crypto'
-import { stringToU8a, bnToU8a, u8aConcat } from '@polkadot/util'
+import { stringToU8a, bnToU8a, u8aConcat, u8aToHex } from '@polkadot/util'
 import { decodeAddress, encodeAddress } from '@polkadot/keyring'
 import { KeyringPair } from '@polkadot/keyring/types'
 import { Index } from '@polkadot/types/interfaces'
-import { options } from '@parallel-finance/api'
 
 const EMPTY_U8A_32 = new Uint8Array(32)
+const XCM_FEE = 50000000000
 
 export const exec = (cmd: string): shell.ShellString => {
   console.log(`$ ${cmd}`)
@@ -34,9 +34,14 @@ export const chainHeight = async (api: ApiPromise): Promise<number> => {
 export const createAddress = (id: string): string =>
   encodeAddress(u8aConcat(stringToU8a(`modl${id}`), EMPTY_U8A_32).subarray(0, 32))
 
-export const sovereignAccountOf = (paraId: number): string =>
+export const sovereignRelayOf = (paraId: number): string =>
   encodeAddress(
     u8aConcat(stringToU8a('para'), bnToU8a(paraId, 32, true), EMPTY_U8A_32).subarray(0, 32)
+  )
+
+export const sovereignParaOf = (paraId: number): string =>
+  encodeAddress(
+    u8aConcat(stringToU8a('sibl'), bnToU8a(paraId, 32, true), EMPTY_U8A_32).subarray(0, 32)
   )
 
 export const subAccountId = (address: string, index: number): string => {
@@ -56,7 +61,7 @@ export const nextNonce = async (api: ApiPromise, signer: KeyringPair): Promise<I
   return await api.rpc.system.accountNextIndex(signer.address)
 }
 
-export const createXcm = (encoded: string, sovereignAccount: string) => {
+export const createXcm = (encoded: string, refundAccount: string) => {
   return {
     V2: [
       {
@@ -69,7 +74,7 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
               }
             },
             fun: {
-              Fungible: '1000000000000'
+              Fungible: XCM_FEE
             }
           }
         ]
@@ -84,7 +89,7 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
               }
             },
             fun: {
-              Fungible: '1000000000000'
+              Fungible: XCM_FEE
             }
           },
           weightLimit: 'Unlimited'
@@ -93,16 +98,27 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
       {
         Transact: {
           originType: 'Native',
-          requireWeightAtMost: '1000000000',
+          requireWeightAtMost: '2000000000',
           call: {
             encoded
           }
         }
       },
+      'RefundSurplus',
       {
         DepositAsset: {
           assets: {
-            Wild: 'All'
+            Wild: {
+              AllOf: {
+                id: {
+                  Concrete: {
+                    parents: 0,
+                    interior: 'Here'
+                  }
+                },
+                fun: 'Fungible'
+              }
+            }
           },
           maxAssets: 1,
           beneficiary: {
@@ -111,7 +127,7 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
               X1: {
                 AccountId32: {
                   network: 'Any',
-                  id: sovereignAccount
+                  id: u8aToHex(decodeAddress(refundAccount))
                 }
               }
             }
@@ -123,15 +139,11 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
 }
 
 export const getApi = async (endpoint: string): Promise<ApiPromise> => {
-  return ApiPromise.create(
-    options({
-      types: {
-        'Compact<TAssetBalance>': 'Compact<Balance>'
-      },
-      provider: new WsProvider(endpoint)
-    })
-  )
+  return ApiPromise.create({
+    provider: new WsProvider(endpoint)
+  })
 }
+
 export const getRelayApi = async (endpoint: string): Promise<ApiPromise> => {
   return ApiPromise.create({
     provider: new WsProvider(endpoint)

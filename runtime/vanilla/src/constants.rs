@@ -71,10 +71,9 @@ pub mod fee {
     impl WeightToFeePolynomial for WeightToFee {
         type Balance = Balance;
         fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-            // in Kusama, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
-            // in Statemine, we map to 1/10 of that, or 1/100 CENT
-            let p = super::currency::CENTS;
-            let q = 100 * Balance::from(ExtrinsicBaseWeight::get());
+            // in vanilla, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
+            let p = super::currency::CENTS / 10;
+            let q = Balance::from(ExtrinsicBaseWeight::get());
             smallvec![WeightToFeeCoefficient {
                 degree: 1,
                 negative: false,
@@ -88,17 +87,47 @@ pub mod fee {
         let base_weight = Balance::from(ExtrinsicBaseWeight::get());
         let base_tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
         let hko_per_second = base_tx_per_second * super::currency::CENTS / 10;
-        hko_per_second / 100
+        hko_per_second / 50
     }
 }
 
 /// Parachains-related
 pub mod paras {
+    pub mod statemine {
+        pub const ID: u32 = 1000;
+    }
 
     pub mod karura {
         pub const ID: u32 = 2000;
         pub const KAR_KEY: &[u8] = &[0, 128];
         pub const KUSD_KEY: &[u8] = &[0, 129];
         pub const LKSM_KEY: &[u8] = &[0, 131];
+    }
+
+    pub mod moonriver {
+        pub const ID: u32 = 1000;
+        pub const MOVR_KEY: u8 = 3;
+    }
+
+    pub mod khala {
+        pub const ID: u32 = 2004;
+    }
+
+    pub mod shiden {
+        pub const ID: u32 = 2007;
+    }
+
+    pub mod calamari {
+        pub const ID: u32 = 2084;
+    }
+
+    pub mod kintsugi {
+        pub const ID: u32 = 2092;
+        pub const KBTC_KEY: &[u8] = &[0, 11];
+        pub const KINT_KEY: &[u8] = &[0, 12];
+    }
+
+    pub mod genshiro {
+        pub const ID: u32 = 2024;
     }
 }
