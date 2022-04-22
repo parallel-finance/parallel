@@ -48,10 +48,6 @@ parachains:
     nodes:
       - flags:
           - --alice
-      - flags:
-          - --bob
-      - flags:
-          - --charlie
   - image: parallelfinance/polkadot-collator:v0.9.19
     chain:
       base: statemine-dev
