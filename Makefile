@@ -145,8 +145,8 @@ shutdown:
 launch: shutdown
 	yq -i eval '.relaychain.image = "parallelfinance/polkadot:$(RELAY_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.relaychain.chain = "$(RELAY_CHAIN)"' $(LAUNCH_CONFIG_YAML)
-	yq -i eval '.relaychain.hrmp.preopenHrmpChannels[0].sender = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
-	yq -i eval '.relaychain.hrmp.preopenHrmpChannels[1].recipient = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.relaychain.runtimeGenesisConfig.hrmp.preopenHrmpChannels[0].sender = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.relaychain.runtimeGenesisConfig.hrmp.preopenHrmpChannels[1].recipient = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].image = "parallelfinance/parallel:$(DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].id = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].chain.base = "$(CHAIN)"' $(LAUNCH_CONFIG_YAML)
