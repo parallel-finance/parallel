@@ -1,9 +1,9 @@
 use frame_support::{
-    assert_noop, assert_ok, error::BadOrigin, storage::with_transaction, traits::Hooks,
+    assert_noop, assert_ok, dispatch::DispatchResult, error::BadOrigin, storage::with_transaction,
+    traits::Hooks,
 };
-use sp_runtime::traits::BlakeTwo256;
 use sp_runtime::{
-    traits::{One, Zero},
+    traits::{BlakeTwo256, One, Zero},
     MultiAddress::Id,
     TransactionOutcome,
 };
@@ -51,16 +51,18 @@ fn stake_should_work() {
             ksm(10f64)
         );
 
-        with_transaction(|| {
-            LiquidStaking::do_advance_era(1).unwrap();
-            LiquidStaking::notification_received(
-                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-                0,
-                Response::ExecutionResult(None),
-            )
-            .unwrap();
-            TransactionOutcome::Commit(0)
-        });
+        assert_ok!(with_transaction(
+            || -> TransactionOutcome<DispatchResult> {
+                LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::notification_received(
+                    pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                    0,
+                    Response::ExecutionResult(None),
+                )
+                .unwrap();
+                TransactionOutcome::Commit(Ok(()))
+            }
+        ));
 
         assert_eq!(
             <Test as Config>::Assets::balance(KSM, &LiquidStaking::account_id()),
@@ -88,16 +90,18 @@ fn stake_should_work() {
 
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
 
-        with_transaction(|| {
-            LiquidStaking::do_advance_era(1).unwrap();
-            LiquidStaking::notification_received(
-                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-                1,
-                Response::ExecutionResult(None),
-            )
-            .unwrap();
-            TransactionOutcome::Commit(0)
-        });
+        assert_ok!(with_transaction(
+            || -> TransactionOutcome<DispatchResult> {
+                LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::notification_received(
+                    pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                    1,
+                    Response::ExecutionResult(None),
+                )
+                .unwrap();
+                TransactionOutcome::Commit(Ok(()))
+            }
+        ));
 
         assert_eq!(
             <Test as Config>::Assets::balance(KSM, &LiquidStaking::account_id()),
@@ -147,16 +151,18 @@ fn unstake_should_work() {
             }]
         );
 
-        with_transaction(|| {
-            LiquidStaking::do_advance_era(1).unwrap();
-            LiquidStaking::notification_received(
-                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-                0,
-                Response::ExecutionResult(None),
-            )
-            .unwrap();
-            TransactionOutcome::Commit(0)
-        });
+        assert_ok!(with_transaction(
+            || -> TransactionOutcome<DispatchResult> {
+                LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::notification_received(
+                    pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                    0,
+                    Response::ExecutionResult(None),
+                )
+                .unwrap();
+                TransactionOutcome::Commit(Ok(()))
+            }
+        ));
 
         assert_eq!(
             MatchingPool::<Test>::get(),
@@ -195,16 +201,18 @@ fn unstake_should_work() {
             ]
         );
 
-        with_transaction(|| {
-            LiquidStaking::do_advance_era(1).unwrap();
-            LiquidStaking::notification_received(
-                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-                1,
-                Response::ExecutionResult(None),
-            )
-            .unwrap();
-            TransactionOutcome::Commit(0)
-        });
+        assert_ok!(with_transaction(
+            || -> TransactionOutcome<DispatchResult> {
+                LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::notification_received(
+                    pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                    1,
+                    Response::ExecutionResult(None),
+                )
+                .unwrap();
+                TransactionOutcome::Commit(Ok(()))
+            }
+        ));
 
         assert_eq!(
             StakingLedgers::<Test>::get(&0).unwrap(),
@@ -265,16 +273,18 @@ fn test_matching_should_work() {
                 LiquidStaking::matching_pool().matching(unbonding_amount),
                 Ok(matching_result)
             );
-            with_transaction(|| {
-                LiquidStaking::do_advance_era(1).unwrap();
-                LiquidStaking::notification_received(
-                    pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-                    i.try_into().unwrap(),
-                    Response::ExecutionResult(None),
-                )
-                .unwrap();
-                TransactionOutcome::Commit(0)
-            });
+            assert_ok!(with_transaction(
+                || -> TransactionOutcome<DispatchResult> {
+                    LiquidStaking::do_advance_era(1).unwrap();
+                    LiquidStaking::notification_received(
+                        pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                        i.try_into().unwrap(),
+                        Response::ExecutionResult(None),
+                    )
+                    .unwrap();
+                    TransactionOutcome::Commit(Ok(()))
+                }
+            ));
         }
     });
 }
@@ -651,10 +661,12 @@ fn claim_for_should_work() {
         );
 
         let derivative_index = 0u16;
-        with_transaction(|| {
-            assert_ok!(LiquidStaking::do_advance_era(4));
-            TransactionOutcome::Commit(0)
-        });
+        assert_ok!(with_transaction(
+            || -> TransactionOutcome<DispatchResult> {
+                assert_ok!(LiquidStaking::do_advance_era(4));
+                TransactionOutcome::Commit(Ok(()))
+            }
+        ));
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
             0,

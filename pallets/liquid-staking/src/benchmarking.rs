@@ -3,6 +3,8 @@
 
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
 use frame_support::{
+    assert_ok,
+    dispatch::DispatchResult,
     storage::with_transaction,
     traits::{fungibles::Mutate, Hooks},
 };
@@ -264,10 +266,10 @@ benchmarks! {
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
-        with_transaction(|| {
+        assert_ok!(with_transaction(|| -> TransactionOutcome<DispatchResult>{
             LiquidStaking::<T>::do_advance_era(4).unwrap();
-            TransactionOutcome::Commit(0)
-        });
+            TransactionOutcome::Commit(Ok(()))
+        }));
         LiquidStaking::<T>::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
             0u64,
@@ -312,11 +314,10 @@ benchmarks! {
         StakingLedgers::<T>::insert(0u16,staking_ledger);
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
     }: {
-        with_transaction(|| {
+        assert_ok!(with_transaction(|| -> TransactionOutcome<DispatchResult> {
             LiquidStaking::<T>::do_advance_era(1).unwrap();
-            TransactionOutcome::Commit(0)
-        });
-
+            TransactionOutcome::Commit(Ok(()))
+        }));
     }
     verify {
         assert_eq!(EraStartBlock::<T>::get(), 0u32.into());
@@ -337,11 +338,10 @@ benchmarks! {
         StakingLedgers::<T>::insert(0u16,staking_ledger);
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
     }: {
-        with_transaction(|| {
+        assert_ok!(with_transaction(|| -> TransactionOutcome<DispatchResult> {
             LiquidStaking::<T>::do_matching().unwrap();
-            TransactionOutcome::Commit(0)
-        });
-
+            TransactionOutcome::Commit(Ok(()))
+        }));
     }
     verify {
         let xcm_fee = T::XcmFees::get();

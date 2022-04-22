@@ -11,7 +11,7 @@ use frame_support::{
     PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
-use orml_traits::parameter_type_with_key;
+use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::{IsSystem, Sibling};
@@ -223,6 +223,7 @@ impl cumulus_pallet_xcmp_queue::Config for Test {
     type VersionWrapper = ();
     type ControllerOrigin = EnsureRoot<AccountId>;
     type ControllerOriginConverter = SystemParachainAsSuperuser<Origin>;
+    type WeightInfo = cumulus_pallet_xcmp_queue::weights::SubstrateWeight<Test>;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Test {
@@ -342,6 +343,8 @@ impl orml_xtokens::Config for Test {
     type LocationInverter = LocationInverter<Ancestry>;
     type MaxAssetsForTransfer = MaxAssetsForTransfer;
     type MinXcmFee = ParachainMinFee;
+    type MultiLocationsFilter = Everything;
+    type ReserveProvider = AbsoluteReserveProvider;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;

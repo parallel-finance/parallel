@@ -16,7 +16,7 @@ pub use super::*;
 
 use frame_support::{construct_runtime, parameter_types, traits::Everything, PalletId};
 use frame_system::EnsureRoot;
-use orml_traits::{DataProvider, DataProviderExtended};
+use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
 use pallet_traits::*;
 use primitives::*;
 use sp_core::H256;
@@ -133,6 +133,12 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for MockDataProvider {
 
     fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
         vec![]
+    }
+}
+
+impl DataFeeder<CurrencyId, TimeStampedPrice, AccountId> for MockDataProvider {
+    fn feed_value(_: AccountId, _: CurrencyId, _: TimeStampedPrice) -> sp_runtime::DispatchResult {
+        Ok(())
     }
 }
 
@@ -324,7 +330,7 @@ pub fn almost_equal(target: u128, value: u128) -> bool {
     let target = target as i128;
     let value = value as i128;
     let diff = (target - value).abs() as u128;
-    diff < micro_dollar(2)
+    diff < micro_dollar(1)
 }
 
 pub fn accrue_interest_per_block(asset_id: CurrencyId, block_delta_secs: u64, run_to_block: u64) {

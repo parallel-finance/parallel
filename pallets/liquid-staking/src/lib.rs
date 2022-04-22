@@ -862,10 +862,11 @@ pub mod pallet {
                 return weight;
             }
             weight += <T as Config>::WeightInfo::force_advance_era();
-            with_transaction(|| match Self::do_advance_era(offset) {
-                Ok(()) => TransactionOutcome::Commit(weight),
-                Err(_) => TransactionOutcome::Rollback(weight),
-            })
+            let _ = with_transaction(|| match Self::do_advance_era(offset) {
+                Ok(()) => TransactionOutcome::Commit(Ok(())),
+                Err(err) => TransactionOutcome::Rollback(Err(err)),
+            });
+            weight
         }
 
         fn on_finalize(_n: T::BlockNumber) {

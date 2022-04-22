@@ -23,6 +23,7 @@ pallets=(
 for p in ${pallets[@]}
 do
 	cargo run --release --features runtime-benchmarks -- benchmark \
+    pallet \
 		--chain=$parallelChain \
 		--execution=wasm \
 		--wasm-execution=compiled \
@@ -34,6 +35,7 @@ do
 		--output=$parallelOutput/$p.rs
 
 	cargo run --release --features runtime-benchmarks -- benchmark \
+    pallet \
 		--chain=$heikoChain \
 		--execution=wasm \
 		--wasm-execution=compiled \
