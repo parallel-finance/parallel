@@ -1649,6 +1649,7 @@ impl<T: Config> Pallet<T> {
                 Ok(())
             },
         )?;
+        let incentive_reserved_amount = incentive_ratio.mul_floor(collateral_amount);
         // increase liquidator's voucher_balance
         AccountDeposits::<T>::try_mutate(
             collateral_asset_id,
@@ -1656,7 +1657,7 @@ impl<T: Config> Pallet<T> {
             |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
-                    .checked_add(Ratio::one().saturating_sub(incentive_ratio) * collateral_amount)
+                    .checked_add(collateral_amount - incentive_reserved_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             },
@@ -1668,7 +1669,7 @@ impl<T: Config> Pallet<T> {
             |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
-                    .checked_add(incentive_ratio * collateral_amount)
+                    .checked_add(incentive_reserved_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             },
