@@ -605,7 +605,7 @@ pub mod pallet {
                     ptoken_id: stored_market.ptoken_id,
                     rate_model: stored_market.rate_model,
                     collateral_factor,
-                    liquidation_threshold: liquidation_threshold,
+                    liquidation_threshold,
                     reserve_factor,
                     close_factor,
                     liquidate_incentive,
