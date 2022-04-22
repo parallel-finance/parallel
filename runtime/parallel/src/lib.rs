@@ -1964,8 +1964,25 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    LiquidStakingMigrationV3,
+    (LiquidStakingMigrationV3, MoneyMarketMigrationV3),
 >;
+
+pub struct MoneyMarketMigrationV3;
+impl OnRuntimeUpgrade for MoneyMarketMigrationV3 {
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        pallet_loans::migrations::v3::migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn pre_upgrade() -> Result<(), &'static str> {
+        pallet_loans::migrations::v3::pre_migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn post_upgrade() -> Result<(), &'static str> {
+        pallet_loans::migrations::v3::post_migrate::<Runtime>()
+    }
+}
 
 // Migration for liquid staking pallet to add multiple ledgers support
 pub struct LiquidStakingMigrationV3;

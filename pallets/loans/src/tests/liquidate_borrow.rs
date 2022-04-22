@@ -121,19 +121,25 @@ fn full_workflow_works_as_expected() {
             ),
             milli_dollar(3300),
         );
-        // redeem 3000 back with sudo
-        assert_ok!(Loans::redeem_incentive_reserve(
+        assert_eq!(Assets::balance(DOT, &ALICE), dollar(800),);
+        // reduce 3000 from incentive reserve to alice account
+        assert_ok!(Loans::reduce_incentive_reserves(
             Origin::root(),
-            incentive_reward_account,
+            ALICE,
             DOT,
             milli_dollar(3000),
         ));
-        // still 300 left
+        // still 300 left in reserve account
         assert_eq!(
             Loans::exchange_rate(DOT).saturating_mul_int(
                 Loans::account_deposits(DOT, incentive_reward_account).voucher_balance
             ),
             milli_dollar(300),
+        );
+        // 3000 transfer to alice
+        assert_eq!(
+            Assets::balance(DOT, &ALICE),
+            dollar(800) + milli_dollar(3000),
         );
     })
 }

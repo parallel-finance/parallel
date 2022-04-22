@@ -71,8 +71,8 @@ pub mod v3 {
                     borrow_cap: market.borrow_cap,
                     supply_cap: market.supply_cap,
                     collateral_factor: market.collateral_factor,
-                    loose_collateral_factor: market.collateral_factor
-                        * (Ratio::one().saturating_add(DEFAULT_LIQUIDATE_LOOSE_COLLATERAL_FACTOR)),
+                    loose_collateral_factor: (market.collateral_factor
+                        + market.collateral_factor * DEFAULT_LIQUIDATE_LOOSE_COLLATERAL_FACTOR),
                     reserve_factor: market.reserve_factor,
                     close_factor: market.close_factor,
                     liquidate_incentive_reserved_factor:
@@ -101,8 +101,9 @@ pub mod v3 {
         );
         Markets::<T>::iter().for_each(|(asset_id, market)| {
             log::info!(
-                "market {:#?}, loose_collateral_factor {:#?}, liquidate_incentive_reserved_factor {:#?}",
+                "market {:#?}, collateral_factor {:?}, loose_collateral_factor {:?}, liquidate_incentive_reserved_factor {:?}",
                 asset_id,
+                market.collateral_factor,
                 market.loose_collateral_factor,
                 market.liquidate_incentive_reserved_factor
             );

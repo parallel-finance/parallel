@@ -251,6 +251,9 @@ pub mod pallet {
         DistributedBorrowerReward(AssetIdOf<T>, T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// Reward Paid for user
         RewardPaid(T::AccountId, BalanceOf<T>),
+        /// Event emitted when the incentive reserves are redeemed and transfer to receiver's account
+        /// [receive_account_id, asset_id, reduced_amount]
+        IncentiveReservesReduced(T::AccountId, AssetIdOf<T>, BalanceOf<T>),
     }
 
     /// The timestamp of the last calculation of accrued interest
@@ -1112,9 +1115,9 @@ pub mod pallet {
         ///
         /// - `asset_id`: the asset to be redeemed.
         /// - `redeem_amount`: the amount to be redeemed.
-        #[pallet::weight(T::WeightInfo::redeem())]
+        #[pallet::weight(T::WeightInfo::redeem()+T::WeightInfo::reduce_reserves())]
         #[transactional]
-        pub fn redeem_incentive_reserve(
+        pub fn reduce_incentive_reserves(
             origin: OriginFor<T>,
             receiver: <T::Lookup as StaticLookup>::Source,
             asset_id: AssetIdOf<T>,
@@ -1122,14 +1125,20 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             ensure!(!redeem_amount.is_zero(), Error::<T>::InvalidAmount);
-            let who = T::Lookup::lookup(receiver)?;
+            let receiver = T::Lookup::lookup(receiver)?;
+            let from = Self::incentive_reward_account_id()?;
             Self::ensure_active_market(asset_id)?;
             Self::accrue_interest(asset_id)?;
-            Self::update_earned_stored(&who, asset_id)?;
+            Self::update_earned_stored(&from, asset_id)?;
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
-            let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount)?;
-            Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
+            let redeem_amount = Self::do_redeem(&from, asset_id, voucher_amount)?;
+            T::Assets::transfer(asset_id, &from, &receiver, redeem_amount, false)?;
+            Self::deposit_event(Event::<T>::IncentiveReservesReduced(
+                receiver,
+                asset_id,
+                redeem_amount,
+            ));
             Ok(().into())
         }
     }
