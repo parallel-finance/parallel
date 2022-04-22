@@ -1,6 +1,17 @@
 relaychain:
   image: parallelfinance/polkadot:v0.9.19
   chain: polkadot-local
+  runtimeGenesisConfig:
+    hrmp:
+      preopenHrmpChannels:
+        - sender: 2012
+          recipient: 1000
+          maxCapacity: 8
+          maxMessageSize: 102400
+        - sender: 1000
+          recipient: 2012
+          maxCapacity: 8
+          maxMessageSize: 102400
   env:
     RUST_LOG: xcm=trace
   flags:
@@ -19,8 +30,6 @@ parachains:
       base: kerria-dev
       collators:
         - alice
-        - bob
-        - charlie
       sudo: dave
     id: 2012
     parachain: true
@@ -43,3 +52,26 @@ parachains:
           - --bob
       - flags:
           - --charlie
+  - image: parallelfinance/polkadot-collator:v0.9.19
+    chain:
+      base: statemine-dev
+      collators:
+        - alice
+      sudo: dave
+    id: 1000
+    parachain: true
+    flags:
+      - --rpc-methods=unsafe
+      - --force-authoring
+      - --wasm-execution=compiled
+      - --execution=wasm
+      - --state-cache-size=0
+    relaychainFlags:
+      - --wasm-execution=compiled
+      - --execution=wasm
+      - --state-cache-size=0
+    env:
+      RUST_LOG: xcm=trace
+    nodes:
+      - flags:
+          - --alice
