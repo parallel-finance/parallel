@@ -17,6 +17,7 @@
 use cumulus_primitives_core::ParaId;
 use frame_support::assert_ok;
 use primitives::{tokens::*, AccountId};
+use sp_runtime::traits::AccountIdConversion;
 use vanilla_runtime::Assets;
 use xcm::{latest::prelude::*, VersionedMultiAssets, VersionedMultiLocation};
 use xcm_emulator::TestExt;

@@ -625,7 +625,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndexList = DerivativeIndexList;
-    type DistributionStrategy = pallet_liquid_staking::distribution::MaximizationDistribution;
+    type DistributionStrategy = pallet_liquid_staking::distribution::MaxMinDistribution;
     type XcmFees = XcmFees;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
