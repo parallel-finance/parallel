@@ -186,7 +186,7 @@ pub mod pallet {
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
 
-        /// Currenty strategy for distributing assets to multi-accounts
+        /// Current strategy for distributing assets to multi-accounts
         type DistributionStrategy: DistributionStrategy<BalanceOf<Self>>;
     }
 
@@ -927,12 +927,6 @@ pub mod pallet {
             Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| ledger.active)
         }
 
-        fn unbonding_of(index: DerivativeIndex) -> BalanceOf<T> {
-            Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
-                ledger.total.saturating_sub(ledger.active)
-            })
-        }
-
         fn unbonded_of(index: DerivativeIndex) -> BalanceOf<T> {
             let current_era = Self::current_era();
             Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
@@ -1307,7 +1301,6 @@ pub mod pallet {
             let distributions = T::DistributionStrategy::get_unbond_distributions(
                 amounts,
                 total_amount,
-                Self::staking_ledger_cap(),
                 T::MinNominatorBond::get(),
             );
 
@@ -1324,16 +1317,14 @@ pub mod pallet {
                 return Ok(());
             }
 
-            let amounts: Vec<(DerivativeIndex, BalanceOf<T>, BalanceOf<T>)> =
-                T::DerivativeIndexList::get()
-                    .iter()
-                    .map(|&index| (index, Self::unbonding_of(index), Self::bonded_of(index)))
-                    .collect();
+            let amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
+                .iter()
+                .map(|&index| (index, Self::bonded_of(index)))
+                .collect();
             let distributions = T::DistributionStrategy::get_rebond_distributions(
                 amounts,
                 total_amount,
                 Self::staking_ledger_cap(),
-                T::MinNominatorBond::get(),
             );
 
             for (index, amount) in distributions.into_iter() {

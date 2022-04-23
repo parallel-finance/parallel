@@ -13,13 +13,13 @@
 // limitations under the License.
 
 use crate::{kusama_test_net::*, setup::*};
+
 use cumulus_primitives_core::ParaId;
-use frame_support::assert_ok;
-use frame_support::traits::Currency;
+use frame_support::{assert_ok, traits::Currency};
 use pallet_traits::ump::{XcmCall, XcmWeightFeeMisc};
 use polkadot_parachain::primitives::Sibling;
 use primitives::{tokens::*, AccountId, Balance, CurrencyId};
-use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::{traits::AccountIdConversion, MultiAddress};
 use xcm::latest::prelude::*;
 use xcm_emulator::TestExt;
 

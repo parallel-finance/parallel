@@ -568,7 +568,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
-    type DistributionStrategy = pallet_liquid_staking::distribution::AverageDistribution;
+    type DistributionStrategy = pallet_liquid_staking::distribution::MaxMinDistribution;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type EraLength = EraLength;
