@@ -19,10 +19,10 @@ pub use pallet_loans_rpc_runtime_api::LoansApi as LoansRuntimeApi;
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
-use primitives::{Liquidity, Shortfall};
+use primitives::{CurrencyId, Liquidity, Rate, Ratio, Shortfall};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
-use sp_runtime::{generic::BlockId, traits::Block as BlockT};
+use sp_runtime::{generic::BlockId, traits::Block as BlockT, FixedU128};
 
 #[rpc]
 pub trait LoansApi<BlockHash, AccountId> {
@@ -32,6 +32,12 @@ pub trait LoansApi<BlockHash, AccountId> {
         account: AccountId,
         at: Option<BlockHash>,
     ) -> Result<(Liquidity, Shortfall)>;
+    #[rpc(name = "loans_getMarketStatus")]
+    fn get_market_status(
+        &self,
+        asset_id: CurrencyId,
+        at: Option<BlockHash>,
+    ) -> Result<(Rate, Rate, Rate, Ratio, u128, u128, FixedU128)>;
 }
 
 /// A struct that implements the [`LoansApi`].
@@ -53,6 +59,7 @@ impl<C, B> Loans<C, B> {
 pub enum Error {
     RuntimeError,
     AccountLiquidityError,
+    MarketStatusError,
 }
 
 impl From<Error> for i64 {
@@ -60,6 +67,7 @@ impl From<Error> for i64 {
         match e {
             Error::RuntimeError => 1,
             Error::AccountLiquidityError => 2,
+            Error::MarketStatusError => 3,
         }
     }
 }
@@ -87,6 +95,21 @@ where
             .map_err(runtime_error_into_rpc_error)?
             .map_err(account_liquidity_error_into_rpc_error)
     }
+
+    fn get_market_status(
+        &self,
+        asset_id: CurrencyId,
+        at: Option<<Block as BlockT>::Hash>,
+    ) -> Result<(Rate, Rate, Rate, Ratio, u128, u128, FixedU128)> {
+        let api = self.client.runtime_api();
+        let at = BlockId::hash(at.unwrap_or(
+            // If the block hash is not supplied assume the best block.
+            self.client.info().best_hash,
+        ));
+        api.get_market_status(&at, asset_id)
+            .map_err(runtime_error_into_rpc_error)?
+            .map_err(market_status_error_into_rpc_error)
+    }
 }
 
 /// Converts a runtime trap into an RPC error.
@@ -103,6 +126,15 @@ fn account_liquidity_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError
     RpcError {
         code: ErrorCode::ServerError(Error::AccountLiquidityError.into()),
         message: "Not able to get account liquidity".into(),
+        data: Some(format!("{:?}", err).into()),
+    }
+}
+
+/// Converts an market status error into an RPC error.
+fn market_status_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError {
+    RpcError {
+        code: ErrorCode::ServerError(Error::MarketStatusError.into()),
+        message: "Not able to get market status".into(),
         data: Some(format!("{:?}", err).into()),
     }
 }
