@@ -24,9 +24,14 @@ pub use sp_runtime::{
 pub const ALICE: [u8; 32] = [0u8; 32];
 pub const BOB: [u8; 32] = [1u8; 32];
 pub const KSM_DECIMAL: u32 = 12;
+pub const DOT_DECIMAL: u32 = 10;
 
 pub fn ksm(n: f64) -> Balance {
     (n as u128) * 10u128.pow(KSM_DECIMAL)
+}
+
+pub fn dot(n: f64) -> Balance {
+    (n as u128) * 10u128.pow(DOT_DECIMAL)
 }
 
 pub struct ExtBuilder {
