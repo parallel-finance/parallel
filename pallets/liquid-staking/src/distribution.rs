@@ -69,8 +69,8 @@ impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for Av
 
         let mut distributions: Vec<(DerivativeIndex, Balance)> = vec![];
         let mut amount = input.checked_div(&length).unwrap_or_default();
-        for (index, unlocking) in unbonding_amounts.into_iter() {
-            amount = amount.min(unlocking);
+        for (index, unbonding) in unbonding_amounts.into_iter() {
+            amount = amount.min(unbonding);
             if amount.is_zero() {
                 continue;
             }
@@ -153,11 +153,11 @@ impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for Ma
         let mut distributions: Vec<(DerivativeIndex, Balance)> = vec![];
         let mut remain = input;
 
-        for (index, unlocking) in unbonding_amounts.into_iter() {
+        for (index, unbonding) in unbonding_amounts.into_iter() {
             if remain.is_zero() {
                 break;
             }
-            let amount = remain.min(unlocking);
+            let amount = remain.min(unbonding);
             if amount.is_zero() {
                 continue;
             }
