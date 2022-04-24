@@ -42,7 +42,7 @@ fn transfer_from_relay_chain() {
     });
 
     Parallel::execute_with(|| {
-        assert_eq!(Assets::balance(DOT, &AccountId::from(BOB)), 990_400_000_0);
+        assert_eq!(Assets::balance(DOT, &AccountId::from(BOB)), 9_904_000_000);
         //dot fee in parallel is 96_000_000
     });
 }
