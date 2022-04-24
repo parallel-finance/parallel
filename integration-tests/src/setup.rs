@@ -20,13 +20,18 @@ use sp_runtime::MultiAddress;
 pub const ALICE: [u8; 32] = [0u8; 32];
 pub const BOB: [u8; 32] = [1u8; 32];
 pub const KSM_DECIMAL: u32 = 12;
+pub const DOT_DECIMAL: u32 = 10;
 
 pub fn ksm(n: f64) -> Balance {
     (n as u128) * 10u128.pow(KSM_DECIMAL)
 }
 
+pub fn dot(n: f64) -> Balance {
+    (n as u128) * 10u128.pow(DOT_DECIMAL)
+}
+
 pub struct ExtBuilder {
-    parachain_id: u32,
+    pub parachain_id: u32,
 }
 
 impl Default for ExtBuilder {
@@ -41,7 +46,7 @@ impl ExtBuilder {
         self
     }
 
-    pub fn build(self) -> sp_io::TestExternalities {
+    pub fn kusama_build(self) -> sp_io::TestExternalities {
         use vanilla_runtime::{Assets, Origin, Runtime, System};
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
@@ -88,6 +93,59 @@ impl ExtBuilder {
                 KSM,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 ksm(100f64),
+            )
+            .unwrap();
+        });
+        ext
+    }
+
+    pub fn polkadot_build(self) -> sp_io::TestExternalities {
+        use parallel_runtime::{Assets, Origin, Runtime, System};
+        let mut t = frame_system::GenesisConfig::default()
+            .build_storage::<Runtime>()
+            .unwrap();
+
+        <parachain_info::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
+            &parachain_info::GenesisConfig {
+                parachain_id: self.parachain_id.into(),
+            },
+            &mut t,
+        )
+        .unwrap();
+
+        <pallet_xcm::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
+            &pallet_xcm::GenesisConfig {
+                safe_xcm_version: Some(2),
+            },
+            &mut t,
+        )
+        .unwrap();
+
+        let mut ext = sp_io::TestExternalities::new(t);
+        ext.execute_with(|| {
+            System::set_block_number(1);
+            Assets::force_create(
+                Origin::root(),
+                DOT,
+                MultiAddress::Id(AccountId::from(ALICE)),
+                true,
+                1,
+            )
+            .unwrap();
+            Assets::force_set_metadata(
+                Origin::root(),
+                DOT,
+                b"Polkadot".to_vec(),
+                b"DOT".to_vec(),
+                12,
+                false,
+            )
+            .unwrap();
+            Assets::mint(
+                Origin::signed(AccountId::from(ALICE)),
+                DOT,
+                MultiAddress::Id(AccountId::from(ALICE)),
+                dot(100f64),
             )
             .unwrap();
         });

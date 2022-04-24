@@ -24,39 +24,39 @@ use sp_runtime::traits::AccountIdConversion;
 use xcm_emulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 decl_test_relay_chain! {
-    pub struct KusamaNet {
-        Runtime = kusama_runtime::Runtime,
-        XcmConfig = kusama_runtime::xcm_config::XcmConfig,
-        new_ext = kusama_ext(),
+    pub struct PolkadotNet {
+        Runtime = polkadot_runtime::Runtime,
+        XcmConfig = polkadot_runtime::xcm_config::XcmConfig,
+        new_ext = polkadot_ext(),
     }
 }
 
 decl_test_parachain! {
-    pub struct Vanilla {
-        Runtime = vanilla_runtime::Runtime,
-        Origin = vanilla_runtime::Origin,
-        XcmpMessageHandler = vanilla_runtime ::XcmpQueue,
-        DmpMessageHandler = vanilla_runtime::DmpQueue,
-        new_ext = para_ext(2085),
+    pub struct Parallel {
+        Runtime = parallel_runtime::Runtime,
+        Origin = parallel_runtime::Origin,
+        XcmpMessageHandler = parallel_runtime ::XcmpQueue,
+        DmpMessageHandler = parallel_runtime::DmpQueue,
+        new_ext = para_ext(2012),
     }
 }
 
 decl_test_parachain! {
-    pub struct Statemine {
-        Runtime = statemine_runtime::Runtime,
-        Origin = statemine_runtime::Origin,
-        XcmpMessageHandler = statemine_runtime::XcmpQueue,
-        DmpMessageHandler = statemine_runtime::DmpQueue,
+    pub struct Statemint {
+        Runtime = statemint_runtime::Runtime,
+        Origin = statemint_runtime::Origin,
+        XcmpMessageHandler = statemint_runtime::XcmpQueue,
+        DmpMessageHandler = statemint_runtime::DmpQueue,
         new_ext = para_ext(1000),
     }
 }
 
 decl_test_network! {
     pub struct TestNet {
-        relay_chain = KusamaNet,
+        relay_chain = PolkadotNet,
         parachains = vec![
-            (1000, Statemine),
-            (2085, Vanilla),
+            (1000, Statemint),
+            (2012, Parallel),
         ],
     }
 }
@@ -99,8 +99,8 @@ fn default_parachains_host_configuration() -> HostConfiguration<BlockNumber> {
     }
 }
 
-pub fn kusama_ext() -> sp_io::TestExternalities {
-    use kusama_runtime::{Runtime, System};
+pub fn polkadot_ext() -> sp_io::TestExternalities {
+    use polkadot_runtime::{Runtime, System};
 
     let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Runtime>()
@@ -108,8 +108,8 @@ pub fn kusama_ext() -> sp_io::TestExternalities {
 
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
-            (AccountId::from(ALICE), ksm(100f64)),
-            (ParaId::from(2085 as u32).into_account(), ksm(100f64)),
+            (AccountId::from(ALICE), dot(100f64)),
+            (ParaId::from(2012 as u32).into_account(), dot(100f64)),
         ],
     }
     .assimilate_storage(&mut t)
@@ -136,5 +136,5 @@ pub fn kusama_ext() -> sp_io::TestExternalities {
 
 pub fn para_ext(parachain_id: u32) -> sp_io::TestExternalities {
     let ext = ExtBuilder { parachain_id };
-    ext.parachain_id(parachain_id).kusama_build()
+    ext.parachain_id(parachain_id).polkadot_build()
 }
