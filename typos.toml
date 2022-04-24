@@ -1,0 +1,2 @@
+[files]
+extend-exclude = ["scripts/polkadot-launch/*", "resources/specs/*"]

@@ -1,4 +1,4 @@
-name: Lookup typos
+name: check typos
 on: [pull_request]
 
 jobs:
