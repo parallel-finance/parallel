@@ -59,17 +59,17 @@ impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for Av
     }
 
     fn get_rebond_distributions(
-        unlocking_amounts: Vec<(DerivativeIndex, Balance)>,
+        unbonding_amounts: Vec<(DerivativeIndex, Balance)>,
         input: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
-        let length = TryInto::<Balance>::try_into(unlocking_amounts.len()).unwrap_or_default();
+        let length = TryInto::<Balance>::try_into(unbonding_amounts.len()).unwrap_or_default();
         if length.is_zero() {
             return Default::default();
         }
 
         let mut distributions: Vec<(DerivativeIndex, Balance)> = vec![];
         let mut amount = input.checked_div(&length).unwrap_or_default();
-        for (index, unlocking) in unlocking_amounts.into_iter() {
+        for (index, unlocking) in unbonding_amounts.into_iter() {
             amount = amount.min(unlocking);
             if amount.is_zero() {
                 continue;
@@ -144,16 +144,16 @@ impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for Ma
     }
 
     fn get_rebond_distributions(
-        mut unlocking_amounts: Vec<(DerivativeIndex, Balance)>,
+        mut unbonding_amounts: Vec<(DerivativeIndex, Balance)>,
         input: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         // descending sequence
-        unlocking_amounts.sort_by(|a, b| b.1.cmp(&a.1));
+        unbonding_amounts.sort_by(|a, b| b.1.cmp(&a.1));
 
         let mut distributions: Vec<(DerivativeIndex, Balance)> = vec![];
         let mut remain = input;
 
-        for (index, unlocking) in unlocking_amounts.into_iter() {
+        for (index, unlocking) in unbonding_amounts.into_iter() {
             if remain.is_zero() {
                 break;
             }
