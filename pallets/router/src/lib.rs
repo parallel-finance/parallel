@@ -267,7 +267,7 @@ pub mod pallet {
         /// - `origin`: the trader.
         /// - `route`: the route user inputs
         /// - `amount_in`: the amount of trading assets
-        /// - `min_amount_out`: the minimum a trader is willing to recieve
+        /// - `min_amount_out`: the minimum a trader is willing to receive
         #[pallet::weight(T::AMMRouterWeightInfo::swap_exact_tokens_for_tokens())]
         #[transactional]
         pub fn swap_exact_tokens_for_tokens(

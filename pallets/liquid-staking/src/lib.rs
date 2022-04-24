@@ -186,7 +186,7 @@ pub mod pallet {
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
 
-        /// Currenty strategy for distributing assets to multi-accounts
+        /// Current strategy for distributing assets to multi-accounts
         type DistributionStrategy: DistributionStrategy<BalanceOf<Self>>;
     }
 
@@ -197,7 +197,7 @@ pub mod pallet {
         Staked(T::AccountId, BalanceOf<T>),
         /// The derivative get unstaked successfully
         Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
-        /// Staking ledger feeded
+        /// Staking ledger updated
         StakingLedgerUpdated(DerivativeIndex, StakingLedger<T::AccountId, BalanceOf<T>>),
         /// Sent staking.bond call to relaychain
         Bonding(
@@ -437,7 +437,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Unstake by exchange derivative for assets, the assets will not be avaliable immediately.
+        /// Unstake by exchange derivative for assets, the assets will not be available immediately.
         /// Instead, the request is recorded and pending for the nomination accounts on relaychain
         /// chain to do the `unbond` operation.
         ///
@@ -927,12 +927,6 @@ pub mod pallet {
             Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| ledger.active)
         }
 
-        fn unbonding_of(index: DerivativeIndex) -> BalanceOf<T> {
-            Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
-                ledger.total.saturating_sub(ledger.active)
-            })
-        }
-
         fn unbonded_of(index: DerivativeIndex) -> BalanceOf<T> {
             let current_era = Self::current_era();
             Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
@@ -1307,7 +1301,6 @@ pub mod pallet {
             let distributions = T::DistributionStrategy::get_unbond_distributions(
                 amounts,
                 total_amount,
-                Self::staking_ledger_cap(),
                 T::MinNominatorBond::get(),
             );
 
@@ -1324,16 +1317,14 @@ pub mod pallet {
                 return Ok(());
             }
 
-            let amounts: Vec<(DerivativeIndex, BalanceOf<T>, BalanceOf<T>)> =
-                T::DerivativeIndexList::get()
-                    .iter()
-                    .map(|&index| (index, Self::unbonding_of(index), Self::bonded_of(index)))
-                    .collect();
+            let amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
+                .iter()
+                .map(|&index| (index, Self::bonded_of(index)))
+                .collect();
             let distributions = T::DistributionStrategy::get_rebond_distributions(
                 amounts,
                 total_amount,
                 Self::staking_ledger_cap(),
-                T::MinNominatorBond::get(),
             );
 
             for (index, amount) in distributions.into_iter() {

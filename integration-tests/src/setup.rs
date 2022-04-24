@@ -12,14 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub use codec::Encode;
 use frame_support::traits::GenesisBuild;
-pub use orml_traits::{Change, GetByKey, MultiCurrency};
+
 use primitives::{tokens::*, AccountId, Balance};
-pub use sp_runtime::{
-    traits::{AccountIdConversion, BadOrigin, Convert, Zero},
-    DispatchError, DispatchResult, FixedPointNumber, MultiAddress,
-};
+use sp_runtime::MultiAddress;
 
 pub const ALICE: [u8; 32] = [0u8; 32];
 pub const BOB: [u8; 32] = [1u8; 32];
@@ -40,7 +36,6 @@ impl Default for ExtBuilder {
 }
 
 impl ExtBuilder {
-    #[allow(dead_code)]
     pub fn parachain_id(mut self, parachain_id: u32) -> Self {
         self.parachain_id = parachain_id;
         self

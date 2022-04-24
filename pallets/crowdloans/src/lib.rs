@@ -253,7 +253,7 @@ pub mod pallet {
     pub enum Error<T> {
         /// Vault is not in correct phase
         IncorrectVaultPhase,
-        /// Crowdloan ParaId aready exists
+        /// Crowdloan ParaId already exists
         CrowdloanAlreadyExists,
         /// Contribution is not enough
         InsufficientContribution,
@@ -427,7 +427,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Update an exisiting vault via a governance decision
+        /// Update an existing vault via a governance decision
         #[pallet::weight(<T as Config>::WeightInfo::update_vault())]
         #[transactional]
         pub fn update_vault(

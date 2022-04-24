@@ -145,7 +145,7 @@ fn add_market_ensures_that_market_does_not_exist() {
         assert_ok!(Loans::add_market(Origin::root(), SDOT, MARKET_MOCK));
         assert_noop!(
             Loans::add_market(Origin::root(), SDOT, MARKET_MOCK),
-            Error::<Test>::MarketAlredyExists
+            Error::<Test>::MarketAlreadyExists
         );
     })
 }

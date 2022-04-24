@@ -353,7 +353,7 @@ pub mod pallet {
         /// - `pool`: Currency pool, in which liquidity will be added
         /// - `liquidity_amounts`: Liquidity amounts to be added in pool
         /// - `lptoken_receiver`: Allocate any liquidity tokens to lptoken_receiver
-        /// - `lp_token_id`: Liquidity pool share representive token
+        /// - `lp_token_id`: Liquidity pool share representative token
         #[pallet::weight(T::AMMWeightInfo::create_pool())]
         #[transactional]
         pub fn create_pool(

@@ -11,7 +11,7 @@ LAUNCH_CONFIG_YAML	  							:= config.yml
 LAUNCH_CONFIG_JSON	  							:= config.json
 DOCKER_OVERRIDE_YAML                := docker-compose.override.yml
 DOCKER_TAG     											:= latest
-RELAY_DOCKER_TAG										:= v0.9.17
+RELAY_DOCKER_TAG										:= v0.9.19
 
 .PHONY: init
 init: submodules
