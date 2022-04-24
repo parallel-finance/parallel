@@ -32,11 +32,11 @@ decl_test_relay_chain! {
 }
 
 decl_test_parachain! {
-    pub struct Vanilla {
-        Runtime = vanilla_runtime::Runtime,
-        Origin = vanilla_runtime::Origin,
-        XcmpMessageHandler = vanilla_runtime ::XcmpQueue,
-        DmpMessageHandler = vanilla_runtime::DmpQueue,
+    pub struct Parallel {
+        Runtime = parallel_runtime::Runtime,
+        Origin = parallel_runtime::Origin,
+        XcmpMessageHandler = parallel_runtime ::XcmpQueue,
+        DmpMessageHandler = parallel_runtime::DmpQueue,
         new_ext = para_ext(2012),
     }
 }
@@ -56,7 +56,7 @@ decl_test_network! {
         relay_chain = PolkadotNet,
         parachains = vec![
             (1000, Statemint),
-            (2012, Vanilla),
+            (2012, Parallel),
         ],
     }
 }
@@ -135,5 +135,6 @@ pub fn polkadot_ext() -> sp_io::TestExternalities {
 }
 
 pub fn para_ext(parachain_id: u32) -> sp_io::TestExternalities {
-    ExtBuilder::default().parachain_id(parachain_id).build()
+    let ext = ExtBuilder { parachain_id };
+    ext.parachain_id(parachain_id).polkadot_build()
 }

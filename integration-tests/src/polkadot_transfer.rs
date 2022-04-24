@@ -16,8 +16,8 @@
 
 use cumulus_primitives_core::ParaId;
 use frame_support::assert_ok;
+use parallel_runtime::Assets;
 use primitives::{tokens::*, AccountId};
-use vanilla_runtime::Assets;
 use xcm::{latest::prelude::*, VersionedMultiAssets, VersionedMultiLocation};
 use xcm_emulator::TestExt;
 
@@ -41,20 +41,20 @@ fn transfer_from_relay_chain() {
         ));
     });
 
-    Vanilla::execute_with(|| {
-        assert_eq!(Assets::balance(DOT, &AccountId::from(BOB)), 999_904_000_000);
+    Parallel::execute_with(|| {
+        assert_eq!(Assets::balance(DOT, &AccountId::from(BOB)), 990_400_000_0);
         //dot fee in parallel is 96_000_000
     });
 }
 
 #[test]
 fn transfer_to_relay_chain() {
-    use vanilla_runtime::{Origin, XTokens};
-    Vanilla::execute_with(|| {
+    use parallel_runtime::{Origin, XTokens};
+    Parallel::execute_with(|| {
         assert_ok!(XTokens::transfer(
             Origin::signed(ALICE.into()),
             DOT,
-            dot(1f64),
+            dot(10f64),
             Box::new(xcm::VersionedMultiLocation::V1(MultiLocation::new(
                 1,
                 X1(Junction::AccountId32 {
@@ -71,7 +71,7 @@ fn transfer_to_relay_chain() {
         println!("parallel para account in relaychain:{:?}", para_acc);
         assert_eq!(
             polkadot_runtime::Balances::free_balance(&AccountId::from(BOB)),
-            999_834_059_328 //xcm fee in kusama is 165_940_672 ~=0.015$
+            995_172_288_96
         );
     });
 }
