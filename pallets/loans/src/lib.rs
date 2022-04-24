@@ -825,12 +825,12 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
             Self::accrue_interest(asset_id)?;
+            Self::update_reward_supply_index(asset_id)?;
+            Self::distribute_supplier_reward(asset_id, &who)?;
             Self::update_earned_stored(&who, asset_id)?;
-            // Formula
-            // underlying_token_amount = ptoken_amount * exchange_rate
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
-            let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount, false)?;
+            let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount)?;
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
 
             Ok(().into())
@@ -848,10 +848,11 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
             Self::accrue_interest(asset_id)?;
+            Self::update_reward_supply_index(asset_id)?;
+            Self::distribute_supplier_reward(asset_id, &who)?;
             Self::update_earned_stored(&who, asset_id)?;
-
             let deposits = AccountDeposits::<T>::get(asset_id, &who);
-            let redeem_amount = Self::do_redeem(&who, asset_id, deposits.voucher_balance, false)?;
+            let redeem_amount = Self::do_redeem(&who, asset_id, deposits.voucher_balance)?;
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
 
             Ok(().into())
@@ -916,6 +917,8 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
             Self::accrue_interest(asset_id)?;
+            Self::update_reward_borrow_index(asset_id)?;
+            Self::distribute_borrower_reward(asset_id, &who)?;
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             Self::do_repay_borrow(&who, asset_id, account_borrows, repay_amount)?;
 
@@ -936,6 +939,8 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
             Self::accrue_interest(asset_id)?;
+            Self::update_reward_borrow_index(asset_id)?;
+            Self::distribute_borrower_reward(asset_id, &who)?;
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             Self::do_repay_borrow(&who, asset_id, account_borrows, account_borrows)?;
 
@@ -1127,7 +1132,7 @@ pub mod pallet {
             Self::ensure_active_market(asset_id)?;
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
-            let redeem_amount = Self::do_redeem(&from, asset_id, voucher_amount, true)?;
+            let redeem_amount = Self::do_redeem(&from, asset_id, voucher_amount)?;
             T::Assets::transfer(asset_id, &from, &receiver, redeem_amount, false)?;
             Self::deposit_event(Event::<T>::IncentiveReservesReduced(
                 receiver,
@@ -1325,15 +1330,9 @@ impl<T: Config> Pallet<T> {
         who: &T::AccountId,
         asset_id: AssetIdOf<T>,
         voucher_amount: BalanceOf<T>,
-        from_incentive_reserve: bool,
     ) -> Result<BalanceOf<T>, DispatchError> {
         Self::redeem_allowed(asset_id, who, voucher_amount)?;
 
-        // update supply index before modify supply balance.
-        if !from_incentive_reserve {
-            Self::update_reward_supply_index(asset_id)?;
-            Self::distribute_supplier_reward(asset_id, who)?;
-        }
         let exchange_rate = Self::exchange_rate(asset_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
 
@@ -1388,10 +1387,6 @@ impl<T: Config> Pallet<T> {
         if account_borrows < repay_amount {
             return Err(Error::<T>::TooMuchRepay.into());
         }
-
-        Self::update_reward_borrow_index(asset_id)?;
-        Self::distribute_borrower_reward(asset_id, borrower)?;
-
         T::Assets::transfer(asset_id, borrower, &Self::account_id(), repay_amount, false)?;
         let account_borrows_new = account_borrows
             .checked_sub(repay_amount)
