@@ -1321,11 +1321,8 @@ pub mod pallet {
                 .iter()
                 .map(|&index| (index, Self::bonded_of(index)))
                 .collect();
-            let distributions = T::DistributionStrategy::get_rebond_distributions(
-                amounts,
-                total_amount,
-                Self::staking_ledger_cap(),
-            );
+            let distributions =
+                T::DistributionStrategy::get_rebond_distributions(amounts, total_amount);
 
             for (index, amount) in distributions.into_iter() {
                 Self::do_rebond(index, amount)?;
