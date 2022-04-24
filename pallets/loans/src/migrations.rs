@@ -19,6 +19,9 @@ pub mod v3 {
     use crate::{Config, StorageVersion, Weight};
     use frame_support::{log, traits::Get};
 
+    pub const DEFAULT_LIQUIDATE_INCENTIVE_RESERVED_FACTOR: Ratio = Ratio::from_percent(3);
+    pub const DEFAULT_LIQUIDATION_OFFSET: Ratio = Ratio::from_percent(5);
+
     #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
     #[derive(Clone, PartialEq, codec::Decode, codec::Encode, RuntimeDebug, TypeInfo)]
     pub struct V2Market<Balance> {
@@ -72,7 +75,7 @@ pub mod v3 {
                     supply_cap: market.supply_cap,
                     collateral_factor: market.collateral_factor,
                     liquidation_threshold: (market.collateral_factor
-                        + market.collateral_factor * DEFAULT_LIQUIDATE_THRESHOLD),
+                        + market.collateral_factor * DEFAULT_LIQUIDATION_OFFSET),
                     reserve_factor: market.reserve_factor,
                     close_factor: market.close_factor,
                     liquidate_incentive_reserved_factor:

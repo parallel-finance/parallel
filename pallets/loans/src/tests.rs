@@ -1112,7 +1112,7 @@ fn reward_calculation_after_liquidate_borrow_works() {
         assert_eq!(almost_equal(Loans::reward_accured(BOB), dollar(16)), true);
 
         MockPriceFeeder::set_price(KSM, 2.into());
-        // since we add loose_collator_factor,with KSM price as 2 alice not shortfall yet.
+        // since we set liquidate_threshold more than collateral_factor,with KSM price as 2 alice not shortfall yet.
         // so we can not liquidate_borrow here
         assert_noop!(
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, dollar(25), DOT),
@@ -1154,7 +1154,7 @@ fn reward_calculation_after_liquidate_borrow_works() {
             true
         );
         assert_eq!(
-            almost_equal(Loans::reward_accured(BOB), 37501249694983,),
+            almost_equal(Loans::reward_accured(BOB), 37512499694974,),
             true
         );
     })

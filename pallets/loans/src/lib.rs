@@ -73,8 +73,6 @@ pub const MIN_INTEREST_CALCULATING_INTERVAL: u64 = 100; // 100 seconds
 
 pub const MAX_EXCHANGE_RATE: u128 = 1_000_000_000_000_000_000; // 1
 pub const MIN_EXCHANGE_RATE: u128 = 20_000_000_000_000_000; // 0.02
-pub const DEFAULT_LIQUIDATE_INCENTIVE_RESERVED_FACTOR: Ratio = Ratio::from_percent(3);
-pub const DEFAULT_LIQUIDATE_THRESHOLD: Ratio = Ratio::from_percent(3);
 
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -832,7 +830,7 @@ pub mod pallet {
             // underlying_token_amount = ptoken_amount * exchange_rate
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
-            let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount)?;
+            let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount, false)?;
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
 
             Ok(().into())
@@ -853,7 +851,7 @@ pub mod pallet {
             Self::update_earned_stored(&who, asset_id)?;
 
             let deposits = AccountDeposits::<T>::get(asset_id, &who);
-            let redeem_amount = Self::do_redeem(&who, asset_id, deposits.voucher_balance)?;
+            let redeem_amount = Self::do_redeem(&who, asset_id, deposits.voucher_balance, false)?;
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
 
             Ok(().into())
@@ -1127,11 +1125,9 @@ pub mod pallet {
             let receiver = T::Lookup::lookup(receiver)?;
             let from = Self::incentive_reward_account_id()?;
             Self::ensure_active_market(asset_id)?;
-            Self::accrue_interest(asset_id)?;
-            Self::update_earned_stored(&from, asset_id)?;
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
-            let redeem_amount = Self::do_redeem(&from, asset_id, voucher_amount)?;
+            let redeem_amount = Self::do_redeem(&from, asset_id, voucher_amount, true)?;
             T::Assets::transfer(asset_id, &from, &receiver, redeem_amount, false)?;
             Self::deposit_event(Event::<T>::IncentiveReservesReduced(
                 receiver,
@@ -1329,13 +1325,15 @@ impl<T: Config> Pallet<T> {
         who: &T::AccountId,
         asset_id: AssetIdOf<T>,
         voucher_amount: BalanceOf<T>,
+        from_incentive_reserve: bool,
     ) -> Result<BalanceOf<T>, DispatchError> {
         Self::redeem_allowed(asset_id, who, voucher_amount)?;
 
         // update supply index before modify supply balance.
-        Self::update_reward_supply_index(asset_id)?;
-        Self::distribute_supplier_reward(asset_id, who)?;
-
+        if !from_incentive_reserve {
+            Self::update_reward_supply_index(asset_id)?;
+            Self::distribute_supplier_reward(asset_id, who)?;
+        }
         let exchange_rate = Self::exchange_rate(asset_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
 
@@ -1568,7 +1566,7 @@ impl<T: Config> Pallet<T> {
             collateral_asset_id,
             repay_amount,
             real_collateral_underlying_amount,
-            market.liquidate_incentive_reserved_factor,
+            &market,
         )?;
 
         Ok(())
@@ -1582,7 +1580,7 @@ impl<T: Config> Pallet<T> {
         collateral_asset_id: AssetIdOf<T>,
         repay_amount: BalanceOf<T>,
         collateral_underlying_amount: BalanceOf<T>,
-        incentive_ratio: Ratio,
+        market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
         log::trace!(
             target: "loans::liquidated_transfer",
@@ -1649,7 +1647,12 @@ impl<T: Config> Pallet<T> {
                 Ok(())
             },
         )?;
-        let incentive_reserved_amount = incentive_ratio.mul_floor(collateral_amount);
+        let incentive_reserved_amount = market.liquidate_incentive_reserved_factor.mul_floor(
+            FixedU128::from_inner(collateral_amount)
+                .checked_div(&market.liquidate_incentive)
+                .map(|r| r.into_inner())
+                .ok_or(ArithmeticError::Underflow)?,
+        );
         // increase liquidator's voucher_balance
         AccountDeposits::<T>::try_mutate(
             collateral_asset_id,
