@@ -13,7 +13,7 @@ services:
   oracle-client:
     image: parallelfinance/oracle-client:latest
     volumes:
-      - ./config:/config:ro
+      - ./apps-config/oracle/config:/config:ro
     command: start -m 12000 -w ws://parachain-${PARA_ID}-0:9944
     restart: always
   stake-client-claim:
