@@ -165,7 +165,7 @@ pub mod pallet {
         /// Market does not exist
         MarketDoesNotExist,
         /// Market already exists
-        MarketAlredyExists,
+        MarketAlreadyExists,
         /// New markets must have a pending state
         NewMarketMustHavePendingState,
         /// Upper bound of supplying is exceeded
@@ -461,7 +461,7 @@ pub mod pallet {
             T::UpdateOrigin::ensure_origin(origin)?;
             ensure!(
                 !Markets::<T>::contains_key(asset_id),
-                Error::<T>::MarketAlredyExists
+                Error::<T>::MarketAlreadyExists
             );
             ensure!(
                 market.state == MarketState::Pending,
@@ -852,7 +852,7 @@ pub mod pallet {
             Self::accrue_interest(asset_id)?;
             Self::borrow_allowed(asset_id, &who, borrow_amount)?;
 
-            // update borrow index after accureInterest.
+            // update borrow index after accrue interest.
             Self::update_reward_borrow_index(asset_id)?;
             Self::distribute_borrower_reward(asset_id, &who)?;
 
@@ -1476,7 +1476,7 @@ impl<T: Config> Pallet<T> {
             collateral_underlying_amount
         );
 
-        // update borrow index after accureInterest.
+        // update borrow index after accrue interest.
         Self::update_reward_borrow_index(liquidation_asset_id)?;
         Self::distribute_borrower_reward(liquidation_asset_id, liquidator)?;
 
@@ -1593,7 +1593,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    /// Make sure there is enough cash avaliable in the pool
+    /// Make sure there is enough cash available in the pool
     fn ensure_enough_cash(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
         let reducible_cash = Self::get_total_cash(asset_id)
             .checked_sub(Self::total_reserves(asset_id))
@@ -1663,7 +1663,7 @@ impl<T: Config> Pallet<T> {
     // This particular price makes it easy to calculate the value ,
     // because we don't have to consider decimal for each asset. ref: get_asset_value
     //
-    // Reutrns `Err` if the oracle price not ready
+    // Returns `Err` if the oracle price not ready
     pub fn get_price(asset_id: AssetIdOf<T>) -> Result<Price, DispatchError> {
         let (price, _) =
             T::PriceFeeder::get_price(&asset_id).ok_or(Error::<T>::PriceOracleNotReady)?;

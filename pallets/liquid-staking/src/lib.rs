@@ -197,7 +197,7 @@ pub mod pallet {
         Staked(T::AccountId, BalanceOf<T>),
         /// The derivative get unstaked successfully
         Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
-        /// Staking ledger feeded
+        /// Staking ledger updated
         StakingLedgerUpdated(DerivativeIndex, StakingLedger<T::AccountId, BalanceOf<T>>),
         /// Sent staking.bond call to relaychain
         Bonding(
@@ -437,7 +437,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Unstake by exchange derivative for assets, the assets will not be avaliable immediately.
+        /// Unstake by exchange derivative for assets, the assets will not be available immediately.
         /// Instead, the request is recorded and pending for the nomination accounts on relaychain
         /// chain to do the `unbond` operation.
         ///

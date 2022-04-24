@@ -524,7 +524,7 @@ fn multi_materialize_cap_limit_works() {
         // CapOrigin should clean the accumulated cap value
         Bridge::clean_cap_accumulated_value(Origin::signed(ALICE), EHKO, BridgeType::BridgeIn)
             .unwrap();
-        // Succed after the accumulated cap value is cleaned
+        // Succeed after the accumulated cap value is cleaned
         Bridge::materialize(
             Origin::signed(CHARLIE),
             ETH,

@@ -178,7 +178,7 @@
 - use UpdateOrigin for non-transact call (#748)
 - add update_reserve_factor call (#739)
 - burn fees in ump_transact instead (#733)
-- Goverance xcm weight in Liquidstaking (#735)
+- Governance xcm weight in Liquidstaking (#735)
 
 ## 2021.10.17
 
@@ -203,7 +203,7 @@
 ## 2021.10.13
 
 - Add market cap in launch script (#692)
-- Increase the accure interest interval (#689)
+- Increase the accrue interest interval (#689)
 
 ## 2021.10.12
 
@@ -329,7 +329,7 @@
 
 ## 2021.06.06
 
-- Use timestamp to accure interest (#186)
+- Use timestamp to accrue interest (#186)
 
 ## 2021.06.01
 
