@@ -120,11 +120,15 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
     }
 
     pub fn set_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
-        self.total_stake_amount.reserved = self
+        let new_reserved_stake_amount = self
             .total_stake_amount
             .reserved
             .checked_add(&amount)
             .ok_or(ArithmeticError::Overflow)?;
+        if new_reserved_stake_amount > self.total_stake_amount.total {
+            return Err(ArithmeticError::Overflow.into());
+        }
+        self.total_stake_amount.reserved = new_reserved_stake_amount;
         Ok(())
     }
 
@@ -138,11 +142,15 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
     }
 
     pub fn set_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
-        self.total_unstake_amount.reserved = self
+        let new_reserved_unstake_amount = self
             .total_unstake_amount
             .reserved
             .checked_add(&amount)
             .ok_or(ArithmeticError::Overflow)?;
+        if new_reserved_unstake_amount > self.total_unstake_amount.total {
+            return Err(ArithmeticError::Overflow.into());
+        }
+        self.total_unstake_amount.reserved = new_reserved_unstake_amount;
         Ok(())
     }
 
