@@ -8,8 +8,7 @@ use crate::{
 };
 use frame_support::{assert_noop, assert_ok};
 use primitives::Rate;
-use sp_runtime::traits::Saturating;
-use sp_runtime::FixedPointNumber;
+use sp_runtime::{traits::Saturating, FixedPointNumber};
 
 #[test]
 fn liquidate_borrow_allowed_works() {
