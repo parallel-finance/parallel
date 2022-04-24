@@ -1,0 +1,385 @@
+{
+    "assets": [
+        {
+            "asset_id": 1,
+            "symbol": "PARA",
+            "decimal": 12
+        },
+        {
+            "asset_id": 101,
+            "symbol": "DOT",
+            "decimal": 10
+        },
+        {
+            "asset_id": 200060013,
+            "symbol": "CDOT_6_13",
+            "decimal": 10
+        },
+        {
+            "asset_id": 200070014,
+            "symbol": "CDOT_7_14",
+            "decimal": 10
+        },
+        {
+            "asset_id": 6002,
+            "symbol": "LP_DOT_PARA",
+            "decimal": 12
+        },
+        {
+            "asset_id": 6004,
+            "symbol": "LP_DOT_CDOT_6_13",
+            "decimal": 12
+        },
+        {
+            "asset_id": 6005,
+            "symbol": "LP_DOT_CDOT_7_14",
+            "decimal": 12
+        },
+        {
+            "asset_id": 6006,
+            "symbol": "LP_PARA_CDOT_6_13",
+            "decimal": 12
+        },
+        {
+            "asset_id": 102,
+            "symbol": "USDT"
+        },
+        {
+            "asset_id": 6688,
+            "symbol": "USD"
+        }
+    ],
+    "sources": [
+        {
+            "asset_pair": [
+                102,
+                6688
+            ],
+            "impl": {
+                "type": "CEX"
+            }
+        },
+        {
+            "asset_pair": [
+                101,
+                6688
+            ],
+            "impl": {
+                "type": "CEX"
+            }
+        },
+        {
+            "asset_pair": [
+                1,
+                101
+            ],
+            "impl": {
+                "type": "AMM",
+                "interval": 300
+            }
+        },
+        {
+            "asset_pair": [
+                200060013,
+                101
+            ],
+            "impl": {
+                "type": "AMM",
+                "interval": 300
+            }
+        },
+        {
+            "asset_pair": [
+                200060013,
+                1
+            ],
+            "impl": {
+                "type": "AMM",
+                "interval": 300
+            }
+        },
+        {
+            "asset_pair": [
+                200070014,
+                101
+            ],
+            "impl": {
+                "type": "AMM",
+                "interval": 300
+            }
+        },
+        {
+            "asset_pair": [
+                6002,
+                101
+            ],
+            "impl": {
+                "type": "LPAMM",
+                "base_asset_id": 101,
+                "quote_asset_id": 1
+            }
+        },
+        {
+            "asset_pair": [
+                6004,
+                101
+            ],
+            "impl": {
+                "type": "LPAMM",
+                "base_asset_id": 101,
+                "quote_asset_id": 200060013
+            }
+        },
+        {
+            "asset_pair": [
+                6005,
+                101
+            ],
+            "impl": {
+                "type": "LPAMM",
+                "base_asset_id": 101,
+                "quote_asset_id": 200070014
+            }
+        },
+        {
+            "asset_pair": [
+                6006,
+                1
+            ],
+            "impl": {
+                "type": "LPAMM",
+                "base_asset_id": 1,
+                "quote_asset_id": 200060013
+            }
+        }
+    ],
+    "routes": [
+        {
+            "asset_pair": [
+                102,
+                6688
+            ],
+            "hops": [
+                [
+                    102,
+                    6688
+                ]
+            ]
+        },
+        {
+            "asset_pair": [
+                101,
+                6688
+            ],
+            "hops": [
+                [
+                    101,
+                    6688
+                ]
+            ]
+        },
+        {
+            "asset_pair": [
+                1,
+                6688
+            ],
+            "hops": [
+                [
+                    1,
+                    101
+                ],
+                [
+                    101,
+                    6688
+                ]
+            ]
+        },
+        {
+            "asset_pair": [
+                200060013,
+                6688
+            ],
+            "hops": [
+                [
+                    200060013,
+                    101
+                ],
+                [
+                    101,
+                    6688
+                ]
+            ]
+        },
+        {
+            "asset_pair": [
+                200070014,
+                6688
+            ],
+            "hops": [
+                [
+                    200070014,
+                    101
+                ],
+                [
+                    101,
+                    6688
+                ]
+            ]
+        },
+        {
+            "asset_pair": [
+                6002,
+                6688
+            ],
+            "hops": [
+                [
+                    6002,
+                    101
+                ],
+                [
+                    101,
+                    6688
+                ]
+            ]
+        },
+        {
+            "asset_pair": [
+                6004,
+                6688
+            ],
+            "hops": [
+                [
+                    6004,
+                    101
+                ],
+                [
+                    101,
+                    6688
+                ]
+            ]
+        },
+        {
+            "asset_pair": [
+                6005,
+                6688
+            ],
+            "hops": [
+                [
+                    6005,
+                    101
+                ],
+                [
+                    101,
+                    6688
+                ]
+            ]
+        },
+        {
+            "asset_pair": [
+                6006,
+                6688
+            ],
+            "hops": [
+                [
+                    6006,
+                    1
+                ],
+                [
+                    1,
+                    101
+                ],
+                [
+                    101,
+                    6688
+                ]
+            ]
+        }
+    ],
+    "endpoints": [
+        {
+            "asset_id": 102,
+            "data_source": "COINBASE",
+            "url": "https://api.coinbase.com/v2/exchange-rates?currency=usdt"
+        },
+        {
+            "asset_id": 102,
+            "data_source": "KRAKEN",
+            "url": "https://api.kraken.com/0/public/Ticker?pair=USDTUSD"
+        },
+        {
+            "asset_id": 102,
+            "data_source": "BITFINEX",
+            "url": "https://api-pub.bitfinex.com/v2/ticker/tUSTUSD"
+        },
+        {
+            "asset_id": 102,
+            "data_source": "BITTREX",
+            "url": "https://api.bittrex.com/v3/markets/USDT-USD/ticker"
+        },
+        {
+            "asset_id": 101,
+            "data_source": "COINBASE",
+            "url": "https://api.coinbase.com/v2/exchange-rates?currency=dot"
+        },
+        {
+            "asset_id": 101,
+            "data_source": "KRAKEN",
+            "url": "https://api.kraken.com/0/public/Ticker?pair=DOTUSD"
+        },
+        {
+            "asset_id": 101,
+            "data_source": "BITFINEX",
+            "url": "https://api-pub.bitfinex.com/v2/ticker/tDOTUSD"
+        },
+        {
+            "asset_id": 101,
+            "data_source": "BITTREX",
+            "url": "https://api.bittrex.com/v3/markets/DOT-USD/ticker"
+        },
+        {
+            "asset_id": 101,
+            "data_source": "COINCAP",
+            "url": "https://api.coincap.io/v2/assets/polkadot"
+        },
+        {
+            "asset_id": 201,
+            "data_source": "COINBASE",
+            "url": "https://api.coinbase.com/v2/exchange-rates?currency=usdt"
+        },
+        {
+            "asset_id": 201,
+            "data_source": "KRAKEN",
+            "url": "https://api.kraken.com/0/public/Ticker?pair=USDTUSD"
+        },
+        {
+            "asset_id": 201,
+            "data_source": "BITFINEX",
+            "url": "https://api-pub.bitfinex.com/v2/ticker/tUSTUSD"
+        },
+        {
+            "asset_id": 201,
+            "data_source": "BITTREX",
+            "url": "https://api.bittrex.com/v3/markets/USDT-USD/ticker"
+        },
+        {
+            "asset_id": 202,
+            "data_source": "COINBASE",
+            "url": "https://api.coinbase.com/v2/exchange-rates?currency=usdc"
+        },
+        {
+            "asset_id": 202,
+            "data_source": "KRAKEN",
+            "url": "https://api.kraken.com/0/public/Ticker?pair=USDCUSD"
+        },
+        {
+            "asset_id": 202,
+            "data_source": "BITFINEX",
+            "url": "https://api-pub.bitfinex.com/v2/ticker/tUDCUSD"
+        },
+        {
+            "asset_id": 202,
+            "data_source": "BITTREX",
+            "url": "https://api.bittrex.com/v3/markets/USDC-USD/ticker"
+        }
+    ]
+}
