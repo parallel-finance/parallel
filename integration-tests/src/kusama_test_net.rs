@@ -32,11 +32,11 @@ decl_test_relay_chain! {
 }
 
 decl_test_parachain! {
-    pub struct Vanilla {
-        Runtime = vanilla_runtime::Runtime,
-        Origin = vanilla_runtime::Origin,
-        XcmpMessageHandler = vanilla_runtime ::XcmpQueue,
-        DmpMessageHandler = vanilla_runtime::DmpQueue,
+    pub struct Heiko {
+        Runtime = heiko_runtime::Runtime,
+        Origin = heiko_runtime::Origin,
+        XcmpMessageHandler = heiko_runtime ::XcmpQueue,
+        DmpMessageHandler = heiko_runtime::DmpQueue,
         new_ext = para_ext(2085),
     }
 }
@@ -56,7 +56,7 @@ decl_test_network! {
         relay_chain = KusamaNet,
         parachains = vec![
             (1000, Statemine),
-            (2085, Vanilla),
+            (2085, Heiko),
         ],
     }
 }
