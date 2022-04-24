@@ -47,11 +47,11 @@ fn double_liquidity_correct_liq_ratio_should_work() {
         ));
 
         let total_liquidity_tokens_after_double = Assets::total_issuance(SAMPLE_LP_TOKEN);
-        let liquidity_recieved = total_liquidity_tokens_after_double - total_liquidity_tokens;
+        let liquidity_received = total_liquidity_tokens_after_double - total_liquidity_tokens;
 
-        // recieved liquidity should be half of total liquidity
+        // received liquidity should be half of total liquidity
         assert_eq!(
-            liquidity_recieved as f64 / total_liquidity_tokens_after_double as f64,
+            liquidity_received as f64 / total_liquidity_tokens_after_double as f64,
             0.5
         );
     })
@@ -1099,7 +1099,7 @@ fn do_add_liquidity_large_amounts_should_work() {
 #[test]
 fn handling_fees_should_work() {
     new_test_ext().execute_with(|| {
-        // Pool gets created and BOB should recieve all of the LP tokens (minus the min amount)
+        // Pool gets created and BOB should receive all of the LP tokens (minus the min amount)
         //
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),    // Origin
@@ -1125,14 +1125,14 @@ fn handling_fees_should_work() {
         );
 
         // now we withdraw the fees and at this point we should mint tokens
-        // for the protcol proportional to 1/6 of the total fees generated
+        // for the protocol proportional to 1/6 of the total fees generated
 
         // we know that 18_000 fees should be collected and ~3_000 are for the protocol
         let total_fees_collected = 6_000_000.0 * 0.003;
         let fees_to_be_collected_by_protocol = total_fees_collected * (1.0 / 6.0);
         assert_eq!(fees_to_be_collected_by_protocol, 3000.0);
 
-        // expand the math to calculate exact amout of fees to dilute lp total supply
+        // expand the math to calculate exact amount of fees to dilute lp total supply
         let prop_of_total_fee = 1.0 / 6.0;
         let scalar = (1.0 / prop_of_total_fee) - 1.0;
         assert_eq!(scalar, 5.0);
@@ -1160,7 +1160,7 @@ fn handling_fees_should_work() {
         ));
 
         // PROTOCOL_FEE_RECEIVER should have slightly less then 3_000 total rewards
-        // split bewteen the two pools - the small difference is due to rounding errors
+        // split between the two pools - the small difference is due to rounding errors
         assert_eq!(Assets::balance(DOT, PROTOCOL_FEE_RECEIVER), 1499);
 
         assert_eq!(Assets::balance(SDOT, PROTOCOL_FEE_RECEIVER), 1498);
