@@ -113,9 +113,13 @@ fn full_workflow_works_as_expected() {
         );
         // 3 dollar reserved in our incentive reward account
         let incentive_reward_account = Loans::incentive_reward_account_id().unwrap();
+        println!(
+            "incentive reserve account:{:?}",
+            incentive_reward_account.clone()
+        );
         assert_eq!(
             Loans::exchange_rate(DOT).saturating_mul_int(
-                Loans::account_deposits(DOT, incentive_reward_account).voucher_balance
+                Loans::account_deposits(DOT, incentive_reward_account.clone()).voucher_balance
             ),
             dollar(3),
         );
