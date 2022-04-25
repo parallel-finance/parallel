@@ -15,6 +15,7 @@ jobs:
          run: |
            sudo chown -R $USER:$USER $GITHUB_WORKSPACE
   srtool:
+    needs: cleanup
     if: github.repository == 'parallel-finance/parallel'
     runs-on: self-hosted
     strategy:
