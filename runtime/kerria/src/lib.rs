@@ -2135,7 +2135,6 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_crowdloans, Crowdloans);
             list_benchmark!(list, extra, pallet_xcm_helper, XcmHelper);
             list_benchmark!(list, extra, pallet_farming, Farming);
-
             let storage_info = AllPalletsWithSystem::storage_info();
 
             (list, storage_info)

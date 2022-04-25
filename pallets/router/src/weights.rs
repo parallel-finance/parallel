@@ -58,7 +58,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
         (315_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(9 as Weight))
             .saturating_add(T::DbWeight::get().writes(9 as Weight))
-    }
+    }// AMM instance initialization
     fn swap_tokens_for_exact_tokens() -> Weight {
         (315_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(9 as Weight))
