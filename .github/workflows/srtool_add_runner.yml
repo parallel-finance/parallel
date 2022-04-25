@@ -15,7 +15,6 @@ jobs:
          run: |
            sudo chown -R $USER:$USER $GITHUB_WORKSPACE
   srtool:
-    needs: cleanup
     if: github.repository == 'parallel-finance/parallel'
     runs-on: self-hosted
     strategy:
@@ -30,6 +29,7 @@ jobs:
           chain: ${{ matrix.chain }}
           tag: 1.57.0
           runtime_dir: runtime/${{ matrix.chain }}
+          needs: cleanup
       - name: Summary
         run: |
           echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.chain }}-srtool-digest.json
