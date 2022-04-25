@@ -1,0 +1,221 @@
+name: Srtool build
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "v*"
+
+jobs:
+  srtool:
+    if: github.repository == 'parallel-finance/parallel'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chain: ["heiko", "parallel", "vanilla", "kerria"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Srtool build
+        id: srtool_build
+        uses: chevdor/srtool-actions@v0.3.0
+        with:
+          chain: ${{ matrix.chain }}
+          tag: 1.57.0
+          runtime_dir: runtime/${{ matrix.chain }}
+      - name: Summary
+        run: |
+          echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.chain }}-srtool-digest.json
+          cat ${{ matrix.chain }}-srtool-digest.json
+          echo "Runtime location: ${{ steps.srtool_build.outputs.wasm }}"
+      - name: Install subwasm
+        run: |
+          wget https://github.com/chevdor/subwasm/releases/download/v0.16.1/subwasm_linux_amd64_v0.16.1.deb
+          sudo dpkg -i subwasm_linux_amd64_v0.16.1.deb
+          subwasm --version
+      - name: Show Runtime information
+        run: |
+          subwasm info ${{ steps.srtool_build.outputs.wasm }}
+          subwasm info ${{ steps.srtool_build.outputs.wasm_compressed }}
+          subwasm --json info ${{ steps.srtool_build.outputs.wasm }} > ${{ matrix.chain }}-info.json
+          subwasm --json info ${{ steps.srtool_build.outputs.wasm_compressed }} > ${{ matrix.chain }}-info_compressed.json
+      - name: Extract the metadata
+        run: |
+          subwasm meta ${{ steps.srtool_build.outputs.wasm }}
+          subwasm --json meta ${{ steps.srtool_build.outputs.wasm }} > ${{ matrix.chain }}-metadata.json
+      - name: Diff with heiko live runtime
+        if: matrix.chain == 'heiko'
+        run: |
+          subwasm get wss://heiko-rpc.parallel.fi:443 --output heiko-live.wasm
+          subwasm diff ${{ steps.srtool_build.outputs.wasm_compressed }} heiko-live.wasm | tee ${{ matrix.chain }}-diff.txt
+      - name: Diff with parallel live runtime
+        if: matrix.chain == 'parallel'
+        run: |
+          subwasm get wss://rpc.parallel.fi:443 --output parallel-live.wasm
+          subwasm diff ${{ steps.srtool_build.outputs.wasm_compressed }} parallel-live.wasm | tee ${{ matrix.chain }}-diff.txt
+      - name: Archive Runtime
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.chain }}-runtime-${{ github.sha }}
+          path: |
+            ${{ matrix.chain }}-info.json
+            ${{ matrix.chain }}-info_compressed.json
+            ${{ matrix.chain }}-srtool-digest.json
+            ${{ matrix.chain }}-metadata.json
+            ${{ matrix.chain }}-diff.txt
+            ${{ steps.srtool_build.outputs.wasm }}
+            ${{ steps.srtool_build.outputs.wasm_compressed }}
+      - name: Get Runtime Version
+        if: startsWith(github.ref, 'refs/tags/')
+        id: runtime_version
+        run: echo ::set-output name=version::$(cat runtime/${{ matrix.chain }}/src/lib.rs | grep spec_version | tr -d ', ' | cut -d':' -f2)
+      - name: Get Compressed Runtime Blake2-256 Hash
+        if: startsWith(github.ref, 'refs/tags/')
+        id: runtime_blake2_256_hash
+        run: echo ::set-output name=hash::$(cat ${{ matrix.chain }}-info_compressed.json | jq '.blake2_256' -r)
+      - name: Get GIT Tag
+        if: startsWith(github.ref, 'refs/tags/')
+        id: git_tag
+        run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@master
+        with:
+          files: |
+            ${{ matrix.chain }}-info_compressed.json
+            ${{ steps.srtool_build.outputs.wasm_compressed }}
+          draft: false
+          prerelease: false
+          name: Parallel ${{ steps.git_tag.outputs.tag }}
+          append_body: true
+          body: |
+            `${{ matrix.chain }}_runtime-v${{ steps.runtime_version.outputs.version }}.compact.compressed.wasm - ${{ steps.runtime_blake2_256_hash.outputs.hash }}`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  postrelease:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: srtool
+    steps:
+      - name: Get GIT Tag
+        id: git_tag
+        run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
+      - name: Discord notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_USERNAME: parallel-release-bot
+          DISCORD_AVATAR: https://avatars.githubusercontent.com/u/79623569
+        uses: Ilshidur/action-discord@master
+        with:
+          args: "Parallel ${{ steps.git_tag.outputs.tag }} has just been released! Go check it out: https://github.com/${{ github.repository }}/releases/tag/${{ steps.git_tag.outputs.tag }}"name: Srtool build
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "v*"
+
+jobs:
+  srtool:
+    if: github.repository == 'parallel-finance/parallel'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chain: ["heiko", "parallel", "vanilla", "kerria"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Srtool build
+        id: srtool_build
+        uses: chevdor/srtool-actions@v0.3.0
+        with:
+          chain: ${{ matrix.chain }}
+          tag: 1.57.0
+          runtime_dir: runtime/${{ matrix.chain }}
+      - name: Summary
+        run: |
+          echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.chain }}-srtool-digest.json
+          cat ${{ matrix.chain }}-srtool-digest.json
+          echo "Runtime location: ${{ steps.srtool_build.outputs.wasm }}"
+      - name: Install subwasm
+        run: |
+          wget https://github.com/chevdor/subwasm/releases/download/v0.16.1/subwasm_linux_amd64_v0.16.1.deb
+          sudo dpkg -i subwasm_linux_amd64_v0.16.1.deb
+          subwasm --version
+      - name: Show Runtime information
+        run: |
+          subwasm info ${{ steps.srtool_build.outputs.wasm }}
+          subwasm info ${{ steps.srtool_build.outputs.wasm_compressed }}
+          subwasm --json info ${{ steps.srtool_build.outputs.wasm }} > ${{ matrix.chain }}-info.json
+          subwasm --json info ${{ steps.srtool_build.outputs.wasm_compressed }} > ${{ matrix.chain }}-info_compressed.json
+      - name: Extract the metadata
+        run: |
+          subwasm meta ${{ steps.srtool_build.outputs.wasm }}
+          subwasm --json meta ${{ steps.srtool_build.outputs.wasm }} > ${{ matrix.chain }}-metadata.json
+      - name: Diff with heiko live runtime
+        if: matrix.chain == 'heiko'
+        run: |
+          subwasm get wss://heiko-rpc.parallel.fi:443 --output heiko-live.wasm
+          subwasm diff ${{ steps.srtool_build.outputs.wasm_compressed }} heiko-live.wasm | tee ${{ matrix.chain }}-diff.txt
+      - name: Diff with parallel live runtime
+        if: matrix.chain == 'parallel'
+        run: |
+          subwasm get wss://rpc.parallel.fi:443 --output parallel-live.wasm
+          subwasm diff ${{ steps.srtool_build.outputs.wasm_compressed }} parallel-live.wasm | tee ${{ matrix.chain }}-diff.txt
+      - name: Archive Runtime
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.chain }}-runtime-${{ github.sha }}
+          path: |
+            ${{ matrix.chain }}-info.json
+            ${{ matrix.chain }}-info_compressed.json
+            ${{ matrix.chain }}-srtool-digest.json
+            ${{ matrix.chain }}-metadata.json
+            ${{ matrix.chain }}-diff.txt
+            ${{ steps.srtool_build.outputs.wasm }}
+            ${{ steps.srtool_build.outputs.wasm_compressed }}
+      - name: Get Runtime Version
+        if: startsWith(github.ref, 'refs/tags/')
+        id: runtime_version
+        run: echo ::set-output name=version::$(cat runtime/${{ matrix.chain }}/src/lib.rs | grep spec_version | tr -d ', ' | cut -d':' -f2)
+      - name: Get Compressed Runtime Blake2-256 Hash
+        if: startsWith(github.ref, 'refs/tags/')
+        id: runtime_blake2_256_hash
+        run: echo ::set-output name=hash::$(cat ${{ matrix.chain }}-info_compressed.json | jq '.blake2_256' -r)
+      - name: Get GIT Tag
+        if: startsWith(github.ref, 'refs/tags/')
+        id: git_tag
+        run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@master
+        with:
+          files: |
+            ${{ matrix.chain }}-info_compressed.json
+            ${{ steps.srtool_build.outputs.wasm_compressed }}
+          draft: false
+          prerelease: false
+          name: Parallel ${{ steps.git_tag.outputs.tag }}
+          append_body: true
+          body: |
+            `${{ matrix.chain }}_runtime-v${{ steps.runtime_version.outputs.version }}.compact.compressed.wasm - ${{ steps.runtime_blake2_256_hash.outputs.hash }}`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  postrelease:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: srtool
+    steps:
+      - name: Get GIT Tag
+        id: git_tag
+        run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
+      - name: Discord notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_USERNAME: parallel-release-bot
+          DISCORD_AVATAR: https://avatars.githubusercontent.com/u/79623569
+        uses: Ilshidur/action-discord@master
+        with:
+          args: "Parallel ${{ steps.git_tag.outputs.tag }} has just been released! Go check it out: https://github.com/${{ github.repository }}/releases/tag/${{ steps.git_tag.outputs.tag }}"
