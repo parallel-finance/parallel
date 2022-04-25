@@ -1112,13 +1112,20 @@ fn reward_calculation_after_liquidate_borrow_works() {
         assert_eq!(almost_equal(Loans::reward_accured(BOB), dollar(16)), true);
 
         MockPriceFeeder::set_price(KSM, 2.into());
-        // KSM price = 2
-        // incentive = repay KSM value * 1.1 = (25 * 2) * 1.1 = 55
-        // Alice DOT Deposit: 200 - 55 = 145
+        // since we set liquidate_threshold more than collateral_factor,with KSM price as 2 alice not shortfall yet.
+        // so we can not liquidate_borrow here
+        assert_noop!(
+            Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, dollar(25), DOT),
+            Error::<Test>::InsufficientShortfall
+        );
+        // then we change KSM price = 3 to make alice shortfall
+        // incentive = repay KSM value * 1.1 = (25 * 3) * 1.1 = 82.5
+        // Alice DOT Deposit: 200 - 82.5 = 117.5
         // Alice KSM Borrow: 50 - 25 = 25
-        // Bob DOT Deposit: 55
+        // Bob DOT Deposit: 82.5
         // Bob KSM Deposit: 500
         // Bob KSM Borrow: 75
+        MockPriceFeeder::set_price(KSM, 3.into());
         assert_ok!(Loans::liquidate_borrow(
             Origin::signed(BOB),
             ALICE,
@@ -1143,11 +1150,11 @@ fn reward_calculation_after_liquidate_borrow_works() {
         assert_ok!(Loans::distribute_borrower_reward(KSM, &BOB));
 
         assert_eq!(
-            almost_equal(Loans::reward_accured(ALICE), milli_dollar(23750)),
+            almost_equal(Loans::reward_accured(ALICE), milli_dollar(22375)),
             true
         );
         assert_eq!(
-            almost_equal(Loans::reward_accured(BOB), milli_dollar(36250)),
+            almost_equal(Loans::reward_accured(BOB), 37512499694974,),
             true
         );
     })

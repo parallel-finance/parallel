@@ -48,6 +48,7 @@ use sp_runtime::{
 };
 use sp_std::result::Result;
 
+use sp_io::hashing::blake2_256;
 pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState, RewardMarketState};
 pub use weights::WeightInfo;
 
@@ -248,6 +249,9 @@ pub mod pallet {
         DistributedBorrowerReward(AssetIdOf<T>, T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// Reward Paid for user
         RewardPaid(T::AccountId, BalanceOf<T>),
+        /// Event emitted when the incentive reserves are redeemed and transfer to receiver's account
+        /// [receive_account_id, asset_id, reduced_amount]
+        IncentiveReservesReduced(T::AccountId, AssetIdOf<T>, BalanceOf<T>),
     }
 
     /// The timestamp of the last calculation of accrued interest
@@ -477,7 +481,17 @@ pub mod pallet {
                 Error::<T>::InvalidFactor,
             );
             ensure!(
+                market.liquidation_threshold < Ratio::one()
+                    && market.liquidation_threshold >= market.collateral_factor,
+                Error::<T>::InvalidFactor
+            );
+            ensure!(
                 market.reserve_factor > Ratio::zero() && market.reserve_factor < Ratio::one(),
+                Error::<T>::InvalidFactor,
+            );
+            ensure!(
+                market.liquidate_incentive_reserved_factor > Ratio::zero()
+                    && market.liquidate_incentive_reserved_factor < Ratio::one(),
                 Error::<T>::InvalidFactor,
             );
             ensure!(
@@ -559,8 +573,10 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
             collateral_factor: Ratio,
+            liquidation_threshold: Ratio,
             reserve_factor: Ratio,
             close_factor: Ratio,
+            liquidate_incentive_reserved_factor: Ratio,
             liquidate_incentive: Rate,
             #[pallet::compact] supply_cap: BalanceOf<T>,
             #[pallet::compact] borrow_cap: BalanceOf<T>,
@@ -569,6 +585,10 @@ pub mod pallet {
 
             ensure!(
                 collateral_factor >= Ratio::zero() && collateral_factor < Ratio::one(),
+                Error::<T>::InvalidFactor
+            );
+            ensure!(
+                liquidation_threshold >= collateral_factor && liquidation_threshold < Ratio::one(),
                 Error::<T>::InvalidFactor
             );
             ensure!(
@@ -583,9 +603,11 @@ pub mod pallet {
                     ptoken_id: stored_market.ptoken_id,
                     rate_model: stored_market.rate_model,
                     collateral_factor,
+                    liquidation_threshold,
                     reserve_factor,
                     close_factor,
                     liquidate_incentive,
+                    liquidate_incentive_reserved_factor,
                     supply_cap,
                     borrow_cap,
                 };
@@ -804,8 +826,6 @@ pub mod pallet {
             Self::ensure_active_market(asset_id)?;
             Self::accrue_interest(asset_id)?;
             Self::update_earned_stored(&who, asset_id)?;
-            // Formula
-            // underlying_token_amount = ptoken_amount * exchange_rate
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
             let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount)?;
@@ -827,7 +847,6 @@ pub mod pallet {
             Self::ensure_active_market(asset_id)?;
             Self::accrue_interest(asset_id)?;
             Self::update_earned_stored(&who, asset_id)?;
-
             let deposits = AccountDeposits::<T>::get(asset_id, &who);
             let redeem_amount = Self::do_redeem(&who, asset_id, deposits.voucher_balance)?;
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
@@ -1085,6 +1104,35 @@ pub mod pallet {
 
             Ok(().into())
         }
+
+        /// Sender redeems some of internal supplies in exchange for the underlying asset.
+        ///
+        /// - `asset_id`: the asset to be redeemed.
+        /// - `redeem_amount`: the amount to be redeemed.
+        #[pallet::weight(T::WeightInfo::redeem()+T::WeightInfo::reduce_reserves())]
+        #[transactional]
+        pub fn reduce_incentive_reserves(
+            origin: OriginFor<T>,
+            receiver: <T::Lookup as StaticLookup>::Source,
+            asset_id: AssetIdOf<T>,
+            #[pallet::compact] redeem_amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::ReserveOrigin::ensure_origin(origin)?;
+            ensure!(!redeem_amount.is_zero(), Error::<T>::InvalidAmount);
+            let receiver = T::Lookup::lookup(receiver)?;
+            let from = Self::incentive_reward_account_id()?;
+            Self::ensure_active_market(asset_id)?;
+            let exchange_rate = Self::exchange_rate(asset_id);
+            let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
+            let redeem_amount = Self::do_redeem(&from, asset_id, voucher_amount)?;
+            T::Assets::transfer(asset_id, &from, &receiver, redeem_amount, false)?;
+            Self::deposit_event(Event::<T>::IncentiveReservesReduced(
+                receiver,
+                asset_id,
+                redeem_amount,
+            ));
+            Ok(().into())
+        }
     }
 }
 
@@ -1100,6 +1148,31 @@ impl<T: Config> Pallet<T> {
         let total_collateral_value = Self::total_collateral_value(account)?;
         log::trace!(
             target: "loans::get_account_liquidity",
+            "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}",
+            account,
+            total_borrow_value.into_inner(),
+            total_collateral_value.into_inner(),
+        );
+        if total_collateral_value > total_borrow_value {
+            Ok((
+                total_collateral_value - total_borrow_value,
+                FixedU128::zero(),
+            ))
+        } else {
+            Ok((
+                FixedU128::zero(),
+                total_borrow_value - total_collateral_value,
+            ))
+        }
+    }
+
+    pub fn get_account_liquidation_threshold_liquidity(
+        account: &T::AccountId,
+    ) -> Result<(Liquidity, Shortfall), DispatchError> {
+        let total_borrow_value = Self::total_borrowed_value(account)?;
+        let total_collateral_value = Self::total_liquidation_threshold_value(account)?;
+        log::trace!(
+            target: "loans::get_account_liquidation_threshold_liquidity",
             "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}",
             account,
             total_borrow_value.into_inner(),
@@ -1156,11 +1229,49 @@ impl<T: Config> Pallet<T> {
         Self::get_asset_value(asset_id, effects_amount)
     }
 
+    fn liquidation_threshold_asset_value(
+        borrower: &T::AccountId,
+        asset_id: AssetIdOf<T>,
+    ) -> Result<FixedU128, DispatchError> {
+        if !AccountDeposits::<T>::contains_key(asset_id, borrower) {
+            return Ok(FixedU128::zero());
+        }
+        let deposits = Self::account_deposits(asset_id, borrower);
+        if !deposits.is_collateral {
+            return Ok(FixedU128::zero());
+        }
+        if deposits.voucher_balance.is_zero() {
+            return Ok(FixedU128::zero());
+        }
+        let exchange_rate = Self::exchange_rate(asset_id);
+        let underlying_amount =
+            Self::calc_underlying_amount(deposits.voucher_balance, exchange_rate)?;
+        let market = Self::market(asset_id)?;
+        let effects_amount = market.liquidation_threshold.mul_ceil(underlying_amount);
+
+        Self::get_asset_value(asset_id, effects_amount)
+    }
+
     fn total_collateral_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
         let mut total_asset_value: FixedU128 = FixedU128::zero();
         for (asset_id, _market) in Self::active_markets() {
             total_asset_value = total_asset_value
                 .checked_add(&Self::collateral_asset_value(borrower, asset_id)?)
+                .ok_or(ArithmeticError::Overflow)?;
+        }
+
+        Ok(total_asset_value)
+    }
+
+    fn total_liquidation_threshold_value(
+        borrower: &T::AccountId,
+    ) -> Result<FixedU128, DispatchError> {
+        let mut total_asset_value: FixedU128 = FixedU128::zero();
+        for (asset_id, _market) in Self::active_markets() {
+            total_asset_value = total_asset_value
+                .checked_add(&Self::liquidation_threshold_asset_value(
+                    borrower, asset_id,
+                )?)
                 .ok_or(ArithmeticError::Overflow)?;
         }
 
@@ -1213,8 +1324,6 @@ impl<T: Config> Pallet<T> {
         voucher_amount: BalanceOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
         Self::redeem_allowed(asset_id, who, voucher_amount)?;
-
-        // update supply index before modify supply balance.
         Self::update_reward_supply_index(asset_id)?;
         Self::distribute_supplier_reward(asset_id, who)?;
 
@@ -1272,7 +1381,6 @@ impl<T: Config> Pallet<T> {
         if account_borrows < repay_amount {
             return Err(Error::<T>::TooMuchRepay.into());
         }
-
         Self::update_reward_borrow_index(asset_id)?;
         Self::distribute_borrower_reward(asset_id, borrower)?;
 
@@ -1367,7 +1475,7 @@ impl<T: Config> Pallet<T> {
             repay_amount,
             market
         );
-        let (_, shortfall) = Self::get_account_liquidity(borrower)?;
+        let (_, shortfall) = Self::get_account_liquidation_threshold_liquidity(borrower)?;
         if shortfall.is_zero() {
             return Err(Error::<T>::InsufficientShortfall.into());
         }
@@ -1450,6 +1558,7 @@ impl<T: Config> Pallet<T> {
             collateral_asset_id,
             repay_amount,
             real_collateral_underlying_amount,
+            &market,
         )?;
 
         Ok(())
@@ -1463,6 +1572,7 @@ impl<T: Config> Pallet<T> {
         collateral_asset_id: AssetIdOf<T>,
         repay_amount: BalanceOf<T>,
         collateral_underlying_amount: BalanceOf<T>,
+        market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
         log::trace!(
             target: "loans::liquidated_transfer",
@@ -1513,6 +1623,10 @@ impl<T: Config> Pallet<T> {
         Self::update_reward_supply_index(collateral_asset_id)?;
         Self::distribute_supplier_reward(collateral_asset_id, liquidator)?;
         Self::distribute_supplier_reward(collateral_asset_id, borrower)?;
+        Self::distribute_supplier_reward(
+            collateral_asset_id,
+            &Self::incentive_reward_account_id()?,
+        )?;
 
         // 3.the liquidator will receive voucher token from borrower
         let exchange_rate = Self::exchange_rate(collateral_asset_id);
@@ -1529,6 +1643,12 @@ impl<T: Config> Pallet<T> {
                 Ok(())
             },
         )?;
+        let incentive_reserved_amount = market.liquidate_incentive_reserved_factor.mul_floor(
+            FixedU128::from_inner(collateral_amount)
+                .checked_div(&market.liquidate_incentive)
+                .map(|r| r.into_inner())
+                .ok_or(ArithmeticError::Underflow)?,
+        );
         // increase liquidator's voucher_balance
         AccountDeposits::<T>::try_mutate(
             collateral_asset_id,
@@ -1536,7 +1656,19 @@ impl<T: Config> Pallet<T> {
             |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
-                    .checked_add(collateral_amount)
+                    .checked_add(collateral_amount - incentive_reserved_amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            },
+        )?;
+        // increase reserve's voucher_balance
+        AccountDeposits::<T>::try_mutate(
+            collateral_asset_id,
+            Self::incentive_reward_account_id()?,
+            |deposits| -> DispatchResult {
+                deposits.voucher_balance = deposits
+                    .voucher_balance
+                    .checked_add(incentive_reserved_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             },
@@ -1745,5 +1877,12 @@ impl<T: Config> Pallet<T> {
         } else {
             Err(Error::<T>::MarketDoesNotExist.into())
         }
+    }
+
+    // Returns the incentive reward account
+    pub fn incentive_reward_account_id() -> Result<T::AccountId, DispatchError> {
+        let account_id: T::AccountId = T::PalletId::get().into_account();
+        let entropy = (b"loans/incentive", &[account_id]).using_encoded(blake2_256);
+        Ok(T::AccountId::decode(&mut &entropy[..]).map_err(|_| Error::<T>::CodecError)?)
     }
 }

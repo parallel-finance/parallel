@@ -14,21 +14,35 @@
 
 use super::*;
 
-pub mod v2 {
+pub mod v3 {
     use super::*;
     use crate::{Config, StorageVersion, Weight};
     use frame_support::{log, traits::Get};
 
+    pub const DEFAULT_LIQUIDATE_INCENTIVE_RESERVED_FACTOR: Ratio = Ratio::from_percent(3);
+    pub const DEFAULT_LIQUIDATION_OFFSET: Ratio = Ratio::from_percent(5);
+
     #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
     #[derive(Clone, PartialEq, codec::Decode, codec::Encode, RuntimeDebug, TypeInfo)]
-    pub struct OldMarket<Balance> {
+    pub struct V2Market<Balance> {
+        /// The collateral utilization ratio
         pub collateral_factor: Ratio,
+        /// Fraction of interest currently set aside for reserves
         pub reserve_factor: Ratio,
+        /// The percent, ranging from 0% to 100%, of a liquidatable account's
+        /// borrow that can be repaid in a single liquidate transaction.
         pub close_factor: Ratio,
+        /// Liquidation incentive ratio
         pub liquidate_incentive: Rate,
+        /// Current interest rate model being used
         pub rate_model: InterestRateModel,
+        /// Current market state
         pub state: MarketState,
-        pub cap: Balance,
+        /// Upper bound of supplying
+        pub supply_cap: Balance,
+        /// Upper bound of borrowing
+        pub borrow_cap: Balance,
+        /// Ptoken asset id
         pub ptoken_id: CurrencyId,
     }
 
@@ -36,18 +50,14 @@ pub mod v2 {
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
         frame_support::generate_storage_alias!(Loans, Markets<T: Config> => Map<
             (Blake2_128Concat, AssetIdOf<T>),
-            OldMarket<BalanceOf<T>>
+            V2Market<BalanceOf<T>>
         >);
         frame_support::ensure!(
-            StorageVersion::<T>::get() == crate::Versions::V1,
+            StorageVersion::<T>::get() == crate::Versions::V2,
             "must upgrade linearly"
         );
-        Markets::<T>::iter().for_each(|(asset_id, market)| {
-            log::info!(
-                "market {:#?} need to migrate, cap {:#?}",
-                asset_id,
-                market.cap
-            );
+        Markets::<T>::iter().for_each(|(asset_id, _)| {
+            log::info!("market {:#?} need to migrate", asset_id,);
         });
         log::info!("👜 loans borrow-limit migration passes PRE migrate checks ✅",);
 
@@ -56,16 +66,20 @@ pub mod v2 {
 
     /// Migration to sorted [`SortedListProvider`].
     pub fn migrate<T: Config>() -> Weight {
-        if StorageVersion::<T>::get() == crate::Versions::V1 {
-            log::info!("migrating loans to Versions::V2",);
+        if StorageVersion::<T>::get() == crate::Versions::V2 {
+            log::info!("migrating loans to Versions::V3",);
 
-            Markets::<T>::translate::<OldMarket<BalanceOf<T>>, _>(|_key, market| {
+            Markets::<T>::translate::<V2Market<BalanceOf<T>>, _>(|_key, market| {
                 Some(Market {
-                    borrow_cap: 1_000_000_000_000_000u128,
-                    supply_cap: market.cap,
+                    borrow_cap: market.borrow_cap,
+                    supply_cap: market.supply_cap,
                     collateral_factor: market.collateral_factor,
+                    liquidation_threshold: (market.collateral_factor
+                        + market.collateral_factor * DEFAULT_LIQUIDATION_OFFSET),
                     reserve_factor: market.reserve_factor,
                     close_factor: market.close_factor,
+                    liquidate_incentive_reserved_factor:
+                        DEFAULT_LIQUIDATE_INCENTIVE_RESERVED_FACTOR,
                     liquidate_incentive: market.liquidate_incentive,
                     rate_model: market.rate_model,
                     state: market.state,
@@ -73,8 +87,8 @@ pub mod v2 {
                 })
             });
 
-            StorageVersion::<T>::put(crate::Versions::V2);
-            log::info!("👜 completed loans migration to Versions::V2",);
+            StorageVersion::<T>::put(crate::Versions::V3);
+            log::info!("👜 completed loans migration to Versions::V3",);
 
             T::BlockWeights::get().max_block
         } else {
@@ -85,15 +99,16 @@ pub mod v2 {
     #[cfg(feature = "try-runtime")]
     pub fn post_migrate<T: Config>() -> Result<(), &'static str> {
         frame_support::ensure!(
-            StorageVersion::<T>::get() == crate::Versions::V2,
-            "must upgrade to V2"
+            StorageVersion::<T>::get() == crate::Versions::V3,
+            "must upgrade to V3"
         );
         Markets::<T>::iter().for_each(|(asset_id, market)| {
             log::info!(
-                "market {:#?}, supply_cap {:#?}, borrow_cap {:#?}",
+                "market {:#?}, collateral_factor {:?}, liquidation_threshold {:?}, liquidate_incentive_reserved_factor {:?}",
                 asset_id,
-                market.supply_cap,
-                market.borrow_cap
+                market.collateral_factor,
+                market.liquidation_threshold,
+                market.liquidate_incentive_reserved_factor
             );
         });
         log::info!("👜 loans borrow-limit migration passes POST migrate checks ✅",);
