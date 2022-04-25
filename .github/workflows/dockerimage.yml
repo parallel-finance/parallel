@@ -2,7 +2,7 @@ name: Docker Image
 
 on:
   push:
-    branches: [add_runner]
+    branches: [master]
     tags:
       - "v*"
       - "staging*"
