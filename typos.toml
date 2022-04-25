@@ -2,4 +2,3 @@
 extend-exclude = ["scripts/polkadot-launch/*", "resources/specs/*"]
 
 [default.extend-words]
-accured = "accured"

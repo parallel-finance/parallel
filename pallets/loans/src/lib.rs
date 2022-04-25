@@ -422,8 +422,8 @@ pub mod pallet {
 
     /// The reward accrued but not yet transferred to each user.
     #[pallet::storage]
-    #[pallet::getter(fn reward_accured)]
-    pub type RewardAccured<T: Config> =
+    #[pallet::getter(fn reward_accrued)]
+    pub type RewardAccrued<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
     /// DefaultVersion is using for initialize the StorageVersion
