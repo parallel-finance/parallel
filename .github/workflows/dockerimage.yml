@@ -2,7 +2,7 @@ name: Docker Image
 
 on:
   push:
-    branches: [master]
+    branches: [add_runner]
     tags:
       - "v*"
       - "staging*"
@@ -11,7 +11,7 @@ on:
 jobs:
   parallel:
     if: github.repository == 'parallel-finance/parallel'
-    runs-on: ${{ matrix.os }}
+    runs-on: self-hosted
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -61,7 +61,7 @@ jobs:
         run: echo ${{ steps.docker_build.outputs.digest }}
   parallel-helper:
     if: github.repository == 'parallel-finance/parallel'
-    runs-on: ${{ matrix.os }}
+    runs-on: self-hosted
     strategy:
       matrix:
         os: [ubuntu-latest]
