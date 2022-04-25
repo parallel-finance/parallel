@@ -50,11 +50,11 @@ fn double_liquidity_correct_liq_ratio_should_work() {
         ));
 
         let total_liquidity_tokens_after_double = Assets::total_issuance(SAMPLE_LP_TOKEN);
-        let liquidity_recieved = total_liquidity_tokens_after_double - total_liquidity_tokens;
+        let liquidity_received = total_liquidity_tokens_after_double - total_liquidity_tokens;
 
         // received liquidity should be half of total liquidity
         assert_eq!(
-            liquidity_recieved as f64 / total_liquidity_tokens_after_double as f64,
+            liquidity_received as f64 / total_liquidity_tokens_after_double as f64,
             0.6666666666666666
         );
     })
@@ -1444,7 +1444,7 @@ fn do_add_liquidity_large_amounts_should_work() {
 #[test]
 fn handling_fees_should_work() {
     new_test_ext().execute_with(|| {
-        // Pool gets created and BOB should recieve all of the LP tokens (minus the min amount)
+        // Pool gets created and BOB should receive all of the LP tokens (minus the min amount)
         // Created Pool for Bob
         assert_ok!(DefaultStableSwap::create_pool(
             RawOrigin::Signed(ALICE).into(),    // Origin
