@@ -17,7 +17,7 @@ RELAY_DOCKER_TAG										:= v0.9.19
 init: submodules
 	git config advice.ignoredHook false
 	git config core.hooksPath .githooks
-	rustup target add wasm32-unknown-unknown
+	rustup target add wasm32-unknown-unknown --toolchain nightly-2022-04-24
 	cd scripts/helper && yarn
 	cd scripts/polkadot-launch && yarn
 
