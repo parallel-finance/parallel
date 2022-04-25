@@ -16,6 +16,9 @@ jobs:
         chain: ["heiko", "parallel", "vanilla", "kerria"]
     steps:
       - uses: actions/checkout@v2
+      - name: cleanup
+        run: |
+          sudo chown -R $USER:$USER $GITHUB_WORKSPACE
       - name: Srtool build
         id: srtool_build
         uses: chevdor/srtool-actions@v0.3.0
