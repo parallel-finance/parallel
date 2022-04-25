@@ -398,7 +398,7 @@ fn trade_should_work_more_than_one_route() {
             100_000_000 + 989
         );
 
-        // we should have less USDT since its the token the trader is recieving
+        // we should have less USDT since its the token the trader is receiving
         assert_eq!(
             DefaultAMM::pools(USDT, KSM).unwrap().base_amount,
             100_000_000 - 984

@@ -1,4 +1,3 @@
-use super::*;
 use crate::{mock::*, Markets};
 use frame_support::assert_ok;
 use primitives::{Rate, Ratio, SECONDS_PER_YEAR};
@@ -130,7 +129,7 @@ fn interest_rate_model_works() {
 }
 
 #[test]
-fn last_accrued_interest_time_sould_be_update_correctly() {
+fn last_accrued_interest_time_should_be_update_correctly() {
     new_test_ext().execute_with(|| {
         assert_eq!(Loans::borrow_index(DOT), Rate::one());
         assert_eq!(Loans::last_accrued_interest_time(DOT), 0);

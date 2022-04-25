@@ -223,7 +223,7 @@ pub mod pallet {
         /// [bridge_token_id, bridge_type]
         BridgeTokenAccumulatedValueCleaned(CurrencyId, BridgeType),
 
-        /// Event emitted when bridge token is destoryed by teleportation
+        /// Event emitted when bridge token is destroyed by teleportation
         /// [ori_address, dest_id, chain_nonce, bridge_token_id, dst_address, amount, fee]
         TeleportBurned(
             T::AccountId,
@@ -342,8 +342,8 @@ pub mod pallet {
 
             // Write a new chain_id into storage
             ChainNonces::<T>::insert(chain_id, 0);
-            let inital_registry: Vec<BridgeInterval> = vec![];
-            BridgeRegistry::<T>::insert(chain_id, inital_registry);
+            let initial_registry: Vec<BridgeInterval> = vec![];
+            BridgeRegistry::<T>::insert(chain_id, initial_registry);
             Self::deposit_event(Event::ChainRegistered(chain_id));
 
             Ok(())

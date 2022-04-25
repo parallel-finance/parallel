@@ -175,7 +175,7 @@ pub fn native_version() -> NativeVersion {
     }
 }
 
-/// We assume that ~10% of the block weight is consumed by `on_initalize` handlers.
+/// We assume that ~10% of the block weight is consumed by `on_initialize` handlers.
 /// This is used to limit the maximal weight of a single extrinsic.
 const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
 /// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used
@@ -496,8 +496,8 @@ parameter_types! {
     pub const MaxAssetsForTransfer: usize = 2;
 }
 
-// Min fee required when transfering asset back to reserve sibling chain
-// which use aother asset(e.g Relaychain's asset) as fee
+// Min fee required when transferring asset back to reserve sibling chain
+// which use another asset(e.g Relaychain's asset) as fee
 parameter_type_with_key! {
     pub ParachainMinFee: |location: MultiLocation| -> u128 {
         #[allow(clippy::match_ref_pats)] // false positive
@@ -598,7 +598,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
-    type DistributionStrategy = pallet_liquid_staking::distribution::AverageDistribution;
+    type DistributionStrategy = pallet_liquid_staking::distribution::MaxMinDistribution;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type EraLength = EraLength;
@@ -1400,7 +1400,7 @@ type EnsureRootOrAtLeastThreeFifthsGeneralCouncil = EnsureOneOf<
     pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 3, 5>,
 >;
 
-type EnsureRootOrAllTechnicalComittee = EnsureOneOf<
+type EnsureRootOrAllTechnicalCommittee = EnsureOneOf<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
 >;
@@ -1449,7 +1449,7 @@ impl pallet_democracy::Config for Runtime {
         pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 2, 3>;
     // To cancel a proposal before it has been passed, the technical committee must be unanimous or
     // Root must agree.
-    type CancelProposalOrigin = EnsureRootOrAllTechnicalComittee;
+    type CancelProposalOrigin = EnsureRootOrAllTechnicalCommittee;
     type BlacklistOrigin = EnsureRoot<AccountId>;
     // Any single technical committee member may veto a coming council proposal, however they can
     // only do it once and it lasts only for the cool-off period.
@@ -1965,8 +1965,25 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    LiquidStakingMigrationV3,
+    (LiquidStakingMigrationV3, MoneyMarketMigrationV3),
 >;
+
+pub struct MoneyMarketMigrationV3;
+impl OnRuntimeUpgrade for MoneyMarketMigrationV3 {
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        pallet_loans::migrations::v3::migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn pre_upgrade() -> Result<(), &'static str> {
+        pallet_loans::migrations::v3::pre_migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn post_upgrade() -> Result<(), &'static str> {
+        pallet_loans::migrations::v3::post_migrate::<Runtime>()
+    }
+}
 
 // Migration for liquid staking pallet to add multiple ledgers support
 pub struct LiquidStakingMigrationV3;

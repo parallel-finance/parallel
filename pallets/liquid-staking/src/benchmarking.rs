@@ -17,10 +17,7 @@ use sp_std::{prelude::*, vec};
 use xcm::latest::prelude::*;
 
 use pallet_traits::ump::RewardDestination;
-use primitives::{
-    tokens::{KSM, SKSM},
-    Balance, CurrencyId, Rate, Ratio,
-};
+use primitives::{Balance, CurrencyId, Rate, Ratio};
 
 use crate::{types::StakingLedger, Pallet as LiquidStaking};
 
@@ -32,13 +29,12 @@ const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
 const INITIAL_XCM_FEES: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
 
-const STAKE_AMOUNT: u128 = 20000000000000u128;
-// const STAKED_AMOUNT: u128 = 19900000000000u128; // 20000000000000 * (1 - 5/1000)
+const STAKE_AMOUNT: u128 = 25000000000000u128;
 const UNSTAKE_AMOUNT: u128 = 10000000000000u128;
 const BOND_AMOUNT: u128 = 10000000000000u128;
 const UNBOND_AMOUNT: u128 = 5000000000000u128;
 const REBOND_AMOUNT: u128 = 5000000000000u128;
-// const UNBONDING_AMOUNT: u128 = 0u128;
+
 fn initial_set_up<
     T: Config
         + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
@@ -50,7 +46,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        KSM,
+        T::StakingCurrency::get(),
         account_id.clone(),
         true,
         1,
@@ -58,34 +54,47 @@ fn initial_set_up<
     .ok();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        KSM,
-        b"Kusama".to_vec(),
-        b"KSM".to_vec(),
+        T::StakingCurrency::get(),
+        b"Staking Currency".to_vec(),
+        b"Staking Currency".to_vec(),
         12,
         false,
     )
     .unwrap();
 
-    pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), SKSM, account_id, true, 1)
-        .ok();
+    pallet_assets::Pallet::<T>::force_create(
+        SystemOrigin::Root.into(),
+        T::LiquidCurrency::get(),
+        account_id,
+        true,
+        1,
+    )
+    .ok();
 
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        SKSM,
-        b"Parallel Kusama".to_vec(),
-        b"sKSM".to_vec(),
+        T::LiquidCurrency::get(),
+        b"Liquid Currency".to_vec(),
+        b"Liquid Currency".to_vec(),
         12,
         false,
     )
     .unwrap();
 
-    <T as pallet_xcm_helper::Config>::Assets::mint_into(KSM, &caller, INITIAL_AMOUNT).unwrap();
+    <T as pallet_xcm_helper::Config>::Assets::mint_into(
+        T::StakingCurrency::get(),
+        &caller,
+        INITIAL_AMOUNT,
+    )
+    .unwrap();
 
     LiquidStaking::<T>::update_staking_ledger_cap(SystemOrigin::Root.into(), STAKING_LEDGER_CAP)
         .unwrap();
 
+    LiquidStaking::<T>::update_reserve_factor(SystemOrigin::Root.into(), RESERVE_FACTOR).unwrap();
+
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
-        KSM,
+        T::StakingCurrency::get(),
         &pallet_xcm_helper::Pallet::<T>::account_id(),
         INITIAL_XCM_FEES,
     )
@@ -183,7 +192,8 @@ benchmarks! {
     unbond {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
-        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
+        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNBOND_AMOUNT).unwrap();
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), 0, BOND_AMOUNT, RewardDestination::Staked).unwrap();
         LiquidStaking::<T>::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
@@ -198,7 +208,8 @@ benchmarks! {
     rebond {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
-        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
+        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNBOND_AMOUNT).unwrap();
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), 0, BOND_AMOUNT, RewardDestination::Staked).unwrap();
         LiquidStaking::<T>::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
@@ -206,6 +217,11 @@ benchmarks! {
             Response::ExecutionResult(None)
         ).unwrap();
         LiquidStaking::<T>::unbond(SystemOrigin::Root.into(), 0, UNBOND_AMOUNT).unwrap();
+        LiquidStaking::<T>::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            1u64,
+            Response::ExecutionResult(None)
+        ).unwrap();
     }: _(SystemOrigin::Root, 0, REBOND_AMOUNT)
     verify {
         assert_last_event::<T>(Event::<T>::Rebonding(0, REBOND_AMOUNT).into());
@@ -228,8 +244,7 @@ benchmarks! {
             1u64,
             Response::ExecutionResult(None)
         ).unwrap();
-        // TODO: use BondingDuration here
-        LiquidStaking::<T>::force_set_current_era(SystemOrigin::Root.into(), 29).unwrap();
+        LiquidStaking::<T>::force_set_current_era(SystemOrigin::Root.into(), T::BondingDuration::get() + 1).unwrap();
     }: _(SystemOrigin::Root, 0, 0)
     verify {
         assert_last_event::<T>(Event::<T>::WithdrawingUnbonded(0, 0).into());

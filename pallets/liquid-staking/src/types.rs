@@ -1,7 +1,10 @@
 use codec::{Decode, Encode, HasCompact};
 
 use super::{BalanceOf, Config};
-use frame_support::{dispatch::DispatchResult, traits::tokens::Balance as BalanceT};
+use frame_support::{
+    dispatch::DispatchResult,
+    traits::{tokens::Balance as BalanceT, DefensiveSaturating},
+};
 use primitives::{DerivativeIndex, EraIndex};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, ArithmeticError, DispatchError, FixedPointOperand, RuntimeDebug};
@@ -117,11 +120,15 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
     }
 
     pub fn set_stake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
-        self.total_stake_amount.reserved = self
+        let new_reserved_stake_amount = self
             .total_stake_amount
             .reserved
             .checked_add(&amount)
             .ok_or(ArithmeticError::Overflow)?;
+        if new_reserved_stake_amount > self.total_stake_amount.total {
+            return Err(ArithmeticError::Overflow.into());
+        }
+        self.total_stake_amount.reserved = new_reserved_stake_amount;
         Ok(())
     }
 
@@ -135,11 +142,15 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
     }
 
     pub fn set_unstake_amount_lock(&mut self, amount: Balance) -> DispatchResult {
-        self.total_unstake_amount.reserved = self
+        let new_reserved_unstake_amount = self
             .total_unstake_amount
             .reserved
             .checked_add(&amount)
             .ok_or(ArithmeticError::Overflow)?;
+        if new_reserved_unstake_amount > self.total_unstake_amount.total {
+            return Err(ArithmeticError::Overflow.into());
+        }
+        self.total_unstake_amount.reserved = new_reserved_unstake_amount;
         Ok(())
     }
 
@@ -153,22 +164,19 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
     }
 
     fn clear(&mut self) -> DispatchResult {
-        let total_free_stake_amount = self.total_stake_amount.free()?;
-        let total_free_unstake_amount = self.total_unstake_amount.free()?;
-        if total_free_stake_amount != total_free_unstake_amount {
+        if !self.total_stake_amount.reserved.is_zero()
+            || !self.total_unstake_amount.reserved.is_zero()
+        {
             return Ok(());
         }
 
-        self.total_stake_amount.total = self
-            .total_stake_amount
-            .total
-            .checked_sub(&total_free_stake_amount)
-            .ok_or(ArithmeticError::Underflow)?;
-        self.total_unstake_amount.total = self
-            .total_unstake_amount
-            .total
-            .checked_sub(&total_free_stake_amount)
-            .ok_or(ArithmeticError::Underflow)?;
+        if self.total_stake_amount.total != self.total_unstake_amount.total {
+            return Ok(());
+        }
+
+        self.total_stake_amount.total = Zero::zero();
+        self.total_unstake_amount.total = Zero::zero();
+
         Ok(())
     }
 }
@@ -302,7 +310,7 @@ impl<AccountId, Balance: BalanceT + FixedPointOperand> StakingLedger<AccountId, 
             // To keep the chunk count down, we only keep one chunk per era. Since
             // `unlocking` is a FIFO queue, if a chunk exists for `era` we know that it will
             // be the last one.
-            chunk.value = chunk.value.saturating_add(value);
+            chunk.value = chunk.value.defensive_saturating_add(value);
         } else {
             self.unlocking.push(UnlockChunk {
                 value,

@@ -96,7 +96,7 @@ fn full_workflow_works_as_expected() {
         // Alice KSM: cash + borrow = 1000 + 100 = 1100
         // Alice KSM borrow balance: origin borrow balance - liquidate amount = 100 - 50 = 50
         // Bob KSM: cash - deposit - repay = 1000 - 200 - 50 = 750
-        // Bob DOT collateral: incentive = 110
+        // Bob DOT collateral: incentive = 110-(110/1.1*0.03)=107
         assert_eq!(Assets::balance(DOT, &ALICE), dollar(800),);
         assert_eq!(
             Loans::exchange_rate(DOT)
@@ -109,8 +109,33 @@ fn full_workflow_works_as_expected() {
         assert_eq!(
             Loans::exchange_rate(DOT)
                 .saturating_mul_int(Loans::account_deposits(DOT, BOB).voucher_balance),
-            dollar(110),
+            dollar(107),
         );
+        // 3 dollar reserved in our incentive reward account
+        let incentive_reward_account = Loans::incentive_reward_account_id().unwrap();
+        assert_eq!(
+            Loans::exchange_rate(DOT).saturating_mul_int(
+                Loans::account_deposits(DOT, incentive_reward_account).voucher_balance
+            ),
+            dollar(3),
+        );
+        assert_eq!(Assets::balance(DOT, &ALICE), dollar(800),);
+        // reduce 2 dollar from incentive reserve to alice account
+        assert_ok!(Loans::reduce_incentive_reserves(
+            Origin::root(),
+            ALICE,
+            DOT,
+            dollar(2),
+        ));
+        // still 1 dollar left in reserve account
+        assert_eq!(
+            Loans::exchange_rate(DOT).saturating_mul_int(
+                Loans::account_deposits(DOT, incentive_reward_account).voucher_balance
+            ),
+            dollar(1),
+        );
+        // 2 dollar transfer to alice
+        assert_eq!(Assets::balance(DOT, &ALICE), dollar(800) + dollar(2),);
     })
 }
 
