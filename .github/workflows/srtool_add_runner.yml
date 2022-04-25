@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: cleanup
         run: |
-          sudo chown -R $USER:$USER $GITHUB_WORKSPACE
+          sudo chown -R $USER:$USER /home/github/actions-runner/_work/parallel
       - name: Srtool build
         id: srtool_build
         uses: chevdor/srtool-actions@v0.3.0
