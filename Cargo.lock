@@ -5607,6 +5607,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-distributed-oracle"
+version = "1.8.2"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "orml-oracle",
+ "orml-traits",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-currency-adapter",
+ "pallet-prices",
+ "pallet-timestamp",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-election-provider-multi-phase"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.17#22d40c761a985482f93bbbea5ba4199bdba74f8e"
