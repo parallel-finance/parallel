@@ -235,6 +235,13 @@ impl Contains<Call> for WhiteListFilter {
             Call::Preimage(_) |
             // Parachain
             Call::ParachainSystem(_) |
+            Call::XcmpQueue(_) |
+            Call::DmpQueue(_) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_default_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_subscribe_version_notify { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_unsubscribe_version_notify { .. }) |
+            Call::CumulusXcm(_) |
             // Consensus
             Call::Authorship(_) |
             Call::Session(_) |
@@ -248,20 +255,15 @@ impl Contains<Call> for WhiteListFilter {
             // 3rd Party
             Call::Vesting(_) |
             Call::Oracle(_) |
-            // Call::XTokens(_) |
-            // Call::OrmlXcm(_) |
-            // // Parachain
-            // Call::XcmpQueue(_) |
-            // Call::DmpQueue(_) |
-            // Call::PolkadotXcm(_) |
-            // Call::CumulusXcm(_) |
+            Call::XTokens(_) |
+            Call::OrmlXcm(_) |
             // Membership
+            Call::OracleMembership(_) |
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
-            Call::OracleMembership(_) |
-            Call::BridgeMembership(_) |
+            Call::LiquidStakingAgentsMembership(_) |
             Call::CrowdloansAutomatorsMembership(_) |
-            Call::LiquidStakingAgentsMembership(_)
+            Call::BridgeMembership(_)
         )
     }
 }
@@ -275,13 +277,15 @@ impl Contains<Call> for BaseCallFilter {
                 // Loans
                 Call::Loans(_) |
                 Call::Prices(_) |
-                // // Crowdloans
-                // Call::Crowdloans(_) |
-                // // LiquidStaking
-                // Call::LiquidStaking(_) |
                 // AMM
                 Call::AMM(_) |
                 Call::AMMRoute(_) |
+                // Crowdloans
+                Call::Crowdloans(_) |
+                // LiquidStaking
+                Call::LiquidStaking(_) |
+                // Bridge
+                Call::Bridge(_) |
                 // Farming
                 Call::Farming(_) |
                 // Streaming
