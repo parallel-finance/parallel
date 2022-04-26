@@ -12,13 +12,20 @@ env:
   CLOUDFLARE_PURGE_URLS: '["https://api-docs.parallel.fi/rustdocs/"]'
 
 jobs:
+  cleanup:
+    runs-on: self-hosted
+    steps:
+      - name: cleaning up
+        run: |
+          sudo chown -R $USER:$USER $GITHUB_WORKSPACE
+
   docs:
     if: github.repository == 'parallel-finance/parallel'
     name: GitHub Pages
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [self-hosted]
         rust: [nightly-2022-04-24]
 
     steps:
