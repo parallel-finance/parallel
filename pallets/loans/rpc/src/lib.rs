@@ -39,6 +39,12 @@ pub trait LoansApi<BlockHash, AccountId, Balance> {
         asset_id: CurrencyId,
         at: Option<BlockHash>,
     ) -> Result<(Rate, Rate, Rate, Ratio, Balance, Balance, FixedU128)>;
+    #[rpc(name = "loans_getLiquidationThresholdLiquidity")]
+    fn get_liquidation_threshold_liquidity(
+        &self,
+        account: AccountId,
+        at: Option<BlockHash>,
+    ) -> Result<(Liquidity, Shortfall)>;
 }
 
 /// A struct that implements the [`LoansApi`].
@@ -112,6 +118,21 @@ where
         api.get_market_status(&at, asset_id)
             .map_err(runtime_error_into_rpc_error)?
             .map_err(market_status_error_into_rpc_error)
+    }
+
+    fn get_liquidation_threshold_liquidity(
+        &self,
+        account: AccountId,
+        at: Option<<Block as BlockT>::Hash>,
+    ) -> Result<(Liquidity, Shortfall)> {
+        let api = self.client.runtime_api();
+        let at = BlockId::hash(at.unwrap_or(
+            // If the block hash is not supplied assume the best block.
+            self.client.info().best_hash,
+        ));
+        api.get_liquidation_threshold_liquidity(&at, account)
+            .map_err(runtime_error_into_rpc_error)?
+            .map_err(account_liquidity_error_into_rpc_error)
     }
 }
 
