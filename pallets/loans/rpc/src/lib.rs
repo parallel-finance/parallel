@@ -27,7 +27,7 @@ use sp_runtime::{generic::BlockId, traits::Block as BlockT, FixedU128};
 
 #[rpc]
 pub trait LoansApi<BlockHash, AccountId, Balance> {
-    #[rpc(name = "loans_getAccountLiquidity")]
+    #[rpc(name = "loans_getCollateralLiquidity")]
     fn get_account_liquidity(
         &self,
         account: AccountId,
