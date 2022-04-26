@@ -95,10 +95,15 @@ impl<T: Config> Pallet<T> {
             let borrow_speed = MarketRewardSpeed::<T>::get(asset_id);
             if !borrow_speed.is_zero() {
                 let current_borrow_amount = TotalBorrows::<T>::get(asset_id);
+                let current_borrow_index = BorrowIndex::<T>::get(asset_id);
+                let base_borrow_amount = current_borrow_index
+                    .reciprocal()
+                    .and_then(|r| r.checked_mul_int(current_borrow_amount))
+                    .ok_or(ArithmeticError::Overflow)?;
                 let delta_index = Self::calculate_reward_delta_index(
                     delta_block,
                     borrow_speed,
-                    current_borrow_amount,
+                    base_borrow_amount,
                 )?;
                 borrow_state.index = borrow_state
                     .index
@@ -163,12 +168,17 @@ impl<T: Config> Pallet<T> {
 
                 RewardAccured::<T>::try_mutate(borrower, |total_reward| -> DispatchResult {
                     let current_borrow_amount = Self::current_borrow_balance(borrower, asset_id)?;
+                    let current_borrow_index = BorrowIndex::<T>::get(asset_id);
+                    let base_borrow_amount = current_borrow_index
+                        .reciprocal()
+                        .and_then(|r| r.checked_mul_int(current_borrow_amount))
+                        .ok_or(ArithmeticError::Overflow)?;
                     let reward_delta =
-                        Self::calculate_reward_delta(current_borrow_amount, delta_index)?;
+                        Self::calculate_reward_delta(base_borrow_amount, delta_index)?;
                     *total_reward = total_reward
                         .checked_add(reward_delta)
                         .ok_or(ArithmeticError::Overflow)?;
-                    Self::deposit_event(Event::<T>::DistributedSupplierReward(
+                    Self::deposit_event(Event::<T>::DistributedBorrowerReward(
                         asset_id,
                         borrower.clone(),
                         reward_delta,

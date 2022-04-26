@@ -47,6 +47,8 @@ pub enum MarketState {
 pub struct Market<Balance> {
     /// The collateral utilization ratio
     pub collateral_factor: Ratio,
+    /// A liquidation_threshold ratio more than collateral_factor to avoid liquidate_borrow too casual
+    pub liquidation_threshold: Ratio,
     /// Fraction of interest currently set aside for reserves
     pub reserve_factor: Ratio,
     /// The percent, ranging from 0% to 100%, of a liquidatable account's
@@ -54,6 +56,8 @@ pub struct Market<Balance> {
     pub close_factor: Ratio,
     /// Liquidation incentive ratio
     pub liquidate_incentive: Rate,
+    /// Liquidation incentive reserved ratio
+    pub liquidate_incentive_reserved_factor: Ratio,
     /// Current interest rate model being used
     pub rate_model: InterestRateModel,
     /// Current market state

@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::*;
+pub use super::*;
 
 use frame_support::{construct_runtime, parameter_types, traits::Everything, PalletId};
 use frame_system::EnsureRoot;
-use orml_traits::{DataProvider, DataProviderExtended};
+use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
+use pallet_traits::*;
 use primitives::*;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
+use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
 use sp_std::vec::Vec;
 use std::{cell::RefCell, collections::HashMap};
 
@@ -76,14 +77,14 @@ impl frame_system::Config for Test {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-pub type AccountId = u128;
+pub type AccountId = AccountId32;
 pub type BlockNumber = u64;
 
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
-pub const CHARLIE: AccountId = 3;
-pub const DAVE: AccountId = 4;
-pub const EVE: AccountId = 5;
+pub const ALICE: AccountId = AccountId32::new([1u8; 32]);
+pub const BOB: AccountId = AccountId32::new([2u8; 32]);
+pub const CHARLIE: AccountId = AccountId32::new([3u8; 32]);
+pub const DAVE: AccountId = AccountId32::new([4u8; 32]);
+pub const EVE: AccountId = AccountId32::new([5u8; 32]);
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;
@@ -132,6 +133,12 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for MockDataProvider {
 
     fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
         vec![]
+    }
+}
+
+impl DataFeeder<CurrencyId, TimeStampedPrice, AccountId> for MockDataProvider {
+    fn feed_value(_: AccountId, _: CurrencyId, _: TimeStampedPrice) -> sp_runtime::DispatchResult {
+        Ok(())
     }
 }
 
@@ -323,7 +330,7 @@ pub fn almost_equal(target: u128, value: u128) -> bool {
     let target = target as i128;
     let value = value as i128;
     let diff = (target - value).abs() as u128;
-    diff < micro_dollar(2)
+    diff < micro_dollar(1)
 }
 
 pub fn accrue_interest_per_block(asset_id: CurrencyId, block_delta_secs: u64, run_to_block: u64) {
@@ -353,7 +360,9 @@ pub const fn market_mock(ptoken_id: u32) -> Market<Balance> {
     Market {
         close_factor: Ratio::from_percent(50),
         collateral_factor: Ratio::from_percent(50),
+        liquidation_threshold: Ratio::from_percent(55),
         liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
+        liquidate_incentive_reserved_factor: Ratio::from_percent(3),
         state: MarketState::Pending,
         rate_model: InterestRateModel::Jump(JumpModel {
             base_rate: Rate::from_inner(Rate::DIV / 100 * 2),

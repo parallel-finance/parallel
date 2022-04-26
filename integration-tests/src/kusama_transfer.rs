@@ -16,8 +16,9 @@
 
 use cumulus_primitives_core::ParaId;
 use frame_support::assert_ok;
+use heiko_runtime::Assets;
 use primitives::{tokens::*, AccountId};
-use vanilla_runtime::Assets;
+use sp_runtime::traits::AccountIdConversion;
 use xcm::{latest::prelude::*, VersionedMultiAssets, VersionedMultiLocation};
 use xcm_emulator::TestExt;
 
@@ -41,7 +42,7 @@ fn transfer_from_relay_chain() {
         ));
     });
 
-    Vanilla::execute_with(|| {
+    Heiko::execute_with(|| {
         assert_eq!(Assets::balance(KSM, &AccountId::from(BOB)), 999_904_000_000);
         //ksm fee in heiko is 96_000_000
     });
@@ -49,8 +50,8 @@ fn transfer_from_relay_chain() {
 
 #[test]
 fn transfer_to_relay_chain() {
-    use vanilla_runtime::{Origin, XTokens};
-    Vanilla::execute_with(|| {
+    use heiko_runtime::{Origin, XTokens};
+    Heiko::execute_with(|| {
         assert_ok!(XTokens::transfer(
             Origin::signed(ALICE.into()),
             KSM,
@@ -71,7 +72,7 @@ fn transfer_to_relay_chain() {
         println!("heiko para account in relaychain:{:?}", para_acc);
         assert_eq!(
             kusama_runtime::Balances::free_balance(&AccountId::from(BOB)),
-            999_893_333_340 //xcm fee in kusama is 106_666_660~=0.015$
+            999_834_059_328 //xcm fee in kusama is 165_940_672 ~=0.015$
         );
     });
 }

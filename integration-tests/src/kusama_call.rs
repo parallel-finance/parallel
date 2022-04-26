@@ -12,4 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Cross-chain transact like crowdloan&liquid-staking should be moved here
+//! Cross-chain transact like crowdloan & liquid-staking should be moved here

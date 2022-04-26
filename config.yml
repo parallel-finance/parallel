@@ -1,5 +1,5 @@
 relaychain:
-  image: parallelfinance/polkadot:v0.9.17
+  image: parallelfinance/polkadot:v0.9.19
   chain: polkadot-local
   env:
     RUST_LOG: xcm=trace

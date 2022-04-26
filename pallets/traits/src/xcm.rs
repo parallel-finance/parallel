@@ -15,25 +15,30 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use crate::CurrencyId;
+
 use codec::{Decode, Encode};
 use frame_support::{
-    traits::{tokens::fungibles::Mutate, Get},
+    traits::{
+        tokens::{
+            fungibles::{Inspect, Mutate, Transfer},
+            BalanceConversion,
+        },
+        Get,
+    },
     weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
 use scale_info::TypeInfo;
 use sp_core::H256;
-use sp_runtime::traits::Convert;
-use sp_runtime::traits::{BlakeTwo256, CheckedConversion, Hash as THash, Zero};
-use sp_std::{borrow::Borrow, vec::Vec};
-use sp_std::{convert::TryFrom, marker::PhantomData};
-use xcm::latest::prelude::*;
+use sp_runtime::traits::{BlakeTwo256, Convert, Hash as THash, SaturatedConversion, Zero};
+use sp_std::{borrow::Borrow, marker::PhantomData, result};
 use xcm::latest::{
-    AssetId as xcmAssetId, Error as XcmError, Fungibility,
-    Junction::{AccountId32, Parachain},
+    prelude::*, AssetId as xcmAssetId, Error as XcmError, Fungibility, Junction::AccountId32,
     MultiLocation, NetworkId,
 };
 use xcm_builder::TakeRevenue;
-use xcm_executor::traits::{FilterAssetLocation, MatchesFungible, MatchesFungibles, WeightTrader};
+use xcm_executor::traits::{
+    Convert as MoreConvert, MatchesFungible, MatchesFungibles, TransactAsset, WeightTrader,
+};
 
 /// Converter struct implementing `AssetIdConversion` converting a numeric asset ID
 /// (must be `TryFrom/TryInto<u128>`) into a MultiLocation Value and Viceversa through
@@ -57,6 +62,7 @@ where
             Err(())
         }
     }
+
     fn reverse_ref(what: impl Borrow<AssetId>) -> Result<MultiLocation, ()> {
         if let Some(asset_type) = AssetIdInfoGetter::get_asset_type(what.borrow().clone()) {
             if let Some(location) = asset_type.into() {
@@ -109,6 +115,7 @@ impl<
     fn new() -> Self {
         FirstAssetTrader(0, None, PhantomData)
     }
+
     fn buy_weight(
         &mut self,
         weight: Weight,
@@ -130,55 +137,54 @@ impl<
                 if !AssetIdInfoGetter::payment_is_supported(asset_type.clone()) {
                     return Err(XcmError::TooExpensive);
                 }
-                if let Some(units_per_second) = AssetIdInfoGetter::get_units_per_second(asset_type)
-                {
-                    let amount = units_per_second.saturating_mul(weight as u128)
-                        / (WEIGHT_PER_SECOND as u128);
 
-                    // We dont need to proceed if the amount is 0
-                    // For cases (specially tests) where the asset is very cheap with respect
-                    // to the weight needed
-                    if amount.is_zero() {
-                        return Ok(payment);
-                    }
+                let units_per_second = AssetIdInfoGetter::get_units_per_second(asset_type)
+                    .ok_or(XcmError::TooExpensive)?;
+                let amount =
+                    units_per_second.saturating_mul(weight as u128) / (WEIGHT_PER_SECOND as u128);
 
-                    let required = MultiAsset {
-                        fun: Fungibility::Fungible(amount),
-                        id: xcmAssetId::Concrete(id.clone()),
-                    };
-                    let unused = payment
-                        .checked_sub(required)
-                        .map_err(|_| XcmError::TooExpensive)?;
-                    self.0 = self.0.saturating_add(weight);
-
-                    // In case the asset matches the one the trader already stored before, add
-                    // to later refund
-
-                    // Else we are always going to substract the weight if we can, but we latter do
-                    // not refund it
-
-                    // In short, we only refund on the asset the trader first succesfully was able
-                    // to pay for an execution
-                    let new_asset = match self.1.clone() {
-                        Some((prev_id, prev_amount, units_per_second)) => {
-                            if prev_id == id {
-                                Some((id, prev_amount.saturating_add(amount), units_per_second))
-                            } else {
-                                None
-                            }
-                        }
-                        None => Some((id, amount, units_per_second)),
-                    };
-
-                    // Due to the trait bound, we can only refund one asset.
-                    if let Some(new_asset) = new_asset {
-                        self.0 = self.0.saturating_add(weight);
-                        self.1 = Some(new_asset);
-                    };
-                    Ok(unused)
-                } else {
-                    Err(XcmError::TooExpensive)
+                // We dont need to proceed if the amount is 0
+                // For cases (specially tests) where the asset is very cheap with respect
+                // to the weight needed
+                if amount.is_zero() {
+                    return Ok(payment);
                 }
+
+                let required = MultiAsset {
+                    fun: Fungibility::Fungible(amount),
+                    id: xcmAssetId::Concrete(id.clone()),
+                };
+                let unused = payment
+                    .checked_sub(required)
+                    .map_err(|_| XcmError::TooExpensive)?;
+                self.0 = self.0.saturating_add(weight);
+
+                // In case the asset matches the one the trader already stored before, add
+                // to later refund
+
+                // Else we are always going to subtract the weight if we can, but we latter do
+                // not refund it
+
+                // In short, we only refund on the asset the trader first successfully was able
+                // to pay for an execution
+                let new_asset = match self.1.clone() {
+                    Some((prev_id, prev_amount, units_per_second)) => {
+                        if prev_id == id {
+                            Some((id, prev_amount.saturating_add(amount), units_per_second))
+                        } else {
+                            None
+                        }
+                    }
+                    None => Some((id, amount, units_per_second)),
+                };
+
+                // Due to the trait bound, we can only refund one asset.
+                if let Some(new_asset) = new_asset {
+                    self.0 = self.0.saturating_add(weight);
+                    self.1 = Some(new_asset);
+                };
+
+                Ok(unused)
             }
             _ => Err(XcmError::TooExpensive),
         }
@@ -215,43 +221,6 @@ impl<
         if let Some((id, amount, _)) = self.1.clone() {
             R::take_revenue((id, amount).into());
         }
-    }
-}
-
-pub trait Reserve {
-    /// Returns assets reserve location.
-    fn reserve(&self) -> Option<MultiLocation>;
-}
-
-// Takes the chain part of a MultiAsset
-impl Reserve for MultiAsset {
-    fn reserve(&self) -> Option<MultiLocation> {
-        if let xcmAssetId::Concrete(location) = self.id.clone() {
-            let first_interior = location.first_interior();
-            let parents = location.parent_count();
-            match (parents, first_interior) {
-                (0, Some(Parachain(id))) => Some(MultiLocation::new(0, X1(Parachain(*id)))),
-                (1, Some(Parachain(id))) => Some(MultiLocation::new(1, X1(Parachain(*id)))),
-                (1, _) => Some(MultiLocation::parent()),
-                _ => None,
-            }
-        } else {
-            None
-        }
-    }
-}
-
-/// A `FilterAssetLocation` implementation. Filters multi native assets whose
-/// reserve is same with `origin`.
-pub struct MultiNativeAsset;
-impl FilterAssetLocation for MultiNativeAsset {
-    fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
-        if let Some(ref reserve) = asset.reserve() {
-            if reserve == origin {
-                return true;
-            }
-        }
-        false
     }
 }
 
@@ -298,24 +267,6 @@ impl<
                 target: "xcm",
                 "take revenue failed matching fungible"
             ),
-        }
-    }
-}
-
-// Multi IsConcrete Implementation. Allows us to route both pre and post 0.9.16 anchoring versions
-// of our native token to the same currency
-// The incoming MultiAsset is matched against a Vec of multilocations and returned Some
-// if matches
-pub struct MultiIsConcrete<T>(PhantomData<T>);
-impl<T: Get<Vec<MultiLocation>>, B: TryFrom<u128>> MatchesFungible<B> for MultiIsConcrete<T> {
-    fn matches_fungible(a: &MultiAsset) -> Option<B> {
-        match (&a.id, &a.fun) {
-            (xcmAssetId::Concrete(ref id), Fungibility::Fungible(ref amount))
-                if T::get().contains(id) =>
-            {
-                CheckedConversion::checked_from(*amount)
-            }
-            _ => None,
         }
     }
 }
@@ -379,5 +330,164 @@ where
             None => ForeignAssetConverter::reverse_ref(&currency_id).ok(),
         };
         multi_location
+    }
+}
+
+pub struct MultiCurrencyAdapter<
+    MultiCurrency,
+    Match,
+    AccountId,
+    Balance,
+    AccountIdConvert,
+    CurrencyIdConvert,
+    NativeCurrencyId,
+    ExistentialDeposit,
+    GiftAccount,
+    GiftConvert,
+>(
+    PhantomData<(
+        MultiCurrency,
+        Match,
+        AccountId,
+        Balance,
+        AccountIdConvert,
+        CurrencyIdConvert,
+        NativeCurrencyId,
+        ExistentialDeposit,
+        GiftAccount,
+        GiftConvert,
+    )>,
+);
+
+enum Error {
+    /// Failed to match fungible.
+    #[allow(dead_code)]
+    FailedToMatchFungible,
+    /// `MultiLocation` to `AccountId` Conversion failed.
+    AccountIdConversionFailed,
+    /// `CurrencyId` conversion failed.
+    CurrencyIdConversionFailed,
+}
+
+impl From<Error> for XcmError {
+    fn from(e: Error) -> Self {
+        match e {
+            Error::FailedToMatchFungible => {
+                XcmError::FailedToTransactAsset("FailedToMatchFungible")
+            }
+            Error::AccountIdConversionFailed => {
+                XcmError::FailedToTransactAsset("AccountIdConversionFailed")
+            }
+            Error::CurrencyIdConversionFailed => {
+                XcmError::FailedToTransactAsset("CurrencyIdConversionFailed")
+            }
+        }
+    }
+}
+
+impl<
+        MultiCurrency: Inspect<AccountId, Balance = Balance>
+            + Mutate<AccountId, Balance = Balance>
+            + Transfer<AccountId, Balance = Balance>,
+        Match: MatchesFungible<MultiCurrency::Balance>,
+        AccountId: sp_std::fmt::Debug + Clone,
+        Balance: frame_support::traits::tokens::Balance,
+        AccountIdConvert: MoreConvert<MultiLocation, AccountId>,
+        CurrencyIdConvert: Convert<MultiAsset, Option<MultiCurrency::AssetId>>,
+        NativeCurrencyId: Get<MultiCurrency::AssetId>,
+        ExistentialDeposit: Get<Balance>,
+        GiftAccount: Get<AccountId>,
+        GiftConvert: BalanceConversion<Balance, MultiCurrency::AssetId, Balance>,
+    > TransactAsset
+    for MultiCurrencyAdapter<
+        MultiCurrency,
+        Match,
+        AccountId,
+        Balance,
+        AccountIdConvert,
+        CurrencyIdConvert,
+        NativeCurrencyId,
+        ExistentialDeposit,
+        GiftAccount,
+        GiftConvert,
+    >
+{
+    fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> XcmResult {
+        match (
+            AccountIdConvert::convert_ref(location),
+            CurrencyIdConvert::convert(asset.clone()),
+            Match::matches_fungible(asset),
+        ) {
+            // known asset
+            (Ok(who), Some(currency_id), Some(amount)) => {
+                if let MultiAsset {
+                    id:
+                        AssetId::Concrete(MultiLocation {
+                            parents: 1,
+                            interior: Here,
+                        }),
+                    ..
+                } = asset
+                {
+                    let gift_account = GiftAccount::get();
+                    let native_currency_id = NativeCurrencyId::get();
+                    let gift_amount =
+                        GiftConvert::to_asset_balance(amount.saturated_into(), currency_id)
+                            .unwrap_or_else(|_| Zero::zero());
+                    let beneficiary_native_balance =
+                        MultiCurrency::reducible_balance(native_currency_id, &who, true);
+                    let reducible_balance =
+                        MultiCurrency::reducible_balance(native_currency_id, &gift_account, false);
+
+                    if !gift_amount.is_zero()
+                        && reducible_balance >= gift_amount
+                        && beneficiary_native_balance < gift_amount
+                    {
+                        let diff =
+                            ExistentialDeposit::get() + gift_amount - beneficiary_native_balance;
+                        if let Err(e) = MultiCurrency::transfer(
+                            native_currency_id,
+                            &gift_account,
+                            &who,
+                            diff,
+                            false,
+                        ) {
+                            log::error!(
+                                target: "xcm::deposit_asset",
+                                "who: {:?}, currency_id: {:?}, amount: {:?}, native_currency_id: {:?}, gift_amount: {:?}, err: {:?}",
+                                who,
+                                currency_id,
+                                amount,
+                                native_currency_id,
+                                diff,
+                                e
+                            );
+                        }
+                    }
+                }
+
+                MultiCurrency::mint_into(currency_id, &who, amount)
+                    .map_err(|e| XcmError::FailedToTransactAsset(e.into()))
+            }
+            _ => Err(XcmError::AssetNotFound),
+        }
+    }
+
+    fn withdraw_asset(
+        asset: &MultiAsset,
+        location: &MultiLocation,
+    ) -> result::Result<xcm_executor::Assets, XcmError> {
+        // throw AssetNotFound error here if not match in order to reach the next foreign transact in tuple
+        let amount: MultiCurrency::Balance = Match::matches_fungible(asset)
+            .ok_or(XcmError::AssetNotFound)?
+            .saturated_into();
+        let who = AccountIdConvert::convert_ref(location)
+            .map_err(|_| XcmError::from(Error::AccountIdConversionFailed))?;
+        let currency_id = CurrencyIdConvert::convert(asset.clone())
+            .ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
+        MultiCurrency::burn_from(currency_id, &who, amount)
+            .map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+
+        Ok(asset.clone().into())
     }
 }

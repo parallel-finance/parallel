@@ -19,15 +19,28 @@ pub use pallet_loans_rpc_runtime_api::LoansApi as LoansRuntimeApi;
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
-use primitives::{Liquidity, Shortfall};
+use primitives::{CurrencyId, Liquidity, Rate, Ratio, Shortfall};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
-use sp_runtime::{generic::BlockId, traits::Block as BlockT};
+use sp_rpc::number::NumberOrHex;
+use sp_runtime::{generic::BlockId, traits::Block as BlockT, FixedU128};
 
 #[rpc]
-pub trait LoansApi<BlockHash, AccountId> {
-    #[rpc(name = "loans_getAccountLiquidity")]
+pub trait LoansApi<BlockHash, AccountId, Balance> {
+    #[rpc(name = "loans_getCollateralLiquidity")]
     fn get_account_liquidity(
+        &self,
+        account: AccountId,
+        at: Option<BlockHash>,
+    ) -> Result<(Liquidity, Shortfall)>;
+    #[rpc(name = "loans_getMarketStatus")]
+    fn get_market_status(
+        &self,
+        asset_id: CurrencyId,
+        at: Option<BlockHash>,
+    ) -> Result<(Rate, Rate, Rate, Ratio, Balance, Balance, FixedU128)>;
+    #[rpc(name = "loans_getLiquidationThresholdLiquidity")]
+    fn get_liquidation_threshold_liquidity(
         &self,
         account: AccountId,
         at: Option<BlockHash>,
@@ -53,6 +66,7 @@ impl<C, B> Loans<C, B> {
 pub enum Error {
     RuntimeError,
     AccountLiquidityError,
+    MarketStatusError,
 }
 
 impl From<Error> for i64 {
@@ -60,18 +74,21 @@ impl From<Error> for i64 {
         match e {
             Error::RuntimeError => 1,
             Error::AccountLiquidityError => 2,
+            Error::MarketStatusError => 3,
         }
     }
 }
 
-impl<C, Block, AccountId> LoansApi<<Block as BlockT>::Hash, AccountId> for Loans<C, Block>
+impl<C, Block, AccountId, Balance> LoansApi<<Block as BlockT>::Hash, AccountId, Balance>
+    for Loans<C, Block>
 where
     Block: BlockT,
     C: Send + Sync + 'static,
     C: ProvideRuntimeApi<Block>,
     C: HeaderBackend<Block>,
-    C::Api: LoansRuntimeApi<Block, AccountId>,
+    C::Api: LoansRuntimeApi<Block, AccountId, Balance>,
     AccountId: Codec,
+    Balance: Codec + Copy + TryFrom<NumberOrHex> + Into<NumberOrHex> + std::fmt::Display,
 {
     fn get_account_liquidity(
         &self,
@@ -84,6 +101,36 @@ where
             self.client.info().best_hash,
         ));
         api.get_account_liquidity(&at, account)
+            .map_err(runtime_error_into_rpc_error)?
+            .map_err(account_liquidity_error_into_rpc_error)
+    }
+
+    fn get_market_status(
+        &self,
+        asset_id: CurrencyId,
+        at: Option<<Block as BlockT>::Hash>,
+    ) -> Result<(Rate, Rate, Rate, Ratio, Balance, Balance, FixedU128)> {
+        let api = self.client.runtime_api();
+        let at = BlockId::hash(at.unwrap_or(
+            // If the block hash is not supplied assume the best block.
+            self.client.info().best_hash,
+        ));
+        api.get_market_status(&at, asset_id)
+            .map_err(runtime_error_into_rpc_error)?
+            .map_err(market_status_error_into_rpc_error)
+    }
+
+    fn get_liquidation_threshold_liquidity(
+        &self,
+        account: AccountId,
+        at: Option<<Block as BlockT>::Hash>,
+    ) -> Result<(Liquidity, Shortfall)> {
+        let api = self.client.runtime_api();
+        let at = BlockId::hash(at.unwrap_or(
+            // If the block hash is not supplied assume the best block.
+            self.client.info().best_hash,
+        ));
+        api.get_liquidation_threshold_liquidity(&at, account)
             .map_err(runtime_error_into_rpc_error)?
             .map_err(account_liquidity_error_into_rpc_error)
     }
@@ -103,6 +150,15 @@ fn account_liquidity_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError
     RpcError {
         code: ErrorCode::ServerError(Error::AccountLiquidityError.into()),
         message: "Not able to get account liquidity".into(),
+        data: Some(format!("{:?}", err).into()),
+    }
+}
+
+/// Converts an market status error into an RPC error.
+fn market_status_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError {
+    RpcError {
+        code: ErrorCode::ServerError(Error::MarketStatusError.into()),
+        message: "Not able to get market status".into(),
         data: Some(format!("{:?}", err).into()),
     }
 }

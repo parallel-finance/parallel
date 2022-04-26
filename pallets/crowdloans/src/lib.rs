@@ -253,7 +253,7 @@ pub mod pallet {
     pub enum Error<T> {
         /// Vault is not in correct phase
         IncorrectVaultPhase,
-        /// Crowdloan ParaId aready exists
+        /// Crowdloan ParaId already exists
         CrowdloanAlreadyExists,
         /// Contribution is not enough
         InsufficientContribution,
@@ -427,7 +427,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Update an exisiting vault via a governance decision
+        /// Update an existing vault via a governance decision
         #[pallet::weight(<T as Config>::WeightInfo::update_vault())]
         #[transactional]
         pub fn update_vault(
@@ -966,9 +966,7 @@ pub mod pallet {
             );
 
             'outer: for kind in [Contributed, Flying, Pending] {
-                for (who, (amount, referral_code)) in
-                    Self::contribution_iterator(vault.trie_index, kind)
-                {
+                for (who, (amount, _)) in Self::contribution_iterator(vault.trie_index, kind) {
                     if refund_count >= T::RemoveKeysLimit::get() {
                         all_refunded = false;
                         break 'outer;
@@ -994,7 +992,7 @@ pub mod pallet {
                         &who,
                         &mut vault,
                         amount,
-                        Some(referral_code.clone()),
+                        None,
                         ArithmeticKind::Subtraction,
                         kind,
                     )?;

@@ -407,7 +407,7 @@ fn contribute_should_work() {
 }
 
 #[test]
-fn contribute_should_fail_insufficent_funds() {
+fn contribute_should_fail_insufficient_funds() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
@@ -850,7 +850,7 @@ fn slot_expired_should_work() {
 }
 
 #[test]
-fn suceed_should_work() {
+fn succeed_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;

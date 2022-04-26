@@ -28,7 +28,7 @@ A decentralized lending & staking protocol built on top of the Polkadot ecosyste
 
 [Website](https://parallel.fi) |
 [White Paper](https://docs.parallel.fi/white-paper) |
-[API Docs](https://docs.parallel.fi) |
+[API Docs](https://api-docs.parallel.fi/rustdocs) |
 [Chat](https://discord.com/invite/buKKx4dySW)
 
 </div>

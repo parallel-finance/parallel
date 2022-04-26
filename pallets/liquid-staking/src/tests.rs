@@ -1,26 +1,26 @@
-use crate::{
-    mock::*,
-    types::{MatchingLedger, StakingLedger, UnlockChunk, XcmRequest},
-    *,
-};
-
 use frame_support::{
-    assert_noop, assert_ok, error::BadOrigin, storage::with_transaction, traits::Hooks,
+    assert_noop, assert_ok, dispatch::DispatchResult, error::BadOrigin, storage::with_transaction,
+    traits::Hooks,
 };
-
-use primitives::{
-    tokens::{KSM, SKSM},
-    ump::RewardDestination,
-    Balance, Rate, Ratio,
-};
-use sp_runtime::traits::BlakeTwo256;
 use sp_runtime::{
-    traits::{One, Zero},
+    traits::{BlakeTwo256, One, Zero},
     MultiAddress::Id,
     TransactionOutcome,
 };
 use sp_trie::StorageProof;
 use xcm_simulator::TestExt;
+
+use pallet_traits::ump::RewardDestination;
+use primitives::{
+    tokens::{KSM, SKSM},
+    Balance, Rate, Ratio,
+};
+
+use crate::{
+    mock::*,
+    types::{MatchingLedger, ReservableAmount, StakingLedger, UnlockChunk, XcmRequest},
+    *,
+};
 
 #[test]
 fn stake_should_work() {
@@ -31,8 +31,11 @@ fn stake_should_work() {
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
-                total_stake_amount: ksm(9.95f64),
-                total_unstake_amount: 0,
+                total_stake_amount: ReservableAmount {
+                    total: ksm(9.95f64),
+                    reserved: 0
+                },
+                total_unstake_amount: Default::default(),
             }
         );
 
@@ -48,16 +51,18 @@ fn stake_should_work() {
             ksm(10f64)
         );
 
-        with_transaction(|| {
-            LiquidStaking::do_advance_era(1).unwrap();
-            LiquidStaking::notification_received(
-                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-                0,
-                Response::ExecutionResult(None),
-            )
-            .unwrap();
-            TransactionOutcome::Commit(0)
-        });
+        assert_ok!(with_transaction(
+            || -> TransactionOutcome<DispatchResult> {
+                LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::notification_received(
+                    pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                    0,
+                    Response::ExecutionResult(None),
+                )
+                .unwrap();
+                TransactionOutcome::Commit(Ok(()))
+            }
+        ));
 
         assert_eq!(
             <Test as Config>::Assets::balance(KSM, &LiquidStaking::account_id()),
@@ -67,11 +72,11 @@ fn stake_should_work() {
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
-                total_stake_amount: 0,
-                total_unstake_amount: 0,
+                total_stake_amount: Default::default(),
+                total_unstake_amount: Default::default(),
             }
         );
-        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let derivative_index = 0u16;
         assert_eq!(
             StakingLedgers::<Test>::get(&0).unwrap(),
             StakingLedger {
@@ -85,16 +90,18 @@ fn stake_should_work() {
 
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
 
-        with_transaction(|| {
-            LiquidStaking::do_advance_era(1).unwrap();
-            LiquidStaking::notification_received(
-                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-                1,
-                Response::ExecutionResult(None),
-            )
-            .unwrap();
-            TransactionOutcome::Commit(0)
-        });
+        assert_ok!(with_transaction(
+            || -> TransactionOutcome<DispatchResult> {
+                LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::notification_received(
+                    pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                    1,
+                    Response::ExecutionResult(None),
+                )
+                .unwrap();
+                TransactionOutcome::Commit(Ok(()))
+            }
+        ));
 
         assert_eq!(
             <Test as Config>::Assets::balance(KSM, &LiquidStaking::account_id()),
@@ -125,8 +132,14 @@ fn unstake_should_work() {
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
-                total_stake_amount: ksm(9.95f64),
-                total_unstake_amount: ksm(6f64),
+                total_stake_amount: ReservableAmount {
+                    total: ksm(9.95f64),
+                    reserved: 0
+                },
+                total_unstake_amount: ReservableAmount {
+                    total: ksm(6f64),
+                    reserved: 0
+                }
             }
         );
 
@@ -138,26 +151,28 @@ fn unstake_should_work() {
             }]
         );
 
-        with_transaction(|| {
-            LiquidStaking::do_advance_era(1).unwrap();
-            LiquidStaking::notification_received(
-                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-                0,
-                Response::ExecutionResult(None),
-            )
-            .unwrap();
-            TransactionOutcome::Commit(0)
-        });
+        assert_ok!(with_transaction(
+            || -> TransactionOutcome<DispatchResult> {
+                LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::notification_received(
+                    pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                    0,
+                    Response::ExecutionResult(None),
+                )
+                .unwrap();
+                TransactionOutcome::Commit(Ok(()))
+            }
+        ));
 
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
-                total_stake_amount: 0,
-                total_unstake_amount: 0,
+                total_stake_amount: Default::default(),
+                total_unstake_amount: Default::default(),
             }
         );
 
-        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let derivative_index = 0u16;
         assert_eq!(
             StakingLedgers::<Test>::get(&0).unwrap(),
             StakingLedger {
@@ -186,16 +201,18 @@ fn unstake_should_work() {
             ]
         );
 
-        with_transaction(|| {
-            LiquidStaking::do_advance_era(1).unwrap();
-            LiquidStaking::notification_received(
-                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-                1,
-                Response::ExecutionResult(None),
-            )
-            .unwrap();
-            TransactionOutcome::Commit(0)
-        });
+        assert_ok!(with_transaction(
+            || -> TransactionOutcome<DispatchResult> {
+                LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::notification_received(
+                    pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                    1,
+                    Response::ExecutionResult(None),
+                )
+                .unwrap();
+                TransactionOutcome::Commit(Ok(()))
+            }
+        ));
 
         assert_eq!(
             StakingLedgers::<Test>::get(&0).unwrap(),
@@ -256,16 +273,18 @@ fn test_matching_should_work() {
                 LiquidStaking::matching_pool().matching(unbonding_amount),
                 Ok(matching_result)
             );
-            with_transaction(|| {
-                LiquidStaking::do_advance_era(1).unwrap();
-                LiquidStaking::notification_received(
-                    pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-                    i.try_into().unwrap(),
-                    Response::ExecutionResult(None),
-                )
-                .unwrap();
-                TransactionOutcome::Commit(0)
-            });
+            assert_ok!(with_transaction(
+                || -> TransactionOutcome<DispatchResult> {
+                    LiquidStaking::do_advance_era(1).unwrap();
+                    LiquidStaking::notification_received(
+                        pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                        i.try_into().unwrap(),
+                        Response::ExecutionResult(None),
+                    )
+                    .unwrap();
+                    TransactionOutcome::Commit(Ok(()))
+                }
+            ));
         }
     });
 }
@@ -273,7 +292,7 @@ fn test_matching_should_work() {
 #[test]
 fn test_transact_bond_work() {
     TestNet::reset();
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(2000f64),));
         assert_ok!(LiquidStaking::bond(
@@ -307,17 +326,16 @@ fn test_transact_bond_work() {
 #[test]
 fn test_transact_bond_extra_work() {
     TestNet::reset();
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(4000f64),));
-
+        let bond_amount = ksm(2f64);
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             derivative_index,
-            ksm(2f64),
+            bond_amount,
             RewardDestination::Staked
         ));
-
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
             0,
@@ -343,16 +361,19 @@ fn test_transact_bond_extra_work() {
 #[test]
 fn test_transact_unbond_work() {
     TestNet::reset();
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(1000f64),));
+        let bond_amount = ksm(5f64);
 
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             derivative_index,
-            ksm(5f64),
+            bond_amount,
             RewardDestination::Staked
         ));
+
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
             0,
@@ -386,15 +407,16 @@ fn test_transact_unbond_work() {
 #[test]
 fn test_transact_withdraw_unbonded_work() {
     TestNet::reset();
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
         assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(2000f64),));
-
+        let bond_amount = ksm(5f64);
+        let unbond_amount = ksm(2f64);
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             derivative_index,
-            ksm(5f64),
+            bond_amount,
             RewardDestination::Staked
         ));
         assert_ok!(LiquidStaking::notification_received(
@@ -405,7 +427,7 @@ fn test_transact_withdraw_unbonded_work() {
         assert_ok!(LiquidStaking::unbond(
             Origin::signed(ALICE),
             derivative_index,
-            ksm(2f64)
+            unbond_amount
         ));
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
@@ -444,7 +466,7 @@ fn test_transact_withdraw_unbonded_work() {
         ));
 
         assert_ok!(LiquidStaking::withdraw_unbonded(
-            Origin::signed(BOB),
+            Origin::root(),
             derivative_index,
             0
         ));
@@ -464,16 +486,18 @@ fn test_transact_withdraw_unbonded_work() {
 #[test]
 fn test_transact_rebond_work() {
     TestNet::reset();
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
-
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(1000f64),));
+        let bond_amount = ksm(10f64);
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             derivative_index,
-            ksm(10f64),
+            bond_amount,
             RewardDestination::Staked
         ));
+
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
             0,
@@ -516,14 +540,14 @@ fn test_transact_rebond_work() {
 #[test]
 fn test_transact_nominate_work() {
     TestNet::reset();
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(4000f64),));
-
+        let bond_amount = ksm(10f64);
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             derivative_index,
-            ksm(10f64),
+            bond_amount,
             RewardDestination::Staked
         ));
 
@@ -558,7 +582,7 @@ fn test_transact_nominate_work() {
 fn test_transfer_bond() {
     TestNet::reset();
     let xcm_transfer_amount = ksm(10f64);
-    let derivative_index = <Test as Config>::DerivativeIndex::get();
+    let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(2000f64),));
         assert_ok!(LiquidStaking::bond(
@@ -592,10 +616,10 @@ fn test_transfer_bond() {
 }
 
 #[test]
-fn update_market_cap_should_not_work_if_with_invalid_param() {
+fn update_staking_ledger_cap_should_not_work_if_with_invalid_param() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            LiquidStaking::update_market_cap(Origin::root(), Zero::zero()),
+            LiquidStaking::update_staking_ledger_cap(Origin::root(), Zero::zero()),
             Error::<Test>::InvalidCap
         );
     })
@@ -636,18 +660,20 @@ fn claim_for_should_work() {
             Error::<Test>::NothingToClaim
         );
 
-        let derivative_index = <Test as Config>::DerivativeIndex::get();
-        with_transaction(|| {
-            assert_ok!(LiquidStaking::do_advance_era(4));
-            TransactionOutcome::Commit(0)
-        });
+        let derivative_index = 0u16;
+        assert_ok!(with_transaction(
+            || -> TransactionOutcome<DispatchResult> {
+                assert_ok!(LiquidStaking::do_advance_era(4));
+                TransactionOutcome::Commit(Ok(()))
+            }
+        ));
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
             0,
             Response::ExecutionResult(None),
         ));
         assert_ok!(LiquidStaking::withdraw_unbonded(
-            Origin::signed(BOB),
+            Origin::root(),
             derivative_index,
             0
         ));
@@ -670,7 +696,7 @@ fn claim_for_should_work() {
 #[test]
 fn test_on_initialize_work() {
     new_test_ext().execute_with(|| {
-        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let derivative_index = 0u16;
         let xcm_fees = XcmFees::get();
         let reserve_factor = LiquidStaking::reserve_factor();
 
@@ -686,12 +712,15 @@ fn test_on_initialize_work() {
         LiquidStaking::on_initialize(System::block_number());
         assert_eq!(EraStartBlock::<Test>::get(), total_era_blocknumbers);
         assert_eq!(CurrentEra::<Test>::get(), 1);
-        assert_eq!(LiquidStaking::staking_ledgers(derivative_index), None);
+        assert_eq!(LiquidStaking::staking_ledger(derivative_index), None);
         assert_eq!(
             LiquidStaking::matching_pool(),
             MatchingLedger {
-                total_stake_amount,
-                total_unstake_amount: 0,
+                total_stake_amount: ReservableAmount {
+                    total: total_stake_amount,
+                    reserved: total_stake_amount
+                },
+                total_unstake_amount: Default::default(),
             }
         );
 
@@ -707,7 +736,7 @@ fn test_on_initialize_work() {
             total_stake_amount,
         );
         assert_eq!(
-            LiquidStaking::staking_ledgers(derivative_index).unwrap(),
+            LiquidStaking::staking_ledger(derivative_index).unwrap(),
             staking_ledger
         );
 
@@ -718,7 +747,7 @@ fn test_on_initialize_work() {
 #[test]
 fn test_set_staking_ledger_work() {
     new_test_ext().execute_with(|| {
-        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let derivative_index = 0u16;
         let bond_amount = 100;
         let bond_extra_amount = 50;
         let mut staking_ledger = <StakingLedger<AccountId, BalanceOf<Test>>>::new(
@@ -736,7 +765,7 @@ fn test_set_staking_ledger_work() {
         );
         StakingLedgers::<Test>::insert(derivative_index, staking_ledger.clone());
         assert_eq!(
-            LiquidStaking::staking_ledgers(derivative_index).unwrap(),
+            LiquidStaking::staking_ledger(derivative_index).unwrap(),
             staking_ledger.clone()
         );
         staking_ledger.bond_extra(bond_extra_amount);
@@ -769,7 +798,7 @@ fn test_set_staking_ledger_work() {
 
         LiquidStaking::on_finalize(1);
         assert_eq!(
-            LiquidStaking::staking_ledgers(derivative_index)
+            LiquidStaking::staking_ledger(derivative_index)
                 .unwrap()
                 .total,
             MOCK_LEDGER_AMOUNT
@@ -798,7 +827,7 @@ fn test_force_set_current_era_work() {
 #[test]
 fn test_force_notification_received_work() {
     new_test_ext().execute_with(|| {
-        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let derivative_index = 0u16;
         let bond_amount = ksm(10f64);
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(20f64),));
 
@@ -808,6 +837,7 @@ fn test_force_notification_received_work() {
             bond_amount,
             RewardDestination::Staked
         ));
+
         let query_id = 0;
         assert_eq!(
             XcmRequests::<Test>::get(query_id),
@@ -869,7 +899,7 @@ fn test_verify_trie_proof_work() {
 fn test_verify_merkle_proof_work() {
     new_test_ext().execute_with(|| {
         use codec::Encode;
-        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let derivative_index = 0u16;
         let staking_ledger = get_mock_staking_ledger(derivative_index);
         let key = LiquidStaking::get_staking_ledger_key(derivative_index);
         let value = staking_ledger.encode();

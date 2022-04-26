@@ -38,11 +38,11 @@ use frame_support::{
 };
 use frame_system::{ensure_signed_or_root, pallet_prelude::*};
 use primitives::{Balance, BridgeInterval, ChainId, ChainNonce, CurrencyId, Ratio};
-use scale_info::prelude::{vec, vec::Vec};
 use sp_runtime::{
     traits::{AccountIdConversion, Zero},
     ArithmeticError,
 };
+use sp_std::{vec, vec::Vec};
 
 mod benchmarking;
 mod mock;
@@ -223,7 +223,7 @@ pub mod pallet {
         /// [bridge_token_id, bridge_type]
         BridgeTokenAccumulatedValueCleaned(CurrencyId, BridgeType),
 
-        /// Event emitted when bridge token is destoryed by teleportation
+        /// Event emitted when bridge token is destroyed by teleportation
         /// [ori_address, dest_id, chain_nonce, bridge_token_id, dst_address, amount, fee]
         TeleportBurned(
             T::AccountId,
@@ -342,8 +342,8 @@ pub mod pallet {
 
             // Write a new chain_id into storage
             ChainNonces::<T>::insert(chain_id, 0);
-            let inital_registry: Vec<BridgeInterval> = vec![];
-            BridgeRegistry::<T>::insert(chain_id, inital_registry);
+            let initial_registry: Vec<BridgeInterval> = vec![];
+            BridgeRegistry::<T>::insert(chain_id, initial_registry);
             Self::deposit_event(Event::ChainRegistered(chain_id));
 
             Ok(())
@@ -830,7 +830,6 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Records completed bridge transactions
-    #[require_transactional]
     fn update_bridge_registry(chain_id: ChainId, nonce: ChainNonce) {
         match Self::bridge_registry(&chain_id) {
             None => {}

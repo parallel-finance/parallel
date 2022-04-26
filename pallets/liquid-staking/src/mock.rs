@@ -11,16 +11,14 @@ use frame_support::{
     PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
-use orml_traits::parameter_type_with_key;
+use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::{IsSystem, Sibling};
 
+use pallet_traits::ValidationDataProvider;
 use polkadot_runtime_parachains::configuration::HostConfiguration;
-use primitives::{
-    currency::MultiCurrencyAdapter, tokens::*, Balance, EraIndex, ParaId, PersistedValidationData,
-    Rate, Ratio, ValidationDataProvider,
-};
+use primitives::{tokens::*, Balance, EraIndex, ParaId, PersistedValidationData, Rate, Ratio};
 use sp_core::H256;
 use sp_runtime::{
     generic,
@@ -44,9 +42,12 @@ use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chai
 
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
-use crate::{types::StakingLedger, BalanceOf};
+use crate::{distribution::AverageDistribution, types::StakingLedger, BalanceOf};
 pub use kusama_runtime;
-use primitives::ump::{XcmCall, XcmWeightFeeMisc};
+use pallet_traits::{
+    ump::{XcmCall, XcmWeightFeeMisc},
+    xcm::MultiCurrencyAdapter,
+};
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
@@ -170,6 +171,7 @@ impl cumulus_pallet_xcmp_queue::Config for Test {
     type VersionWrapper = ();
     type ControllerOrigin = EnsureRoot<AccountId>;
     type ControllerOriginConverter = SystemParachainAsSuperuser<Origin>;
+    type WeightInfo = cumulus_pallet_xcmp_queue::weights::SubstrateWeight<Test>;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Test {
@@ -289,6 +291,8 @@ impl orml_xtokens::Config for Test {
     type LocationInverter = LocationInverter<Ancestry>;
     type MaxAssetsForTransfer = MaxAssetsForTransfer;
     type MinXcmFee = ParachainMinFee;
+    type MultiLocationsFilter = Everything;
+    type ReserveProvider = AbsoluteReserveProvider;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -387,6 +391,7 @@ impl pallet_xcm_helper::Config for Test {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Test>;
+    type XcmOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
 }
 
@@ -454,7 +459,6 @@ pub fn get_mock_staking_ledger(derivative_index: u16) -> StakingLedger<AccountId
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const DerivativeIndex: u16 = 0;
     pub const EraLength: BlockNumber = 10;
     pub SelfParaId: ParaId = para_a_id();
     pub const MinStake: Balance = 0;
@@ -463,6 +467,7 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = SKSM;
     pub const XcmFees: Balance = 0;
     pub const BondingDuration: EraIndex = 3;
+    pub const MinNominatorBond: Balance = 0;
     pub const NumSlashingSpans: u32 = 0;
     pub static DerivativeIndexList: Vec<u16> = vec![0];
     pub static RelayChainValidationDataProvider: BlockNumber = 0;
@@ -478,7 +483,6 @@ impl crate::Config for Test {
     type WeightInfo = ();
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type DerivativeIndex = DerivativeIndex;
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
     type Assets = Assets;
@@ -488,9 +492,11 @@ impl crate::Config for Test {
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
+    type MinNominatorBond = MinNominatorBond;
     type RelayChainValidationDataProvider = RelayChainValidationDataProvider;
     type Members = BobOrigin;
     type NumSlashingSpans = NumSlashingSpans;
+    type DistributionStrategy = AverageDistribution;
 }
 
 parameter_types! {
@@ -590,7 +596,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::mint(Origin::signed(ALICE), SKSM, Id(ALICE), ksm(100f64)).unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
 
-        LiquidStaking::update_market_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        LiquidStaking::update_staking_ledger_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             KSM,
@@ -705,7 +711,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        LiquidStaking::update_market_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        LiquidStaking::update_staking_ledger_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
         XcmHelper::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
             .unwrap();
     });

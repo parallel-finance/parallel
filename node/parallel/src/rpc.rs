@@ -31,7 +31,7 @@ where
     C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: orml_oracle_rpc::OracleRuntimeApi<Block, DataProviderId, CurrencyId, TimeStampedPrice>,
-    C::Api: pallet_loans_rpc::LoansRuntimeApi<Block, AccountId>,
+    C::Api: pallet_loans_rpc::LoansRuntimeApi<Block, AccountId, Balance>,
     C::Api: pallet_router_rpc::RouterRuntimeApi<Block, Balance>,
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
