@@ -10,11 +10,12 @@ on:
 
 jobs:
   cleanup:
-     runs-on: self-hosted
-     steps:
-       - name: cleaning up
-         run: |
-           sudo chown -R $USER:$USER $GITHUB_WORKSPACE
+    runs-on: self-hosted
+    steps:
+      - name: cleaning up
+        run: |
+          sudo chown -R $USER:$USER $GITHUB_WORKSPACE
+
   parallel:
     if: github.repository == 'parallel-finance/parallel'
     runs-on: ${{ matrix.os }}
