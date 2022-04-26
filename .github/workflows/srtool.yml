@@ -8,9 +8,15 @@ on:
       - "v*"
 
 jobs:
+  cleanup:
+     runs-on: self-hosted
+     steps:
+       - name: cleaning up
+         run: |
+           sudo chown -R $USER:$USER $GITHUB_WORKSPACE
   srtool:
     if: github.repository == 'parallel-finance/parallel'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         chain: ["heiko", "parallel", "vanilla", "kerria"]
@@ -94,7 +100,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   postrelease:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: startsWith(github.ref, 'refs/tags/')
     needs: srtool
     steps:
