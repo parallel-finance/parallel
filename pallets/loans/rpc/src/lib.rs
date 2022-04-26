@@ -22,10 +22,11 @@ use jsonrpc_derive::rpc;
 use primitives::{CurrencyId, Liquidity, Rate, Ratio, Shortfall};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
+use sp_rpc::number::NumberOrHex;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT, FixedU128};
 
 #[rpc]
-pub trait LoansApi<BlockHash, AccountId> {
+pub trait LoansApi<BlockHash, AccountId, Balance> {
     #[rpc(name = "loans_getAccountLiquidity")]
     fn get_account_liquidity(
         &self,
@@ -37,7 +38,7 @@ pub trait LoansApi<BlockHash, AccountId> {
         &self,
         asset_id: CurrencyId,
         at: Option<BlockHash>,
-    ) -> Result<(Rate, Rate, Rate, Ratio, u128, u128, FixedU128)>;
+    ) -> Result<(Rate, Rate, Rate, Ratio, Balance, Balance, FixedU128)>;
 }
 
 /// A struct that implements the [`LoansApi`].
@@ -72,14 +73,16 @@ impl From<Error> for i64 {
     }
 }
 
-impl<C, Block, AccountId> LoansApi<<Block as BlockT>::Hash, AccountId> for Loans<C, Block>
+impl<C, Block, AccountId, Balance> LoansApi<<Block as BlockT>::Hash, AccountId, Balance>
+    for Loans<C, Block>
 where
     Block: BlockT,
     C: Send + Sync + 'static,
     C: ProvideRuntimeApi<Block>,
     C: HeaderBackend<Block>,
-    C::Api: LoansRuntimeApi<Block, AccountId>,
+    C::Api: LoansRuntimeApi<Block, AccountId, Balance>,
     AccountId: Codec,
+    Balance: Codec + Copy + TryFrom<NumberOrHex> + Into<NumberOrHex> + std::fmt::Display,
 {
     fn get_account_liquidity(
         &self,
@@ -100,7 +103,7 @@ where
         &self,
         asset_id: CurrencyId,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> Result<(Rate, Rate, Rate, Ratio, u128, u128, FixedU128)> {
+    ) -> Result<(Rate, Rate, Rate, Ratio, Balance, Balance, FixedU128)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(
             // If the block hash is not supplied assume the best block.

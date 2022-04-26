@@ -2181,12 +2181,12 @@ impl_runtime_apis! {
         }
     }
 
-    impl pallet_loans_rpc_runtime_api::LoansApi<Block, AccountId> for Runtime {
+    impl pallet_loans_rpc_runtime_api::LoansApi<Block, AccountId, Balance> for Runtime {
         fn get_account_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall), DispatchError> {
             Loans::get_account_liquidity(&account)
         }
 
-        fn get_market_status(asset_id: CurrencyId) -> Result<(Rate, Rate, Rate, Ratio, u128, u128, sp_runtime::FixedU128), DispatchError> {
+        fn get_market_status(asset_id: CurrencyId) -> Result<(Rate, Rate, Rate, Ratio, Balance, Balance, sp_runtime::FixedU128), DispatchError> {
             Loans::get_market_status(asset_id)
         }
     }
