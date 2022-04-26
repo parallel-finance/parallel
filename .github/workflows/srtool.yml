@@ -8,12 +8,6 @@ on:
       - "v*"
 
 jobs:
-  cleanup:
-     runs-on: self-hosted
-     steps:
-       - name: cleaning up
-         run: |
-           sudo chown -R $USER:$USER $GITHUB_WORKSPACE
   srtool:
     if: github.repository == 'parallel-finance/parallel'
     runs-on: self-hosted
@@ -21,6 +15,10 @@ jobs:
       matrix:
         chain: ["heiko", "parallel", "vanilla", "kerria"]
     steps:
+      - name: cleaning up
+        run: |
+           sudo chown -R $USER:$USER $GITHUB_WORKSPACE
+           
       - uses: actions/checkout@v2
       - name: Srtool build
         id: srtool_build
