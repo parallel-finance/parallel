@@ -272,11 +272,11 @@ impl Contains<Call> for BaseCallFilter {
                 // Loans
                 Call::Loans(_) |
                 Call::Prices(_) |
-                // Crowdloans
-                Call::Crowdloans(_) |
                 // AMM
                 Call::AMM(_) |
                 Call::AMMRoute(_) |
+                // Crowdloans
+                Call::Crowdloans(_) |
                 // Liquid Staking
                 Call::LiquidStaking(_) |
                 // Bridge
