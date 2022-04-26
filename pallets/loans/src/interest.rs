@@ -32,12 +32,52 @@ impl<T: Config> Pallet<T> {
         if now <= last_accrued_interest_time {
             return Ok(());
         }
+
+        let (
+            borrow_rate,
+            supply_rate,
+            exchange_rate,
+            util,
+            total_borrows_new,
+            total_reserves_new,
+            borrow_index_new,
+        ) = Self::get_market_status(asset_id)?;
+
         Self::update_last_accrued_interest_time(asset_id, now)?;
-        let delta_time = now - last_accrued_interest_time;
+        TotalBorrows::<T>::insert(asset_id, total_borrows_new);
+        TotalReserves::<T>::insert(asset_id, total_reserves_new);
+        BorrowIndex::<T>::insert(asset_id, borrow_index_new);
+
+        //save redundant storage right now.
+        UtilizationRatio::<T>::insert(asset_id, util);
+        BorrowRate::<T>::insert(asset_id, borrow_rate);
+        SupplyRate::<T>::insert(asset_id, supply_rate);
+        ExchangeRate::<T>::insert(asset_id, exchange_rate);
+
+        Ok(())
+    }
+
+    pub fn get_market_status(
+        asset_id: AssetIdOf<T>,
+    ) -> Result<
+        (
+            Rate,
+            Rate,
+            Rate,
+            Ratio,
+            BalanceOf<T>,
+            BalanceOf<T>,
+            FixedU128,
+        ),
+        DispatchError,
+    > {
         let market = Self::market(asset_id)?;
+        let total_supply = Self::total_supply(asset_id);
         let total_cash = Self::get_total_cash(asset_id);
-        let total_borrows = Self::total_borrows(asset_id);
-        let total_reserves = Self::total_reserves(asset_id);
+        let mut total_borrows = Self::total_borrows(asset_id);
+        let mut total_reserves = Self::total_reserves(asset_id);
+        let mut borrow_index = Self::borrow_index(asset_id);
+
         let util = Self::calc_utilization_ratio(total_cash, total_borrows, total_reserves)?;
         let borrow_rate = market
             .rate_model
@@ -45,39 +85,52 @@ impl<T: Config> Pallet<T> {
             .ok_or(ArithmeticError::Overflow)?;
         let supply_rate =
             InterestRateModel::get_supply_rate(borrow_rate, util, market.reserve_factor);
-        UtilizationRatio::<T>::insert(asset_id, util);
-        BorrowRate::<T>::insert(asset_id, &borrow_rate);
-        SupplyRate::<T>::insert(asset_id, supply_rate);
-        Self::update_borrow_index(borrow_rate, asset_id, &market, delta_time)?;
-        Self::update_exchange_rate(asset_id)?;
 
-        Ok(())
+        let now = T::UnixTime::now().as_secs();
+        let last_accrued_interest_time = Self::last_accrued_interest_time(asset_id);
+        if now > last_accrued_interest_time {
+            let delta_time = now - last_accrued_interest_time;
+            let interest_accumulated =
+                Self::accrued_interest(borrow_rate, total_borrows, delta_time)
+                    .ok_or(ArithmeticError::Overflow)?;
+            total_borrows = interest_accumulated
+                .checked_add(total_borrows)
+                .ok_or(ArithmeticError::Overflow)?;
+            total_reserves = market
+                .reserve_factor
+                .mul_floor(interest_accumulated)
+                .checked_add(total_reserves)
+                .ok_or(ArithmeticError::Overflow)?;
+
+            borrow_index = Self::increment_index(borrow_rate, borrow_index, delta_time)
+                .and_then(|r| r.checked_add(&borrow_index))
+                .ok_or(ArithmeticError::Overflow)?;
+        }
+
+        let exchange_rate =
+            Self::calculate_exchange_rate(total_supply, total_cash, total_borrows, total_reserves)?;
+
+        Ok((
+            borrow_rate,
+            supply_rate,
+            exchange_rate,
+            util,
+            total_borrows,
+            total_reserves,
+            borrow_index,
+        ))
     }
 
     /// Update the exchange rate according to the totalCash, totalBorrows and totalSupply.
-    ///
+    /// This function does not accrue interest before calculating the exchange rate.
     /// exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
-    pub(crate) fn update_exchange_rate(asset_id: AssetIdOf<T>) -> DispatchResult {
+    pub fn exchange_rate_stored(asset_id: AssetIdOf<T>) -> Result<Rate, DispatchError> {
         let total_supply = Self::total_supply(asset_id);
-        if total_supply.is_zero() {
-            return Ok(());
-        }
         let total_cash = Self::get_total_cash(asset_id);
         let total_borrows = Self::total_borrows(asset_id);
         let total_reserves = Self::total_reserves(asset_id);
 
-        let cash_plus_borrows_minus_reserves = total_cash
-            .checked_add(total_borrows)
-            .and_then(|r| r.checked_sub(total_reserves))
-            .ok_or(ArithmeticError::Overflow)?;
-        let exchange_rate =
-            Rate::checked_from_rational(cash_plus_borrows_minus_reserves, total_supply)
-                .ok_or(ArithmeticError::Underflow)?;
-        Self::ensure_valid_exchange_rate(exchange_rate)?;
-
-        ExchangeRate::<T>::insert(asset_id, exchange_rate);
-
-        Ok(())
+        Self::calculate_exchange_rate(total_supply, total_cash, total_borrows, total_reserves)
     }
 
     /// Calculate the borrowing utilization ratio of the specified market
@@ -98,43 +151,6 @@ impl<T: Config> Pallet<T> {
             .ok_or(ArithmeticError::Overflow)?;
 
         Ok(Ratio::from_rational(borrows, total))
-    }
-
-    /// Update the borrow index by borrow rate, the total borrows and
-    /// total reserves will be updated simultaneously.
-    ///
-    /// interestAccumulated = totalBorrows * borrowRate
-    /// totalBorrows = interestAccumulated + totalBorrows
-    /// totalReserves = interestAccumulated * reserveFactor + totalReserves
-    /// borrowIndex = borrowIndex * (1 + borrowRate)
-    pub(crate) fn update_borrow_index(
-        borrow_rate: Rate,
-        asset_id: AssetIdOf<T>,
-        market: &Market<BalanceOf<T>>,
-        delta_time: u64,
-    ) -> DispatchResult {
-        let borrows_prior = Self::total_borrows(asset_id);
-        let reserve_prior = Self::total_reserves(asset_id);
-        let interest_accumulated = Self::accrued_interest(borrow_rate, borrows_prior, delta_time)
-            .ok_or(ArithmeticError::Overflow)?;
-        let total_borrows_new = interest_accumulated
-            .checked_add(borrows_prior)
-            .ok_or(ArithmeticError::Overflow)?;
-        let total_reserves_new = market
-            .reserve_factor
-            .mul_floor(interest_accumulated)
-            .checked_add(reserve_prior)
-            .ok_or(ArithmeticError::Overflow)?;
-        let borrow_index = Self::borrow_index(asset_id);
-        let borrow_index_new = Self::increment_index(borrow_rate, borrow_index, delta_time)
-            .and_then(|r| r.checked_add(&borrow_index))
-            .ok_or(ArithmeticError::Overflow)?;
-
-        TotalBorrows::<T>::insert(asset_id, total_borrows_new);
-        TotalReserves::<T>::insert(asset_id, total_reserves_new);
-        BorrowIndex::<T>::insert(asset_id, borrow_index_new);
-
-        Ok(())
     }
 
     /// The exchange rate should be greater than 0.02 and less than 1
@@ -174,5 +190,27 @@ impl<T: Config> Pallet<T> {
             .checked_mul(&index)?
             .checked_mul(&FixedU128::saturating_from_integer(delta_time))?
             .checked_div(&FixedU128::saturating_from_integer(SECONDS_PER_YEAR))
+    }
+
+    fn calculate_exchange_rate(
+        total_supply: BalanceOf<T>,
+        total_cash: BalanceOf<T>,
+        total_borrows: BalanceOf<T>,
+        total_reserves: BalanceOf<T>,
+    ) -> Result<Rate, DispatchError> {
+        if total_supply.is_zero() {
+            return Ok(Rate::from_inner(MIN_EXCHANGE_RATE));
+        }
+
+        let cash_plus_borrows_minus_reserves = total_cash
+            .checked_add(total_borrows)
+            .and_then(|r| r.checked_sub(total_reserves))
+            .ok_or(ArithmeticError::Overflow)?;
+        let exchange_rate =
+            Rate::checked_from_rational(cash_plus_borrows_minus_reserves, total_supply)
+                .ok_or(ArithmeticError::Underflow)?;
+        Self::ensure_valid_exchange_rate(exchange_rate)?;
+
+        Ok(exchange_rate)
     }
 }

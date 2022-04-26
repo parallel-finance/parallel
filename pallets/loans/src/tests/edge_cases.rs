@@ -98,7 +98,7 @@ fn prevent_the_exchange_rate_attack() {
             false
         ));
         // Eve deposits a small amount
-        assert_ok!(Loans::mint(Origin::signed(EVE), DOT, 20));
+        assert_ok!(Loans::mint(Origin::signed(EVE), DOT, 1));
         // !!! Eve transfer a big amount to Loans::account_id
         assert_ok!(<Test as Config>::Assets::transfer(
             DOT,
@@ -107,14 +107,14 @@ fn prevent_the_exchange_rate_attack() {
             dollar(100),
             false
         ));
-        assert_eq!(<Test as Config>::Assets::balance(DOT, &EVE), 99999999999980);
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &EVE), 99999999999999);
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &Loans::account_id()),
-            100000000000020
+            100000000000001
         );
         assert_eq!(
             Loans::total_supply(DOT),
-            20 * 50, // 20 / 0.02
+            1 * 50, // 1 / 0.02
         );
         TimestampPallet::set_timestamp(12000);
         // Eve can not let the exchange rate greater than 1
