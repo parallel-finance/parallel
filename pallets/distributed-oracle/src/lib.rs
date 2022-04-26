@@ -43,12 +43,12 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-// pub mod weights;
+pub mod weights;
 
-// type AssetIdOf<T> =
-//     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
-// type BalanceOf<T> =
-//     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+type AssetIdOf<T> =
+    <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
+type BalanceOf<T> =
+    <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 type AccountOf<T> = <T as frame_system::Config>::AccountId;
 
 pub type RelayerId = u128;
@@ -62,11 +62,15 @@ pub struct Relayer<T: Config> {
     owner: AccountOf<T>,
 }
 
+pub use weights::WeightInfo;
+
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
 
     // use weights::WeightInfo;
+    // pub type BalanceOf<T> =
+    //     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -84,7 +88,7 @@ pub mod pallet {
         type UnixTime: UnixTime;
 
         // /// Weight information
-        // type WeightInfo: WeightInfo;
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::error]
@@ -120,6 +124,16 @@ pub mod pallet {
             if 1 == 0 {
                 unimplemented!();
             }
+            Ok(().into())
+        }
+
+        #[pallet::weight(T::WeightInfo::stake())]
+        pub fn stake(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            Ok(().into())
+        }
+
+        #[pallet::weight(T::WeightInfo::unstake())]
+        pub fn unstake(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             Ok(().into())
         }
     }
