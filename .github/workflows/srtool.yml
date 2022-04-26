@@ -15,10 +15,13 @@ jobs:
       matrix:
         chain: ["heiko", "parallel", "vanilla", "kerria"]
     steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
       - name: cleaning up
         run: |
           sudo chown -R $USER:$USER $GITHUB_WORKSPACE
-
       - uses: actions/checkout@v2
       - name: Srtool build
         id: srtool_build

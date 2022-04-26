@@ -25,6 +25,10 @@ jobs:
         bin: ["parallel"]
 
     steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
       - name: Checkout github repo (+ download lfs dependencies)
         uses: actions/checkout@v2
         with:
@@ -66,6 +70,7 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_ORGNAME }}/${{ matrix.bin }}:${{ steps.docker_tag.outputs.value }}
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
+
   parallel-helper:
     if: github.repository == 'parallel-finance/parallel'
     runs-on: ${{ matrix.os }}

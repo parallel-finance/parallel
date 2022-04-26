@@ -7,16 +7,28 @@ on:
       - master
 
 jobs:
+  cleanup:
+    runs-on: self-hosted
+    steps:
+      - name: cleaning up
+        run: |
+          sudo chown -R $USER:$USER $GITHUB_WORKSPACE
+
   coverage:
     if: github.repository == 'parallel-finance/parallel'
     name: Auto Codecov Coverage
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [self-hosted]
         rust: [nightly-2022-04-24]
 
     steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+
       - name: Checkout Repository
         uses: actions/checkout@master
 
