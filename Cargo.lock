@@ -5946,7 +5946,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-distributed-oracle"
-version = "1.8.2"
+version = "1.8.4"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
