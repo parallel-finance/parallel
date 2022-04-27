@@ -145,7 +145,7 @@ fn add_market_ensures_that_market_does_not_exist() {
         assert_ok!(Loans::add_market(Origin::root(), SDOT, MARKET_MOCK));
         assert_noop!(
             Loans::add_market(Origin::root(), SDOT, MARKET_MOCK),
-            Error::<Test>::MarketAlredyExists
+            Error::<Test>::MarketAlreadyExists
         );
     })
 }
@@ -207,8 +207,10 @@ fn update_market_ensures_that_it_is_not_possible_to_modify_unknown_market_curren
                 Origin::root(),
                 SDOT,
                 market.collateral_factor,
+                market.liquidation_threshold,
                 market.reserve_factor,
                 market.close_factor,
+                market.liquidate_incentive_reserved_factor,
                 market.liquidate_incentive,
                 market.supply_cap,
                 market.borrow_cap,
@@ -231,8 +233,10 @@ fn update_market_works() {
             Origin::root(),
             DOT,
             market.collateral_factor,
+            market.liquidation_threshold,
             market.reserve_factor,
             Default::default(),
+            market.liquidate_incentive_reserved_factor,
             market.liquidate_incentive,
             market.supply_cap,
             market.borrow_cap,
@@ -252,27 +256,28 @@ fn update_market_should_not_work_if_with_invalid_params() {
         );
 
         let market = MARKET_MOCK;
-        // check error code while collateral_factor is 0% or 100%
-        assert_noop!(
-            Loans::update_market(
-                Origin::root(),
-                DOT,
-                Ratio::zero(),
-                market.reserve_factor,
-                Default::default(),
-                market.liquidate_incentive,
-                market.supply_cap,
-                market.borrow_cap,
-            ),
-            Error::<Test>::InvalidFactor
-        );
+        // check error code while collateral_factor is [0%, 100%)
+        assert_ok!(Loans::update_market(
+            Origin::root(),
+            DOT,
+            Ratio::zero(),
+            market.liquidation_threshold,
+            market.reserve_factor,
+            Default::default(),
+            market.liquidate_incentive_reserved_factor,
+            market.liquidate_incentive,
+            market.supply_cap,
+            market.borrow_cap,
+        ));
         assert_noop!(
             Loans::update_market(
                 Origin::root(),
                 DOT,
                 Ratio::one(),
+                market.liquidation_threshold,
                 market.reserve_factor,
                 Default::default(),
+                market.liquidate_incentive_reserved_factor,
                 market.liquidate_incentive,
                 market.supply_cap,
                 market.borrow_cap,
@@ -285,8 +290,10 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Origin::root(),
                 DOT,
                 market.collateral_factor,
+                market.liquidation_threshold,
                 Ratio::zero(),
                 Default::default(),
+                market.liquidate_incentive_reserved_factor,
                 market.liquidate_incentive,
                 market.supply_cap,
                 market.borrow_cap,
@@ -298,8 +305,10 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Origin::root(),
                 DOT,
                 market.collateral_factor,
+                market.liquidation_threshold,
                 Ratio::one(),
                 Default::default(),
+                market.liquidate_incentive_reserved_factor,
                 market.liquidate_incentive,
                 market.supply_cap,
                 market.borrow_cap,
@@ -312,8 +321,10 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Origin::root(),
                 DOT,
                 market.collateral_factor,
+                market.liquidation_threshold,
                 market.reserve_factor,
                 Default::default(),
+                market.liquidate_incentive_reserved_factor,
                 Rate::from_inner(Rate::DIV / 100 * 90),
                 Zero::zero(),
                 market.borrow_cap,

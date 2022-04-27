@@ -3,7 +3,7 @@ use crate as pallet_farming;
 // use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{parameter_types, traits::Everything, PalletId};
 use frame_system::{self as system, EnsureRoot};
-use primitives::DecimalProvider;
+use pallet_traits::DecimalProvider;
 use primitives::{Balance, CurrencyId};
 #[cfg(feature = "std")]
 use sp_core::H256;

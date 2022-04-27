@@ -27,6 +27,7 @@ fn market_mock<T: Config>() -> Market<BalanceOf<T>> {
     Market {
         close_factor: Ratio::from_percent(50),
         collateral_factor: Ratio::from_percent(50),
+        liquidation_threshold: Ratio::from_percent(55),
         liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
         state: MarketState::Active,
         rate_model: InterestRateModel::Jump(JumpModel {
@@ -36,6 +37,7 @@ fn market_mock<T: Config>() -> Market<BalanceOf<T>> {
             jump_utilization: Ratio::from_percent(80),
         }),
         reserve_factor: Ratio::from_percent(15),
+        liquidate_incentive_reserved_factor: Ratio::from_percent(3),
         supply_cap: 1_000_000_000_000_000_000_000u128, // set to 1B
         borrow_cap: 1_000_000_000_000_000_000_000u128, // set to 1B
         ptoken_id: 1200,
@@ -181,8 +183,10 @@ benchmarks! {
             SystemOrigin::Root,
             KSM,
             Ratio::from_percent(50),
+            Ratio::from_percent(55),
             Ratio::from_percent(50),
             Ratio::from_percent(15),
+            Ratio::from_percent(3),
             Rate::from_inner(Rate::DIV / 100 * 110),
             1_000_000_000_000_000_000_000u128,
             1_000_000_000_000_000_000_000u128

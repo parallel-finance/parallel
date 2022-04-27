@@ -43,7 +43,8 @@ pub mod pallet {
         transactional, BoundedVec, PalletId,
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-    use primitives::{Balance, CurrencyId, AMM};
+    use pallet_traits::AMM;
+    use primitives::{Balance, CurrencyId};
     use sp_runtime::{traits::Zero, DispatchError};
     use sp_std::{cmp::Reverse, collections::btree_map::BTreeMap, vec::Vec};
 
@@ -266,7 +267,7 @@ pub mod pallet {
         /// - `origin`: the trader.
         /// - `route`: the route user inputs
         /// - `amount_in`: the amount of trading assets
-        /// - `min_amount_out`: the minimum a trader is willing to recieve
+        /// - `min_amount_out`: the minimum a trader is willing to receive
         #[pallet::weight(T::AMMRouterWeightInfo::swap_exact_tokens_for_tokens())]
         #[transactional]
         pub fn swap_exact_tokens_for_tokens(

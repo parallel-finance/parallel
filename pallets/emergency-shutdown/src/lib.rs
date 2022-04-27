@@ -29,6 +29,7 @@ pub use pallet::*;
 use codec::{Decode, Encode};
 use frame_support::traits::Contains;
 use frame_system::pallet_prelude::OriginFor;
+use pallet_traits::EmergencyCallFilter;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -109,11 +110,7 @@ pub mod pallet {
     }
 }
 
-pub trait EmergencyCallFilter<T: Config> {
-    fn contains(call: &<T as Config>::Call) -> bool;
-}
-
-impl<T: Config> EmergencyCallFilter<T> for Pallet<T> {
+impl<T: Config> EmergencyCallFilter<<T as Config>::Call> for Pallet<T> {
     fn contains(call: &<T as Config>::Call) -> bool {
         let (pallet_idx, call_idx): (u8, u8) = call
             .using_encoded(|mut bytes| Decode::decode(&mut bytes))

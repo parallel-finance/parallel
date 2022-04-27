@@ -3,7 +3,6 @@
 Parallel uses [parachain-launch](https://github.com/open-web3-stack/parachain-launch) to launch our services including:
 
 - `parallel-dapp` : DAPP for money market, staking, crowdloans, cross chain transfer and more
-- `nominate-client` : Liquid staking pallet's validator selection
 - `stake-client` : Liquid staking pallet's rewards/slashes' feeder
 - `oracle-client` : Loans pallet's price feeder
 - `liquidation-client` : Loans pallet's liquidation operator
@@ -41,7 +40,7 @@ sudo wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}
 3. rust
 
 ```
-RUST_TOOLCHAIN=nightly-2021-11-07
+RUST_TOOLCHAIN=nightly-2022-04-24
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --default-toolchain ${RUST_TOOLCHAIN} --component rust-src --target wasm32-unknown-unknown
 ```
@@ -102,4 +101,4 @@ Then access everything locally
 ## Advanced
 
 If you need to adjust relaychain & parachain version or other parameters, you can edit `config.yml` file
-If you need to adjust services like `nominate-client` etc, you can edit `docker-compose.override.yml`
+If you need to adjust services like `stake-client` etc, you can edit `docker-compose.override.yml`

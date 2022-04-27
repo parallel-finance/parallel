@@ -1,8 +1,7 @@
-use super::{AccountId, Balance, BlockNumber, ParaId};
-
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::pallet_prelude::Weight;
 use frame_system::Config;
+use primitives::{AccountId, Balance, BlockNumber, ParaId};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::StaticLookup, MultiSignature, RuntimeDebug};
 use sp_std::{boxed::Box, vec::Vec};
@@ -215,8 +214,6 @@ pub enum ProxyType {
     NonTransfer = 1_isize,
     Governance = 2_isize,
     Staking = 3_isize,
-    CancelProxy = 6_isize,
-    Auction = 7_isize,
 }
 
 impl Default for ProxyType {
@@ -320,17 +317,20 @@ pub enum XcmCall {
     Withdraw,
     AddMemo,
     TransferToSiblingchain(Box<MultiLocation>),
+    Proxy,
+    AddProxy,
+    RemoveProxy,
 }
 
 #[macro_export]
 macro_rules! switch_relay {
     ({ $( $code:tt )* }) => {
         if <T as Config>::RelayNetwork::get() == NetworkId::Polkadot {
-            use primitives::ump::PolkadotCall as RelaychainCall;
+            use pallet_traits::ump::PolkadotCall as RelaychainCall;
 
             $( $code )*
         } else if <T as Config>::RelayNetwork::get() == NetworkId::Kusama {
-            use primitives::ump::KusamaCall as RelaychainCall;
+            use pallet_traits::ump::KusamaCall as RelaychainCall;
 
             $( $code )*
         } else {
