@@ -135,6 +135,7 @@ pub enum ChildStorageKind {
 pub enum Releases {
     V0_0_0,
     V1_0_0,
+    V2_0_0,
 }
 
 impl Default for Releases {

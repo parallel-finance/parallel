@@ -14,8 +14,10 @@
 
 pub mod v3 {
     use crate::{
-        types::{MatchingLedger, ReservableAmount},
-        BalanceOf, Config, MatchingPool, StorageVersion,
+        // types::{MatchingLedger, ReservableAmount},BalanceOf,
+        Config,
+        MatchingPool,
+        StorageVersion,
     };
     use frame_support::pallet_prelude::*;
     use frame_support::{
@@ -24,28 +26,32 @@ pub mod v3 {
         weights::Weight,
     };
 
-    generate_storage_alias!(LiquidStaking, MarketCap => Value<u128,ValueQuery>);
+    // generate_storage_alias!(LiquidStaking, MarketCap => Value<u128,ValueQuery>);
 
-    #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
-    pub struct OldMatchingLedger<Balance: BalanceT> {
-        /// The total stake amount in one era
-        pub total_stake_amount: Balance,
-        /// The total unstake amount in one era
-        pub total_unstake_amount: Balance,
-    }
+    // #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
+    // pub struct OldMatchingLedger<Balance: BalanceT> {
+    //     /// The total stake amount in one era
+    //     pub total_stake_amount: Balance,
+    //     /// The total unstake amount in one era
+    //     pub total_unstake_amount: Balance,
+    // }
 
     #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
-        generate_storage_alias!(LiquidStaking, MatchingPool => Value<OldMatchingLedger<u128>,ValueQuery>);
-        let matching_ledger = MatchingPool::get();
-        log::info!(
-            "MatchingLedger total_stake_amount: {:?}, total_unstake_amount: {:?}",
-            matching_ledger.total_stake_amount,
-            matching_ledger.total_unstake_amount
-        );
+        // generate_storage_alias!(LiquidStaking, MatchingPool => Value<OldMatchingLedger<u128>,ValueQuery>);
+        // let matching_ledger = MatchingPool::get();
+        // log::info!(
+        //     "MatchingLedger total_stake_amount: {:?}, total_unstake_amount: {:?}",
+        //     matching_ledger.total_stake_amount,
+        //     matching_ledger.total_unstake_amount
+        // );
 
-        log::info!("MarketCap.get()? {:?}", MarketCap::get());
-        assert!(MarketCap::exists(), "MarketCap storage item not found!");
+        // log::info!("MarketCap.get()? {:?}", MarketCap::get());
+        // assert!(MarketCap::exists(), "MarketCap storage item not found!");
+        frame_support::ensure!(
+            StorageVersion::<T>::get() == crate::Versions::V2,
+            "must be V2"
+        );
         Ok(())
     }
 
@@ -53,25 +59,25 @@ pub mod v3 {
         if StorageVersion::<T>::get() == crate::Versions::V2 {
             log::info!("Migrating liquidStaking to Versions::V3",);
             // 1.Clear MarketCap, now use StakingLedgerCap
-            MarketCap::kill();
+            // MarketCap::kill();
 
             // 2.Update MatchingPool, MatchingLedger
-            let r = MatchingPool::<T>::translate::<OldMatchingLedger<BalanceOf<T>>, _>(
-                |matching_ledger| {
-                    let new_matching_ledger = MatchingLedger {
-                        total_stake_amount: ReservableAmount {
-                            total: matching_ledger.unwrap_or_default().total_stake_amount,
-                            reserved: Default::default(),
-                        },
-                        total_unstake_amount: ReservableAmount {
-                            total: matching_ledger.unwrap_or_default().total_unstake_amount,
-                            reserved: Default::default(),
-                        },
-                    };
-                    Some(new_matching_ledger)
-                },
-            );
-            log::info!("result:{:?}", r);
+            // let r = MatchingPool::<T>::translate::<OldMatchingLedger<BalanceOf<T>>, _>(
+            //     |matching_ledger| {
+            //         let new_matching_ledger = MatchingLedger {
+            //             total_stake_amount: ReservableAmount {
+            //                 total: matching_ledger.unwrap_or_default().total_stake_amount,
+            //                 reserved: Default::default(),
+            //             },
+            //             total_unstake_amount: ReservableAmount {
+            //                 total: matching_ledger.unwrap_or_default().total_unstake_amount,
+            //                 reserved: Default::default(),
+            //             },
+            //         };
+            //         Some(new_matching_ledger)
+            //     },
+            // );
+            // log::info!("result:{:?}", r);
 
             StorageVersion::<T>::put(crate::Versions::V3);
             log::info!("👜 completed liquidStaking migration to Versions::V3",);
@@ -88,8 +94,8 @@ pub mod v3 {
             StorageVersion::<T>::get() == crate::Versions::V3,
             "must upgrade to V3"
         );
-        log::info!("MarketCap.get()? {:?}", MarketCap::get());
-        assert!(!MarketCap::exists(), "MarketCap storage item found!");
+        // log::info!("MarketCap.get()? {:?}", MarketCap::get());
+        // assert!(!MarketCap::exists(), "MarketCap storage item found!");
 
         let matching_ledger = MatchingPool::<T>::get();
         log::info!("MatchingLedger");
