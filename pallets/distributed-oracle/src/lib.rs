@@ -68,7 +68,6 @@ pub use weights::WeightInfo;
 pub mod pallet {
     use super::*;
 
-    // use weights::WeightInfo;
     // pub type BalanceOf<T> =
     //     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -87,22 +86,44 @@ pub mod pallet {
         /// Unix time
         type UnixTime: UnixTime;
 
-        // /// Weight information
+        /// Weight information
         type WeightInfo: WeightInfo;
+
+        /// Minimum stake amount
+        #[pallet::constant]
+        type MinStake: Get<BalanceOf<Self>>;
+
+        /// Minimum unstake amount
+        #[pallet::constant]
+        type MinUnstake: Get<BalanceOf<Self>>;
     }
 
     #[pallet::error]
     pub enum Error<T> {
-        /// TODO - need errors
-        /// Some error
-        MyCustomError,
+        /// Insufficient Staking Amount
+        InsufficientStakeAmount,
+        /// Insufficient Staking Amount
+        InsufficientUnStakeAmount,
+        /// Invalid Staking Currency
+        InvalidStakingCurrency,
+
+        /// Stake added successfully
+        AddedStake,
+
+        /// Stake removed successfully
+        RemovedStake,
+
+        /// Error removing stake insufficient balance
+        ErrorRemovingStakeInsufficientBalance,
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// New relayer initated
-        NewRelayer(RelayerId),
+        /// The assets get staked successfully
+        Staked(T::AccountId, BalanceOf<T>),
+        /// The derivative get unstaked successfully
+        Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
     }
 
     /// Global storage for relayers
@@ -128,12 +149,39 @@ pub mod pallet {
         }
 
         #[pallet::weight(T::WeightInfo::stake())]
-        pub fn stake(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn stake(
+            origin: OriginFor<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            // Check for token type
+            // Check for amount
+            ensure!(
+                amount >= T::MinStake::get(),
+                Error::<T>::InsufficientStakeAmount
+            );
+            // Transfer
+            // Add Stake to the store
+
+            // Emit a message
+
             Ok(().into())
         }
 
         #[pallet::weight(T::WeightInfo::unstake())]
-        pub fn unstake(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn unstake(
+            origin: OriginFor<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            ensure!(
+                amount < T::MinStake::get(),
+                Error::<T>::InsufficientUnStakeAmount
+            );
+            // InsufficientUnStakeAmount
+            // CHeck for Minimum Balance
+            // Check for Token
+            // Check for Time duration
             Ok(().into())
         }
     }
