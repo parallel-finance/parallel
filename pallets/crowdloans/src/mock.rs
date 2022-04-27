@@ -505,6 +505,7 @@ impl pallet_xcm_helper::Config for Test {
     type BlockNumberProvider = frame_system::Pallet<Test>;
     type XcmOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
+    type RelayCurrency = RelayCurrency;
 }
 
 parameter_types! {

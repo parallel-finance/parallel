@@ -102,6 +102,10 @@ pub mod pallet {
 
         /// Weight information
         type WeightInfo: WeightInfo;
+
+        /// Relay currency
+        #[pallet::constant]
+        type RelayCurrency: Get<AssetIdOf<Self>>;
     }
 
     #[pallet::event]
@@ -195,13 +199,12 @@ pub mod pallet {
         pub fn withdraw(
             origin: OriginFor<T>,
             para_id: ParaId,
-            relay_currency: AssetIdOf<T>,
             para_account_id: AccountIdOf<T>,
             notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_withdraw(para_id, relay_currency, para_account_id, *notify)?;
+            Self::do_withdraw(para_id, para_account_id, *notify)?;
 
             Self::deposit_event(Event::<T>::Withdrawing);
             Ok(())
@@ -212,14 +215,13 @@ pub mod pallet {
         pub fn contribute(
             origin: OriginFor<T>,
             para_id: ParaId,
-            relay_currency: AssetIdOf<T>,
             amount: BalanceOf<T>,
             who: AccountIdOf<T>,
             notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_contribute(para_id, relay_currency, amount, &who, *notify)?;
+            Self::do_contribute(para_id, amount, &who, *notify)?;
 
             Self::deposit_event(Event::<T>::Contributing);
             Ok(())
@@ -232,13 +234,12 @@ pub mod pallet {
             value: BalanceOf<T>,
             payee: RewardDestination<AccountIdOf<T>>,
             stash: AccountIdOf<T>,
-            relay_currency: AssetIdOf<T>,
             index: u16,
             notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_bond(value, payee, stash, relay_currency, index, *notify)?;
+            Self::do_bond(value, payee, stash, index, *notify)?;
 
             Self::deposit_event(Event::<T>::Bonding);
             Ok(())
@@ -250,13 +251,12 @@ pub mod pallet {
             origin: OriginFor<T>,
             value: BalanceOf<T>,
             stash: AccountIdOf<T>,
-            relay_currency: AssetIdOf<T>,
             index: u16,
             notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_bond_extra(value, stash, relay_currency, index, *notify)?;
+            Self::do_bond_extra(value, stash, index, *notify)?;
 
             Self::deposit_event(Event::<T>::BondingExtra);
             Ok(())
@@ -267,13 +267,12 @@ pub mod pallet {
         pub fn unbond(
             origin: OriginFor<T>,
             value: BalanceOf<T>,
-            relay_currency: AssetIdOf<T>,
             index: u16,
             notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_unbond(value, relay_currency, index, *notify)?;
+            Self::do_unbond(value, index, *notify)?;
 
             Self::deposit_event(Event::<T>::Unbonding);
             Ok(())
@@ -284,13 +283,12 @@ pub mod pallet {
         pub fn rebond(
             origin: OriginFor<T>,
             value: BalanceOf<T>,
-            relay_currency: AssetIdOf<T>,
             index: u16,
             notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_rebond(value, relay_currency, index, *notify)?;
+            Self::do_rebond(value, index, *notify)?;
 
             Self::deposit_event(Event::<T>::Rebonding);
             Ok(())
@@ -302,19 +300,12 @@ pub mod pallet {
             origin: OriginFor<T>,
             num_slashing_spans: u32,
             para_account_id: AccountIdOf<T>,
-            relay_currency: AssetIdOf<T>,
             index: u16,
             notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_withdraw_unbonded(
-                num_slashing_spans,
-                para_account_id,
-                relay_currency,
-                index,
-                *notify,
-            )?;
+            Self::do_withdraw_unbonded(num_slashing_spans, para_account_id, index, *notify)?;
 
             Self::deposit_event(Event::<T>::WithdrawingUnbonded);
             Ok(())
@@ -325,13 +316,12 @@ pub mod pallet {
         pub fn nominate(
             origin: OriginFor<T>,
             targets: Vec<AccountIdOf<T>>,
-            relay_currency: AssetIdOf<T>,
             index: u16,
             notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_nominate(targets, relay_currency, index, *notify)?;
+            Self::do_nominate(targets, index, *notify)?;
 
             Self::deposit_event(Event::<T>::Nominating);
             Ok(())
@@ -368,12 +358,11 @@ pub mod pallet {
             call: DoubleEncoded<()>,
             weight: Weight,
             beneficiary: Box<MultiLocation>,
-            relay_currency: AssetIdOf<T>,
             fees: BalanceOf<T>,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_ump_transact(call, weight, *beneficiary, relay_currency, fees)?;
+            Self::do_ump_transact(call, weight, *beneficiary, fees)?;
 
             Ok(())
         }
@@ -385,12 +374,11 @@ pub mod pallet {
             delegate: AccountId,
             proxy_type: Option<ProxyType>,
             delay: BlockNumber,
-            relay_currency: AssetIdOf<T>,
             notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_add_proxy(delegate, proxy_type, delay, relay_currency, *notify)?;
+            Self::do_add_proxy(delegate, proxy_type, delay, *notify)?;
 
             Self::deposit_event(Event::<T>::ProxyAdded);
             Ok(())
@@ -403,12 +391,11 @@ pub mod pallet {
             delegate: AccountId,
             proxy_type: Option<ProxyType>,
             delay: BlockNumber,
-            relay_currency: AssetIdOf<T>,
             notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_remove_proxy(delegate, proxy_type, delay, relay_currency, *notify)?;
+            Self::do_remove_proxy(delegate, proxy_type, delay, *notify)?;
 
             Self::deposit_event(Event::<T>::ProxyRemoved);
             Ok(())
@@ -416,28 +403,24 @@ pub mod pallet {
     }
 }
 
-pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, TAccountId> {
-    fn add_xcm_fees(relay_currency: AssetId, payer: &TAccountId, amount: Balance)
-        -> DispatchResult;
+pub trait XcmHelper<T: pallet_xcm::Config, Balance, TAccountId> {
+    fn add_xcm_fees(payer: &TAccountId, amount: Balance) -> DispatchResult;
 
     fn do_ump_transact(
         call: DoubleEncoded<()>,
         weight: Weight,
         beneficiary: MultiLocation,
-        relay_currency: AssetId,
         fees: Balance,
     ) -> Result<Xcm<()>, DispatchError>;
 
     fn do_withdraw(
         para_id: ParaId,
-        relay_currency: AssetId,
         para_account_id: TAccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_contribute(
         para_id: ParaId,
-        relay_currency: AssetId,
         amount: Balance,
         who: &TAccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
@@ -447,7 +430,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, TAccountId> {
         value: Balance,
         payee: RewardDestination<TAccountId>,
         stash: TAccountId,
-        relay_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
@@ -455,21 +437,18 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, TAccountId> {
     fn do_bond_extra(
         value: Balance,
         stash: TAccountId,
-        relay_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_unbond(
         value: Balance,
-        relay_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_rebond(
         value: Balance,
-        relay_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
@@ -477,14 +456,12 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, TAccountId> {
     fn do_withdraw_unbonded(
         num_slashing_spans: u32,
         para_account_id: TAccountId,
-        staking_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_nominate(
         targets: Vec<TAccountId>,
-        relay_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
@@ -493,7 +470,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, TAccountId> {
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-        relay_currency: AssetId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 
@@ -501,7 +477,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, TAccountId> {
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-        relay_currency: AssetId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 }
@@ -546,13 +521,15 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pallet<T> {
-    fn add_xcm_fees(
-        relay_currency: AssetIdOf<T>,
-        payer: &AccountIdOf<T>,
-        amount: BalanceOf<T>,
-    ) -> DispatchResult {
-        T::Assets::transfer(relay_currency, payer, &Self::account_id(), amount, false)?;
+impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
+    fn add_xcm_fees(payer: &AccountIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+        T::Assets::transfer(
+            T::RelayCurrency::get(),
+            payer,
+            &Self::account_id(),
+            amount,
+            false,
+        )?;
         Ok(())
     }
 
@@ -560,11 +537,10 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         call: DoubleEncoded<()>,
         weight: Weight,
         beneficiary: MultiLocation,
-        relay_currency: AssetIdOf<T>,
         fees: BalanceOf<T>,
     ) -> Result<Xcm<()>, DispatchError> {
         let asset: MultiAsset = (MultiLocation::here(), fees).into();
-        T::Assets::burn_from(relay_currency, &Self::account_id(), fees)
+        T::Assets::burn_from(T::RelayCurrency::get(), &Self::account_id(), fees)
             .map_err(|_| Error::<T>::InsufficientXcmFees)?;
 
         Ok(Xcm(vec![
@@ -591,7 +567,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-        relay_currency: AssetIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::AddProxy);
@@ -607,7 +582,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
-                relay_currency,
                 xcm_weight_fee_misc.fee,
             )?;
 
@@ -630,7 +604,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-        relay_currency: AssetIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::RemoveProxy);
@@ -647,7 +620,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
-                relay_currency,
                 xcm_weight_fee_misc.fee,
             )?;
 
@@ -668,7 +640,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
     fn do_withdraw(
         para_id: ParaId,
-        relay_currency: AssetIdOf<T>,
         para_account_id: AccountIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
@@ -684,7 +655,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
-                relay_currency,
                 xcm_weight_fee_misc.fee,
             )?;
 
@@ -705,7 +675,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
     fn do_contribute(
         para_id: ParaId,
-        relay_currency: AssetIdOf<T>,
         amount: BalanceOf<T>,
         _who: &AccountIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
@@ -724,7 +693,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
-                relay_currency,
                 xcm_weight_fee_misc.fee,
             )?;
 
@@ -747,7 +715,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         value: BalanceOf<T>,
         payee: RewardDestination<AccountIdOf<T>>,
         stash: AccountIdOf<T>,
-        relay_currency: AssetIdOf<T>,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
@@ -782,7 +749,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
-                relay_currency,
                 xcm_weight_fee_misc.fee,
             )?;
 
@@ -804,7 +770,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
     fn do_bond_extra(
         value: BalanceOf<T>,
         stash: AccountIdOf<T>,
-        relay_currency: AssetIdOf<T>,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
@@ -834,7 +799,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
-                relay_currency,
                 xcm_weight_fee_misc.fee,
             )?;
 
@@ -855,7 +819,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
     fn do_unbond(
         value: BalanceOf<T>,
-        relay_currency: AssetIdOf<T>,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
@@ -874,7 +837,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
-                relay_currency,
                 xcm_weight_fee_misc.fee,
             )?;
 
@@ -895,7 +857,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
     fn do_rebond(
         value: BalanceOf<T>,
-        relay_currency: AssetIdOf<T>,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
@@ -914,7 +875,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
-                relay_currency,
                 xcm_weight_fee_misc.fee,
             )?;
 
@@ -936,7 +896,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
     fn do_withdraw_unbonded(
         num_slashing_spans: u32,
         para_account_id: AccountIdOf<T>,
-        relay_currency: AssetIdOf<T>,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
@@ -971,7 +930,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
-                relay_currency,
                 xcm_weight_fee_misc.fee,
             )?;
 
@@ -992,7 +950,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
     fn do_nominate(
         targets: Vec<AccountIdOf<T>>,
-        relay_currency: AssetIdOf<T>,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
@@ -1014,7 +971,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
-                relay_currency,
                 xcm_weight_fee_misc.fee,
             )?;
 

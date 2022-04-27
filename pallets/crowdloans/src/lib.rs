@@ -164,7 +164,7 @@ pub mod pallet {
         type RelayChainBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 
         /// To expose XCM helper functions
-        type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
+        type XCM: XcmHelper<Self, BalanceOf<Self>, Self::AccountId>;
     }
 
     #[pallet::event]
@@ -1385,13 +1385,8 @@ pub mod pallet {
             amount: BalanceOf<T>,
             referral_code: Vec<u8>,
         ) -> Result<(), DispatchError> {
-            let query_id = T::XCM::do_contribute(
-                crowdloan,
-                T::RelayCurrency::get(),
-                amount,
-                who,
-                Self::notify_placeholder(),
-            )?;
+            let query_id =
+                T::XCM::do_contribute(crowdloan, amount, who, Self::notify_placeholder())?;
 
             XcmRequests::<T>::insert(
                 query_id,
@@ -1431,7 +1426,6 @@ pub mod pallet {
 
             let query_id = T::XCM::do_withdraw(
                 crowdloan,
-                T::RelayCurrency::get(),
                 Self::para_account_id(),
                 Self::notify_placeholder(),
             )?;
