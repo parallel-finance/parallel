@@ -19,12 +19,12 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   cleanup:
-    if: ${{ (github.repository == 'parallel-finance/parallel')
+    if: github.repository == 'parallel-finance/parallel'
     runs-on: self-hosted
     steps:
       - name: cleaning up
         run: |
-          sudo chown -R $USER:$USER $GITHUB_WORKSPACE
+          echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
   check:
     if: ${{ (github.repository == 'parallel-finance/parallel') && ((github.event_name == 'push') || (github.event.review.state == 'approved')) }}
     name: Auto Build CI

@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: cleaning up
         run: |
-          sudo chown -R $USER:$USER $GITHUB_WORKSPACE
+          echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
   coverage:
     if: ${{ (github.repository == 'parallel-finance/parallel') && ((github.event_name == 'push') || (github.event.review.state == 'approved')) }}
     name: Auto Codecov Coverage
