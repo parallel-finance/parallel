@@ -9,19 +9,31 @@ on:
   pull_request:
     branches:
       - master
+    types:
+      - synchronize
+      - review_requested
+      - review_request_removed
+      - ready_for_review
+  pull_request_review:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  cleanup:
+    runs-on: self-hosted
+    steps:
+      - name: cleaning up
+        run: |
+          sudo chown -R $USER:$USER $GITHUB_WORKSPACE
   check:
-    if: github.repository == 'parallel-finance/parallel'
+    if: ${{ (github.repository == 'parallel-finance/parallel') && (github.event.review.state == 'approved') }}
     name: Auto Build CI
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [self-hosted]
         rust: [nightly-2022-04-24]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
