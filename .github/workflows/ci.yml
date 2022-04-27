@@ -9,11 +9,6 @@ on:
   pull_request:
     branches:
       - master
-    types:
-      - synchronize
-      - review_requested
-      - review_request_removed
-      - ready_for_review
   pull_request_review:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
