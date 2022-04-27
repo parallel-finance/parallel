@@ -14,8 +14,10 @@
 
 pub mod v3 {
     use crate::{
-        types::{MatchingLedger, ReservableAmount},
-        BalanceOf, Config, MatchingPool, StorageVersion,
+        // types::{MatchingLedger, ReservableAmount},BalanceOf,
+        Config,
+        MatchingPool,
+        StorageVersion,
     };
     use frame_support::pallet_prelude::*;
     use frame_support::{
@@ -92,8 +94,8 @@ pub mod v3 {
             StorageVersion::<T>::get() == crate::Versions::V3,
             "must upgrade to V3"
         );
-        log::info!("MarketCap.get()? {:?}", MarketCap::get());
-        assert!(!MarketCap::exists(), "MarketCap storage item found!");
+        // log::info!("MarketCap.get()? {:?}", MarketCap::get());
+        // assert!(!MarketCap::exists(), "MarketCap storage item found!");
 
         let matching_ledger = MatchingPool::<T>::get();
         log::info!("MatchingLedger");

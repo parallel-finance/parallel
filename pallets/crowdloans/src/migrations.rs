@@ -181,7 +181,7 @@ pub mod v2 {
     #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
         frame_support::ensure!(
-            StorageVersion::<T>::get() == crate::Releases::V1_0_0,
+            StorageVersion::<T>::get() == Releases::V1_0_0,
             "must be V1_0_0"
         );
         frame_support::ensure!(NextTrieIndex::<T>::get() == 9, "must be 9");
@@ -294,7 +294,7 @@ pub mod v2 {
     #[cfg(feature = "try-runtime")]
     pub fn post_migrate<T: Config>() -> Result<(), &'static str> {
         frame_support::ensure!(
-            StorageVersion::<T>::get() == crate::Releases::V2_0_0,
+            StorageVersion::<T>::get() == Releases::V2_0_0,
             "must be V1_0_0"
         );
         frame_support::ensure!(NextTrieIndex::<T>::get() == 14, "must be 14");
