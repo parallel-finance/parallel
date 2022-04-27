@@ -3,10 +3,10 @@ name: Coverage
 on:
   push:
     branches:
-      - adjust-workspace-cleanup
+      - master
   pull_request:
     branches:
-      - adjust-workspace-cleanup
+      - master
     types:
       - synchronize
       - review_requested
