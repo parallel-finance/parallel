@@ -45,7 +45,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        T::RelayCurrency::get(),
+        <T as Config>::RelayCurrency::get(),
         account_id.clone(),
         true,
         One::one(),
@@ -70,14 +70,14 @@ fn initial_set_up<
     .unwrap();
     // fund caller with dot
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
-        T::RelayCurrency::get(),
+        <T as Config>::RelayCurrency::get(),
         &caller,
         INITIAL_AMOUNT,
     )
     .ok();
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
-        T::RelayCurrency::get(),
+        <T as Config>::RelayCurrency::get(),
         &pallet_xcm_helper::Pallet::<T>::account_id(),
         INITIAL_FEES,
     )

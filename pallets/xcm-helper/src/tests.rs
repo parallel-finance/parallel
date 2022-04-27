@@ -2,7 +2,6 @@ use super::*;
 use crate::mock::{Call as TestCall, *};
 use frame_support::{assert_noop, assert_ok};
 
-use primitives::tokens::DOT;
 use sp_runtime::traits::{One, Zero};
 
 #[test]
@@ -56,7 +55,6 @@ fn withdraw_should_work() {
         assert_ok!(XcmHelpers::withdraw(
             frame_system::RawOrigin::Root.into(), // origin
             para_id,
-            DOT,
             ALICE,
             Box::new(call)
         ));
@@ -73,7 +71,6 @@ fn contribute_should_work() {
         assert_ok!(XcmHelpers::contribute(
             frame_system::RawOrigin::Root.into(), // origin
             para_id,
-            DOT,
             amount,
             ALICE,
             Box::new(call)
@@ -92,7 +89,6 @@ fn bond_should_work() {
             amount,
             RewardDestination::Staked,
             ALICE,
-            DOT,
             1,
             Box::new(call)
         ));
@@ -109,7 +105,6 @@ fn bond_extra_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             amount,
             ALICE,
-            DOT,
             1,
             Box::new(call)
         ));
@@ -125,7 +120,6 @@ fn unbond_should_work() {
         assert_ok!(XcmHelpers::unbond(
             frame_system::RawOrigin::Root.into(), // origin
             amount,
-            DOT,
             1,
             Box::new(call)
         ));
@@ -141,7 +135,6 @@ fn rebond_should_work() {
         assert_ok!(XcmHelpers::rebond(
             frame_system::RawOrigin::Root.into(), // origin
             amount,
-            DOT,
             1,
             Box::new(call)
         ));
@@ -157,7 +150,6 @@ fn withdraw_unbonded_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             1,
             ALICE,
-            DOT,
             1,
             Box::new(call)
         ));
@@ -172,7 +164,6 @@ fn nominate_should_work() {
         assert_ok!(XcmHelpers::nominate(
             frame_system::RawOrigin::Root.into(), // origin
             vec![ALICE],
-            DOT,
             1,
             Box::new(call)
         ));
@@ -218,7 +209,6 @@ fn ump_transact_should_work() {
             call.encode().into(),
             xcm_weight_fee_misc.weight,
             Box::new(XcmHelpers::refund_location()),
-            DOT,
             xcm_weight_fee_misc.fee,
         ));
     });
@@ -234,7 +224,6 @@ fn add_proxy_should_work() {
             ALICE,
             None,
             1,
-            DOT,
             Box::new(call)
         ));
     });
@@ -250,7 +239,6 @@ fn remove_proxy_should_work() {
             ALICE,
             None,
             1,
-            DOT,
             Box::new(call)
         ));
     });

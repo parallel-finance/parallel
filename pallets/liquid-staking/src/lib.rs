@@ -184,7 +184,7 @@ pub mod pallet {
             + BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 
         /// To expose XCM helper functions
-        type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
+        type XCM: XcmHelper<Self, BalanceOf<Self>, Self::AccountId>;
 
         /// Current strategy for distributing assets to multi-accounts
         type DistributionStrategy: DistributionStrategy<BalanceOf<Self>>;
@@ -407,7 +407,7 @@ pub mod pallet {
                 amount,
                 false,
             )?;
-            T::XCM::add_xcm_fees(Self::staking_currency()?, &who, xcm_fees)?;
+            T::XCM::add_xcm_fees(&who, xcm_fees)?;
 
             let amount = amount
                 .checked_sub(reserves)
@@ -1001,13 +1001,11 @@ pub mod pallet {
                 p.set_stake_amount_lock(amount)
             })?;
 
-            let staking_currency = Self::staking_currency()?;
             let derivative_account_id = Self::derivative_sovereign_account_id(derivative_index);
             let query_id = T::XCM::do_bond(
                 amount,
                 payee.clone(),
                 derivative_account_id.clone(),
-                staking_currency,
                 derivative_index,
                 Self::notify_placeholder(),
             )?;
@@ -1063,7 +1061,6 @@ pub mod pallet {
             let query_id = T::XCM::do_bond_extra(
                 amount,
                 Self::derivative_sovereign_account_id(derivative_index),
-                Self::staking_currency()?,
                 derivative_index,
                 Self::notify_placeholder(),
             )?;
@@ -1114,12 +1111,7 @@ pub mod pallet {
                 &amount,
             );
 
-            let query_id = T::XCM::do_unbond(
-                amount,
-                Self::staking_currency()?,
-                derivative_index,
-                Self::notify_placeholder(),
-            )?;
+            let query_id = T::XCM::do_unbond(amount, derivative_index, Self::notify_placeholder())?;
 
             XcmRequests::<T>::insert(
                 query_id,
@@ -1161,12 +1153,7 @@ pub mod pallet {
                 p.set_stake_amount_lock(amount)
             })?;
 
-            let query_id = T::XCM::do_rebond(
-                amount,
-                Self::staking_currency()?,
-                derivative_index,
-                Self::notify_placeholder(),
-            )?;
+            let query_id = T::XCM::do_rebond(amount, derivative_index, Self::notify_placeholder())?;
 
             XcmRequests::<T>::insert(
                 query_id,
@@ -1209,7 +1196,6 @@ pub mod pallet {
             let query_id = T::XCM::do_withdraw_unbonded(
                 num_slashing_spans,
                 Self::sovereign_account_id(),
-                Self::staking_currency()?,
                 derivative_index,
                 Self::notify_placeholder(),
             )?;
@@ -1252,7 +1238,6 @@ pub mod pallet {
 
             let query_id = T::XCM::do_nominate(
                 targets.clone(),
-                Self::staking_currency()?,
                 derivative_index,
                 Self::notify_placeholder(),
             )?;
