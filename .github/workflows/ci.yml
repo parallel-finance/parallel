@@ -26,7 +26,7 @@ jobs:
         run: |
           sudo chown -R $USER:$USER $GITHUB_WORKSPACE
   check:
-    if: ${{ (github.repository == 'parallel-finance/parallel') && (github.event.review.state == 'approved') }}
+    if: ${{ (github.repository == 'parallel-finance/parallel') && ((github.event_name == 'push') || (github.event.review.state == 'approved')) }}
     name: Auto Build CI
     runs-on: ${{ matrix.os }}
     strategy:
