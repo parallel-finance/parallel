@@ -1,15 +1,22 @@
 name: Coverage
 
 on:
-  pull_request:
-  pull_request_review:
-    types: [submitted]
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
+    types:
+      - synchronize
+      - review_requested
+      - review_request_removed
+      - ready_for_review
+  pull_request_review:
 
 jobs:
   cleanup:
+    if: ${{ (github.repository == 'parallel-finance/parallel')
     runs-on: self-hosted
     steps:
       - name: cleaning up
