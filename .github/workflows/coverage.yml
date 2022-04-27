@@ -3,10 +3,10 @@ name: Coverage
 on:
   push:
     branches:
-      - master
+      - adjust-workspace-cleanup
   pull_request:
     branches:
-      - master
+      - adjust-workspace-cleanup
     types:
       - synchronize
       - review_requested
@@ -15,13 +15,6 @@ on:
   pull_request_review:
 
 jobs:
-  cleanup:
-    if: github.repository == 'parallel-finance/parallel'
-    runs-on: self-hosted
-    steps:
-      - name: cleaning up
-        run: |
-          echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
   coverage:
     if: ${{ (github.repository == 'parallel-finance/parallel') && ((github.event_name == 'push') || (github.event.review.state == 'approved')) }}
     name: Auto Codecov Coverage
@@ -32,6 +25,9 @@ jobs:
         rust: [nightly-2022-04-24]
 
     steps:
+      - name: cleaning up
+        run: |
+          echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
       - name: Checkout Repository
         uses: actions/checkout@master
 
