@@ -73,7 +73,7 @@
           "name": "alice",
           "flags": [
             "-l",
-            "xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace",
+            "xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace,stableswap=trace,router=trace,bridge=trace",
             "--state-cache-size",
             "0",
             "--",
