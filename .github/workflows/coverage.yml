@@ -16,7 +16,7 @@ on:
 
 jobs:
   cleanup:
-    if: ${{ (github.repository == 'parallel-finance/parallel')
+    if: github.repository == 'parallel-finance/parallel'
     runs-on: self-hosted
     steps:
       - name: cleaning up
