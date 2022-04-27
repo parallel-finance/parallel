@@ -49,6 +49,10 @@ pub mod v3 {
         (Blake2_128Concat, AssetIdOf<T>),
         BalanceOf<T>
     >);
+    frame_support::generate_storage_alias!(Loans, RewardAccured<T: Config> => Map<
+        (Blake2_128Concat, T::AccountId),
+        BalanceOf<T>
+    >);
 
     #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
@@ -63,6 +67,31 @@ pub mod v3 {
         Markets::<T>::iter().for_each(|(asset_id, _)| {
             log::info!("market {:#?} need to migrate", asset_id,);
         });
+        let reward_speed_count = MarketRewardSpeed::<T>::iter().count();
+        log::info!(
+            "total {:#?} reward speed items need to migrate",
+            reward_speed_count
+        );
+
+        let reward_accrued_count = RewardAccured::<T>::iter().count();
+        log::info!(
+            "total {:#?} reward accrued items need to migrate",
+            reward_accrued_count
+        );
+        let mut reward_accrued_count = 0;
+        RewardAccured::<T>::iter().for_each(|(account_id, reward_accrued)| {
+            reward_accrued_count = reward_accrued_count + 1;
+            log::info!(
+                "account: {:?}, reward_accrued: {:?}",
+                account_id,
+                reward_accrued,
+            );
+        });
+        log::info!(
+            "total {:#?} reward accrued items need to migrate",
+            reward_accrued_count
+        );
+
         log::info!("👜 loans v3 migration passes PRE migrate checks ✅",);
 
         Ok(())
@@ -94,6 +123,10 @@ pub mod v3 {
             MarketRewardSpeed::<T>::iter().for_each(|(asset_id, reward_speed)| {
                 RewardSupplySpeed::<T>::insert(asset_id, reward_speed);
                 RewardBorrowSpeed::<T>::insert(asset_id, reward_speed);
+            });
+
+            RewardAccured::<T>::iter().for_each(|(account_id, reward_amount)| {
+                RewardAccrued::<T>::insert(account_id, reward_amount);
             });
 
             StorageVersion::<T>::put(crate::Versions::V3);
@@ -129,6 +162,19 @@ pub mod v3 {
                 borrow_reward_speed
             );
         });
+        let mut reward_accrued_count = 0;
+        RewardAccrued::<T>::iter().for_each(|(account_id, reward_accrued)| {
+            reward_accrued_count = reward_accrued_count + 1;
+            log::info!(
+                "account: {:?}, reward_accrued: {:?}",
+                account_id,
+                reward_accrued,
+            );
+        });
+        log::info!(
+            "total {:#?} reward accrued items has been migrated",
+            reward_accrued_count
+        );
         log::info!("👜 loans v3 migration passes POST migrate checks ✅",);
 
         Ok(())
