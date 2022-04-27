@@ -2,18 +2,26 @@ name: Coverage
 
 on:
   pull_request:
+  pull_request_review:
+    types: [submitted]
   push:
     branches:
       - master
 
 jobs:
+  cleanup:
+    runs-on: self-hosted
+    steps:
+      - name: cleaning up
+        run: |
+          sudo chown -R $USER:$USER $GITHUB_WORKSPACE
   coverage:
-    if: github.repository == 'parallel-finance/parallel'
+    if: ${{ (github.repository == 'parallel-finance/parallel') && (github.event.review.state == 'approved') }}
     name: Auto Codecov Coverage
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [self-hosted]
         rust: [nightly-2022-04-24]
 
     steps:
