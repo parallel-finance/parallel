@@ -6,9 +6,6 @@ on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
   pull_request_review:
 
   # Allows you to run this workflow manually from the Actions tab
