@@ -5,10 +5,10 @@ on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
     branches:
-      - master
+      - auctions-runner
   pull_request:
     branches:
-      - master
+      - auctions-runner
     types:
       - synchronize
       - review_requested
