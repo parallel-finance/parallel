@@ -69,7 +69,7 @@ impl<T: Config> Pallet<T> {
             if delta_block.is_zero() {
                 return Ok(());
             }
-            let supply_speed = MarketRewardSpeed::<T>::get(asset_id);
+            let supply_speed = RewardSupplySpeed::<T>::get(asset_id);
             if !supply_speed.is_zero() {
                 let total_supply = TotalSupply::<T>::get(asset_id);
                 let delta_index =
@@ -92,7 +92,7 @@ impl<T: Config> Pallet<T> {
             if delta_block.is_zero() {
                 return Ok(());
             }
-            let borrow_speed = MarketRewardSpeed::<T>::get(asset_id);
+            let borrow_speed = RewardBorrowSpeed::<T>::get(asset_id);
             if !borrow_speed.is_zero() {
                 let current_borrow_amount = TotalBorrows::<T>::get(asset_id);
                 let current_borrow_index = BorrowIndex::<T>::get(asset_id);

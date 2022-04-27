@@ -45,6 +45,10 @@ pub mod v3 {
         /// Ptoken asset id
         pub ptoken_id: CurrencyId,
     }
+    frame_support::generate_storage_alias!(Loans, MarketRewardSpeed<T: Config> => Map<
+        (Blake2_128Concat, AssetIdOf<T>),
+        BalanceOf<T>
+    >);
 
     #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
@@ -59,7 +63,7 @@ pub mod v3 {
         Markets::<T>::iter().for_each(|(asset_id, _)| {
             log::info!("market {:#?} need to migrate", asset_id,);
         });
-        log::info!("👜 loans borrow-limit migration passes PRE migrate checks ✅",);
+        log::info!("👜 loans v3 migration passes PRE migrate checks ✅",);
 
         Ok(())
     }
@@ -87,6 +91,11 @@ pub mod v3 {
                 })
             });
 
+            MarketRewardSpeed::<T>::iter().for_each(|(asset_id, reward_speed)| {
+                RewardSupplySpeed::<T>::insert(asset_id, reward_speed);
+                RewardBorrowSpeed::<T>::insert(asset_id, reward_speed);
+            });
+
             StorageVersion::<T>::put(crate::Versions::V3);
             log::info!("👜 completed loans migration to Versions::V3",);
 
@@ -111,7 +120,16 @@ pub mod v3 {
                 market.liquidate_incentive_reserved_factor
             );
         });
-        log::info!("👜 loans borrow-limit migration passes POST migrate checks ✅",);
+        RewardSupplySpeed::<T>::iter().for_each(|(asset_id, supply_reward_speed)| {
+            let borrow_reward_speed = RewardBorrowSpeed::<T>::get(asset_id);
+            log::info!(
+                "market {:#?}, supply_reward_speed {:?}, borrow_reward_speed {:?}",
+                asset_id,
+                supply_reward_speed,
+                borrow_reward_speed
+            );
+        });
+        log::info!("👜 loans v3 migration passes POST migrate checks ✅",);
 
         Ok(())
     }
