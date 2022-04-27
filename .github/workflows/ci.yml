@@ -18,13 +18,15 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  cleanup:
-    if: github.repository == 'parallel-finance/parallel'
-    runs-on: self-hosted
+  cancel:
+    name: 'Cancel Previous Runs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
-      - name: cleaning up
-        run: |
-          echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
+      - uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          workflow_id: 7259686,8377401,8911402,9157672,10574645
+          access_token: ${{ github.token }}
   check:
     if: ${{ (github.repository == 'parallel-finance/parallel') && ((github.event_name == 'push') || (github.event.review.state == 'approved')) }}
     name: Auto Build CI
@@ -37,6 +39,9 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: cleaning up
+        run: |
+          echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
       - name: Checkout Repository
         uses: actions/checkout@v2
         with:
