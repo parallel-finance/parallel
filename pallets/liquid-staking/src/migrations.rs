@@ -19,12 +19,8 @@ pub mod v3 {
         MatchingPool,
         StorageVersion,
     };
-    use frame_support::pallet_prelude::*;
-    use frame_support::{
-        generate_storage_alias, log,
-        traits::{tokens::Balance as BalanceT, Get},
-        weights::Weight,
-    };
+
+    use frame_support::{log, traits::Get, weights::Weight};
 
     // generate_storage_alias!(LiquidStaking, MarketCap => Value<u128,ValueQuery>);
 
