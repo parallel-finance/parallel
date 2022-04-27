@@ -21,6 +21,7 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
+    log,
     pallet_prelude::*,
     traits::{
         tokens::fungibles::{Inspect, Mutate, Transfer},
@@ -148,6 +149,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Stake amounts
         #[pallet::weight(T::WeightInfo::stake())]
         pub fn stake(
             origin: OriginFor<T>,
@@ -164,10 +166,18 @@ pub mod pallet {
             // Add Stake to the store
 
             // Emit a message
+            Self::deposit_event(Event::<T>::Staked(who, amount));
+
+            log::trace!(
+                target: "distributed-oracle::stake",
+                "stake_amount: {:?}",
+                &amount,
+            );
 
             Ok(().into())
         }
 
+        /// Unstake amounts
         #[pallet::weight(T::WeightInfo::unstake())]
         pub fn unstake(
             origin: OriginFor<T>,
@@ -182,6 +192,14 @@ pub mod pallet {
             // CHeck for Minimum Balance
             // Check for Token
             // Check for Time duration
+            Self::deposit_event(Event::<T>::Staked(who, amount));
+
+            log::trace!(
+                target: "distributed-oracle::unstake",
+                "unstake_amount: {:?}",
+                &amount,
+            );
+
             Ok(().into())
         }
     }
