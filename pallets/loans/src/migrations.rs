@@ -53,6 +53,7 @@ pub mod v3 {
         (Blake2_128Concat, T::AccountId),
         BalanceOf<T>
     >);
+    frame_support::generate_storage_alias!(Loans, LastAccruedTimestamp => Value<Timestamp, ValueQuery>);
 
     #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
@@ -73,11 +74,6 @@ pub mod v3 {
             reward_speed_count
         );
 
-        let reward_accrued_count = RewardAccured::<T>::iter().count();
-        log::info!(
-            "total {:#?} reward accrued items need to migrate",
-            reward_accrued_count
-        );
         let mut reward_accrued_count = 0;
         RewardAccured::<T>::iter().for_each(|(account_id, reward_accrued)| {
             reward_accrued_count = reward_accrued_count + 1;
@@ -90,6 +86,12 @@ pub mod v3 {
         log::info!(
             "total {:#?} reward accrued items need to migrate",
             reward_accrued_count
+        );
+
+        let last_accrued_timestamp = LastAccruedTimestamp::get();
+        log::info!(
+            "LastAccruedTimestamp: {:#?} is about to move.",
+            last_accrued_timestamp
         );
 
         log::info!("👜 loans v3 migration passes PRE migrate checks ✅",);
@@ -128,6 +130,11 @@ pub mod v3 {
             RewardAccured::<T>::iter().for_each(|(account_id, reward_amount)| {
                 RewardAccrued::<T>::insert(account_id, reward_amount);
             });
+
+            //remove old data.
+            MarketRewardSpeed::<T>::remove_all(None);
+            RewardAccured::<T>::remove_all(None);
+            LastAccruedTimestamp::kill();
 
             StorageVersion::<T>::put(crate::Versions::V3);
             log::info!("👜 completed loans migration to Versions::V3",);
@@ -175,6 +182,25 @@ pub mod v3 {
             "total {:#?} reward accrued items has been migrated",
             reward_accrued_count
         );
+
+        let reward_speed_count = MarketRewardSpeed::<T>::iter().count();
+        log::info!(
+            "total {:#?} reward speed items remains after migrate",
+            reward_speed_count
+        );
+
+        let reward_accrued_count = RewardAccured::<T>::iter().count();
+        log::info!(
+            "total {:#?} reward accrued items remains after migrate",
+            reward_accrued_count
+        );
+
+        let last_accrued_timestamp = LastAccruedTimestamp::get();
+        log::info!(
+            "LastAccruedTimestamp: {:#?} after migrate.",
+            last_accrued_timestamp
+        );
+
         log::info!("👜 loans v3 migration passes POST migrate checks ✅",);
 
         Ok(())
