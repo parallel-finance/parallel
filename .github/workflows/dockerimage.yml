@@ -9,12 +9,15 @@ on:
       - "qa*"
 
 jobs:
-  cleanup:
-    runs-on: self-hosted
+  cancel:
+    name: 'Cancel Previous Runs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
-      - name: cleaning up
-        run: |
-          echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
+      - uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          workflow_id: 7259686,8377401,8911402,9157672,10574645
+          access_token: ${{ github.token }}
 
   parallel:
     if: github.repository == 'parallel-finance/parallel'
@@ -25,6 +28,9 @@ jobs:
         bin: ["parallel"]
 
     steps:
+      - name: cleaning up
+        run: |
+          echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
       - name: Checkout github repo (+ download lfs dependencies)
         uses: actions/checkout@v2
         with:
