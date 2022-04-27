@@ -137,7 +137,7 @@ shutdown:
 		-f output/docker-compose.override.yml \
 		down \
 		--remove-orphans > /dev/null 2>&1 || true
-	rm -fr output || true
+	sudo rm -fr output || true
 	rm -fr data || true
 	docker volume prune -f
 
@@ -162,7 +162,7 @@ launch: shutdown
 	parachain-launch generate $(LAUNCH_CONFIG_YAML) \
 		&& (cp -r keystore* output || true) \
 		&& cp docker-compose.override.yml output \
-		&& cp -rf resources/apps-config output \
+		&& cp -r resources/apps-config output \
 		&& cd output \
 		&& DOCKER_CLIENT_TIMEOUT=1080 COMPOSE_HTTP_TIMEOUT=1080 PARA_ID=$(PARA_ID) docker-compose up -d --build
 	cd scripts/helper && yarn start launch --network $(CHAIN)
