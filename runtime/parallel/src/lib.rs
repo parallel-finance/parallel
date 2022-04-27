@@ -110,7 +110,8 @@ use primitives::{
     network::PARALLEL_PREFIX,
     tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, SDOT},
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
-    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Ratio, Shortfall, Signature,
+    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
+    Signature,
 };
 
 // Make the WASM binary available.
@@ -235,6 +236,13 @@ impl Contains<Call> for WhiteListFilter {
             Call::Preimage(_) |
             // Parachain
             Call::ParachainSystem(_) |
+            Call::XcmpQueue(_) |
+            Call::DmpQueue(_) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_default_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_subscribe_version_notify { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_unsubscribe_version_notify { .. }) |
+            Call::CumulusXcm(_) |
             // Consensus
             Call::Authorship(_) |
             Call::Session(_) |
@@ -248,20 +256,15 @@ impl Contains<Call> for WhiteListFilter {
             // 3rd Party
             Call::Vesting(_) |
             Call::Oracle(_) |
-            // Call::XTokens(_) |
-            // Call::OrmlXcm(_) |
-            // // Parachain
-            // Call::XcmpQueue(_) |
-            // Call::DmpQueue(_) |
-            // Call::PolkadotXcm(_) |
-            // Call::CumulusXcm(_) |
+            Call::XTokens(_) |
+            Call::OrmlXcm(_) |
             // Membership
+            Call::OracleMembership(_) |
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
-            Call::OracleMembership(_) |
-            Call::BridgeMembership(_) |
+            Call::LiquidStakingAgentsMembership(_) |
             Call::CrowdloansAutomatorsMembership(_) |
-            Call::LiquidStakingAgentsMembership(_)
+            Call::BridgeMembership(_)
         )
     }
 }
@@ -275,13 +278,15 @@ impl Contains<Call> for BaseCallFilter {
                 // Loans
                 Call::Loans(_) |
                 Call::Prices(_) |
-                // // Crowdloans
-                // Call::Crowdloans(_) |
-                // // LiquidStaking
-                // Call::LiquidStaking(_) |
                 // AMM
                 Call::AMM(_) |
                 Call::AMMRoute(_) |
+                // Crowdloans
+                Call::Crowdloans(_) |
+                // LiquidStaking
+                Call::LiquidStaking(_) |
+                // Bridge
+                Call::Bridge(_) |
                 // Farming
                 Call::Farming(_) |
                 // Streaming
@@ -1405,12 +1410,12 @@ type EnsureRootOrAllTechnicalCommittee = EnsureOneOf<
 >;
 
 parameter_types! {
-    pub const LaunchPeriod: BlockNumber = 7 * DAYS;
-    pub const VotingPeriod: BlockNumber = 7 * DAYS;
-    pub const FastTrackVotingPeriod: BlockNumber = 1 * DAYS;
+    pub const LaunchPeriod: BlockNumber = 1 * DAYS;
+    pub const VotingPeriod: BlockNumber = 5 * DAYS;
+    pub const FastTrackVotingPeriod: BlockNumber = 3 * HOURS;
     pub const InstantAllowed: bool = true;
     pub const MinimumDeposit: Balance = 100 * DOLLARS;
-    pub const EnactmentPeriod: BlockNumber = 8 * DAYS;
+    pub const EnactmentPeriod: BlockNumber = 1 * DAYS;
     pub const CooloffPeriod: BlockNumber = 7 * DAYS;
     // One cent: $10,000 / MB
     pub const MaxVotes: u32 = 100;
@@ -1571,7 +1576,7 @@ parameter_types! {
     pub const ProposalBond: Permill = Permill::from_percent(5);
     pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
     pub const ProposalBondMaximum: Balance = 5 * DOLLARS;
-    pub const SpendPeriod: BlockNumber = 1 * DAYS;
+    pub const SpendPeriod: BlockNumber = 6 * DAYS;
     pub const Burn: Permill = Permill::from_percent(0);
     pub const TreasuryPalletId: PalletId = PalletId(*b"par/trsy");
     pub const MaxApprovals: u32 = 100;
@@ -2129,9 +2134,17 @@ impl_runtime_apis! {
         }
     }
 
-    impl pallet_loans_rpc_runtime_api::LoansApi<Block, AccountId> for Runtime {
+    impl pallet_loans_rpc_runtime_api::LoansApi<Block, AccountId, Balance> for Runtime {
         fn get_account_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall), DispatchError> {
             Loans::get_account_liquidity(&account)
+        }
+
+        fn get_market_status(asset_id: CurrencyId) -> Result<(Rate, Rate, Rate, Ratio, Balance, Balance, sp_runtime::FixedU128), DispatchError> {
+            Loans::get_market_status(asset_id)
+        }
+
+        fn get_liquidation_threshold_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall), DispatchError> {
+            Loans::get_account_liquidation_threshold_liquidity(&account)
         }
     }
 

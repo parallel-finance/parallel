@@ -20,7 +20,7 @@ use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
 use pallet_traits::*;
 use primitives::*;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
+use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
 use sp_std::vec::Vec;
 use std::{cell::RefCell, collections::HashMap};
 
@@ -77,14 +77,14 @@ impl frame_system::Config for Test {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-pub type AccountId = u128;
+pub type AccountId = AccountId32;
 pub type BlockNumber = u64;
 
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
-pub const CHARLIE: AccountId = 3;
-pub const DAVE: AccountId = 4;
-pub const EVE: AccountId = 5;
+pub const ALICE: AccountId = AccountId32::new([1u8; 32]);
+pub const BOB: AccountId = AccountId32::new([2u8; 32]);
+pub const CHARLIE: AccountId = AccountId32::new([3u8; 32]);
+pub const DAVE: AccountId = AccountId32::new([4u8; 32]);
+pub const EVE: AccountId = AccountId32::new([5u8; 32]);
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;

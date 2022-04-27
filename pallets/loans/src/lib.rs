@@ -785,11 +785,12 @@ pub mod pallet {
             Self::update_reward_supply_index(asset_id)?;
             Self::distribute_supplier_reward(asset_id, &who)?;
 
-            T::Assets::transfer(asset_id, &who, &Self::account_id(), mint_amount, false)?;
-            Self::update_earned_stored(&who, asset_id)?;
-            let exchange_rate = Self::exchange_rate(asset_id);
+            let exchange_rate = Self::exchange_rate_stored(asset_id)?;
+            Self::update_earned_stored(&who, asset_id, exchange_rate)?;
             let voucher_amount = Self::calc_collateral_amount(mint_amount, exchange_rate)?;
             ensure!(!voucher_amount.is_zero(), Error::<T>::InvalidExchangeRate);
+
+            T::Assets::transfer(asset_id, &who, &Self::account_id(), mint_amount, false)?;
             AccountDeposits::<T>::try_mutate(asset_id, &who, |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
@@ -825,8 +826,8 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
             Self::accrue_interest(asset_id)?;
-            Self::update_earned_stored(&who, asset_id)?;
-            let exchange_rate = Self::exchange_rate(asset_id);
+            let exchange_rate = Self::exchange_rate_stored(asset_id)?;
+            Self::update_earned_stored(&who, asset_id, exchange_rate)?;
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
             let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount)?;
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
@@ -846,7 +847,8 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
             Self::accrue_interest(asset_id)?;
-            Self::update_earned_stored(&who, asset_id)?;
+            let exchange_rate = Self::exchange_rate_stored(asset_id)?;
+            Self::update_earned_stored(&who, asset_id, exchange_rate)?;
             let deposits = AccountDeposits::<T>::get(asset_id, &who);
             let redeem_amount = Self::do_redeem(&who, asset_id, deposits.voucher_balance)?;
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
@@ -1122,7 +1124,7 @@ pub mod pallet {
             let receiver = T::Lookup::lookup(receiver)?;
             let from = Self::incentive_reward_account_id()?;
             Self::ensure_active_market(asset_id)?;
-            let exchange_rate = Self::exchange_rate(asset_id);
+            let exchange_rate = Self::exchange_rate_stored(asset_id)?;
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
             let redeem_amount = Self::do_redeem(&from, asset_id, voucher_amount)?;
             T::Assets::transfer(asset_id, &from, &receiver, redeem_amount, false)?;
@@ -1220,7 +1222,7 @@ impl<T: Config> Pallet<T> {
         if deposits.voucher_balance.is_zero() {
             return Ok(FixedU128::zero());
         }
-        let exchange_rate = Self::exchange_rate(asset_id);
+        let exchange_rate = Self::exchange_rate_stored(asset_id)?;
         let underlying_amount =
             Self::calc_underlying_amount(deposits.voucher_balance, exchange_rate)?;
         let market = Self::market(asset_id)?;
@@ -1243,7 +1245,7 @@ impl<T: Config> Pallet<T> {
         if deposits.voucher_balance.is_zero() {
             return Ok(FixedU128::zero());
         }
-        let exchange_rate = Self::exchange_rate(asset_id);
+        let exchange_rate = Self::exchange_rate_stored(asset_id)?;
         let underlying_amount =
             Self::calc_underlying_amount(deposits.voucher_balance, exchange_rate)?;
         let market = Self::market(asset_id)?;
@@ -1299,7 +1301,7 @@ impl<T: Config> Pallet<T> {
             return Ok(());
         }
 
-        let exchange_rate = Self::exchange_rate(asset_id);
+        let exchange_rate = Self::exchange_rate_stored(asset_id)?;
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
         Self::ensure_enough_cash(asset_id, redeem_amount)?;
         let market = Self::market(asset_id)?;
@@ -1327,7 +1329,7 @@ impl<T: Config> Pallet<T> {
         Self::update_reward_supply_index(asset_id)?;
         Self::distribute_supplier_reward(asset_id, who)?;
 
-        let exchange_rate = Self::exchange_rate(asset_id);
+        let exchange_rate = Self::exchange_rate_stored(asset_id)?;
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
 
         AccountDeposits::<T>::try_mutate_exists(asset_id, who, |deposits| -> DispatchResult {
@@ -1438,9 +1440,12 @@ impl<T: Config> Pallet<T> {
     }
 
     #[require_transactional]
-    fn update_earned_stored(who: &T::AccountId, asset_id: AssetIdOf<T>) -> DispatchResult {
+    fn update_earned_stored(
+        who: &T::AccountId,
+        asset_id: AssetIdOf<T>,
+        exchange_rate: Rate,
+    ) -> DispatchResult {
         let deposits = AccountDeposits::<T>::get(asset_id, who);
-        let exchange_rate = ExchangeRate::<T>::get(asset_id);
         let account_earned = AccountEarned::<T>::get(asset_id, who);
         let total_earned_prior_new = exchange_rate
             .checked_sub(&account_earned.exchange_rate_prior)
@@ -1520,7 +1525,7 @@ impl<T: Config> Pallet<T> {
         if !deposits.is_collateral {
             return Err(Error::<T>::DepositsAreNotCollateral.into());
         }
-        let exchange_rate = Self::exchange_rate(collateral_asset_id);
+        let exchange_rate = Self::exchange_rate_stored(collateral_asset_id)?;
         let borrower_deposit_amount = exchange_rate
             .checked_mul_int(deposits.voucher_balance)
             .ok_or(ArithmeticError::Overflow)?;
@@ -1629,7 +1634,7 @@ impl<T: Config> Pallet<T> {
         )?;
 
         // 3.the liquidator will receive voucher token from borrower
-        let exchange_rate = Self::exchange_rate(collateral_asset_id);
+        let exchange_rate = Self::exchange_rate_stored(collateral_asset_id)?;
         let collateral_amount =
             Self::calc_collateral_amount(collateral_underlying_amount, exchange_rate)?;
         AccountDeposits::<T>::try_mutate(

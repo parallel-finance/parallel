@@ -145,7 +145,7 @@ fn mint_must_return_err_when_overflows_occur() {
         // Verify token balance first
         assert_noop!(
             Loans::mint(Origin::signed(CHARLIE), DOT, OVERFLOW_DEPOSIT),
-            pallet_assets::Error::<Test>::NoAccount
+            ArithmeticError::Underflow
         );
 
         // Deposit OVERFLOW_DEPOSIT DOT for CHARLIE
@@ -164,11 +164,11 @@ fn mint_must_return_err_when_overflows_occur() {
         );
 
         // Exchange rate must ge greater than zero
-        ExchangeRate::<Test>::insert(DOT, Rate::zero());
-        assert_noop!(
-            Loans::mint(Origin::signed(CHARLIE), DOT, 100),
-            ArithmeticError::Underflow
-        );
+        // ExchangeRate::<Test>::insert(DOT, Rate::zero());
+        // assert_noop!(
+        //     Loans::mint(Origin::signed(CHARLIE), DOT, 100),
+        //     ArithmeticError::Underflow
+        // );
     })
 }
 
@@ -264,11 +264,11 @@ fn redeem_must_return_err_when_overflows_occur() {
         );
 
         // Exchange rate must ge greater than zero
-        ExchangeRate::<Test>::insert(DOT, Rate::zero());
-        assert_noop!(
-            Loans::redeem(Origin::signed(ALICE), DOT, 100),
-            ArithmeticError::Underflow
-        );
+        // ExchangeRate::<Test>::insert(DOT, Rate::zero());
+        // assert_noop!(
+        //     Loans::redeem(Origin::signed(ALICE), DOT, 100),
+        //     ArithmeticError::Underflow
+        // );
     })
 }
 
@@ -621,9 +621,9 @@ fn update_exchange_rate_works() {
 
         // total_supply = 0
         TotalSupply::<Test>::insert(DOT, 0);
-        assert_ok!(Loans::update_exchange_rate(DOT));
+        // assert_ok!(Loans::update_exchange_rate(DOT));
         assert_eq!(
-            Loans::exchange_rate(DOT),
+            Loans::exchange_rate_stored(DOT).unwrap(),
             Rate::saturating_from_rational(2, 100)
         );
 
@@ -633,9 +633,9 @@ fn update_exchange_rate_works() {
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(10)));
         TotalBorrows::<Test>::insert(DOT, dollar(5));
         TotalReserves::<Test>::insert(DOT, dollar(1));
-        assert_ok!(Loans::update_exchange_rate(DOT));
+        // assert_ok!(Loans::update_exchange_rate(DOT));
         assert_eq!(
-            Loans::exchange_rate(DOT),
+            Loans::exchange_rate_stored(DOT).unwrap(),
             Rate::saturating_from_rational(14, 500)
         );
     })
