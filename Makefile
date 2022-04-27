@@ -1,6 +1,7 @@
 PARA_ID        											:= 2012
 CHAIN          											:= kerria-dev
 RELAY_CHAIN                         := polkadot-local
+CUMULUS_CHAIN     									:= statemint-dev
 RUNTIME        											:= kerria-runtime
 BLOCK_AT       											:= 0x0000000000000000000000000000000000000000000000000000000000000000
 URL            											:= ws://localhost:9948
@@ -12,6 +13,7 @@ LAUNCH_CONFIG_JSON	  							:= config.json
 DOCKER_OVERRIDE_YAML                := docker-compose.override.yml
 DOCKER_TAG     											:= latest
 RELAY_DOCKER_TAG										:= v0.9.19
+CUMULUS_DOCKER_TAG									:= v0.9.19
 
 .PHONY: init
 init: submodules
@@ -135,7 +137,7 @@ shutdown:
 		-f output/docker-compose.override.yml \
 		down \
 		--remove-orphans > /dev/null 2>&1 || true
-	rm -fr output || true
+	sudo rm -fr output || true
 	rm -fr data || true
 	docker volume prune -f
 
@@ -143,9 +145,13 @@ shutdown:
 launch: shutdown
 	yq -i eval '.relaychain.image = "parallelfinance/polkadot:$(RELAY_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.relaychain.chain = "$(RELAY_CHAIN)"' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.relaychain.runtimeGenesisConfig.hrmp.preopenHrmpChannels[0].sender = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.relaychain.runtimeGenesisConfig.hrmp.preopenHrmpChannels[1].recipient = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].image = "parallelfinance/parallel:$(DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].id = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].chain.base = "$(CHAIN)"' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.parachains[1].image = "parallelfinance/polkadot-collator:$(CUMULUS_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.parachains[1].chain.base = "$(CUMULUS_CHAIN)"' $(LAUNCH_CONFIG_YAML)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
@@ -156,14 +162,14 @@ launch: shutdown
 	parachain-launch generate $(LAUNCH_CONFIG_YAML) \
 		&& (cp -r keystore* output || true) \
 		&& cp docker-compose.override.yml output \
-		&& cp -rf resources/apps-config output \
+		&& cp -r resources/apps-config output \
 		&& cd output \
 		&& DOCKER_CLIENT_TIMEOUT=1080 COMPOSE_HTTP_TIMEOUT=1080 PARA_ID=$(PARA_ID) docker-compose up -d --build
 	cd scripts/helper && yarn start launch --network $(CHAIN)
 
 .PHONY: launch-vanilla
 launch-vanilla:
-	make PARA_ID=2085 CHAIN=vanilla-dev RELAY_CHAIN=kusama-local launch
+	make PARA_ID=2085 CHAIN=vanilla-dev RELAY_CHAIN=kusama-local CUMULUS_CHAIN=statemine-dev launch
 
 .PHONY: dev-launch
 dev-launch: shutdown
