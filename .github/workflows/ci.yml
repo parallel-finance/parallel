@@ -5,10 +5,10 @@ on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
     branches:
-      - adjust-workspace-cleanup
+      - master
   pull_request:
     branches:
-      - adjust-workspace-cleanup
+      - master
     types:
       - synchronize
       - review_requested
