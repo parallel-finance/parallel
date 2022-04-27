@@ -69,9 +69,6 @@ pub use weights::WeightInfo;
 pub mod pallet {
     use super::*;
 
-    // pub type BalanceOf<T> =
-    //     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
-
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -97,6 +94,9 @@ pub mod pallet {
         /// Minimum unstake amount
         #[pallet::constant]
         type MinUnstake: Get<BalanceOf<Self>>;
+
+        #[pallet::constant]
+        type MinHoldTime: Get<BalanceOf<Self>>;
     }
 
     #[pallet::error]
@@ -131,6 +131,17 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn get_relayer)]
     pub type Relayers<T: Config> = StorageMap<_, Twox64Concat, RelayerId, Relayer<T>>;
+
+    /// Platform's staking ledgers
+    // #[pallet::storage]
+    // #[pallet::getter(fn staking_ledger)]
+    // pub type StakingPool<T: Config> = StorageMap<
+    //     _,
+    //     Blake2_128Concat,
+    //     DerivativeIndex,
+    //     StakingLedger<T::AccountId, BalanceOf<T>>,
+    //     OptionQuery,
+    // >;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
