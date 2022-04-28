@@ -1436,7 +1436,7 @@ impl DecimalProvider<CurrencyId> for Decimal {
 impl pallet_prices::Config for Runtime {
     type Event = Event;
     type Source = AggregatedDataProvider;
-    type FeederOrigin = EnsureRoot<AccountId>;
+    type FeederOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type Decimal = Decimal;
