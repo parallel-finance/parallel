@@ -242,7 +242,7 @@ pub mod pallet {
         /// Reward withdrawed
         RewardWithdrawn(T::AccountId, BalanceOf<T>),
         /// Event emitted when market reward speed updated.
-        MarketRewardSpeedUpdated(AssetIdOf<T>, BalanceOf<T>),
+        MarketRewardSpeedUpdated(AssetIdOf<T>, BalanceOf<T>, BalanceOf<T>),
         /// Deposited when Reward is distributed to a supplier
         DistributedSupplierReward(AssetIdOf<T>, T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// Deposited when Reward is distributed to a borrower
@@ -366,10 +366,16 @@ pub mod pallet {
     pub type UnderlyingAssetId<T: Config> =
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, AssetIdOf<T>>;
 
-    /// Mapping of token id to reward speed
+    /// Mapping of token id to supply reward speed
     #[pallet::storage]
-    #[pallet::getter(fn market_reward_speed)]
-    pub type MarketRewardSpeed<T: Config> =
+    #[pallet::getter(fn reward_supply_speed)]
+    pub type RewardSupplySpeed<T: Config> =
+        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, BalanceOf<T>, ValueQuery>;
+
+    /// Mapping of token id to borrow reward speed
+    #[pallet::storage]
+    #[pallet::getter(fn reward_borrow_speed)]
+    pub type RewardBorrowSpeed<T: Config> =
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, BalanceOf<T>, ValueQuery>;
 
     /// The Reward market supply state for each market
@@ -422,8 +428,8 @@ pub mod pallet {
 
     /// The reward accrued but not yet transferred to each user.
     #[pallet::storage]
-    #[pallet::getter(fn reward_accured)]
-    pub type RewardAccured<T: Config> =
+    #[pallet::getter(fn reward_accrued)]
+    pub type RewardAccrued<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
     /// DefaultVersion is using for initialize the StorageVersion
@@ -710,23 +716,36 @@ pub mod pallet {
         pub fn update_market_reward_speed(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            reward_per_block: BalanceOf<T>,
+            supply_reward_per_block: BalanceOf<T>,
+            borrow_reward_per_block: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
             Self::ensure_active_market(asset_id)?;
 
-            Self::update_reward_supply_index(asset_id)?;
-            Self::update_reward_borrow_index(asset_id)?;
+            let current_supply_speed = RewardSupplySpeed::<T>::get(asset_id);
+            let current_borrow_speed = RewardBorrowSpeed::<T>::get(asset_id);
 
-            MarketRewardSpeed::<T>::try_mutate(asset_id, |current_speed| -> DispatchResult {
-                *current_speed = reward_per_block;
-                Self::deposit_event(Event::<T>::MarketRewardSpeedUpdated(
-                    asset_id,
-                    reward_per_block,
-                ));
-                Ok(())
-            })?;
+            if supply_reward_per_block != current_supply_speed {
+                Self::update_reward_supply_index(asset_id)?;
+                RewardSupplySpeed::<T>::try_mutate(asset_id, |current_speed| -> DispatchResult {
+                    *current_speed = supply_reward_per_block;
+                    Ok(())
+                })?;
+            }
 
+            if borrow_reward_per_block != current_borrow_speed {
+                Self::update_reward_borrow_index(asset_id)?;
+                RewardBorrowSpeed::<T>::try_mutate(asset_id, |current_speed| -> DispatchResult {
+                    *current_speed = borrow_reward_per_block;
+                    Ok(())
+                })?;
+            }
+
+            Self::deposit_event(Event::<T>::MarketRewardSpeedUpdated(
+                asset_id,
+                supply_reward_per_block,
+                borrow_reward_per_block,
+            ));
             Ok(().into())
         }
 

@@ -45,6 +45,15 @@ pub mod v3 {
         /// Ptoken asset id
         pub ptoken_id: CurrencyId,
     }
+    frame_support::generate_storage_alias!(Loans, MarketRewardSpeed<T: Config> => Map<
+        (Blake2_128Concat, AssetIdOf<T>),
+        BalanceOf<T>
+    >);
+    frame_support::generate_storage_alias!(Loans, RewardAccured<T: Config> => Map<
+        (Blake2_128Concat, T::AccountId),
+        BalanceOf<T>
+    >);
+    frame_support::generate_storage_alias!(Loans, LastAccruedTimestamp => Value<Timestamp, ValueQuery>);
 
     #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
@@ -59,7 +68,33 @@ pub mod v3 {
         Markets::<T>::iter().for_each(|(asset_id, _)| {
             log::info!("market {:#?} need to migrate", asset_id,);
         });
-        log::info!("👜 loans borrow-limit migration passes PRE migrate checks ✅",);
+        let reward_speed_count = MarketRewardSpeed::<T>::iter().count();
+        log::info!(
+            "total {:#?} reward speed items need to migrate",
+            reward_speed_count
+        );
+
+        let mut reward_accrued_count = 0;
+        RewardAccured::<T>::iter().for_each(|(account_id, reward_accrued)| {
+            reward_accrued_count = reward_accrued_count + 1;
+            log::info!(
+                "account: {:?}, reward_accrued: {:?}",
+                account_id,
+                reward_accrued,
+            );
+        });
+        log::info!(
+            "total {:#?} reward accrued items need to migrate",
+            reward_accrued_count
+        );
+
+        let last_accrued_timestamp = LastAccruedTimestamp::get();
+        log::info!(
+            "LastAccruedTimestamp: {:#?} is about to move.",
+            last_accrued_timestamp
+        );
+
+        log::info!("👜 loans v3 migration passes PRE migrate checks ✅",);
 
         Ok(())
     }
@@ -87,6 +122,20 @@ pub mod v3 {
                 })
             });
 
+            MarketRewardSpeed::<T>::iter().for_each(|(asset_id, reward_speed)| {
+                RewardSupplySpeed::<T>::insert(asset_id, reward_speed);
+                RewardBorrowSpeed::<T>::insert(asset_id, reward_speed);
+            });
+
+            RewardAccured::<T>::iter().for_each(|(account_id, reward_amount)| {
+                RewardAccrued::<T>::insert(account_id, reward_amount);
+            });
+
+            //remove old data.
+            MarketRewardSpeed::<T>::remove_all(None);
+            RewardAccured::<T>::remove_all(None);
+            LastAccruedTimestamp::kill();
+
             StorageVersion::<T>::put(crate::Versions::V3);
             log::info!("👜 completed loans migration to Versions::V3",);
 
@@ -111,7 +160,48 @@ pub mod v3 {
                 market.liquidate_incentive_reserved_factor
             );
         });
-        log::info!("👜 loans borrow-limit migration passes POST migrate checks ✅",);
+        RewardSupplySpeed::<T>::iter().for_each(|(asset_id, supply_reward_speed)| {
+            let borrow_reward_speed = RewardBorrowSpeed::<T>::get(asset_id);
+            log::info!(
+                "market {:#?}, supply_reward_speed {:?}, borrow_reward_speed {:?}",
+                asset_id,
+                supply_reward_speed,
+                borrow_reward_speed
+            );
+        });
+        let mut reward_accrued_count = 0;
+        RewardAccrued::<T>::iter().for_each(|(account_id, reward_accrued)| {
+            reward_accrued_count = reward_accrued_count + 1;
+            log::info!(
+                "account: {:?}, reward_accrued: {:?}",
+                account_id,
+                reward_accrued,
+            );
+        });
+        log::info!(
+            "total {:#?} reward accrued items has been migrated",
+            reward_accrued_count
+        );
+
+        let reward_speed_count = MarketRewardSpeed::<T>::iter().count();
+        log::info!(
+            "total {:#?} reward speed items remains after migrate",
+            reward_speed_count
+        );
+
+        let reward_accrued_count = RewardAccured::<T>::iter().count();
+        log::info!(
+            "total {:#?} reward accrued items remains after migrate",
+            reward_accrued_count
+        );
+
+        let last_accrued_timestamp = LastAccruedTimestamp::get();
+        log::info!(
+            "LastAccruedTimestamp: {:#?} after migrate.",
+            last_accrued_timestamp
+        );
+
+        log::info!("👜 loans v3 migration passes POST migrate checks ✅",);
 
         Ok(())
     }
