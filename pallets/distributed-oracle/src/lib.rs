@@ -19,7 +19,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, Encode, HasCompact, MaxEncodedLen};
 use frame_support::{
     log,
     pallet_prelude::*,
@@ -65,6 +65,22 @@ pub struct Relayer<T: Config> {
 
 pub use weights::WeightInfo;
 
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct StakingLedger<AccountId, Balance: HasCompact, T: Config> {
+    /// The stash account whose balance is actually locked and at stake.
+    pub stake_account: AccountId,
+    /// Stake Asset
+    pub asset: AssetIdOf<T>,
+    /// The total amount of the stash's balance that we are currently accounting for.
+    /// It's just `active` plus all the `unlocking` balances.
+    #[codec(compact)]
+    pub total: Balance,
+
+    /// Stake Added BlockTime
+    pub timestamp: Timestamp,
+}
+
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
@@ -97,6 +113,10 @@ pub mod pallet {
 
         #[pallet::constant]
         type MinHoldTime: Get<BalanceOf<Self>>;
+
+        /// Allowed staking currency
+        #[pallet::constant]
+        type StakingCurrency: Get<AssetIdOf<Self>>;
     }
 
     #[pallet::error]
@@ -124,7 +144,7 @@ pub mod pallet {
         /// The assets get staked successfully
         Staked(T::AccountId, BalanceOf<T>),
         /// The derivative get unstaked successfully
-        Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
+        Unstaked(T::AccountId, BalanceOf<T>),
     }
 
     /// Global storage for relayers
@@ -175,7 +195,13 @@ pub mod pallet {
             );
             // Transfer
             // Add Stake to the store
-
+            T::Assets::transfer(
+                T::StakingCurrency::get(),
+                &who,
+                &Self::account_id(),
+                amount,
+                false,
+            )?;
             // Emit a message
             Self::deposit_event(Event::<T>::Staked(who, amount));
 
@@ -203,7 +229,9 @@ pub mod pallet {
             // CHeck for Minimum Balance
             // Check for Token
             // Check for Time duration
-            Self::deposit_event(Event::<T>::Staked(who, amount));
+
+            T::Assets::burn_from(T::StakingCurrency::get(), &who, amount)?;
+            Self::deposit_event(Event::<T>::Unstaked(who, amount));
 
             log::trace!(
                 target: "distributed-oracle::unstake",
