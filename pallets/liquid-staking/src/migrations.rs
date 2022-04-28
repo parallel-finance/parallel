@@ -13,10 +13,11 @@
 // limitations under the License.
 
 pub mod v3 {
+    #[cfg(feature = "try-runtime")]
+    use crate::MatchingPool;
     use crate::{
         // types::{MatchingLedger, ReservableAmount},BalanceOf,
         Config,
-        MatchingPool,
         StorageVersion,
     };
 
