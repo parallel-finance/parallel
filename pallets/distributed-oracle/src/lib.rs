@@ -19,7 +19,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode, HasCompact, MaxEncodedLen};
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     log,
     pallet_prelude::*,
@@ -32,12 +32,12 @@ use frame_support::{
     PalletId,
 };
 use frame_system::pallet_prelude::*;
+pub use pallet::*;
+// use pallet_timestamp::{self as timestamp};
 use primitives::*;
 use scale_info::TypeInfo;
 use sp_runtime::traits::AccountIdConversion;
 use sp_std::prelude::*;
-
-pub use pallet::*;
 
 #[cfg(test)]
 mod mock;
@@ -67,9 +67,8 @@ pub use weights::WeightInfo;
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
-pub struct StakingLedger<AccountId, Balance: HasCompact, T: Config> {
+pub struct OracleDeposit<T: Config> {
     /// The stash account whose balance is actually locked and at stake.
-    pub stake_account: AccountId,
     /// Stake Asset
     pub asset: AssetIdOf<T>,
     /// The total amount of the stash's balance that we are currently accounting for.
@@ -77,7 +76,7 @@ pub struct StakingLedger<AccountId, Balance: HasCompact, T: Config> {
     #[codec(compact)]
     pub total: Balance,
 
-    /// Stake Added BlockTime
+    /// Stake Added Unix Time
     pub timestamp: Timestamp,
 }
 
@@ -136,6 +135,9 @@ pub mod pallet {
 
         /// Error removing stake insufficient balance
         ErrorRemovingStakeInsufficientBalance,
+
+        /// Staking Account not found
+        StakingAccountNotFound,
     }
 
     #[pallet::event]
@@ -153,15 +155,10 @@ pub mod pallet {
     pub type Relayers<T: Config> = StorageMap<_, Twox64Concat, RelayerId, Relayer<T>>;
 
     /// Platform's staking ledgers
-    // #[pallet::storage]
-    // #[pallet::getter(fn staking_ledger)]
-    // pub type StakingPool<T: Config> = StorageMap<
-    //     _,
-    //     Blake2_128Concat,
-    //     DerivativeIndex,
-    //     StakingLedger<T::AccountId, BalanceOf<T>>,
-    //     OptionQuery,
-    // >;
+    #[pallet::storage]
+    #[pallet::getter(fn staking_ledger)]
+    pub type StakingPool<T: Config> =
+        StorageMap<_, Blake2_128Concat, DerivativeIndex, OracleDeposit<T>>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -183,10 +180,11 @@ pub mod pallet {
         /// Stake amounts
         #[pallet::weight(T::WeightInfo::stake())]
         pub fn stake(
-            origin: OriginFor<T>,
+            who: OriginFor<T>,
+            asset: AssetIdOf<T>,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
+            let who = ensure_signed(who)?;
             // Check for token type
             // Check for amount
             ensure!(
@@ -202,8 +200,16 @@ pub mod pallet {
                 amount,
                 false,
             )?;
-            // Emit a message
-            Self::deposit_event(Event::<T>::Staked(who, amount));
+
+            let _oracle_deposit = OracleDeposit::<T> {
+                asset,
+                total: amount,
+                timestamp: T::UnixTime::now().as_secs(),
+            };
+            // If Account has amount add the new stake amount or else insert a new record
+            // StakingPool::<T>::insert()
+            // // Emit a message
+            // Self::deposit_event(Event::<T>::Staked(who, amount));
 
             log::trace!(
                 target: "distributed-oracle::stake",
@@ -229,6 +235,9 @@ pub mod pallet {
             // CHeck for Minimum Balance
             // Check for Token
             // Check for Time duration
+
+            // Check if a staking account exists or throw an error
+            // else update storage substract the value
 
             T::Assets::burn_from(T::StakingCurrency::get(), &who, amount)?;
             Self::deposit_event(Event::<T>::Unstaked(who, amount));
