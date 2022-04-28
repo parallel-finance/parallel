@@ -1376,11 +1376,6 @@ type EnsureRootOrMoreThanHalfGeneralCouncil = EnsureOneOf<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionMoreThan<AccountId, GeneralCouncilCollective, 1, 2>,
 >;
-type EnsureRootOrAtLeastThreeFifthsGeneralCouncil = EnsureOneOf<
-    EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 3, 5>,
->;
-
 type EnsureRootOrAllTechnicalCommittee = EnsureOneOf<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
@@ -1412,7 +1407,7 @@ impl pallet_democracy::Config for Runtime {
         pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 1, 2>;
     /// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
     type ExternalMajorityOrigin =
-        pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 3, 4>;
+        pallet_collective::EnsureProportionMoreThan<AccountId, GeneralCouncilCollective, 1, 2>;
     /// A unanimous council can have the next scheduled referendum be a straight default-carries
     /// (NTB) vote.
     type ExternalDefaultOrigin =
@@ -1562,7 +1557,7 @@ parameter_types! {
 impl pallet_treasury::Config for Runtime {
     type PalletId = TreasuryPalletId;
     type Currency = Balances;
-    type ApproveOrigin = EnsureRootOrAtLeastThreeFifthsGeneralCouncil;
+    type ApproveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type RejectOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type Event = Event;
     type OnSlash = ();
