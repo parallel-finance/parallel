@@ -63,6 +63,10 @@ test:
 integration-test:
 	SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- --nocapture
 
+.PHONY: integration-test-statemine
+integration-test-statemine:
+	SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- statemine::statemine --nocapture	
+
 .PHONY: bench
 bench: bench-loans bench-liquid-staking bench-amm bench-amm-router bench-crowdloans bench-bridge bench-xcm-helper bench-farming
 	./scripts/benchmark.sh

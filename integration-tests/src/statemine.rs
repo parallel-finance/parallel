@@ -27,8 +27,10 @@ pub const RMRK_ASSET_ID: u32 = 8;
 pub const RMRK_DECIMAL: u8 = 10;
 pub const RMRK_WEIGHT_PER_SEC: u128 = 100000000000;
 pub const HEIKO_RMRK_ASSET_ID: u32 = 4187061565;
-pub const STATEMINE_FEE_AMOUNT: u128 = 8_000_000_000;
-pub const RELAY_FEE_AMOUNT: u128 = 165_940_672;
+pub const STATEMINE_TOTAL_FEE_AMOUNT: u128 = 1_000_000_000; //still can be decreased further but we add some margin here
+pub const FEE_IN_KUSAMA: u128 = 165_940_672;
+pub const FEE_IN_STATEMINE: u128 = 10_666_664;
+pub const WEIGHT_IN_STATEMINE: u64 = 4_000_000_000;
 
 pub fn rmrk(n: f64) -> Balance {
     (n as u128) * 10u128.pow(RMRK_DECIMAL.into())
@@ -44,13 +46,6 @@ fn statemine() {
     Heiko::execute_with(|| {
         use heiko_runtime::{AssetRegistry, Assets, Origin};
         assert_eq!(statemine_rmrk_asset_id, HEIKO_RMRK_ASSET_ID);
-        let another_asset: AssetType = AssetType::Xcm(MultiLocation::new(
-            1,
-            X3(Parachain(1000), PalletInstance(50), GeneralIndex(9)),
-        ));
-        let another_asset_id: CurrencyId = another_asset.into();
-        assert_eq!(another_asset_id, 23310203);
-        assert_ne!(another_asset_id, statemine_rmrk_asset_id);
         Assets::force_create(
             Origin::root(),
             HEIKO_RMRK_ASSET_ID,
@@ -82,13 +77,14 @@ fn statemine() {
     Statemine::execute_with(|| {
         use statemine_runtime::{Assets, Balances, Origin, PolkadotXcm, System};
 
-        let origin = Origin::signed(ALICE.into());
-
-        Balances::make_free_balance_be(&ALICE.into(), ksm(10f64));
+        Balances::make_free_balance_be(&ALICE.into(), ksm(1f64));
 
         // need to have some KSM to be able to receive user assets
-        Balances::make_free_balance_be(&Sibling::from(2085).into_account(), ksm(10f64));
+        let para_acc: AccountId = Sibling::from(2085).into_account();
+        println!("heiko para account in sibling chain:{:?}", para_acc);
+        Balances::make_free_balance_be(&para_acc, ksm(1f64));
 
+        // create assets and set metadata
         Assets::force_create(
             Origin::root(),
             RMRK_ASSET_ID,
@@ -106,6 +102,8 @@ fn statemine() {
             false,
         )
         .unwrap();
+
+        //mint 10 rmrk to alice
         Assets::mint(
             Origin::signed(AccountId::from(ALICE)),
             RMRK_ASSET_ID,
@@ -116,11 +114,9 @@ fn statemine() {
 
         System::reset_events();
 
-        let para_acc: AccountId = Sibling::from(2085).into_account();
-        println!("heiko para account in sibling chain:{:?}", para_acc);
-
+        //reserve transfer rmrk from statemine to heiko
         assert_ok!(PolkadotXcm::reserve_transfer_assets(
-            origin.clone(),
+            Origin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2085))).into()),
             Box::new(
                 Junction::AccountId32 {
@@ -134,14 +130,16 @@ fn statemine() {
             0
         ));
     });
+
     // Rerun the Statemine::execute to actually send the egress message via XCM
     Statemine::execute_with(|| {});
+
     Heiko::execute_with(|| {
         use heiko_runtime::{Assets, Origin, XTokens, XcmHelper};
         assert_eq!(
             Assets::balance(statemine_rmrk_asset_id, &AccountId::from(BOB)),
             19940000000
-        ); //rmrk fee in heiko is 60_000_000 which is 0.006rmrk~=0.09$
+        ); //with RMRK_WEIGHT_PER_SEC set in heiko fee is 60_000_000 which is 0.006rmrk~=0.09$
         assert_ok!(Assets::mint(
             Origin::signed(AccountId::from(ALICE)),
             KSM,
@@ -152,14 +150,14 @@ fn statemine() {
             Origin::root(),
             XcmCall::TransferToSiblingchain(Box::new((1, Parachain(1000)).into())),
             XcmWeightFeeMisc {
-                weight: (STATEMINE_FEE_AMOUNT / 2) as u64,
-                fee: STATEMINE_FEE_AMOUNT / 2,
+                weight: WEIGHT_IN_STATEMINE,
+                fee: FEE_IN_STATEMINE,
             }
-        )); // set xcm transfer fee
+        )); // set TransferToSiblingchain storage
         assert_ok!(XTokens::transfer_multicurrencies(
             Origin::signed(BOB.into()),
             vec![
-                (KSM, STATEMINE_FEE_AMOUNT),
+                (KSM, STATEMINE_TOTAL_FEE_AMOUNT),
                 (HEIKO_RMRK_ASSET_ID, rmrk(1f64)),
             ],
             0,
@@ -176,20 +174,20 @@ fn statemine() {
                 )
                 .into()
             ),
-            (STATEMINE_FEE_AMOUNT / 2) as u64
-        ));
+            WEIGHT_IN_STATEMINE as u64
+        )); //transfer rmrk back to statemine with ksm as fee
     });
     KusamaNet::execute_with(|| {
         let heiko_sovereign: AccountId = ParaId::from(2085u32).into_account();
         let statemine_sovereign: AccountId = ParaId::from(1000u32).into_account();
         assert_eq!(
-            ksm(100f64) - STATEMINE_FEE_AMOUNT / 2,
+            ksm(100f64) - (STATEMINE_TOTAL_FEE_AMOUNT - FEE_IN_STATEMINE),
             kusama_runtime::Balances::free_balance(&heiko_sovereign)
-        ); //4_000_000_000 deducted from heiko_sovereign
+        ); //fee deducted from heiko_sovereign
         assert_eq!(
-            STATEMINE_FEE_AMOUNT / 2 - RELAY_FEE_AMOUNT,
+            STATEMINE_TOTAL_FEE_AMOUNT - FEE_IN_STATEMINE - FEE_IN_KUSAMA,
             kusama_runtime::Balances::free_balance(&statemine_sovereign)
-        ); // 4_000_000_000-106_666_660 reserved into statemine_sovereign
+        ); // fee reserved into statemine_sovereign
     });
     Statemine::execute_with(|| {
         use statemine_runtime::Assets;
