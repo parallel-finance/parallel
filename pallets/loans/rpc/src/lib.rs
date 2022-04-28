@@ -26,7 +26,10 @@ use sp_rpc::number::NumberOrHex;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT, FixedU128};
 
 #[rpc]
-pub trait LoansApi<BlockHash, AccountId, Balance> {
+pub trait LoansApi<BlockHash, AccountId, Balance>
+where
+    Balance: Codec + Copy + TryFrom<NumberOrHex>,
+{
     #[rpc(name = "loans_getCollateralLiquidity")]
     fn get_account_liquidity(
         &self,
@@ -38,7 +41,7 @@ pub trait LoansApi<BlockHash, AccountId, Balance> {
         &self,
         asset_id: CurrencyId,
         at: Option<BlockHash>,
-    ) -> Result<(Rate, Rate, Rate, Ratio, Balance, Balance, FixedU128)>;
+    ) -> Result<(Rate, Rate, Rate, Ratio, NumberOrHex, NumberOrHex, FixedU128)>;
     #[rpc(name = "loans_getLiquidationThresholdLiquidity")]
     fn get_liquidation_threshold_liquidity(
         &self,
@@ -109,15 +112,33 @@ where
         &self,
         asset_id: CurrencyId,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> Result<(Rate, Rate, Rate, Ratio, Balance, Balance, FixedU128)> {
+    ) -> Result<(Rate, Rate, Rate, Ratio, NumberOrHex, NumberOrHex, FixedU128)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(
             // If the block hash is not supplied assume the best block.
             self.client.info().best_hash,
         ));
-        api.get_market_status(&at, asset_id)
+        let (
+            borrow_rate,
+            supply_rate,
+            exchange_rate,
+            util,
+            total_borrows,
+            total_reserves,
+            borrow_index,
+        ) = api
+            .get_market_status(&at, asset_id)
             .map_err(runtime_error_into_rpc_error)?
-            .map_err(market_status_error_into_rpc_error)
+            .map_err(market_status_error_into_rpc_error)?;
+        Ok((
+            borrow_rate,
+            supply_rate,
+            exchange_rate,
+            util,
+            try_into_rpc_balance(total_borrows)?,
+            try_into_rpc_balance(total_reserves)?,
+            borrow_index,
+        ))
     }
 
     fn get_liquidation_threshold_liquidity(
@@ -161,4 +182,14 @@ fn market_status_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError {
         message: "Not able to get market status".into(),
         data: Some(format!("{:?}", err).into()),
     }
+}
+
+fn try_into_rpc_balance<T: std::fmt::Display + Copy + TryInto<NumberOrHex>>(
+    value: T,
+) -> Result<NumberOrHex> {
+    value.try_into().map_err(|_| RpcError {
+        code: ErrorCode::InvalidParams,
+        message: format!("{} doesn't fit in NumberOrHex representation", value),
+        data: None,
+    })
 }
