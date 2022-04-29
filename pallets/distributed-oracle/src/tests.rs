@@ -18,11 +18,27 @@ use mock::*;
 use frame_support::assert_ok;
 
 #[test]
-fn test_works() {
+fn test_add_stake() {
     new_test_ext().execute_with(|| {
-        // Alice creates stream 100 DOT to Bob
-        assert_ok!(Doracle::create_something(Origin::signed(ALICE),));
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), 0, 100_000));
+        let oracle_deposit = Doracle::staking_pool(ALICE, 0).unwrap();
+        assert_eq!(oracle_deposit.total, 100_000);
 
-        assert_eq!(0, 1);
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), 0, 200_000));
+        let oracle_deposit = Doracle::staking_pool(ALICE, 0).unwrap();
+        assert_eq!(oracle_deposit.total, 300_000);
     });
 }
+//
+//
+// #[test]
+// fn test_add_stake() {
+//     new_test_ext().execute_with(|| {
+//
+//         assert_ok!(Doracle::create_something(Origin::signed(ALICE),));
+//
+//         // let staked = staking_pool(Origin::signed(ALICE));
+//
+//         assert_eq!(1, 1);
+//     });
+// }

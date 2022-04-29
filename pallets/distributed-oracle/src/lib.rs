@@ -67,10 +67,7 @@ pub use weights::WeightInfo;
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
-pub struct OracleDeposit<T: Config> {
-    /// The stash account whose balance is actually locked and at stake.
-    /// Stake Asset
-    pub asset: AssetIdOf<T>,
+pub struct OracleDeposit {
     /// The total amount of the stash's balance that we are currently accounting for.
     /// It's just `active` plus all the `unlocking` balances.
     #[codec(compact)]
@@ -80,9 +77,19 @@ pub struct OracleDeposit<T: Config> {
     pub timestamp: Timestamp,
 }
 
+impl Default for OracleDeposit {
+    fn default() -> Self {
+        Self {
+            total: 0_u128,
+            timestamp: 0_128,
+        }
+    }
+}
+
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use sp_runtime::ArithmeticError;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -125,7 +132,7 @@ pub mod pallet {
         /// Insufficient Staking Amount
         InsufficientUnStakeAmount,
         /// Invalid Staking Currency
-        InvalidStakingCurrency,
+        InvalidStakingAsset,
 
         /// Stake added successfully
         AddedStake,
@@ -156,9 +163,15 @@ pub mod pallet {
 
     /// Platform's staking ledgers
     #[pallet::storage]
-    #[pallet::getter(fn staking_ledger)]
-    pub type StakingPool<T: Config> =
-        StorageMap<_, Blake2_128Concat, DerivativeIndex, OracleDeposit<T>>;
+    #[pallet::getter(fn staking_pool)]
+    pub type StakingPool<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        Blake2_128Concat,
+        AssetIdOf<T>,
+        OracleDeposit,
+    >;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -185,31 +198,32 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(who)?;
-            // Check for token type
-            // Check for amount
+
+            // Checks for the Asset type to stake
+            ensure!(
+                T::StakingCurrency::get() == asset,
+                Error::<T>::InvalidStakingAsset
+            );
+
+            // Check for the minimum amount to stake
             ensure!(
                 amount >= T::MinStake::get(),
                 Error::<T>::InsufficientStakeAmount
             );
-            // Transfer
-            // Add Stake to the store
-            T::Assets::transfer(
-                T::StakingCurrency::get(),
-                &who,
-                &Self::account_id(),
-                amount,
-                false,
-            )?;
 
-            let _oracle_deposit = OracleDeposit::<T> {
-                asset,
-                total: amount,
-                timestamp: T::UnixTime::now().as_secs(),
-            };
-            // If Account has amount add the new stake amount or else insert a new record
-            // StakingPool::<T>::insert()
-            // // Emit a message
-            // Self::deposit_event(Event::<T>::Staked(who, amount));
+            let mut od =
+                Self::staking_pool(who.clone(), asset).unwrap_or_else(|| OracleDeposit::default());
+
+            // Accumulate
+            od.total = od
+                .total
+                .checked_add(amount)
+                .ok_or(ArithmeticError::Underflow)?;
+            od.timestamp = T::UnixTime::now().as_secs();
+
+            StakingPool::<T>::insert(&who, &asset, od);
+
+            Self::deposit_event(Event::<T>::Staked(who, amount));
 
             log::trace!(
                 target: "distributed-oracle::stake",
@@ -224,29 +238,37 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::unstake())]
         pub fn unstake(
             origin: OriginFor<T>,
-            #[pallet::compact] amount: BalanceOf<T>,
+            _asset: AssetIdOf<T>,
+            #[pallet::compact] _amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            ensure!(
-                amount < T::MinStake::get(),
-                Error::<T>::InsufficientUnStakeAmount
-            );
-            // InsufficientUnStakeAmount
-            // CHeck for Minimum Balance
-            // Check for Token
-            // Check for Time duration
+            let _who = ensure_signed(origin)?;
+
+            // TODO: Not Required? Only support full unstake
+            // ensure!(
+            //     amount < T::MinStake::get(),
+            //     Error::<T>::InsufficientUnStakeAmount
+            // );
 
             // Check if a staking account exists or throw an error
-            // else update storage substract the value
-
-            T::Assets::burn_from(T::StakingCurrency::get(), &who, amount)?;
-            Self::deposit_event(Event::<T>::Unstaked(who, amount));
-
-            log::trace!(
-                target: "distributed-oracle::unstake",
-                "unstake_amount: {:?}",
-                &amount,
-            );
+            // let _ = Self::staking_pool(who.clone()).ok_or(Error::<T>::StakingAccountNotFound)?;
+            // StakingPool::<T>::remove(&who);
+            //
+            // // Transfers amounts to teh staker's account
+            // T::Assets::transfer(
+            //     T::StakingCurrency::get(),
+            //     &who,
+            //     &Self::account_id(),
+            //     amount,
+            //     false,
+            // )?;
+            //
+            // Self::deposit_event(Event::<T>::Unstaked(who, amount));
+            //
+            // log::trace!(
+            //     target: "distributed-oracle::unstake",
+            //     "unstake_amount: {:?}",
+            //     &amount,
+            // );
 
             Ok(().into())
         }

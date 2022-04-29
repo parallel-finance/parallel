@@ -16,14 +16,18 @@ use super::*;
 
 use frame_support::{construct_runtime, parameter_types, traits::Everything, PalletId};
 use frame_system::EnsureRoot;
-use sp_core::H256;
+
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
 
-pub use primitives::tokens::{DOT, HKO, KSM, PDOT, PHKO, PKSM, PUSDT, USDT};
+use sp_core::H256;
+
+pub use primitives::tokens::{DOT, HKO, KSM, PARA, PDOT, PHKO, PKSM, PUSDT, USDT};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+
+// pub type SignedAccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
 construct_runtime!(
     pub enum Test where
@@ -144,14 +148,22 @@ impl pallet_currency_adapter::Config for Test {
 
 parameter_types! {
     pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
+    pub const MinHoldTime: u128 = 10000_u128;
+    pub const MinStake: u128 = 100_u128;
+    pub const MinUnStake: u128 = 100_u128;
 }
 
+// Config implementation for distributed oracle pallet
 impl Config for Test {
     type Event = Event;
+    type Assets = CurrencyAdapter;
     type PalletId = StreamPalletId;
     type UnixTime = TimestampPallet;
-    type Assets = CurrencyAdapter;
-    // type WeightInfo = ();
+    type WeightInfo = ();
+    type MinStake = MinStake;
+    type MinUnstake = MinUnStake;
+    type MinHoldTime = MinHoldTime;
+    type StakingCurrency = NativeCurrencyId;
 }
 
 pub fn dollar(d: u128) -> u128 {
