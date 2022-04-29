@@ -207,15 +207,12 @@ impl<T: Config> Pallet<T> {
     pub(crate) fn pay_reward(user: &T::AccountId) -> DispatchResult {
         let pool_account = Self::reward_account_id()?;
         let reward_asset = T::RewardAssetId::get();
-        RewardAccrued::<T>::try_mutate(user, |total_reward| -> DispatchResult {
-            let total = *total_reward;
-            if total > 0 {
-                T::Assets::transfer(reward_asset, &pool_account, user, total, true)?;
-                *total_reward = 0;
-            }
-            Self::deposit_event(Event::<T>::RewardPaid(user.clone(), total));
-
-            Ok(())
-        })
+        let total_reward = RewardAccrued::<T>::get(user);
+        if total_reward > 0 {
+            T::Assets::transfer(reward_asset, &pool_account, user, total_reward, true)?;
+            RewardAccrued::<T>::remove(user);
+        }
+        Self::deposit_event(Event::<T>::RewardPaid(user.clone(), total_reward));
+        Ok(())
     }
 }

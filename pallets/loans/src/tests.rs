@@ -986,6 +986,23 @@ fn reward_calculation_one_palyer_in_multi_markets_works() {
             ),
             true
         );
+        assert_ok!(Loans::update_market_reward_speed(
+            Origin::root(),
+            DOT,
+            dollar(1),
+            0,
+        ));
+
+        // DOT supply:500   DOT supply reward: 50
+        // DOT borrow:0     DOT borrow reward: 40
+        // KSM supply:600   KSM supply reward: 30
+        // KSM borrow:0     KSM borrow reward: 20
+        _run_to_block(90);
+        assert_ok!(Loans::claim_reward(Origin::signed(ALICE)));
+        assert_eq!(
+            almost_equal(<Test as Config>::Assets::balance(HKO, &ALICE), dollar(140)),
+            true
+        );
     })
 }
 
