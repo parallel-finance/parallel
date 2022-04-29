@@ -132,7 +132,7 @@ pub mod pallet {
         /// Insufficient Staking Amount
         InsufficientUnStakeAmount,
         /// Invalid Staking Currency
-        InvalidStakingAsset,
+        InvalidStakingCurrency,
 
         /// Stake added successfully
         AddedStake,
@@ -151,7 +151,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// The assets get staked successfully
-        Staked(T::AccountId, BalanceOf<T>),
+        Staked(T::AccountId, AssetIdOf<T>, BalanceOf<T>),
         /// The derivative get unstaked successfully
         Unstaked(T::AccountId, BalanceOf<T>),
     }
@@ -179,19 +179,9 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// TODO - need functions
-        #[pallet::weight(1000)]
-        #[transactional]
-        pub fn create_something(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-            let _sender = ensure_signed(origin)?;
-            if 1 == 0 {
-                unimplemented!();
-            }
-            Ok(().into())
-        }
-
         /// Stake amounts
         #[pallet::weight(T::WeightInfo::stake())]
+        #[transactional]
         pub fn stake(
             who: OriginFor<T>,
             asset: AssetIdOf<T>,
@@ -202,7 +192,7 @@ pub mod pallet {
             // Checks for the Asset type to stake
             ensure!(
                 T::StakingCurrency::get() == asset,
-                Error::<T>::InvalidStakingAsset
+                Error::<T>::InvalidStakingCurrency
             );
 
             // Check for the minimum amount to stake
@@ -223,7 +213,7 @@ pub mod pallet {
 
             StakingPool::<T>::insert(&who, &asset, od);
 
-            Self::deposit_event(Event::<T>::Staked(who, amount));
+            Self::deposit_event(Event::<T>::Staked(who, asset, amount));
 
             log::trace!(
                 target: "distributed-oracle::stake",
@@ -238,16 +228,22 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::unstake())]
         pub fn unstake(
             origin: OriginFor<T>,
-            _asset: AssetIdOf<T>,
-            #[pallet::compact] _amount: BalanceOf<T>,
+            asset: AssetIdOf<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            let _who = ensure_signed(origin)?;
+            let who = ensure_signed(origin)?;
 
-            // TODO: Not Required? Only support full unstake
-            // ensure!(
-            //     amount < T::MinStake::get(),
-            //     Error::<T>::InsufficientUnStakeAmount
-            // );
+            // Checks for the Asset type to stake
+            ensure!(
+                T::StakingCurrency::get() == asset,
+                Error::<T>::InvalidStakingCurrency
+            );
+
+            // TODO: Not Required? Only support full unstake?
+            ensure!(
+                amount < T::MinUnstake::get(),
+                Error::<T>::InsufficientUnStakeAmount
+            );
 
             // Check if a staking account exists or throw an error
             // let _ = Self::staking_pool(who.clone()).ok_or(Error::<T>::StakingAccountNotFound)?;

@@ -150,7 +150,7 @@ parameter_types! {
     pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
     pub const MinHoldTime: u128 = 10000_u128;
     pub const MinStake: u128 = 100_u128;
-    pub const MinUnStake: u128 = 100_u128;
+    pub const MinUnStake: u128 = 10_u128;
 }
 
 // Config implementation for distributed oracle pallet

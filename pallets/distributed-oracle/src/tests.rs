@@ -36,7 +36,7 @@ fn test_stake_with_invalid_asset() {
     new_test_ext().execute_with(|| {
         assert_noop!(
             Doracle::stake(Origin::signed(ALICE), 10, 100_000),
-            Error::<Test>::InvalidStakingAsset
+            Error::<Test>::InvalidStakingCurrency
         );
     });
 }
@@ -50,16 +50,29 @@ fn test_stake_with_amount_less_than_minimum_amount() {
         );
     });
 }
-//
-//
-// #[test]
-// fn test_add_stake() {
-//     new_test_ext().execute_with(|| {
-//
-//         assert_ok!(Doracle::create_something(Origin::signed(ALICE),));
-//
-//         // let staked = staking_pool(Origin::signed(ALICE));
-//
-//         assert_eq!(1, 1);
-//     });
-// }
+
+#[test]
+fn test_remove_stake_erroneous_scenarios() {
+    new_test_ext().execute_with(|| {
+        // Stake
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
+
+        // Trying to unstake non native currency
+        assert_noop!(
+            Doracle::unstake(Origin::signed(ALICE), 10, 100_000),
+            Error::<Test>::InvalidStakingCurrency
+        );
+
+        // Unstake an insufficient amount
+        assert_noop!(
+            Doracle::unstake(Origin::signed(ALICE), HKO, 10),
+            Error::<Test>::InsufficientUnStakeAmount
+        );
+
+        // Unstake more than staked amount
+        assert_noop!(
+            Doracle::unstake(Origin::signed(ALICE), HKO, 10),
+            Error::<Test>::InsufficientUnStakeAmount
+        );
+    });
+}
