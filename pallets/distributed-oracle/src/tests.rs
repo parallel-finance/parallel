@@ -27,6 +27,12 @@ fn test_add_stake() {
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 200_000));
         let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
         assert_eq!(oracle_stake_deposit.total, 300_000);
+
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 200_000));
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 200_000));
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 200_000));
+        let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
+        assert_eq!(oracle_stake_deposit.total, 900_000);
     });
 }
 
@@ -58,6 +64,35 @@ fn test_unstake_stake_amount() {
         // Alice nicely staked 100_000
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
         assert_ok!(Doracle::unstake(Origin::signed(ALICE), HKO, 100_000));
+    });
+}
+
+#[test]
+// TODO: Check this scenario
+fn test_unstake() {
+    new_test_ext().execute_with(|| {
+        // Alice nicely staked 100_000
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
+
+        // Unstake 99_999
+        // Remains 100_000 - 90_000 = 10_000
+        assert_ok!(Doracle::unstake(Origin::signed(ALICE), HKO, 90_000));
+        let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
+        assert_eq!(oracle_stake_deposit.total, 10_000);
+
+        // Stakes again
+        // balance -> 10_000 + 500 = 10_500
+        // balance after unstake -> 10_500 - 6_000 = 4500
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 500));
+        assert_ok!(Doracle::unstake(Origin::signed(ALICE), HKO, 6_000));
+        let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
+        assert_eq!(oracle_stake_deposit.total, 4_500);
+
+        assert_ok!(Doracle::unstake(Origin::signed(ALICE), HKO, 11));
+        assert_ok!(Doracle::unstake(Origin::signed(ALICE), HKO, 11));
+
+        let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
+        assert_eq!(oracle_stake_deposit.total, 4478);
     });
 }
 

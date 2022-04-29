@@ -27,8 +27,6 @@ pub use primitives::tokens::{DOT, HKO, KSM, PARA, PDOT, PHKO, PKSM, PUSDT, USDT}
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
-// pub type SignedAccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
-
 construct_runtime!(
     pub enum Test where
         Block = Block,

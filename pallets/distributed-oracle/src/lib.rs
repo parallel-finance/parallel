@@ -1,4 +1,4 @@
-// Copyright 2021 Parallel Finance Developer.
+// Copyright 2022 Parallel Finance Developer.
 // This file is part of Parallel Finance.
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -208,7 +208,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
             #[pallet::compact] amount: BalanceOf<T>,
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
             // Checks for the Asset type to stake
@@ -226,7 +226,7 @@ pub mod pallet {
             StakingPool::<T>::mutate(
                 who.clone(),
                 asset.clone(),
-                |oracle_stake_deposit| -> DispatchResult {
+                |oracle_stake_deposit| -> DispatchResultWithPostInfo {
                     let oracle_stake_deposit = oracle_stake_deposit
                         .as_mut()
                         .ok_or(Error::<T>::StakingAccountNotFound)?;
@@ -238,6 +238,13 @@ pub mod pallet {
 
                     if oracle_stake_deposit.total == amount {
                         StakingPool::<T>::remove(&who, &asset);
+
+                        log::trace!(
+                            target: "distributed-oracle::unstake",
+                            "Account: {:?}, removed with 0 balance",
+                            &who,
+                        );
+
                         Self::deposit_event(Event::<T>::StakeAccountRemoved(who.clone(), asset));
                     }
 
