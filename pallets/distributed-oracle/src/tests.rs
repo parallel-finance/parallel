@@ -15,18 +15,39 @@
 use super::*;
 use mock::*;
 
-use frame_support::assert_ok;
+use frame_support::{assert_noop, assert_ok};
 
 #[test]
 fn test_add_stake() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Doracle::stake(Origin::signed(ALICE), 0, 100_000));
-        let oracle_deposit = Doracle::staking_pool(ALICE, 0).unwrap();
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
+        let oracle_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
         assert_eq!(oracle_deposit.total, 100_000);
 
-        assert_ok!(Doracle::stake(Origin::signed(ALICE), 0, 200_000));
-        let oracle_deposit = Doracle::staking_pool(ALICE, 0).unwrap();
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 200_000));
+        let oracle_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
         assert_eq!(oracle_deposit.total, 300_000);
+    });
+}
+
+#[test]
+fn test_stake_with_invalid_asset() {
+    // Tries to stake with non a native token
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            Doracle::stake(Origin::signed(ALICE), 10, 100_000),
+            Error::<Test>::InvalidStakingAsset
+        );
+    });
+}
+
+#[test]
+fn test_stake_with_amount_less_than_minimum_amount() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            Doracle::stake(Origin::signed(ALICE), HKO, 10),
+            Error::<Test>::InsufficientStakeAmount
+        );
     });
 }
 //
