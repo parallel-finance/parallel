@@ -19,7 +19,7 @@ CUMULUS_DOCKER_TAG									:= v0.9.19
 init: submodules
 	git config advice.ignoredHook false
 	git config core.hooksPath .githooks
-	rustup target add wasm32-unknown-unknown --toolchain nightly-2022-04-24
+	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly-2022-04-24 --component rust-src --target wasm32-unknown-unknown
 	cd scripts/helper && yarn
 	cd scripts/polkadot-launch && yarn
 
@@ -65,7 +65,7 @@ integration-test:
 
 .PHONY: integration-test-statemine
 integration-test-statemine:
-	SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- statemine::statemine --nocapture	
+	SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- statemine::statemine --nocapture
 
 .PHONY: bench
 bench: bench-loans bench-liquid-staking bench-amm bench-amm-router bench-crowdloans bench-bridge bench-xcm-helper bench-farming
