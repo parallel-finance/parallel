@@ -5,7 +5,6 @@ CUMULUS_CHAIN     									:= statemint-dev
 RUNTIME        											:= kerria-runtime
 BLOCK_AT       											:= 0x0000000000000000000000000000000000000000000000000000000000000000
 URL            											:= ws://localhost:9948
-RELAY_URL            								:= ws://localhost:9944
 KEYSTORE_PATH  											:= keystore
 SURI           											:= //Alice
 LAUNCH_CONFIG_YAML	  							:= config.yml
@@ -218,11 +217,23 @@ keystore:
 
 .PHONY: snapshot
 snapshot:
-	cargo run --bin parallel --features try-runtime -- try-runtime --chain $(CHAIN) --wasm-execution=compiled on-runtime-upgrade live -a=$(BLOCK_AT) -u=$(URL) -s=snapshot.bin
+	cargo run --bin parallel --release --features try-runtime -- try-runtime --chain $(CHAIN) --wasm-execution=compiled on-runtime-upgrade live -a=$(BLOCK_AT) -u=$(URL) -s=snapshot.bin
 
-.PHONY: try-runtime-upgrade
-try-runtime-upgrade:
-	RUST_LOG=debug cargo run --bin parallel --features try-runtime -- try-runtime --chain $(CHAIN) --wasm-execution=compiled on-runtime-upgrade snap -s snapshot.bin
+.PHONY: try-snapshot-upgrade
+try-snapshot-upgrade:
+	cargo run --bin parallel --release --features try-runtime -- try-runtime --chain $(CHAIN) --wasm-execution=compiled on-runtime-upgrade snap -s snapshot.bin
+
+.PHONY: try-live-upgrade
+try-live-upgrade:
+	cargo run --bin parallel --release --features try-runtime -- try-runtime --chain $(CHAIN) --wasm-execution=compiled on-runtime-upgrade live --uri=$(URL)
+
+.PHONY: try-heiko-live-upgrade
+try-heiko-live-upgrade:
+	make CHAIN=heiko-dev URL=wss://heiko-rpc.parallel.fi:443 try-live-upgrade
+
+.PHONY: try-parallel-live-upgrade
+try-parallel-live-upgrade:
+	make CHAIN=parallel-dev URL=wss://rpc.parallel.fi:443 try-live-upgrade
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort
