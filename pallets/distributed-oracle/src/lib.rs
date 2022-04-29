@@ -134,6 +134,7 @@ pub mod pallet {
     pub type Relayers<T: Config> = StorageMap<_, Twox64Concat, RelayerId, Relayer<T>>;
 
     /// Platform's staking pool
+    /// An Account can stake multiple assets
     #[pallet::storage]
     #[pallet::getter(fn staking_pool)]
     pub type StakingPool<T: Config> = StorageDoubleMap<
