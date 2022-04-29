@@ -28,6 +28,7 @@ orml-oracle             = { git = 'https://github.com/open-web3-stack/open-runti
 pallet-currency-adapter = { path = '../currency-adapter' }
 sp-core                 = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19' }
 sp-io                   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19' }
+sp-keystore             = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" }
 
 
 [features]
