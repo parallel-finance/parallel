@@ -54,7 +54,7 @@ fn test_stake_with_amount_less_than_minimum_amount() {
 #[test]
 fn test_remove_stake_erroneous_scenarios() {
     new_test_ext().execute_with(|| {
-        // Stake
+        // Alice nicely staked 100_000
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
 
         // Trying to unstake non native currency
@@ -73,6 +73,18 @@ fn test_remove_stake_erroneous_scenarios() {
         assert_noop!(
             Doracle::unstake(Origin::signed(ALICE), HKO, 10),
             Error::<Test>::InsufficientUnStakeAmount
+        );
+
+        // Unstake from an account without a stake
+        assert_noop!(
+            Doracle::unstake(Origin::signed(BOB), HKO, 11),
+            Error::<Test>::StakingAccountNotFound
+        );
+
+        // Unstake amount isn larger than staked amount
+        assert_noop!(
+            Doracle::unstake(Origin::signed(ALICE), HKO, 100_001),
+            Error::<Test>::UnstakeAmoutExceedsStakedBalance
         );
     });
 }

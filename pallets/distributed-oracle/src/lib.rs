@@ -19,7 +19,6 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     log,
     pallet_prelude::*,
@@ -27,15 +26,11 @@ use frame_support::{
         tokens::fungibles::{Inspect, Mutate, Transfer},
         UnixTime,
     },
-    transactional,
-    // weights::DispatchClass,
-    PalletId,
+    transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
 pub use pallet::*;
-// use pallet_timestamp::{self as timestamp};
 use primitives::*;
-use scale_info::TypeInfo;
 use sp_runtime::traits::AccountIdConversion;
 use sp_std::prelude::*;
 
@@ -43,6 +38,8 @@ use sp_std::prelude::*;
 mod mock;
 #[cfg(test)]
 mod tests;
+
+mod helpers;
 
 pub mod weights;
 
@@ -54,48 +51,17 @@ type AccountOf<T> = <T as frame_system::Config>::AccountId;
 
 pub type RelayerId = u128;
 
-// Struct for Relayer
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[scale_info(skip_type_params(T))]
-#[codec(mel_bound())]
-pub struct Relayer<T: Config> {
-    // Owner
-    owner: AccountOf<T>,
-}
-
 pub use weights::WeightInfo;
-
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-#[scale_info(skip_type_params(T))]
-pub struct OracleDeposit {
-    /// The total amount of the stash's balance that we are currently accounting for.
-    /// It's just `active` plus all the `unlocking` balances.
-    #[codec(compact)]
-    pub total: Balance,
-
-    /// Stake Added Unix Time
-    pub timestamp: Timestamp,
-}
-
-impl Default for OracleDeposit {
-    fn default() -> Self {
-        Self {
-            total: 0_u128,
-            timestamp: 0_128,
-        }
-    }
-}
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use crate::helpers::{OracleDeposit, Relayer, Repeater};
     use sp_runtime::ArithmeticError;
-
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        /// Assets for deposit/withdraw collateral assets to/from loans module
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
@@ -145,6 +111,9 @@ pub mod pallet {
 
         /// Staking Account not found
         StakingAccountNotFound,
+
+        /// Unstake Amount Exceeds Balance
+        UnstakeAmoutExceedsStakedBalance,
     }
 
     #[pallet::event]
@@ -161,7 +130,7 @@ pub mod pallet {
     #[pallet::getter(fn get_relayer)]
     pub type Relayers<T: Config> = StorageMap<_, Twox64Concat, RelayerId, Relayer<T>>;
 
-    /// Platform's staking ledgers
+    /// Platform's staking pool
     #[pallet::storage]
     #[pallet::getter(fn staking_pool)]
     pub type StakingPool<T: Config> = StorageDoubleMap<
@@ -172,6 +141,11 @@ pub mod pallet {
         AssetIdOf<T>,
         OracleDeposit,
     >;
+
+    /// Repeaters
+    #[pallet::storage]
+    #[pallet::getter(fn repeaters)]
+    pub type Repeaters<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Repeater>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -201,17 +175,17 @@ pub mod pallet {
                 Error::<T>::InsufficientStakeAmount
             );
 
-            let mut od =
+            let mut oracle_stake_deposit =
                 Self::staking_pool(who.clone(), asset).unwrap_or_else(|| OracleDeposit::default());
 
             // Accumulate
-            od.total = od
+            oracle_stake_deposit.total = oracle_stake_deposit
                 .total
                 .checked_add(amount)
                 .ok_or(ArithmeticError::Underflow)?;
-            od.timestamp = T::UnixTime::now().as_secs();
+            oracle_stake_deposit.timestamp = T::UnixTime::now().as_secs();
 
-            StakingPool::<T>::insert(&who, &asset, od);
+            StakingPool::<T>::insert(&who, &asset, oracle_stake_deposit);
 
             Self::deposit_event(Event::<T>::Staked(who, asset, amount));
 
@@ -241,10 +215,17 @@ pub mod pallet {
 
             // TODO: Not Required? Only support full unstake?
             ensure!(
-                amount < T::MinUnstake::get(),
+                amount > T::MinUnstake::get(),
                 Error::<T>::InsufficientUnStakeAmount
             );
 
+            let mut oracle_stake_deposit = Self::staking_pool(who.clone(), asset.clone())
+                .ok_or(Error::<T>::StakingAccountNotFound)?;
+
+            ensure!(
+                oracle_stake_deposit.total >= amount,
+                Error::<T>::UnstakeAmoutExceedsStakedBalance
+            );
             // Check if a staking account exists or throw an error
             // let _ = Self::staking_pool(who.clone()).ok_or(Error::<T>::StakingAccountNotFound)?;
             // StakingPool::<T>::remove(&who);
