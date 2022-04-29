@@ -10,10 +10,10 @@
 
 ## Parallel
 
-- `node`: parallelfinance/parallel:v1.8.2
-- `runtime`: 182
-- `branch`: https://github.com/parallel-finance/parallel/tree/v1.8.2
+- `node`: parallelfinance/parallel:v1.8.3
+- `runtime`: 183
+- `branch`: https://github.com/parallel-finance/parallel/tree/v1.8.3
 - `polkadot`: v0.9.17
 - `wasm`: https://github.com/parallel-finance/parallel/releases/download/v1.8.2/parallel_runtime.compact.compressed.wasm
-- `blake256_hash`: 0x8ce8224df71ac76563a1f175ef3f7a2fa98e26f04af960f511ce0df796850a00
-- `deployment_date`: 2022/04/16
+- `blake256_hash`: 0x863bd10ee0591268835d4ccee6248e7383609844ce10b24b3ed197dd834e6a50
+- `deployment_date`: 2022/04/28
