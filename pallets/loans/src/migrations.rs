@@ -76,12 +76,14 @@ pub mod v3 {
 
         let mut reward_accrued_count = 0;
         RewardAccured::<T>::iter().for_each(|(account_id, reward_accrued)| {
-            reward_accrued_count = reward_accrued_count + 1;
-            log::info!(
-                "account: {:?}, reward_accrued: {:?}",
-                account_id,
-                reward_accrued,
-            );
+            if reward_accrued > 0 {
+                reward_accrued_count = reward_accrued_count + 1;
+                log::info!(
+                    "account: {:?}, reward_accrued: {:?}",
+                    account_id,
+                    reward_accrued,
+                );
+            }
         });
         log::info!(
             "total {:#?} reward accrued items need to migrate",
@@ -128,7 +130,9 @@ pub mod v3 {
             });
 
             RewardAccured::<T>::iter().for_each(|(account_id, reward_amount)| {
-                RewardAccrued::<T>::insert(account_id, reward_amount);
+                if reward_amount > 0 {
+                    RewardAccrued::<T>::insert(account_id, reward_amount);
+                }
             });
 
             //remove old data.
