@@ -21,7 +21,7 @@ impl Default for OracleDeposit {
     fn default() -> Self {
         Self {
             total: 0_u128,
-            timestamp: 0_128,
+            timestamp: 0,
         }
     }
 }

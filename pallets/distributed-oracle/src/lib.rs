@@ -179,7 +179,7 @@ pub mod pallet {
             );
 
             let mut oracle_stake_deposit =
-                Self::staking_pool(who.clone(), asset).unwrap_or_else(|| OracleDeposit::default());
+                Self::staking_pool(who.clone(), asset).unwrap_or_default();
 
             // Accumulate
             oracle_stake_deposit.total = oracle_stake_deposit
@@ -225,7 +225,7 @@ pub mod pallet {
 
             StakingPool::<T>::mutate(
                 who.clone(),
-                asset.clone(),
+                asset,
                 |oracle_stake_deposit| -> DispatchResultWithPostInfo {
                     let oracle_stake_deposit = oracle_stake_deposit
                         .as_mut()
