@@ -20,7 +20,7 @@ pub mod v3 {
     use frame_support::{log, traits::Get};
 
     pub const DEFAULT_LIQUIDATE_INCENTIVE_RESERVED_FACTOR: Ratio = Ratio::from_percent(3);
-    pub const DEFAULT_LIQUIDATION_OFFSET: Ratio = Ratio::from_percent(5);
+    pub const DEFAULT_LIQUIDATION_OFFSET: Ratio = Ratio::from_percent(10);
 
     #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
     #[derive(Clone, PartialEq, codec::Decode, codec::Encode, RuntimeDebug, TypeInfo)]
