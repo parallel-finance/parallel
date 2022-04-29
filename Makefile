@@ -64,7 +64,7 @@ integration-test:
 	SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- --nocapture
 
 .PHONY: bench
-bench: bench-loans bench-liquid-staking bench-amm bench-amm-router bench-crowdloans bench-bridge bench-xcm-helper bench-farming
+bench: bench-loans bench-liquid-staking bench-amm bench-crowdloans bench-bridge bench-xcm-helper bench-farming bench-asset-registry
 	./scripts/benchmark.sh
 
 .PHONY: bench-farming
@@ -102,7 +102,7 @@ bench-amm-router:
 
 .PHONY: bench-streaming
 bench-streaming:
-	cargo run --release --features runtime-benchmarks -- benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-streaming --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/stream/src/weights.rs
+	cargo run --release --features runtime-benchmarks -- benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-streaming --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/streaming/src/weights.rs
 
 .PHONY: bench-asset-registry
 bench-asset-registry:
