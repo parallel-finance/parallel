@@ -21,12 +21,12 @@ use frame_support::{assert_noop, assert_ok};
 fn test_add_stake() {
     new_test_ext().execute_with(|| {
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
-        let oracle_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
-        assert_eq!(oracle_deposit.total, 100_000);
+        let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
+        assert_eq!(oracle_stake_deposit.total, 100_000);
 
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 200_000));
-        let oracle_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
-        assert_eq!(oracle_deposit.total, 300_000);
+        let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
+        assert_eq!(oracle_stake_deposit.total, 300_000);
     });
 }
 
@@ -52,7 +52,17 @@ fn test_stake_with_amount_less_than_minimum_amount() {
 }
 
 #[test]
-fn test_remove_stake_erroneous_scenarios() {
+// TODO: Check this scenario
+fn test_unstake_stake_amount() {
+    new_test_ext().execute_with(|| {
+        // Alice nicely staked 100_000
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
+        assert_ok!(Doracle::unstake(Origin::signed(ALICE), HKO, 100_000));
+    });
+}
+
+#[test]
+fn test_unstake_stake_erroneous_scenarios() {
     new_test_ext().execute_with(|| {
         // Alice nicely staked 100_000
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));

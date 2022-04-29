@@ -36,6 +36,7 @@ use sp_std::prelude::*;
 
 #[cfg(test)]
 mod mock;
+
 #[cfg(test)]
 mod tests;
 
@@ -122,7 +123,9 @@ pub mod pallet {
         /// The assets get staked successfully
         Staked(T::AccountId, AssetIdOf<T>, BalanceOf<T>),
         /// The derivative get unstaked successfully
-        Unstaked(T::AccountId, BalanceOf<T>),
+        Unstaked(T::AccountId, AssetIdOf<T>, BalanceOf<T>),
+        /// Stake Account  Removed
+        StakeAccountRemoved(T::AccountId, AssetIdOf<T>),
     }
 
     /// Global storage for relayers
@@ -183,6 +186,7 @@ pub mod pallet {
                 .total
                 .checked_add(amount)
                 .ok_or(ArithmeticError::Underflow)?;
+
             oracle_stake_deposit.timestamp = T::UnixTime::now().as_secs();
 
             StakingPool::<T>::insert(&who, &asset, oracle_stake_deposit);
@@ -204,7 +208,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
             #[pallet::compact] amount: BalanceOf<T>,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
             // Checks for the Asset type to stake
@@ -219,35 +223,44 @@ pub mod pallet {
                 Error::<T>::InsufficientUnStakeAmount
             );
 
-            let mut oracle_stake_deposit = Self::staking_pool(who.clone(), asset.clone())
-                .ok_or(Error::<T>::StakingAccountNotFound)?;
+            StakingPool::<T>::mutate(
+                who.clone(),
+                asset.clone(),
+                |oracle_stake_deposit| -> DispatchResult {
+                    let oracle_stake_deposit = oracle_stake_deposit
+                        .as_mut()
+                        .ok_or(Error::<T>::StakingAccountNotFound)?;
 
-            ensure!(
-                oracle_stake_deposit.total >= amount,
-                Error::<T>::UnstakeAmoutExceedsStakedBalance
-            );
-            // Check if a staking account exists or throw an error
-            // let _ = Self::staking_pool(who.clone()).ok_or(Error::<T>::StakingAccountNotFound)?;
-            // StakingPool::<T>::remove(&who);
-            //
-            // // Transfers amounts to teh staker's account
-            // T::Assets::transfer(
-            //     T::StakingCurrency::get(),
-            //     &who,
-            //     &Self::account_id(),
-            //     amount,
-            //     false,
-            // )?;
-            //
-            // Self::deposit_event(Event::<T>::Unstaked(who, amount));
-            //
-            // log::trace!(
-            //     target: "distributed-oracle::unstake",
-            //     "unstake_amount: {:?}",
-            //     &amount,
-            // );
+                    ensure!(
+                        oracle_stake_deposit.total >= amount,
+                        Error::<T>::UnstakeAmoutExceedsStakedBalance
+                    );
 
-            Ok(().into())
+                    if oracle_stake_deposit.total == amount {
+                        StakingPool::<T>::remove(&who, &asset);
+                        Self::deposit_event(Event::<T>::StakeAccountRemoved(who.clone(), asset));
+                    }
+
+                    oracle_stake_deposit.total = oracle_stake_deposit
+                        .total
+                        .checked_sub(amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+
+                    oracle_stake_deposit.timestamp = T::UnixTime::now().as_secs();
+
+                    Self::deposit_event(Event::<T>::Unstaked(who.clone(), asset, amount));
+
+                    log::trace!(
+                        target: "distributed-oracle::unstake",
+                        "unstake_amount: {:?}, remaining balance: {:?}, time_stamp {:?}",
+                        &amount,
+                        &oracle_stake_deposit.total,
+                        oracle_stake_deposit.timestamp,
+                    );
+
+                    Ok(().into())
+                },
+            )
         }
     }
 }
