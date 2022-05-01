@@ -26,6 +26,7 @@ pub trait WeightInfo {
     fn create_stream() -> Weight;
     fn cancel_stream() -> Weight;
     fn withdraw_from_stream() -> Weight;
+    fn set_minimum_deposit() -> Weight;
 }
 
 /// Weights for pallet_prices using the Substrate node and recommended hardware.
@@ -40,6 +41,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn withdraw_from_stream() -> Weight {
         10_000 as Weight
     }
+    fn set_minimum_deposit() -> Weight {
+        10_000 as Weight
+    }
 }
 
 // For backwards compatibility and tests
@@ -51,6 +55,9 @@ impl WeightInfo for () {
         10_000 as Weight
     }
     fn withdraw_from_stream() -> Weight {
+        10_000 as Weight
+    }
+    fn set_minimum_deposit() -> Weight {
         10_000 as Weight
     }
 }
