@@ -216,23 +216,15 @@ fn create_stream_with_minimum_deposit_works() {
         ));
 
         // Alice creates stream 100 DOT to Bob, which is equal to minimum deposit
-        assert_err!(Streaming::create_stream(
-            Origin::signed(ALICE),
-            BOB,
-            dollar(100),
-            DOT,
-            6,
-            10
-        ), Error::<Test>::DepositLowerThanMinimum);
+        assert_err!(
+            Streaming::create_stream(Origin::signed(ALICE), BOB, dollar(99), DOT, 6, 10),
+            Error::<Test>::DepositLowerThanMinimum
+        );
 
         // Check with default option
-        assert_err!(Streaming::create_stream(
-            Origin::signed(ALICE),
-            BOB,
-            0,
-            KSM,
-            6,
-            10
-        ), Error::<Test>::DepositLowerThanMinimum);
+        assert_err!(
+            Streaming::create_stream(Origin::signed(ALICE), BOB, 0, KSM, 6, 10),
+            Error::<Test>::DepositLowerThanMinimum
+        );
     })
 }

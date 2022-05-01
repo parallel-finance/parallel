@@ -191,8 +191,11 @@ pub mod pallet {
             ensure!(stop_time > start_time, Error::<T>::StopBeforeStart);
 
             // ensure deposit is over minimum
-            let minimum_deposit = MinimumDeposits::<T>::get(asset_id).ok_or(BalanceOf::<T>::from(1));
-            ensure!(deposit >= minimum_deposit, Error::<T>::DepositLowerThanMinimum);
+            let minimum_deposit = MinimumDeposits::<T>::get(asset_id);
+            ensure!(
+                deposit >= minimum_deposit.unwrap_or(BalanceOf::<T>::from(1u128)),
+                Error::<T>::DepositLowerThanMinimum
+            );
 
             // get rate per sec
             let duration = stop_time
@@ -205,7 +208,7 @@ pub mod pallet {
             let stream: Stream<T> = Stream {
                 remaining_balance: deposit, // remaining balance same value for now due to initialization
                 deposit,                    // deposit
-                asset_id,                // currency id
+                asset_id,                   // currency id
                 rate_per_sec,               // rate per second
                 recipient: recipient.clone(), // recipient
                 sender: sender.clone(),     // sender
@@ -220,13 +223,7 @@ pub mod pallet {
             // transfer deposit from sender to global EOA
             T::Assets::transfer(asset_id, &sender, &Self::account_id(), deposit, false)?;
             Self::deposit_event(Event::<T>::StreamCreated(
-                stream_id,
-                sender,
-                recipient,
-                deposit,
-                asset_id,
-                start_time,
-                stop_time,
+                stream_id, sender, recipient, deposit, asset_id, start_time, stop_time,
             ));
             Ok(().into())
         }
@@ -301,13 +298,7 @@ pub mod pallet {
                 Streams::<T>::insert(stream_id, stream.clone());
             }
             // withdraw deposit from stream
-            T::Assets::transfer(
-                stream.asset_id,
-                &Self::account_id(),
-                &sender,
-                amount,
-                false,
-            )?;
+            T::Assets::transfer(stream.asset_id, &Self::account_id(), &sender, amount, false)?;
             Self::deposit_event(Event::<T>::StreamWithdrawn(
                 stream_id,
                 stream.recipient,
@@ -323,9 +314,9 @@ pub mod pallet {
         pub fn set_minimum_deposit(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            minimum_deposit: BalanceOf<T>
+            minimum_deposit: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            let sender = ensure_root(origin)?;
+            ensure_root(origin)?;
             MinimumDeposits::<T>::insert(asset_id, minimum_deposit);
             Self::deposit_event(Event::<T>::MinimumDepositSet(asset_id, minimum_deposit));
             Ok(().into())
