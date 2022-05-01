@@ -193,7 +193,7 @@ pub mod pallet {
             // ensure deposit is over minimum
             let minimum_deposit = MinimumDeposits::<T>::get(asset_id);
             ensure!(
-                deposit >= minimum_deposit.unwrap_or(BalanceOf::<T>::from(1u128)),
+                deposit >= minimum_deposit.unwrap_or(1u128),
                 Error::<T>::DepositLowerThanMinimum
             );
 
