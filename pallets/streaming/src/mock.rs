@@ -140,6 +140,7 @@ impl pallet_currency_adapter::Config for Test {
     type Assets = Assets;
     type Balances = Balances;
     type GetNativeCurrencyId = NativeCurrencyId;
+    type LockOrigin = EnsureRoot<AccountId>;
 }
 
 parameter_types! {

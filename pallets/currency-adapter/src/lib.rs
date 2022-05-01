@@ -42,11 +42,13 @@ type AssetIdOf<T> =
 type BalanceOf<T> =
     <<T as Config>::Assets as Inspects<<T as frame_system::Config>::AccountId>>::Balance;
 
+const CURRENCY_ADAPTER_ID: LockIdentifier = *b"cadapter";
+
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
     use frame_support::traits::LockableCurrency;
-    use frame_system::{ensure_root, pallet_prelude::OriginFor};
+    use frame_system::pallet_prelude::OriginFor;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -61,6 +63,9 @@ pub mod pallet {
 
         #[pallet::constant]
         type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
+
+        // Origin which can lock asset balance
+        type LockOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
     }
 
     #[pallet::pallet]
@@ -78,16 +83,15 @@ pub mod pallet {
         pub fn force_set_lock(
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
-            id: LockIdentifier,
             who: T::AccountId,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
-            ensure_root(origin)?;
+            T::LockOrigin::ensure_origin(origin)?;
             ensure!(
                 asset == T::GetNativeCurrencyId::get(),
                 Error::<T>::NotANativeToken
             );
-            T::Balances::set_lock(id, &who, amount, WithdrawReasons::all());
+            T::Balances::set_lock(CURRENCY_ADAPTER_ID, &who, amount, WithdrawReasons::all());
             Ok(())
         }
 
@@ -95,15 +99,14 @@ pub mod pallet {
         pub fn force_remove_lock(
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
-            id: LockIdentifier,
             who: T::AccountId,
         ) -> DispatchResult {
-            ensure_root(origin)?;
+            T::LockOrigin::ensure_origin(origin)?;
             ensure!(
                 asset == T::GetNativeCurrencyId::get(),
                 Error::<T>::NotANativeToken
             );
-            T::Balances::remove_lock(id, &who);
+            T::Balances::remove_lock(CURRENCY_ADAPTER_ID, &who);
             Ok(())
         }
     }

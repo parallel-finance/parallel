@@ -1888,6 +1888,7 @@ impl pallet_currency_adapter::Config for Runtime {
     type Assets = Assets;
     type Balances = Balances;
     type GetNativeCurrencyId = NativeCurrencyId;
+    type LockOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
 parameter_types! {
