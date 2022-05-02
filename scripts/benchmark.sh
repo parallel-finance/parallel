@@ -18,20 +18,18 @@ vanillaChain=vanilla-dev
 kerriaChain=kerria-dev
 
 pallets=(
-
-	frame_system
-        pallet_balances
-        pallet_timestamp
-        pallet_multisig
-        pallet_membership
-	pallet_amm
-	pallet_asset_registry
-	pallet_bridge
-	pallet_crowdloans
-	pallet_farming
-	pallet_loans
-	pallet_xcm_helper
-
+  frame_system
+  pallet_balances
+  pallet_timestamp
+  pallet_multisig
+  pallet_membership
+  pallet_amm
+  pallet_asset_registry
+  pallet_bridge
+  pallet_crowdloans
+  pallet_farming
+  pallet_loans
+  pallet_xcm_helper
 )
 
 for p in ${pallets[@]}
@@ -79,5 +77,4 @@ do
 		--steps=$steps \
 		--repeat=$repeat \
 		--output=$heikoOutput/$p.rs
-
 done
