@@ -43,11 +43,12 @@ use frame_support::{
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_loans.
-pub trait WeightInfo {	fn add_market() -> Weight;	fn activate_market() -> Weight;	fn update_rate_model() -> Weight;	fn update_market() -> Weight;	fn force_update_market() -> Weight;	fn add_reward() -> Weight;	fn withdraw_missing_reward() -> Weight;	fn update_market_reward_speed() -> Weight;	fn claim_reward() -> Weight;	fn claim_reward_for_market() -> Weight;	fn mint() -> Weight;	fn borrow() -> Weight;	fn redeem() -> Weight;	fn redeem_all() -> Weight;	fn repay_borrow() -> Weight;	fn repay_borrow_all() -> Weight;	fn collateral_asset() -> Weight;	fn liquidate_borrow() -> Weight;	fn add_reserves() -> Weight;	fn reduce_reserves() -> Weight;	fn accrue_interest() -> Weight;}
+pub trait WeightInfo {fn migrate_reward_data() -> Weight;	fn add_market() -> Weight;	fn activate_market() -> Weight;	fn update_rate_model() -> Weight;	fn update_market() -> Weight;	fn force_update_market() -> Weight;	fn add_reward() -> Weight;	fn withdraw_missing_reward() -> Weight;	fn update_market_reward_speed() -> Weight;	fn claim_reward() -> Weight;	fn claim_reward_for_market() -> Weight;	fn mint() -> Weight;	fn borrow() -> Weight;	fn redeem() -> Weight;	fn redeem_all() -> Weight;	fn repay_borrow() -> Weight;	fn repay_borrow_all() -> Weight;	fn collateral_asset() -> Weight;	fn liquidate_borrow() -> Weight;	fn add_reserves() -> Weight;	fn reduce_reserves() -> Weight;	fn accrue_interest() -> Weight;}
 
 /// Weights for pallet_loans using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
-impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn add_market() -> Weight {
+impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn migrate_reward_data() -> Weight {
+		(37_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(4 as Weight))	}	fn add_market() -> Weight {
 		(37_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(4 as Weight))	}	fn activate_market() -> Weight {
 		(25_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}	fn update_rate_model() -> Weight {
 		(25_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}	fn update_market() -> Weight {
@@ -71,7 +72,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn add_market(
 		(79_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(8 as Weight))			.saturating_add(T::DbWeight::get().writes(7 as Weight))	}}
 
 // For backwards compatibility and tests
-impl WeightInfo for () {	fn add_market() -> Weight {
+impl WeightInfo for () {	fn migrate_reward_data() -> Weight {
+		(37_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(4 as Weight))	}	fn add_market() -> Weight {
 		(37_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(4 as Weight))	}	fn activate_market() -> Weight {
 		(25_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn update_rate_model() -> Weight {
 		(25_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn update_market() -> Weight {
