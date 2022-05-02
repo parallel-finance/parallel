@@ -167,6 +167,9 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(who)?;
 
+            // ***************************************
+            // Add to repeaters list
+
             // Checks for the Asset type to stake
             ensure!(
                 T::StakingCurrency::get() == asset,
@@ -211,7 +214,8 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-
+            // ***************************************
+            // Check if its in the repeaters list ifnot throw an error
             // Checks for the Asset type to stake
             ensure!(
                 T::StakingCurrency::get() == asset,
