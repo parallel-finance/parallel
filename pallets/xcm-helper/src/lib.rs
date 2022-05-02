@@ -43,7 +43,7 @@ mod mock;
 mod tests;
 
 pub mod weights;
-
+pub use weights::WeightInfo;
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type CallIdOf<T> = <T as pallet_xcm::Config>::Call;
 pub type AssetIdOf<T> =
@@ -55,8 +55,6 @@ pub type BalanceOf<T> =
 pub mod pallet {
     use frame_system::pallet_prelude::{BlockNumberFor, OriginFor};
     use sp_runtime::traits::{Convert, Zero};
-
-    use crate::weights::WeightInfo;
 
     use super::*;
 

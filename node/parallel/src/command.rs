@@ -345,19 +345,15 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
+            set_default_ss58_version(chain_spec);
             switch_runtime!(chain_spec, {
                 match cmd {
                     BenchmarkCmd::Pallet(cmd) => {
                         if cfg!(feature = "runtime-benchmarks") {
-                            let runner = cli.create_runner(cmd)?;
-                            let chain_spec = &runner.config().chain_spec;
-
-                            set_default_ss58_version(chain_spec);
-
                             runner.sync_run(|config| cmd.run::<Block, Executor>(config))
                         } else {
                             Err("Benchmarking wasn't enabled when building the node. \
-                        You can enable it with `--features runtime-benchmarks`."
+						You can enable it with `--features runtime-benchmarks`."
                                 .into())
                         }
                     }

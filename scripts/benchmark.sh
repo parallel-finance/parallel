@@ -8,20 +8,54 @@ set -xe
 
 steps=50
 repeat=20
-parallelOutput=./runtime/parallel/src/weights/
-heikoOutput=./runtime/heiko/src/weights/
-parallelChain=parallel
-heikoChain=heiko
+parallelOutput=./runtime/parallel/src/weights
+heikoOutput=./runtime/heiko/src/weights
+vanillaOutput=./runtime/vanilla/src/weights
+kerriaOutput=./runtime/kerria/src/weights
+parallelChain=parallel-dev
+heikoChain=heiko-dev
+vanillaChain=vanilla-dev
+kerriaChain=kerria-dev
+
 pallets=(
-	frame_system
-	pallet_balances
-	pallet_timestamp
-	pallet_multisig
-	pallet_membership
+  frame_system
+  pallet_balances
+  pallet_timestamp
+  pallet_multisig
+  pallet_membership
+  pallet_amm
+  pallet_asset_registry
+  pallet_bridge
+  pallet_crowdloans
+  pallet_farming
+  pallet_loans
+  pallet_xcm_helper
 )
 
 for p in ${pallets[@]}
 do
+	cargo run --release --features runtime-benchmarks -- benchmark \
+    pallet \
+		--chain=$vanillaChain \
+		--execution=wasm \
+		--wasm-execution=compiled \
+		--pallet=$p \
+		--extrinsic='*' \
+		--steps=$steps \
+		--repeat=$repeat \
+		--output=$vanillaOutput/$p.rs
+
+	cargo run --release --features runtime-benchmarks -- benchmark \
+    pallet \
+		--chain=$kerriaChain \
+		--execution=wasm \
+		--wasm-execution=compiled \
+		--pallet=$p \
+		--extrinsic='*' \
+		--steps=$steps \
+		--repeat=$repeat \
+		--output=$kerriaOutput/$p.rs
+
 	cargo run --release --features runtime-benchmarks -- benchmark \
     pallet \
 		--chain=$parallelChain \
@@ -31,7 +65,6 @@ do
 		--extrinsic='*' \
 		--steps=$steps \
 		--repeat=$repeat \
-		--raw \
 		--output=$parallelOutput/$p.rs
 
 	cargo run --release --features runtime-benchmarks -- benchmark \
@@ -43,6 +76,5 @@ do
 		--extrinsic='*' \
 		--steps=$steps \
 		--repeat=$repeat \
-		--raw \
 		--output=$heikoOutput/$p.rs
 done

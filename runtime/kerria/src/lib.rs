@@ -537,7 +537,7 @@ impl pallet_loans::Config for Runtime {
     type PriceFeeder = Prices;
     type ReserveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_loans::WeightInfo<Runtime>;
     type UnixTime = Timestamp;
     type Assets = CurrencyAdapter;
     type RewardAssetId = RewardAssetId;
@@ -1254,7 +1254,7 @@ impl pallet_asset_registry::Config for Runtime {
     type AssetId = CurrencyId;
     type AssetType = AssetType;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type WeightInfo = pallet_asset_registry::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_asset_registry::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1651,7 +1651,7 @@ impl pallet_bridge::Config for Runtime {
     type ExistentialDeposit = ExistentialDeposit;
     type ProposalLifetime = ProposalLifetime;
     type ThresholdPercentage = ThresholdPercentage;
-    type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_bridge::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1683,7 +1683,7 @@ impl pallet_amm::Config for Runtime {
     type PalletId = AMMPalletId;
     type LockAccountId = OneAccount;
     type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
+    type AMMWeightInfo = weights::pallet_amm::WeightInfo<Runtime>;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
     type MinimumLiquidity = MinimumLiquidity;
@@ -1742,7 +1742,7 @@ impl pallet_crowdloans::Config for Runtime {
     type OpenCloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionSucceededFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_crowdloans::WeightInfo<Runtime>;
     type XCM = XcmHelper;
     type RelayChainBlockNumberProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = CrowdloansAutomatorsMembership;
@@ -1777,7 +1777,7 @@ impl pallet_xcm_helper::Config for Runtime {
     type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type XcmOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type WeightInfo = pallet_xcm_helper::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_xcm_helper::WeightInfo<Runtime>;
     type RelayCurrency = RelayCurrency;
 }
 
@@ -1815,7 +1815,7 @@ impl pallet_farming::Config for Runtime {
     type Assets = CurrencyAdapter;
     type PalletId = FarmingPalletId;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type WeightInfo = pallet_farming::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_farming::WeightInfo<Runtime>;
     type MaxUserLockItemsCount = MaxUserLockItemsCount;
     type LockPoolMaxDuration = LockPoolMaxDuration;
     type CoolDownMaxDuration = CoolDownMaxDuration;
@@ -2141,6 +2141,8 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_crowdloans, Crowdloans);
             list_benchmark!(list, extra, pallet_xcm_helper, XcmHelper);
             list_benchmark!(list, extra, pallet_farming, Farming);
+            list_benchmark!(list, extra, pallet_asset_registry, AssetRegistry);
+
             let storage_info = AllPalletsWithSystem::storage_info();
 
             (list, storage_info)
@@ -2186,6 +2188,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_crowdloans, Crowdloans);
             add_benchmark!(params, batches, pallet_xcm_helper, XcmHelper);
             add_benchmark!(params, batches, pallet_farming, Farming);
+            add_benchmark!(params, batches, pallet_asset_registry, AssetRegistry);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)
