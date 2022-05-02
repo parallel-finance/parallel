@@ -49,6 +49,8 @@ use sp_std::marker::PhantomData;
 pub trait WeightInfo {
     fn stake() -> Weight;
     fn unstake() -> Weight;
+    fn set_price() -> Weight;
+    fn reset_price() -> Weight;
 }
 
 /// Weights for pallet_liquid_staking using the Substrate node and recommended hardware.
@@ -64,6 +66,12 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(7 as Weight))
             .saturating_add(T::DbWeight::get().writes(4 as Weight))
     }
+    fn set_price() -> Weight {
+        10_000 as Weight
+    }
+    fn reset_price() -> Weight {
+        10_000 as Weight
+    }
 }
 
 // For backwards compatibility and tests
@@ -77,5 +85,11 @@ impl WeightInfo for () {
         (77_902_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(4 as Weight))
+    }
+    fn set_price() -> Weight {
+        10_000 as Weight
+    }
+    fn reset_price() -> Weight {
+        10_000 as Weight
     }
 }

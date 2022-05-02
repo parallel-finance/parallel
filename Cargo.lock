@@ -5958,6 +5958,7 @@ dependencies = [
  "pallet-currency-adapter",
  "pallet-prices",
  "pallet-timestamp",
+ "pallet-traits",
  "parallel-primitives",
  "parity-scale-codec",
  "scale-info",

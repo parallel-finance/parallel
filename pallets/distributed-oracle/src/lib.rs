@@ -31,12 +31,21 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 pub use pallet::*;
 use primitives::*;
-use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::{
+    traits::{AccountIdConversion, CheckedDiv, CheckedMul},
+    FixedU128,
+};
+
+pub use pallet::*;
+use pallet_traits::*;
+
+use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
 use sp_std::prelude::*;
 
 #[cfg(test)]
 mod mock;
 
+mod orml_tests;
 #[cfg(test)]
 mod tests;
 
@@ -62,6 +71,24 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+        /// The data source, such as Oracle.
+        type Source: DataProvider<CurrencyId, TimeStampedPrice>
+            + DataProviderExtended<CurrencyId, TimeStampedPrice>
+            + DataFeeder<CurrencyId, TimeStampedPrice, Self::AccountId>;
+
+        /// The origin which may set prices feed to system.
+        type FeederOrigin: EnsureOrigin<Self::Origin>;
+
+        /// Liquid currency & staking currency provider
+        type LiquidStakingCurrenciesProvider: LiquidStakingCurrenciesProvider<CurrencyId>;
+
+        /// The provider of the exchange rate between liquid currency and
+        /// staking currency.
+        type LiquidStakingExchangeRateProvider: ExchangeRateProvider;
+
+        /// Decimal provider.
+        type Decimal: DecimalProvider<CurrencyId>;
 
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
@@ -126,6 +153,10 @@ pub mod pallet {
         Unstaked(T::AccountId, AssetIdOf<T>, BalanceOf<T>),
         /// Stake Account  Removed
         StakeAccountRemoved(T::AccountId, AssetIdOf<T>),
+        /// Set emergency price. \[asset_id, price_detail\]
+        SetPrice(CurrencyId, Price),
+        /// Reset emergency price. \[asset_id\]
+        ResetPrice(CurrencyId),
     }
 
     /// Global storage for relayers
@@ -150,6 +181,12 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn repeaters)]
     pub type Repeaters<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Repeater>;
+
+    /// Mapping from currency id to it's emergency price
+    #[pallet::storage]
+    #[pallet::getter(fn emergency_price)]
+    pub type EmergencyPrice<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, Price, OptionQuery>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -270,11 +307,133 @@ pub mod pallet {
                 },
             )
         }
+
+        /// Set emergency price
+        #[pallet::weight((<T as Config>::WeightInfo::set_price(), DispatchClass::Operational))]
+        #[transactional]
+        pub fn set_price(
+            origin: OriginFor<T>,
+            asset_id: CurrencyId,
+            price: Price,
+        ) -> DispatchResultWithPostInfo {
+            T::FeederOrigin::ensure_origin(origin)?;
+            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::set_emergency_price(
+                asset_id, price,
+            );
+            Ok(().into())
+        }
+
+        /// Reset emergency price
+        #[pallet::weight((<T as Config>::WeightInfo::reset_price(), DispatchClass::Operational))]
+        #[transactional]
+        pub fn reset_price(
+            origin: OriginFor<T>,
+            asset_id: CurrencyId,
+        ) -> DispatchResultWithPostInfo {
+            T::FeederOrigin::ensure_origin(origin)?;
+            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::reset_emergency_price(asset_id);
+            Ok(().into())
+        }
     }
 }
 
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> AccountOf<T> {
         T::PalletId::get().into_account()
+    }
+
+    // get emergency price, the timestamp is zero
+    fn get_emergency_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
+        Self::emergency_price(asset_id).and_then(|p| {
+            let mantissa = Self::get_asset_mantissa(asset_id)?;
+            log::trace!(
+                target: "price::get_emergency_price",
+                "mantissa: {:?}",
+                mantissa
+            );
+            p.checked_div(&FixedU128::from_inner(mantissa))
+                .map(|price| (price, 0))
+        })
+    }
+
+    fn get_asset_mantissa(asset_id: &CurrencyId) -> Option<u128> {
+        let decimal = T::Decimal::get_decimal(asset_id)?;
+        10u128.checked_pow(decimal as u32)
+    }
+}
+
+impl<T: Config> PriceFeeder for Pallet<T> {
+    /// Returns the uniform format price and timestamp by asset id.
+    /// Formula: `price = oracle_price * 10.pow(18 - asset_decimal)`
+    /// We use `oracle_price.checked_div(&FixedU128::from_inner(mantissa))` represent that.
+    /// This particular price makes it easy to calculate the asset value in other pallets,
+    /// because we don't have to consider decimal for each asset.
+    ///
+    /// Timestamp is zero means the price is emergency price
+    fn get_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
+        // if emergency price exists, return it, otherwise return latest price from oracle.
+        Self::get_emergency_price(asset_id).or_else(|| {
+            let mantissa = Self::get_asset_mantissa(asset_id)?;
+            match T::LiquidStakingCurrenciesProvider::get_staking_currency()
+                .zip(T::LiquidStakingCurrenciesProvider::get_liquid_currency())
+            {
+                Some((staking_currency, liquid_currency)) if asset_id == &liquid_currency => {
+                    T::Source::get(&staking_currency).and_then(|p| {
+                        p.value
+                            .checked_div(&FixedU128::from_inner(mantissa))
+                            .and_then(|staking_currency_price| {
+                                staking_currency_price.checked_mul(
+                                    &T::LiquidStakingExchangeRateProvider::get_exchange_rate(),
+                                )
+                            })
+                            .map(|price| (price, p.timestamp))
+                    })
+                }
+                _ => T::Source::get(asset_id).and_then(|p| {
+                    p.value
+                        .checked_div(&FixedU128::from_inner(mantissa))
+                        .map(|price| (price, p.timestamp))
+                }),
+            }
+        })
+    }
+}
+
+impl<T: Config> EmergencyPriceFeeder<CurrencyId, Price> for Pallet<T> {
+    /// Set emergency price
+    fn set_emergency_price(asset_id: CurrencyId, price: Price) {
+        // set price direct
+        EmergencyPrice::<T>::insert(asset_id, price);
+        <Pallet<T>>::deposit_event(Event::SetPrice(asset_id, price));
+    }
+
+    /// Reset emergency price
+    fn reset_emergency_price(asset_id: CurrencyId) {
+        EmergencyPrice::<T>::remove(asset_id);
+        <Pallet<T>>::deposit_event(Event::ResetPrice(asset_id));
+    }
+}
+
+impl<T: Config> DataProviderExtended<CurrencyId, TimeStampedPrice> for Pallet<T> {
+    fn get_no_op(asset_id: &CurrencyId) -> Option<TimeStampedPrice> {
+        match T::LiquidStakingCurrenciesProvider::get_staking_currency()
+            .zip(T::LiquidStakingCurrenciesProvider::get_liquid_currency())
+        {
+            Some((staking_currency, liquid_currency)) if &liquid_currency == asset_id => {
+                T::Source::get_no_op(&staking_currency).and_then(|p| {
+                    p.value
+                        .checked_mul(&T::LiquidStakingExchangeRateProvider::get_exchange_rate())
+                        .map(|price| TimeStampedPrice {
+                            value: price,
+                            timestamp: p.timestamp,
+                        })
+                })
+            }
+            _ => T::Source::get_no_op(asset_id),
+        }
+    }
+
+    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+        T::Source::get_all_values()
     }
 }
