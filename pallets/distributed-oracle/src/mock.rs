@@ -226,8 +226,6 @@ impl Config for Test {
     type Event = Event;
     type Source = MockDataProvider;
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
-    type LiquidStakingCurrenciesProvider = LiquidStaking;
-    type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
     type Decimal = Decimal;
     type Assets = CurrencyAdapter;
     type PalletId = StreamPalletId;

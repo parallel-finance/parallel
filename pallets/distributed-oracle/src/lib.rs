@@ -32,7 +32,7 @@ use frame_system::pallet_prelude::*;
 pub use pallet::*;
 use primitives::*;
 use sp_runtime::{
-    traits::{AccountIdConversion, CheckedDiv, CheckedMul},
+    traits::{AccountIdConversion, CheckedDiv},
     FixedU128,
 };
 
@@ -79,13 +79,6 @@ pub mod pallet {
 
         /// The origin which may set prices feed to system.
         type FeederOrigin: EnsureOrigin<Self::Origin>;
-
-        /// Liquid currency & staking currency provider
-        type LiquidStakingCurrenciesProvider: LiquidStakingCurrenciesProvider<CurrencyId>;
-
-        /// The provider of the exchange rate between liquid currency and
-        /// staking currency.
-        type LiquidStakingExchangeRateProvider: ExchangeRateProvider;
 
         /// Decimal provider.
         type Decimal: DecimalProvider<CurrencyId>;
@@ -391,27 +384,11 @@ impl<T: Config> PriceFeeder for Pallet<T> {
         // if emergency price exists, return it, otherwise return latest price from oracle.
         Self::get_emergency_price(asset_id).or_else(|| {
             let mantissa = Self::get_asset_mantissa(asset_id)?;
-            match T::LiquidStakingCurrenciesProvider::get_staking_currency()
-                .zip(T::LiquidStakingCurrenciesProvider::get_liquid_currency())
-            {
-                Some((staking_currency, liquid_currency)) if asset_id == &liquid_currency => {
-                    T::Source::get(&staking_currency).and_then(|p| {
-                        p.value
-                            .checked_div(&FixedU128::from_inner(mantissa))
-                            .and_then(|staking_currency_price| {
-                                staking_currency_price.checked_mul(
-                                    &T::LiquidStakingExchangeRateProvider::get_exchange_rate(),
-                                )
-                            })
-                            .map(|price| (price, p.timestamp))
-                    })
-                }
-                _ => T::Source::get(asset_id).and_then(|p| {
-                    p.value
-                        .checked_div(&FixedU128::from_inner(mantissa))
-                        .map(|price| (price, p.timestamp))
-                }),
-            }
+            T::Source::get(asset_id).and_then(|p| {
+                p.value
+                    .checked_div(&FixedU128::from_inner(mantissa))
+                    .map(|price| (price, p.timestamp))
+            })
         })
     }
 }
@@ -433,21 +410,7 @@ impl<T: Config> EmergencyPriceFeeder<CurrencyId, Price> for Pallet<T> {
 
 impl<T: Config> DataProviderExtended<CurrencyId, TimeStampedPrice> for Pallet<T> {
     fn get_no_op(asset_id: &CurrencyId) -> Option<TimeStampedPrice> {
-        match T::LiquidStakingCurrenciesProvider::get_staking_currency()
-            .zip(T::LiquidStakingCurrenciesProvider::get_liquid_currency())
-        {
-            Some((staking_currency, liquid_currency)) if &liquid_currency == asset_id => {
-                T::Source::get_no_op(&staking_currency).and_then(|p| {
-                    p.value
-                        .checked_mul(&T::LiquidStakingExchangeRateProvider::get_exchange_rate())
-                        .map(|price| TimeStampedPrice {
-                            value: price,
-                            timestamp: p.timestamp,
-                        })
-                })
-            }
-            _ => T::Source::get_no_op(asset_id),
-        }
+        T::Source::get_no_op(asset_id)
     }
 
     fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {

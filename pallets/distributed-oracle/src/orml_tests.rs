@@ -177,18 +177,15 @@ fn reset_price_call_work() {
 }
 
 #[test]
-fn get_liquid_price_work() {
+fn not_staked_set_price_fail() {
     new_test_ext().execute_with(|| {
-        assert_eq!(
-            Doracle::get_price(&KSM),
-            Some((Price::from_inner(500 * 1_000_000 * PRICE_ONE), 0))
-        );
-
-        assert_eq!(
-            Doracle::get_price(&SKSM),
-            LiquidStakingExchangeRateProvider::get_exchange_rate()
-                .checked_mul_int(500 * 1_000_000 * PRICE_ONE)
-                .map(|i| (Price::from_inner(i), 0))
+        assert_noop!(
+            Doracle::set_price(
+                Origin::signed(ALICE),
+                DOT,
+                Price::saturating_from_integer(90),
+            ),
+            Error::<Test>::StakedAmountIsLessThanMinStakeAmount
         );
     });
 }
