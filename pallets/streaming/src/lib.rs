@@ -65,7 +65,7 @@ pub struct Stream<T: Config> {
     // Deposit
     deposit: BalanceOf<T>,
     // Currency Id
-    currency_id: AssetIdOf<T>,
+    asset_id: AssetIdOf<T>,
     // Rate Per Second
     rate_per_sec: BalanceOf<T>,
     // Recipient
@@ -100,6 +100,9 @@ pub mod pallet {
         /// Unix time
         type UnixTime: UnixTime;
 
+        /// The origin which can update minimum_deposit
+        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
         /// Weight information
         type WeightInfo: WeightInfo;
     }
@@ -109,7 +112,7 @@ pub mod pallet {
         /// Sender as specified themselves as the recipient
         RecipientIsAlsoSender,
         /// Insufficient deposit size
-        DepositIsZero,
+        DepositLowerThanMinimum,
         /// Start time is before current block time
         StartBeforeBlockTime,
         /// Stop time is before start time
@@ -125,7 +128,7 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Creates a payment stream. \[stream_id, sender, recipient, deposit, currency_id, start_time, stop_time\]
+        /// Creates a payment stream. \[stream_id, sender, recipient, deposit, asset_id, start_time, stop_time\]
         StreamCreated(
             StreamId,
             AccountOf<T>,
@@ -146,6 +149,8 @@ pub mod pallet {
             BalanceOf<T>,
             BalanceOf<T>,
         ),
+        /// Set minimum deposit for creating a stream
+        MinimumDepositSet(AssetIdOf<T>, BalanceOf<T>),
     }
 
     /// Next Stream Id
@@ -157,6 +162,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn get_stream)]
     pub type Streams<T: Config> = StorageMap<_, Twox64Concat, StreamId, Stream<T>>;
+
+    /// Minimum deposit for each asset
+    #[pallet::storage]
+    #[pallet::getter(fn minimum_deposit)]
+    pub type MinimumDeposits<T: Config> = StorageMap<_, Twox64Concat, AssetIdOf<T>, BalanceOf<T>>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -171,18 +181,24 @@ pub mod pallet {
             origin: OriginFor<T>,
             recipient: AccountOf<T>,
             deposit: BalanceOf<T>,
-            currency_id: AssetIdOf<T>,
+            asset_id: AssetIdOf<T>,
             start_time: Timestamp,
             stop_time: Timestamp,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             ensure!(recipient != sender, Error::<T>::RecipientIsAlsoSender);
-            ensure!(!deposit.is_zero(), Error::<T>::DepositIsZero);
             ensure!(
                 start_time >= T::UnixTime::now().as_secs(),
                 Error::<T>::StartBeforeBlockTime
             );
             ensure!(stop_time > start_time, Error::<T>::StopBeforeStart);
+
+            // ensure deposit is over minimum
+            let minimum_deposit = MinimumDeposits::<T>::get(asset_id);
+            ensure!(
+                deposit >= minimum_deposit.unwrap_or(1u128),
+                Error::<T>::DepositLowerThanMinimum
+            );
 
             // get rate per sec
             let duration = stop_time
@@ -195,7 +211,7 @@ pub mod pallet {
             let stream: Stream<T> = Stream {
                 remaining_balance: deposit, // remaining balance same value for now due to initialization
                 deposit,                    // deposit
-                currency_id,                // currency id
+                asset_id,                   // currency id
                 rate_per_sec,               // rate per second
                 recipient: recipient.clone(), // recipient
                 sender: sender.clone(),     // sender
@@ -208,15 +224,9 @@ pub mod pallet {
             // Increment stream id
             NextStreamId::<T>::set(stream_id + 1);
             // transfer deposit from sender to global EOA
-            T::Assets::transfer(currency_id, &sender, &Self::account_id(), deposit, false)?;
+            T::Assets::transfer(asset_id, &sender, &Self::account_id(), deposit, false)?;
             Self::deposit_event(Event::<T>::StreamCreated(
-                stream_id,
-                sender,
-                recipient,
-                deposit,
-                currency_id,
-                start_time,
-                stop_time,
+                stream_id, sender, recipient, deposit, asset_id, start_time, stop_time,
             ));
             Ok(().into())
         }
@@ -237,14 +247,14 @@ pub mod pallet {
             let recipient_balance = Self::balance_of(&stream, &stream.recipient)?;
             // send funds back to sender and recipient with balance function
             T::Assets::transfer(
-                stream.currency_id,
+                stream.asset_id,
                 &Self::account_id(),
                 &stream.recipient,
                 recipient_balance,
                 false,
             )?;
             T::Assets::transfer(
-                stream.currency_id,
+                stream.asset_id,
                 &Self::account_id(),
                 &sender,
                 sender_balance,
@@ -256,7 +266,7 @@ pub mod pallet {
                 stream_id,
                 sender,
                 stream.recipient,
-                stream.currency_id,
+                stream.asset_id,
                 sender_balance,
                 recipient_balance,
             ));
@@ -291,19 +301,27 @@ pub mod pallet {
                 Streams::<T>::insert(stream_id, stream.clone());
             }
             // withdraw deposit from stream
-            T::Assets::transfer(
-                stream.currency_id,
-                &Self::account_id(),
-                &sender,
-                amount,
-                false,
-            )?;
+            T::Assets::transfer(stream.asset_id, &Self::account_id(), &sender, amount, false)?;
             Self::deposit_event(Event::<T>::StreamWithdrawn(
                 stream_id,
                 stream.recipient,
-                stream.currency_id,
+                stream.asset_id,
                 amount,
             ));
+            Ok(().into())
+        }
+
+        /// Withdraw from an existing stream
+        #[pallet::weight((<T as Config>::WeightInfo::set_minimum_deposit(), DispatchClass::Operational))]
+        #[transactional]
+        pub fn set_minimum_deposit(
+            origin: OriginFor<T>,
+            asset_id: AssetIdOf<T>,
+            minimum_deposit: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            MinimumDeposits::<T>::insert(asset_id, minimum_deposit);
+            Self::deposit_event(Event::<T>::MinimumDepositSet(asset_id, minimum_deposit));
             Ok(().into())
         }
     }

@@ -1870,6 +1870,7 @@ impl pallet_streaming::Config for Runtime {
     type Assets = CurrencyAdapter;
     type PalletId = StreamPalletId;
     type UnixTime = Timestamp;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_streaming::weights::SubstrateWeight<Runtime>;
 }
 

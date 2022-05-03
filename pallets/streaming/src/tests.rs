@@ -204,3 +204,27 @@ fn cancel_stream_works_with_withdrawal() {
         );
     });
 }
+
+#[test]
+fn create_stream_with_minimum_deposit_works() {
+    new_test_ext().execute_with(|| {
+        // Set minimum deposit for DOT
+        assert_ok!(Streaming::set_minimum_deposit(
+            Origin::root(),
+            DOT,
+            dollar(100)
+        ));
+
+        // Alice creates stream 100 DOT to Bob, which is equal to minimum deposit
+        assert_err!(
+            Streaming::create_stream(Origin::signed(ALICE), BOB, dollar(99), DOT, 6, 10),
+            Error::<Test>::DepositLowerThanMinimum
+        );
+
+        // Check with default option
+        assert_err!(
+            Streaming::create_stream(Origin::signed(ALICE), BOB, 0, KSM, 6, 10),
+            Error::<Test>::DepositLowerThanMinimum
+        );
+    })
+}
