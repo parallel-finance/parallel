@@ -100,6 +100,9 @@ pub mod pallet {
         /// Unix time
         type UnixTime: UnixTime;
 
+        /// The origin which can update minimum_deposit
+        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
         /// Weight information
         type WeightInfo: WeightInfo;
     }
@@ -316,7 +319,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
             minimum_deposit: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            ensure_root(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
             MinimumDeposits::<T>::insert(asset_id, minimum_deposit);
             Self::deposit_event(Event::<T>::MinimumDepositSet(asset_id, minimum_deposit));
             Ok(().into())

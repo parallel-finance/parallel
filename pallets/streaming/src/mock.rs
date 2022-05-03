@@ -151,6 +151,7 @@ impl Config for Test {
     type PalletId = StreamPalletId;
     type UnixTime = TimestampPallet;
     type Assets = CurrencyAdapter;
+    type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
 }
 
