@@ -19,7 +19,7 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   cancel:
-    name: 'Cancel Previous Runs'
+    name: "Cancel Previous Runs"
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -111,3 +111,7 @@ jobs:
       - name: Check Integration Test
         run: |
           make integration-test
+
+      - name: Check Benchmarks With Real Runtimes
+        run: |
+          make bench
