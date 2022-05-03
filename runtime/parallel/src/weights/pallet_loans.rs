@@ -33,6 +33,16 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans UnderlyingAssetId (r:1 w:1)
 	// Storage: Loans ExchangeRate (r:0 w:1)
 	// Storage: Loans BorrowIndex (r:0 w:1)
+	fn migrate_reward_data() -> Weight {
+		(83_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(4 as Weight))
+			.saturating_add(T::DbWeight::get().writes(5 as Weight))
+	}
+	// Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
+	// Storage: Loans Markets (r:2 w:1)
+	// Storage: Loans UnderlyingAssetId (r:1 w:1)
+	// Storage: Loans ExchangeRate (r:0 w:1)
+	// Storage: Loans BorrowIndex (r:0 w:1)
 	fn add_market() -> Weight {
 		(83_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(4 as Weight))
