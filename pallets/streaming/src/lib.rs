@@ -35,7 +35,7 @@ use frame_system::pallet_prelude::*;
 use primitives::*;
 use scale_info::TypeInfo;
 use sp_runtime::{
-    traits::{AccountIdConversion, Zero},
+    traits::{AccountIdConversion, One, Zero},
     ArithmeticError, DispatchError,
 };
 use sp_std::prelude::*;
@@ -55,7 +55,12 @@ type BalanceOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 type AccountOf<T> = <T as frame_system::Config>::AccountId;
 
-// Struct for Stream
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+pub enum StreamStatus {
+    Ongoing,
+    Completed,
+}
+
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(T))]
 #[codec(mel_bound())]
@@ -76,6 +81,8 @@ pub struct Stream<T: Config> {
     start_time: Timestamp,
     // Stop Time
     stop_time: Timestamp,
+    // The current status of the stream
+    status: StreamStatus,
 }
 
 #[frame_support::pallet]
@@ -83,6 +90,7 @@ pub mod pallet {
     use super::*;
 
     use weights::WeightInfo;
+    pub const MAX_STREAM_LEN: usize = 1024;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -119,7 +127,11 @@ pub mod pallet {
         /// Caller is not the recipient
         NotTheRecipient,
         /// Amount exceeds balance
-        InsufficientBalance,
+        LowRemainingBalance,
+        /// Cannot schedule more streams.
+        NoMoreSpace,
+        /// Stream was completed
+        StreamCompleted,
     }
 
     #[pallet::event]
@@ -156,7 +168,17 @@ pub mod pallet {
     /// Global storage for streams
     #[pallet::storage]
     #[pallet::getter(fn get_stream)]
-    pub type Streams<T: Config> = StorageMap<_, Twox64Concat, StreamId, Stream<T>>;
+    pub type Streams<T: Config> = StorageMap<_, Blake2_128Concat, StreamId, Stream<T>, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn senders)]
+    pub type Senders<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<StreamId>, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn recipients)]
+    pub type Recipients<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<StreamId>, OptionQuery>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -201,12 +223,30 @@ pub mod pallet {
                 sender: sender.clone(),     // sender
                 start_time,                 // start_time
                 stop_time,                  // stop_time
+                status: StreamStatus::Ongoing,
             };
+
             let stream_id = NextStreamId::<T>::get();
+            // Increment the next stream id
+            NextStreamId::<T>::set(
+                stream_id
+                    .checked_add(One::one())
+                    .ok_or(ArithmeticError::Overflow)?,
+            );
+
             // Insert stream to runtime
             Streams::<T>::insert(stream_id, stream);
-            // Increment stream id
-            NextStreamId::<T>::set(stream_id + 1);
+
+            let checked_push = |r: &mut Option<Vec<StreamId>>| -> DispatchResult {
+                let mut registry = r.take().unwrap_or_default();
+                registry.push(stream_id);
+                ensure!(registry.len() <= MAX_STREAM_LEN, Error::<T>::NoMoreSpace);
+                *r = Some(registry);
+                Ok(())
+            };
+            Senders::<T>::try_mutate(&sender.clone(), checked_push)?;
+            Recipients::<T>::try_mutate(&recipient.clone(), checked_push)?;
+
             // transfer deposit from sender to global EOA
             T::Assets::transfer(currency_id, &sender, &Self::account_id(), deposit, false)?;
             Self::deposit_event(Event::<T>::StreamCreated(
@@ -229,8 +269,9 @@ pub mod pallet {
             stream_id: StreamId,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
+
             // check sender is stream sender
-            let stream = Streams::<T>::get(stream_id).ok_or(DispatchError::CannotLookup)?;
+            let mut stream = Streams::<T>::get(stream_id).ok_or(DispatchError::CannotLookup)?;
             ensure!(sender == stream.sender, Error::<T>::NotTheStreamer);
             // get sender and recipient balance at result
             let sender_balance = Self::balance_of(&stream, &sender)?;
@@ -250,8 +291,10 @@ pub mod pallet {
                 sender_balance,
                 false,
             )?;
-            // remove stream
-            Streams::<T>::remove(stream_id);
+
+            stream.status = StreamStatus::Completed;
+            Streams::<T>::insert(stream_id, stream.clone());
+
             Self::deposit_event(Event::<T>::StreamCanceled(
                 stream_id,
                 sender,
@@ -260,6 +303,7 @@ pub mod pallet {
                 sender_balance,
                 recipient_balance,
             ));
+
             Ok(().into())
         }
 
@@ -272,24 +316,26 @@ pub mod pallet {
             amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
+
             // check sender is stream recipient
             let mut stream = Streams::<T>::get(stream_id).ok_or(DispatchError::CannotLookup)?;
+            ensure!(
+                stream.status != StreamStatus::Completed,
+                Error::<T>::StreamCompleted
+            );
             ensure!(sender == stream.recipient, Error::<T>::NotTheRecipient);
-            // Check balance
+
             let balance = Self::balance_of(&stream, &stream.recipient)?;
-            ensure!(balance >= amount, Error::<T>::InsufficientBalance);
+            ensure!(balance >= amount, Error::<T>::LowRemainingBalance);
             stream.remaining_balance = stream
                 .remaining_balance
                 .checked_sub(amount)
                 .ok_or(ArithmeticError::Underflow)?;
-            // Check if balance is zero, then remove
             if stream.remaining_balance.is_zero() {
-                // remove
-                Streams::<T>::remove(stream_id);
-            } else {
-                // insert new streaming
-                Streams::<T>::insert(stream_id, stream.clone());
+                stream.status = StreamStatus::Completed;
             }
+            Streams::<T>::insert(stream_id, stream.clone());
+
             // withdraw deposit from stream
             T::Assets::transfer(
                 stream.currency_id,
@@ -304,6 +350,7 @@ pub mod pallet {
                 stream.currency_id,
                 amount,
             ));
+
             Ok(().into())
         }
     }
