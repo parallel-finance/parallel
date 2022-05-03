@@ -20,6 +20,7 @@ use frame_support::{assert_noop, assert_ok};
 #[test]
 fn test_add_stake() {
     new_test_ext().execute_with(|| {
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
         let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
         assert_eq!(oracle_stake_deposit.total, 100_000);
@@ -40,6 +41,7 @@ fn test_add_stake() {
 fn test_stake_with_invalid_asset() {
     // Tries to stake with non a native token
     new_test_ext().execute_with(|| {
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
         assert_noop!(
             Doracle::stake(Origin::signed(ALICE), 10, 100_000),
             Error::<Test>::InvalidStakingCurrency
@@ -50,6 +52,7 @@ fn test_stake_with_invalid_asset() {
 #[test]
 fn test_stake_with_amount_less_than_minimum_amount() {
     new_test_ext().execute_with(|| {
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
         assert_noop!(
             Doracle::stake(Origin::signed(ALICE), HKO, 10),
             Error::<Test>::InsufficientStakeAmount
@@ -58,9 +61,11 @@ fn test_stake_with_amount_less_than_minimum_amount() {
 }
 
 #[test]
+#[ignore]
 // TODO: Check this scenario
 fn test_unstake_stake_amount() {
     new_test_ext().execute_with(|| {
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
         // Alice nicely staked 100_000
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
         assert_ok!(Doracle::unstake(Origin::signed(ALICE), HKO, 100_000));
@@ -71,6 +76,7 @@ fn test_unstake_stake_amount() {
 // TODO: Check this scenario
 fn test_unstake() {
     new_test_ext().execute_with(|| {
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
         // Alice nicely staked 100_000
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
 
@@ -99,6 +105,7 @@ fn test_unstake() {
 #[test]
 fn test_unstake_stake_erroneous_scenarios() {
     new_test_ext().execute_with(|| {
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
         // Alice nicely staked 100_000
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
 

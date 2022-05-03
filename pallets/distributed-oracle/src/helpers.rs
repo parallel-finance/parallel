@@ -43,3 +43,30 @@ pub struct Repeater {
     pub last_submission: Timestamp,
     pub pending: Balance,
 }
+
+impl Default for Repeater {
+    fn default() -> Self {
+        Self {
+            staked_balance: 0u128,
+            last_submission: 0,
+            pending: 0u128,
+        }
+    }
+}
+
+/// global state that collects and distributes funds to repeaters
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct Coffer {
+    pub balance: Balance,
+    pub blocks_in_round: u128,
+}
+
+impl Default for Coffer {
+    fn default() -> Self {
+        Self {
+            balance: 0_u128,
+            blocks_in_round: 0,
+        }
+    }
+}
