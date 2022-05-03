@@ -2,7 +2,7 @@ name: Docker Image
 
 on:
   push:
-    branches: [master, feat/streaming-storage]
+    branches: [master]
     tags:
       - "v*"
       - "staging*"
