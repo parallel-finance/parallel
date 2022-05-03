@@ -272,7 +272,7 @@ benchmarks! {
         Response::ExecutionResult(None)
     )
     verify {
-        assert_last_event::<T>(Event::<T>::NotificationReceived(Box::new(MultiLocation::parent()),0u64, None).into());
+        assert_last_event::<T>(Event::<T>::NotificationReceived(Box::new(MultiLocation::parent()), 0u64, None).into());
     }
 
     claim_for {
@@ -282,7 +282,7 @@ benchmarks! {
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
         assert_ok!(with_transaction(|| -> TransactionOutcome<DispatchResult>{
-            LiquidStaking::<T>::do_advance_era(4).unwrap();
+            LiquidStaking::<T>::do_advance_era(T::BondingDuration::get() + 1).unwrap();
             TransactionOutcome::Commit(Ok(()))
         }));
         LiquidStaking::<T>::notification_received(
