@@ -267,6 +267,7 @@ fn sends_and_recipients_should_works() {
     })
 }
 
+#[test]
 fn create_stream_with_minimum_deposit_works() {
     new_test_ext().execute_with(|| {
         // Set minimum deposit for DOT

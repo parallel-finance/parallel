@@ -90,8 +90,6 @@ pub mod pallet {
     use super::*;
 
     use weights::WeightInfo;
-    pub const MAX_STREAM_LEN: usize = 1024;
-
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -104,6 +102,10 @@ pub mod pallet {
         /// The streaming module id, keep all collaterals of CDPs.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// Specify max count of streams for an account
+        #[pallet::constant]
+        type MaxStreamsCount: Get<u32>;
 
         /// Unix time
         type UnixTime: UnixTime;
@@ -131,8 +133,8 @@ pub mod pallet {
         NotTheRecipient,
         /// Amount exceeds balance
         LowRemainingBalance,
-        /// Cannot schedule more streams.
-        NoMoreSpace,
+        /// Excess max streams count
+        ExcessMaxStramsCount,
         /// Stream was completed
         StreamCompleted,
     }
@@ -177,13 +179,23 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn senders)]
-    pub type Senders<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<StreamId>, OptionQuery>;
+    pub type Senders<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        BoundedVec<StreamId, T::MaxStreamsCount>,
+        OptionQuery,
+    >;
 
     #[pallet::storage]
     #[pallet::getter(fn recipients)]
-    pub type Recipients<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<StreamId>, OptionQuery>;
+    pub type Recipients<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        BoundedVec<StreamId, T::MaxStreamsCount>,
+        OptionQuery,
+    >;
 
     /// Minimum deposit for each asset
     #[pallet::storage]
@@ -253,13 +265,15 @@ pub mod pallet {
             // Insert stream to runtime
             Streams::<T>::insert(stream_id, stream);
 
-            let checked_push = |r: &mut Option<Vec<StreamId>>| -> DispatchResult {
-                let mut registry = r.take().unwrap_or_default();
-                registry.push(stream_id);
-                ensure!(registry.len() <= MAX_STREAM_LEN, Error::<T>::NoMoreSpace);
-                *r = Some(registry);
-                Ok(())
-            };
+            let checked_push =
+                |r: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
+                    let mut registry = r.take().unwrap_or_default();
+                    registry
+                        .try_push(stream_id)
+                        .map_err(|_| Error::<T>::ExcessMaxStramsCount)?;
+                    *r = Some(registry);
+                    Ok(())
+                };
             Senders::<T>::try_mutate(&sender.clone(), checked_push)?;
             Recipients::<T>::try_mutate(&recipient.clone(), checked_push)?;
 
