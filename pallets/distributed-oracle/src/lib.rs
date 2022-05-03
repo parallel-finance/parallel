@@ -142,6 +142,9 @@ pub mod pallet {
 
         /// Unstake Amount Exceeds Balance
         UnstakeAmoutExceedsStakedBalance,
+
+        /// Staked Amount Is Less than Min Stake Amount
+        StakedAmountIsLessThanMinStakeAmount,
     }
 
     #[pallet::event]
@@ -316,7 +319,14 @@ pub mod pallet {
             asset_id: CurrencyId,
             price: Price,
         ) -> DispatchResultWithPostInfo {
-            T::FeederOrigin::ensure_origin(origin)?;
+            let who = ensure_signed(origin)?;
+            ensure!(
+                Self::staking_pool(who.clone(), T::StakingCurrency::get())
+                    .unwrap_or_default()
+                    .total
+                    > T::MinUnstake::get(),
+                Error::<T>::StakedAmountIsLessThanMinStakeAmount
+            );
             <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::set_emergency_price(
                 asset_id, price,
             );
@@ -330,7 +340,14 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
-            T::FeederOrigin::ensure_origin(origin)?;
+            let who = ensure_signed(origin)?;
+            ensure!(
+                Self::staking_pool(who.clone(), T::StakingCurrency::get())
+                    .unwrap_or_default()
+                    .total
+                    > T::MinUnstake::get(),
+                Error::<T>::StakedAmountIsLessThanMinStakeAmount
+            );
             <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::reset_emergency_price(asset_id);
             Ok(().into())
         }

@@ -17,7 +17,7 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
-use sp_runtime::{traits::BadOrigin, FixedPointNumber};
+use sp_runtime::FixedPointNumber;
 
 const PRICE_ONE: u128 = 1_000_000_000_000_000_000;
 
@@ -38,13 +38,14 @@ fn get_price_from_oracle() {
 #[test]
 fn set_price_work() {
     new_test_ext().execute_with(|| {
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
         assert_eq!(
             Doracle::get_price(&DOT),
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         // set DOT price
         assert_ok!(Doracle::set_price(
-            Origin::signed(1),
+            Origin::signed(ALICE),
             DOT,
             Price::saturating_from_integer(99)
         ));
@@ -53,7 +54,7 @@ fn set_price_work() {
             Some((Price::from_inner(9_900_000_000 * PRICE_ONE), 0))
         );
         assert_ok!(Doracle::set_price(
-            Origin::signed(1),
+            Origin::signed(ALICE),
             KSM,
             Price::saturating_from_integer(1)
         ));
@@ -91,7 +92,7 @@ fn reset_price_work() {
 fn set_price_call_work() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
-
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
         // set emergency price from 100 to 90
         assert_eq!(
             Doracle::get_price(&DOT),
@@ -99,10 +100,10 @@ fn set_price_call_work() {
         );
         assert_noop!(
             Doracle::set_price(Origin::signed(2), DOT, Price::saturating_from_integer(100),),
-            BadOrigin
+            Error::<Test>::StakedAmountIsLessThanMinStakeAmount
         );
         assert_ok!(Doracle::set_price(
-            Origin::signed(1),
+            Origin::signed(ALICE),
             DOT,
             Price::saturating_from_integer(90),
         ));
@@ -120,7 +121,11 @@ fn set_price_call_work() {
             .iter()
             .any(|record| record.event == set_price_event));
         assert_eq!(
-            Doracle::set_price(Origin::signed(1), DOT, Price::saturating_from_integer(90),),
+            Doracle::set_price(
+                Origin::signed(ALICE),
+                DOT,
+                Price::saturating_from_integer(90),
+            ),
             Ok(().into())
         );
     });
@@ -130,14 +135,14 @@ fn set_price_call_work() {
 fn reset_price_call_work() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
-
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
         // set emergency price from 100 to 90
         assert_eq!(
             Doracle::get_price(&DOT),
             Some((FixedU128::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         assert_ok!(Doracle::set_price(
-            Origin::signed(1),
+            Origin::signed(ALICE),
             DOT,
             Price::saturating_from_integer(90),
         ));
@@ -147,8 +152,11 @@ fn reset_price_call_work() {
         );
 
         // try reset price
-        assert_noop!(Doracle::reset_price(Origin::signed(2), DOT), BadOrigin);
-        assert_ok!(Doracle::reset_price(Origin::signed(1), DOT));
+        assert_noop!(
+            Doracle::reset_price(Origin::signed(BOB), DOT),
+            Error::<Test>::StakedAmountIsLessThanMinStakeAmount
+        );
+        assert_ok!(Doracle::reset_price(Origin::signed(ALICE), DOT));
 
         // price need to be 100 after reset_price
         assert_eq!(
@@ -161,7 +169,10 @@ fn reset_price_call_work() {
         assert!(System::events()
             .iter()
             .any(|record| record.event == reset_price_event));
-        assert_eq!(Doracle::reset_price(Origin::signed(1), DOT), Ok(().into()));
+        assert_eq!(
+            Doracle::reset_price(Origin::signed(ALICE), DOT),
+            Ok(().into())
+        );
     });
 }
 
