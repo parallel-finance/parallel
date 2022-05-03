@@ -134,7 +134,7 @@ pub mod pallet {
         /// Amount exceeds balance
         LowRemainingBalance,
         /// Excess max streams count
-        ExcessMaxStramsCount,
+        ExcessMaxStreamsCount,
         /// Stream was completed
         StreamCompleted,
     }
@@ -270,7 +270,7 @@ pub mod pallet {
                     let mut registry = r.take().unwrap_or_default();
                     registry
                         .try_push(stream_id)
-                        .map_err(|_| Error::<T>::ExcessMaxStramsCount)?;
+                        .map_err(|_| Error::<T>::ExcessMaxStreamsCount)?;
                     *r = Some(registry);
                     Ok(())
                 };
