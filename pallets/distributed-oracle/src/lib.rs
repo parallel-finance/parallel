@@ -190,7 +190,6 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn get_manager)]
     pub type Manager<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Coffer>;
-    // pub type Manager<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Coffer>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
