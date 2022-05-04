@@ -127,7 +127,7 @@ pub trait ValidationDataProvider {
 /// Distribute liquidstaking asset to multi-accounts
 pub trait DistributionStrategy<Balance> {
     fn get_bond_distributions(
-        total_bonded_amounts: Vec<(DerivativeIndex, Balance)>,
+        bonded_amounts: Vec<(DerivativeIndex, Balance, Balance)>,
         input: Balance,
         cap: Balance,
         min_nominator_bond: Balance,
