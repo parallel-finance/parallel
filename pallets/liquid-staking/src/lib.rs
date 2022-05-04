@@ -1270,10 +1270,17 @@ pub mod pallet {
                 return Ok(());
             }
 
-            let amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
-                .iter()
-                .map(|&index| (index, Self::total_bonded_of(index)))
-                .collect();
+            let amounts: Vec<(DerivativeIndex, BalanceOf<T>, BalanceOf<T>)> =
+                T::DerivativeIndexList::get()
+                    .iter()
+                    .map(|&index| {
+                        (
+                            index,
+                            Self::active_bonded_of(index),
+                            Self::total_bonded_of(index),
+                        )
+                    })
+                    .collect();
             let distributions = T::DistributionStrategy::get_bond_distributions(
                 amounts,
                 total_amount,
