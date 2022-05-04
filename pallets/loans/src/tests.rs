@@ -20,10 +20,10 @@ mod ptokens;
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use scale_info::prelude::collections::hash_map::HashMap;
+
 use sp_runtime::{
     traits::{CheckedDiv, One, Saturating},
-    AccountId32, FixedU128, Permill,
+    FixedU128, Permill,
 };
 
 use mock::*;
