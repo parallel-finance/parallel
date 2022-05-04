@@ -11,3 +11,4 @@ pub mod pallet_multisig;
 pub mod pallet_timestamp;
 pub mod pallet_xcm_helper;
 pub mod pallet_router;
+pub mod pallet_liquid_staking;

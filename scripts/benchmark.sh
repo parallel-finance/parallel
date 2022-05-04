@@ -31,6 +31,7 @@ pallets=(
   pallet_loans
   pallet_router
   pallet_xcm_helper
+  pallet_liquid_staking
 )
 
 for p in ${pallets[@]}
