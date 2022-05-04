@@ -961,6 +961,12 @@ pub mod pallet {
                 .fold(Zero::zero(), |acc, ledger| acc.saturating_add(ledger.total))
         }
 
+        fn get_total_active_bonded() -> BalanceOf<T> {
+            StakingLedgers::<T>::iter_values().fold(Zero::zero(), |acc, ledger| {
+                acc.saturating_add(ledger.active)
+            })
+        }
+
         fn get_market_cap() -> BalanceOf<T> {
             Self::staking_ledger_cap()
                 .saturating_mul(T::DerivativeIndexList::get().len() as BalanceOf<T>)
@@ -1435,7 +1441,7 @@ pub mod pallet {
         #[require_transactional]
         fn do_update_exchange_rate() -> DispatchResult {
             let matching_ledger = Self::matching_pool();
-            let total_bonded = Self::get_total_bonded();
+            let total_bonded = Self::get_total_active_bonded();
             let issuance = T::Assets::total_issuance(Self::liquid_currency()?);
             if issuance.is_zero() {
                 return Ok(());
