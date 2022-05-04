@@ -232,10 +232,10 @@ fn streams_library_should_works() {
         ));
 
         // StreamLibrary should contains stream_id = 0
-        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamType::Send)
+        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
             .unwrap()
             .binary_search(&stream_id));
-        assert_ok!(StreamLibrary::<Test>::get(BOB, StreamType::Receive)
+        assert_ok!(StreamLibrary::<Test>::get(BOB, StreamKind::Receive)
             .unwrap()
             .binary_search(&stream_id));
 
@@ -258,10 +258,10 @@ fn streams_library_should_works() {
         assert!(stream.status == StreamStatus::Completed);
 
         // storage shouldn't be removed though stream completed
-        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamType::Send)
+        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
             .unwrap()
             .binary_search(&stream_id));
-        assert_ok!(StreamLibrary::<Test>::get(BOB, StreamType::Receive)
+        assert_ok!(StreamLibrary::<Test>::get(BOB, StreamKind::Receive)
             .unwrap()
             .binary_search(&stream_id));
     })

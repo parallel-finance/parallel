@@ -20,7 +20,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::Encode;
+use crate::types::{Stream, StreamKind, StreamStatus};
 use frame_support::{
     pallet_prelude::*,
     traits::{
@@ -32,20 +32,20 @@ use frame_support::{
     PalletId,
 };
 use frame_system::pallet_prelude::*;
+pub use pallet::*;
 use primitives::*;
-use scale_info::TypeInfo;
 use sp_runtime::{
     traits::{AccountIdConversion, One, Zero},
     ArithmeticError, DispatchError,
 };
 use sp_std::prelude::*;
 
-pub use pallet::*;
-
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
+
+mod types;
 
 pub mod weights;
 
@@ -54,47 +54,6 @@ type AssetIdOf<T> =
 type BalanceOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 type AccountOf<T> = <T as frame_system::Config>::AccountId;
-
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-pub enum StreamStatus {
-    // stream has not finished yet
-    Ongoing,
-    // stream is completed, remaining_balance should be zero
-    Completed,
-}
-
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-pub enum StreamType {
-    // Stream was sent by an account
-    Send,
-    // Stream would be received by an account
-    Receive,
-    // Can expand Cancel, Lock and other states if needed
-}
-
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[scale_info(skip_type_params(T))]
-#[codec(mel_bound())]
-pub struct Stream<T: Config> {
-    // Remaining Balance
-    remaining_balance: BalanceOf<T>,
-    // Deposit
-    deposit: BalanceOf<T>,
-    // Currency Id
-    asset_id: AssetIdOf<T>,
-    // Rate Per Second
-    rate_per_sec: BalanceOf<T>,
-    // Recipient
-    recipient: AccountOf<T>,
-    // Sender
-    sender: AccountOf<T>,
-    // Start Time
-    start_time: Timestamp,
-    // Stop Time
-    stop_time: Timestamp,
-    // The current status of the stream
-    status: StreamStatus,
-}
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -195,7 +154,7 @@ pub mod pallet {
         Blake2_128Concat,
         T::AccountId,
         Blake2_128Concat,
-        StreamType,
+        StreamKind,
         BoundedVec<StreamId, T::MaxStreamsCount>,
         OptionQuery,
     >;
@@ -277,8 +236,8 @@ pub mod pallet {
                     *r = Some(registry);
                     Ok(())
                 };
-            StreamLibrary::<T>::try_mutate(&sender.clone(), &StreamType::Send, checked_push)?;
-            StreamLibrary::<T>::try_mutate(&recipient.clone(), &StreamType::Receive, checked_push)?;
+            StreamLibrary::<T>::try_mutate(&sender.clone(), &StreamKind::Send, checked_push)?;
+            StreamLibrary::<T>::try_mutate(&recipient.clone(), &StreamKind::Receive, checked_push)?;
 
             // Transfer deposit from sender to global EOA
             T::Assets::transfer(asset_id, &sender, &Self::account_id(), deposit, false)?;
