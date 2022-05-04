@@ -12,7 +12,9 @@ codec              = { package = 'parity-scale-codec', version = '3.0.0', defaul
 frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false, optional = true }
 frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false }
 frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false }
-orml-traits        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'polkadot-v0.9.19', default-features = false }
+orml-oracle   = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'polkadot-v0.9.19', default-features = false }
+orml-traits   = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'polkadot-v0.9.19', default-features = false }
+pallet-traits = { path = '../traits', default-features = false }
 pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false }
 pallet-balances    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false }
 pallet-prices      = { path = '../prices', default-features = false }
@@ -35,21 +37,23 @@ sp-keystore             = { git = "https://github.com/paritytech/substrate", bra
 default            = ['std']
 runtime-benchmarks = ['frame-benchmarking']
 std                = [
+  'serde',
   'codec/std',
+  'sp-runtime/std',
   'frame-support/std',
   'frame-system/std',
-  'frame-benchmarking/std',
-  'orml-traits/std',
-  'primitives/std',
-  'sp-runtime/std',
   'sp-std/std',
+  'orml-traits/std',
+  'orml-oracle/std',
+  'primitives/std',
+  'scale-info/std',
+  'pallet-traits/std',
+  'frame-benchmarking/std',
   'pallet-assets/std',
   'pallet-balances/std',
   'pallet-prices/std',
   'pallet-assets/std',
   'pallet-timestamp/std',
-  'serde',
-  'scale-info/std',
 ]
 try-runtime        = ['frame-support/try-runtime']
 
