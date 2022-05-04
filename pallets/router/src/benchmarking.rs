@@ -74,14 +74,15 @@ fn initial_set_up<
     )
     .ok();
 
-    assert_ok!(pallet_amm::Pallet::<T>::create_pool(
-        T::CreatePoolOrigin::successful_origin(),
-        (DOT, SDOT),
-        (100_000_000u128, 100_000_000u128),
-        pool_creator.clone(),
-        ASSET_ID
-    ));
-
+    if pallet_amm::Pallet::<T>::pools(SDOT, DOT) == None {
+        assert_ok!(pallet_amm::Pallet::<T>::create_pool(
+            T::CreatePoolOrigin::successful_origin(),
+            (DOT, SDOT),
+            (100_000_000u128, 100_000_000u128),
+            pool_creator.clone(),
+            ASSET_ID
+        ));
+    }
     assert_ok!(pallet_amm::Pallet::<T>::add_liquidity(
         SystemOrigin::Signed(pool_creator).into(),
         (DOT, SDOT),
@@ -99,7 +100,7 @@ benchmarks_instance_pallet! {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
         let amount_in = 1_000u128;
-        let min_amount_out = 980u128;
+        let min_amount_out = 900u128;
         let expiry = u32::MAX;
         let routes: Vec<_> = vec![DOT, SDOT];
     }: swap_exact_tokens_for_tokens(SystemOrigin::Signed(caller.clone()), routes, amount_in, min_amount_out)
@@ -107,7 +108,7 @@ benchmarks_instance_pallet! {
     verify {
         let routes: Vec<_> = vec![DOT, SDOT];
         let amount_out: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(SDOT, &caller);
-        let expected = 994u128;
+        let expected = 996u128;
 
         assert_eq!(amount_out, expected);
         assert_last_event::<T, I>(Event::Traded(caller, amount_in, routes, expected).into());
@@ -127,7 +128,7 @@ benchmarks_instance_pallet! {
         let routes: Vec<_> = vec![DOT, SDOT];
         let balance_after_trade: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(DOT, &caller);
         let amount_in = balance_before_trade - balance_after_trade;
-        let expected = 986u128;
+        let expected = 984u128;
 
         assert_eq!(amount_in, expected);
         assert_last_event::<T, I>(Event::Traded(caller, expected, routes, amount_out).into());
