@@ -1441,13 +1441,13 @@ pub mod pallet {
         #[require_transactional]
         fn do_update_exchange_rate() -> DispatchResult {
             let matching_ledger = Self::matching_pool();
-            let total_bonded = Self::get_total_active_bonded();
+            let total_active_bonded = Self::get_total_active_bonded();
             let issuance = T::Assets::total_issuance(Self::liquid_currency()?);
             if issuance.is_zero() {
                 return Ok(());
             }
             let new_exchange_rate = Rate::checked_from_rational(
-                total_bonded
+                total_active_bonded
                     .checked_add(matching_ledger.total_stake_amount.total)
                     .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount.total))
                     .ok_or(ArithmeticError::Overflow)?,
