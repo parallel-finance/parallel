@@ -230,10 +230,10 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(who)?;
 
-            // Check if a repeater or else throw an error only a repeater can stake
+            // Only repeaters can stake
             ensure!(
                 Repeaters::<T>::contains_key(who.clone()),
-                Error::<T>::RepeaterExists
+                Error::<T>::InvalidStaker
             );
 
             // Checks for the Asset type to stake
@@ -294,9 +294,12 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            // ***************************************
-            // Check if its in the repeaters list ifnot throw an error
-            // Checks for the Asset type to stake
+            // InvalidUnstaker
+            ensure!(
+                Repeaters::<T>::contains_key(who.clone()),
+                Error::<T>::InvalidUnstaker
+            );
+
             ensure!(
                 T::StakingCurrency::get() == asset,
                 Error::<T>::InvalidStakingCurrency

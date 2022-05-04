@@ -127,7 +127,8 @@ fn test_unstake_stake_erroneous_scenarios() {
             Error::<Test>::InsufficientUnStakeAmount
         );
 
-        // Unstake from an account without a stake
+        // Unstake from an account without a stake though a repeater
+        assert_ok!(Doracle::register_repeater(Origin::signed(BOB)));
         assert_noop!(
             Doracle::unstake(Origin::signed(BOB), HKO, 11),
             Error::<Test>::StakingAccountNotFound
@@ -137,6 +138,40 @@ fn test_unstake_stake_erroneous_scenarios() {
         assert_noop!(
             Doracle::unstake(Origin::signed(ALICE), HKO, 100_001),
             Error::<Test>::UnstakeAmoutExceedsStakedBalance
+        );
+    });
+}
+
+#[test]
+fn test_register_repeater() {
+    new_test_ext().execute_with(|| {
+        // Register a staking account as a repeater
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
+
+        // Tries to register the same account as the repeater
+        assert_noop!(
+            Doracle::register_repeater(Origin::signed(ALICE)),
+            Error::<Test>::RepeaterExists
+        );
+    });
+}
+
+#[test]
+fn test_stake_as_non_repeater() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            Doracle::stake(Origin::signed(ALICE), HKO, 100_000),
+            Error::<Test>::InvalidStaker
+        );
+    });
+}
+
+#[test]
+fn test_unstake_as_non_repeater() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            Doracle::unstake(Origin::signed(ALICE), HKO, 10),
+            Error::<Test>::InvalidUnstaker
         );
     });
 }
