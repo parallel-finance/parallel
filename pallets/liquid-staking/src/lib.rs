@@ -41,6 +41,7 @@ pub mod distribution;
 pub mod migrations;
 pub mod types;
 pub mod weights;
+pub use weights::WeightInfo;
 
 #[macro_use]
 extern crate primitives;
@@ -82,7 +83,7 @@ pub mod pallet {
     use pallet_xcm_helper::XcmHelper;
     use primitives::{Balance, CurrencyId, DerivativeIndex, EraIndex, ParaId, Rate, Ratio};
 
-    use super::{types::*, weights::WeightInfo, *};
+    use super::{types::*, *};
 
     pub const MAX_UNLOCKING_CHUNKS: usize = 32;
 

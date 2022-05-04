@@ -610,7 +610,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type WeightInfo = ();
+    type WeightInfo = weights::pallet_liquid_staking::WeightInfo<Runtime>;
     type SelfParaId = ParachainInfo;
     type Assets = Assets;
     type StakingCurrency = StakingCurrency;
@@ -1904,7 +1904,7 @@ impl pallet_router::Config for Runtime {
     type Event = Event;
     type PalletId = RouterPalletId;
     type AMM = AMM;
-    type AMMRouterWeightInfo = pallet_router::weights::SubstrateWeight<Runtime>;
+    type AMMRouterWeightInfo = weights::pallet_router::WeightInfo<Runtime>;
     type MaxLengthRoute = MaxLengthRoute;
     type Assets = CurrencyAdapter;
 }

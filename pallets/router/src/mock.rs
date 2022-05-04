@@ -120,8 +120,10 @@ impl pallet_assets::Config for Runtime {
 // AMM instance initialization
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
-    pub const DefaultLpFee: Ratio = Ratio::from_perthousand(3);         // 0.3%
-    pub const DefaultProtocolFee: Ratio = Ratio::from_perthousand(2);   // 0.2%
+    // pub const DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
+    // pub const DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);
+    pub  DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);         // 0.3%
+    pub  DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.2%
     pub const DefaultProtocolFeeReceiver: AccountId = CHARLIE;
     pub const MinimumLiquidity: u128 = 1_000u128;
     pub const LockAccountId: AccountId = ALICE;
