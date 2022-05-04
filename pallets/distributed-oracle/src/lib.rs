@@ -58,7 +58,9 @@ pub use weights::WeightInfo;
 pub mod pallet {
     use super::*;
     use crate::helpers::{Coffer, OracleDeposit, Relayer, Repeater};
+    use sp_runtime::traits::Zero;
     use sp_runtime::ArithmeticError;
+
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -133,6 +135,9 @@ pub mod pallet {
 
         /// No Coffer found for the repeater
         CofferMissing,
+
+        /// No rounds yet, but someone called the manager ?
+        NoRoundsStartedYet,
     }
 
     #[pallet::event]
@@ -146,6 +151,12 @@ pub mod pallet {
         StakeAccountRemoved(T::AccountId, AssetIdOf<T>),
         /// Register Repeater
         RepeaterRegistered(T::AccountId),
+
+        /// Slashed
+        Slashed(T::AccountId),
+
+        /// Slashed and Removed
+        SlashedandsRemoved(T::AccountId),
     }
 
     /// Global storage for relayers
@@ -171,9 +182,15 @@ pub mod pallet {
     #[pallet::getter(fn repeaters)]
     pub type Repeaters<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Repeater>;
 
+    /// Rounds
+    #[pallet::storage]
+    #[pallet::getter(fn get_rounds)]
+    pub type Round<T: Config> = StorageValue<_, u128>;
+
     #[pallet::storage]
     #[pallet::getter(fn get_manager)]
     pub type Manager<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Coffer>;
+    // pub type Manager<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Coffer>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -184,21 +201,81 @@ pub mod pallet {
         /// Punish Slash !
         #[pallet::weight(T::WeightInfo::stake())]
         #[transactional]
-        pub fn slash(who: OriginFor<T>, _asset: AssetIdOf<T>) -> DispatchResultWithPostInfo {
-            let _who = ensure_signed(who)?;
+        pub fn slash(origin: OriginFor<T>, asset: AssetIdOf<T>) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
 
-            /*
-            * Checks the number of rounds
-            * Gets the minimum amount for slashing
-            * Slashing_amount =
-            If (OracleDeposit.total / minimum_staking_amount) * missed_rounds > OracleDeposit.total
-                Then -> OracleDeposit.total - (OracleDeposit.total / minimum_staking_amount) * missed_rounds
-            Else
-                OracleDeposit.total -> 0
-                Remove Repeater
-            */
-            // TODO: Implement
-            Ok(().into())
+            // Cannot slash a non repeater
+            ensure!(
+                Repeaters::<T>::contains_key(who.clone()),
+                Error::<T>::InvalidStaker
+            );
+
+            ensure!(
+                Manager::<T>::contains_key(&Self::account_id()),
+                Error::<T>::NoRoundsStartedYet
+            );
+
+            // Gets Manager's Coffer
+            let coffer = Self::get_manager(&Self::account_id()).unwrap();
+
+            StakingPool::<T>::mutate(
+                who.clone(),
+                asset,
+                |oracle_stake_deposit| -> DispatchResultWithPostInfo {
+                    let oracle_stake_deposit = oracle_stake_deposit
+                        .as_mut()
+                        .ok_or(Error::<T>::StakingAccountNotFound)?;
+
+                    // Checks the diff
+                    let round_diff = coffer
+                        .blocks_in_round
+                        .checked_sub(oracle_stake_deposit.blocks_in_round)
+                        .ok_or(ArithmeticError::Underflow)?;
+
+                    // TODO: This can be improved!
+                    // Slashing_amount = -> If (OracleDeposit.total / minimum_staking_amount) * missed_rounds >= OracleDeposit.total
+                    //    Then -> OracleDeposit.total - (OracleDeposit.total / minimum_staking_amount) * missed_rounds
+                    // Else
+                    //    OracleDeposit.total -> 0
+                    //    Remove Repeater
+
+                    if round_diff > 0 {
+                        let slash_amount = oracle_stake_deposit
+                            .total
+                            .checked_div(T::MinStake::get())
+                            .and_then(|r| r.checked_mul(round_diff))
+                            .ok_or(ArithmeticError::Underflow)?;
+
+                        if slash_amount >= oracle_stake_deposit.total {
+                            oracle_stake_deposit.total = oracle_stake_deposit
+                                .total
+                                .checked_sub(slash_amount)
+                                .ok_or(ArithmeticError::Underflow)?;
+                            Self::deposit_event(Event::<T>::Slashed(who.clone()));
+
+                            log::trace!(
+                                target: "distributed-oracle::slash",
+                                "Slashed Account {:?} slashed_amount {:?}",
+                                &who.clone(),
+                                &slash_amount,
+                            );
+                        } else {
+                            oracle_stake_deposit.total = Zero::zero();
+                            Repeaters::<T>::remove(who.clone());
+                            Self::deposit_event(Event::<T>::SlashedandsRemoved(who.clone()));
+
+                            log::trace!(
+                                target: "distributed-oracle::slash",
+                                "Account {:?} got slashed and removed due to unavailability of \
+                                funds slashed_amount {:?}",
+                                &who.clone(),
+                                &slash_amount,
+                            );
+                        }
+                    }
+                    Ok(().into())
+                },
+            )
         }
 
         /// Register Repeaters
@@ -207,14 +284,17 @@ pub mod pallet {
         pub fn register_repeater(who: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(who)?;
 
-            let repeater = Self::repeaters(who.clone()).unwrap_or_default();
-
             ensure!(
                 !Repeaters::<T>::contains_key(who.clone()),
                 Error::<T>::RepeaterExists
             );
 
-            Repeaters::<T>::insert(who.clone(), repeater);
+            // Initialize a repeater structure
+            Repeaters::<T>::insert(
+                who.clone(),
+                Self::repeaters(who.clone()).unwrap_or_default(),
+            );
+
             Self::deposit_event(Event::<T>::RepeaterRegistered(who));
 
             Ok(().into())
@@ -259,9 +339,16 @@ pub mod pallet {
 
             oracle_stake_deposit.timestamp = T::UnixTime::now().as_secs();
 
+            oracle_stake_deposit.blocks_in_round = oracle_stake_deposit
+                .blocks_in_round
+                .checked_add(1u128)
+                .ok_or(ArithmeticError::Underflow)?;
+
             StakingPool::<T>::insert(&who, &asset, oracle_stake_deposit);
 
-            let mut coffer = Self::get_manager(who.clone()).unwrap_or_default();
+            // manager has a coffer which stores balances and rounds
+            // TODO: We might need to use mutate rather than inserting here
+            let mut coffer = Self::get_manager(&Self::account_id()).unwrap_or_default();
 
             coffer.balance = coffer
                 .balance
@@ -273,7 +360,7 @@ pub mod pallet {
                 .checked_add(1u128)
                 .ok_or(ArithmeticError::Underflow)?;
 
-            Manager::<T>::insert(who.clone(), coffer);
+            Manager::<T>::insert(Self::account_id(), coffer);
 
             Self::deposit_event(Event::<T>::Staked(who, asset, amount));
 
@@ -344,8 +431,8 @@ pub mod pallet {
                     oracle_stake_deposit.timestamp = T::UnixTime::now().as_secs();
 
                     // TODO: Handle this error properly
-                    // Update the balances
-                    Manager::<T>::mutate(who.clone(), |coffer| -> DispatchResult {
+                    // Update the balances -> remove unstake amount from balances
+                    Manager::<T>::mutate(Self::account_id(), |coffer| -> DispatchResult {
                         let coffer = coffer.as_mut().ok_or(Error::<T>::CofferMissing)?;
 
                         ensure!(
@@ -353,15 +440,17 @@ pub mod pallet {
                             Error::<T>::InsufficientCofferBalance
                         );
 
+                        // Deduct balance from unstaked amount
                         coffer.balance = coffer
                             .balance
                             .checked_sub(amount)
                             .ok_or(ArithmeticError::Underflow)?;
 
-                        coffer.blocks_in_round = coffer
-                            .blocks_in_round
-                            .checked_add(1u128)
-                            .ok_or(ArithmeticError::Underflow)?;
+                        // TODO: Rounds not updated in Unstake?
+                        // coffer.blocks_in_round = coffer
+                        //     .blocks_in_round
+                        //     .checked_add(1u128)
+                        //     .ok_or(ArithmeticError::Underflow)?;
 
                         Ok(())
                     })?;

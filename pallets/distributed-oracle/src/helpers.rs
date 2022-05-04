@@ -15,13 +15,17 @@ pub struct OracleDeposit {
 
     /// Stake Added Unix Time
     pub timestamp: Timestamp,
+
+    /// Participated rounds
+    pub blocks_in_round: u128,
 }
 
 impl Default for OracleDeposit {
     fn default() -> Self {
         Self {
-            total: 0_u128,
+            total: 0u128,
             timestamp: 0,
+            blocks_in_round: 0u128,
         }
     }
 }
