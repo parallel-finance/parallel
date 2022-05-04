@@ -1212,37 +1212,3 @@ fn reward_calculation_after_liquidate_borrow_works() {
         );
     })
 }
-
-#[test]
-fn migrate_reward_data_works() {
-    new_test_ext().execute_with(|| {
-        //1, mock reward data
-        let mut reward_data = HashMap::new();
-        let mut i = 1_u128;
-        while i <= 50 {
-            let user: AccountId = AccountId32::new([i as u8; 32]);
-            let balance: BalanceOf<Test> = i.into();
-            reward_data.insert(user.clone(), balance);
-            RewardAccured::<Test>::insert(user, balance);
-            i += 1;
-        }
-
-        //2, migrate first 30 items
-        assert_ok!(Loans::migrate_reward_data(Origin::signed(ALICE)));
-
-        //3, check
-        assert_eq!(RewardAccured::<Test>::iter().count(), 20);
-        assert_eq!(RewardAccrued::<Test>::iter().count(), 30);
-
-        //4, migrate last 20 items
-        assert_ok!(Loans::migrate_reward_data(Origin::signed(ALICE)));
-
-        //5, check
-        assert_eq!(RewardAccured::<Test>::iter().count(), 0);
-        assert_eq!(RewardAccrued::<Test>::iter().count(), 50);
-        for (account, reward_amount) in RewardAccrued::<Test>::iter() {
-            let target_reward_amount = reward_data.get(&account);
-            assert_eq!(target_reward_amount.unwrap().clone(), reward_amount);
-        }
-    })
-}

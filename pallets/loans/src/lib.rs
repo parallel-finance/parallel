@@ -47,7 +47,6 @@ use sp_runtime::{
     ArithmeticError, FixedPointNumber, FixedU128,
 };
 use sp_std::result::Result;
-use sp_std::vec::Vec;
 
 use sp_io::hashing::blake2_256;
 pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState, RewardMarketState};
@@ -427,13 +426,9 @@ pub mod pallet {
         ValueQuery,
     >;
 
-    #[pallet::storage]
-    #[pallet::getter(fn reward_accured)]
-    pub type RewardAccured<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
-
     /// The reward accrued but not yet transferred to each user.
     #[pallet::storage]
+    #[pallet::storage_prefix = "RewardAccured"]
     #[pallet::getter(fn reward_accrued)]
     pub type RewardAccrued<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
@@ -454,28 +449,6 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        ///Migrate reward data from RewardAccured to RewardAccrued
-        #[pallet::weight(T::WeightInfo::migrate_reward_data())]
-        #[transactional]
-        pub fn migrate_reward_data(_origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-            let mut remove_keys = Vec::new();
-            for (account_id, reward_amount) in RewardAccured::<T>::iter() {
-                if reward_amount > 0 {
-                    RewardAccrued::<T>::insert(account_id.clone(), reward_amount);
-                }
-                remove_keys.push(account_id);
-                if remove_keys.len() >= 30 {
-                    break;
-                }
-            }
-
-            for key in remove_keys.iter() {
-                RewardAccured::<T>::remove(key);
-            }
-
-            Ok(().into())
-        }
-
         /// Stores a new market and its related currency. Returns `Err` if a currency
         /// is not attached to an existent market.
         ///
