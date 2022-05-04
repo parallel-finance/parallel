@@ -20,7 +20,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::Encode;
 use frame_support::{
     pallet_prelude::*,
     traits::{
@@ -57,8 +57,19 @@ type AccountOf<T> = <T as frame_system::Config>::AccountId;
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum StreamStatus {
+    // stream has not finished yet
     Ongoing,
+    // stream is completed, remaining_balance should be zero
     Completed,
+}
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+pub enum StreamType {
+    // Stream was sent by an account
+    Send,
+    // Stream would be received by an account
+    Receive,
+    // Can expand Cancel, Lock and other states if needed
 }
 
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -178,21 +189,13 @@ pub mod pallet {
     pub type Streams<T: Config> = StorageMap<_, Blake2_128Concat, StreamId, Stream<T>, OptionQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn senders)]
-    pub type Senders<T: Config> = StorageMap<
+    #[pallet::getter(fn stream_library)]
+    pub type StreamLibrary<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
         T::AccountId,
-        BoundedVec<StreamId, T::MaxStreamsCount>,
-        OptionQuery,
-    >;
-
-    #[pallet::storage]
-    #[pallet::getter(fn recipients)]
-    pub type Recipients<T: Config> = StorageMap<
-        _,
         Blake2_128Concat,
-        T::AccountId,
+        StreamType,
         BoundedVec<StreamId, T::MaxStreamsCount>,
         OptionQuery,
     >;
@@ -274,10 +277,10 @@ pub mod pallet {
                     *r = Some(registry);
                     Ok(())
                 };
-            Senders::<T>::try_mutate(&sender.clone(), checked_push)?;
-            Recipients::<T>::try_mutate(&recipient.clone(), checked_push)?;
+            StreamLibrary::<T>::try_mutate(&sender.clone(), &StreamType::Send, checked_push)?;
+            StreamLibrary::<T>::try_mutate(&recipient.clone(), &StreamType::Receive, checked_push)?;
 
-            // transfer deposit from sender to global EOA
+            // Transfer deposit from sender to global EOA
             T::Assets::transfer(asset_id, &sender, &Self::account_id(), deposit, false)?;
             Self::deposit_event(Event::<T>::StreamCreated(
                 stream_id, sender, recipient, deposit, asset_id, start_time, stop_time,

@@ -219,7 +219,7 @@ fn cancel_stream_works_with_withdrawal() {
 }
 
 #[test]
-fn sends_and_recipients_should_works() {
+fn streams_library_should_works() {
     new_test_ext().execute_with(|| {
         let stream_id = NextStreamId::<Test>::get();
         assert_ok!(Streaming::create_stream(
@@ -231,11 +231,11 @@ fn sends_and_recipients_should_works() {
             10,
         ));
 
-        // senders and recipients should contains stream_id = 0
-        assert_ok!(Senders::<Test>::get(ALICE)
+        // StreamLibrary should contains stream_id = 0
+        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamType::Send)
             .unwrap()
             .binary_search(&stream_id));
-        assert_ok!(Recipients::<Test>::get(BOB)
+        assert_ok!(StreamLibrary::<Test>::get(BOB, StreamType::Receive)
             .unwrap()
             .binary_search(&stream_id));
 
@@ -258,10 +258,10 @@ fn sends_and_recipients_should_works() {
         assert!(stream.status == StreamStatus::Completed);
 
         // storage shouldn't be removed though stream completed
-        assert_ok!(Senders::<Test>::get(ALICE)
+        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamType::Send)
             .unwrap()
             .binary_search(&stream_id));
-        assert_ok!(Recipients::<Test>::get(BOB)
+        assert_ok!(StreamLibrary::<Test>::get(BOB, StreamType::Receive)
             .unwrap()
             .binary_search(&stream_id));
     })
