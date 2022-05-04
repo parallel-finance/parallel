@@ -44,16 +44,6 @@ fn market_mock<T: Config>() -> Market<BalanceOf<T>> {
     }
 }
 
-fn create_mock_reward_data<T: Config>() {
-    let mut i = 0;
-    while i < 30 {
-        let user = account::<T::AccountId>("mock_user", i, 0);
-        let balance: BalanceOf<T> = i.into();
-        RewardAccured::<T>::insert(user, balance);
-        i += 1;
-    }
-}
-
 fn pending_market_mock<T: Config>(ptoken_id: CurrencyId) -> Market<BalanceOf<T>> {
     let mut market = market_mock::<T>();
     market.state = MarketState::Pending;
@@ -412,11 +402,6 @@ benchmarks! {
     verify {
         assert_last_event::<T>(Event::<T>::ReservesReduced(caller, USDT, reduce_amount.into(), (add_amount-reduce_amount).into()).into());
     }
-
-    migrate_reward_data {
-        let caller: T::AccountId = whitelisted_caller();
-        create_mock_reward_data::<T>();
-    }: _(SystemOrigin::Signed(caller.clone()))
 }
 
 impl_benchmark_test_suite!(Loans, crate::mock::new_test_ext(), crate::mock::Test);
