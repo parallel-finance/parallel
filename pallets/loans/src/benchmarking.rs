@@ -168,7 +168,7 @@ benchmarks! {
     add_market {
     }: _(SystemOrigin::Root, SKSM, pending_market_mock::<T>(PSKSM))
     verify {
-        assert_last_event::<T>(Event::<T>::NewMarket(pending_market_mock::<T>(PSKSM)).into());
+        assert_last_event::<T>(Event::<T>::NewMarket(SKSM, pending_market_mock::<T>(PSKSM)).into());
     }
 
     activate_market {
@@ -184,7 +184,7 @@ benchmarks! {
     verify {
         let mut market = pending_market_mock::<T>(PUSDT);
         market.rate_model = RATE_MODEL_MOCK;
-        assert_last_event::<T>(Event::<T>::UpdatedMarket(market).into());
+        assert_last_event::<T>(Event::<T>::UpdatedMarket(USDT, market).into());
     }
 
     update_market {
@@ -205,14 +205,14 @@ benchmarks! {
         let mut market = pending_market_mock::<T>(PKSM);
         market.reserve_factor = Ratio::from_percent(50);
         market.close_factor = Ratio::from_percent(15);
-        assert_last_event::<T>(Event::<T>::UpdatedMarket(market).into());
+        assert_last_event::<T>(Event::<T>::UpdatedMarket(KSM, market).into());
     }
 
     force_update_market {
         assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), USDT, pending_market_mock::<T>(PUSDT)));
     }: _(SystemOrigin::Root,USDT, pending_market_mock::<T>(PUSDT))
     verify {
-        assert_last_event::<T>(Event::<T>::UpdatedMarket(pending_market_mock::<T>(PUSDT)).into());
+        assert_last_event::<T>(Event::<T>::UpdatedMarket(USDT, pending_market_mock::<T>(PUSDT)).into());
     }
 
     add_reward {

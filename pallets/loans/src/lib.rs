@@ -229,15 +229,15 @@ pub mod pallet {
         /// Event emitted when the reserves are added
         /// [admin, asset_id, added_amount, total_reserves]
         ReservesAdded(T::AccountId, AssetIdOf<T>, BalanceOf<T>, BalanceOf<T>),
-        /// New interest rate model is set
+        /// New market is set
         /// [new_interest_rate_model]
-        NewMarket(Market<BalanceOf<T>>),
+        NewMarket(AssetIdOf<T>, Market<BalanceOf<T>>),
         /// Event emitted when a market is activated
         /// [admin, asset_id]
         ActivatedMarket(AssetIdOf<T>),
-        /// Event emitted when a market is activated
+        /// New market parameters is updated
         /// [admin, asset_id]
-        UpdatedMarket(Market<BalanceOf<T>>),
+        UpdatedMarket(AssetIdOf<T>, Market<BalanceOf<T>>),
         /// Reward added
         RewardAdded(T::AccountId, BalanceOf<T>),
         /// Reward withdrawed
@@ -543,7 +543,7 @@ pub mod pallet {
             ExchangeRate::<T>::insert(asset_id, Rate::from_inner(MIN_EXCHANGE_RATE));
             BorrowIndex::<T>::insert(asset_id, Rate::one());
 
-            Self::deposit_event(Event::<T>::NewMarket(market));
+            Self::deposit_event(Event::<T>::NewMarket(asset_id, market));
             Ok(().into())
         }
 
@@ -588,7 +588,7 @@ pub mod pallet {
                 stored_market.rate_model = rate_model;
                 stored_market.clone()
             })?;
-            Self::deposit_event(Event::<T>::UpdatedMarket(market));
+            Self::deposit_event(Event::<T>::UpdatedMarket(asset_id, market));
 
             Ok(().into())
         }
@@ -647,7 +647,7 @@ pub mod pallet {
                 };
                 stored_market.clone()
             })?;
-            Self::deposit_event(Event::<T>::UpdatedMarket(market));
+            Self::deposit_event(Event::<T>::UpdatedMarket(asset_id, market));
 
             Ok(().into())
         }
@@ -681,7 +681,7 @@ pub mod pallet {
                 stored_market.clone()
             })?;
 
-            Self::deposit_event(Event::<T>::UpdatedMarket(updated_market));
+            Self::deposit_event(Event::<T>::UpdatedMarket(asset_id, updated_market));
             Ok(().into())
         }
 
