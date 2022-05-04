@@ -175,3 +175,20 @@ fn test_unstake_as_non_repeater() {
         );
     });
 }
+
+// TODO: Implement the followings
+#[test]
+fn test_slashing() {}
+
+#[test]
+fn test_slashing_errors() {}
+
+#[test]
+fn test_manager() {}
+
+#[test]
+fn test_reweard_scenarions() {
+    // Test for data contribution
+
+    // Test for reposting slashable  activities
+}

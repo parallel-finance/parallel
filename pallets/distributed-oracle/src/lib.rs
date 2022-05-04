@@ -345,6 +345,8 @@ pub mod pallet {
 
             StakingPool::<T>::insert(&who, &asset, oracle_stake_deposit);
 
+            // TODO: Implement rewards here!
+
             // manager has a coffer which stores balances and rounds
             // TODO: We might need to use mutate rather than inserting here
             let mut coffer = Self::get_manager(&Self::account_id()).unwrap_or_default();
