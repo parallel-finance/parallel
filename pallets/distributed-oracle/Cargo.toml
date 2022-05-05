@@ -52,7 +52,6 @@ std                = [
   'pallet-assets/std',
   'pallet-balances/std',
   'pallet-prices/std',
-  'pallet-assets/std',
   'pallet-timestamp/std',
 ]
 try-runtime        = ['frame-support/try-runtime']

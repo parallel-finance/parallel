@@ -517,7 +517,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             ensure!(
-                Self::staking_pool(who.clone(), T::StakingCurrency::get())
+                Self::staking_pool(who, T::StakingCurrency::get())
                     .unwrap_or_default()
                     .total
                     > T::MinUnstake::get(),
@@ -538,7 +538,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             ensure!(
-                Self::staking_pool(who.clone(), T::StakingCurrency::get())
+                Self::staking_pool(who, T::StakingCurrency::get())
                     .unwrap_or_default()
                     .total
                     > T::MinUnstake::get(),
