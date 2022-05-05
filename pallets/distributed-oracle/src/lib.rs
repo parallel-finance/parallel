@@ -45,7 +45,9 @@ use sp_std::prelude::*;
 #[cfg(test)]
 mod mock;
 
+#[cfg(test)]
 mod orml_tests;
+
 #[cfg(test)]
 mod tests;
 
