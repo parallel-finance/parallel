@@ -1839,7 +1839,7 @@ impl pallet_crowdloans::Config for Runtime {
 
 parameter_types! {
     pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
-    pub const MaxStreamsCount: u32 = 32;
+    pub const MaxStreamsCount: u32 = 128;
 }
 
 impl pallet_streaming::Config for Runtime {

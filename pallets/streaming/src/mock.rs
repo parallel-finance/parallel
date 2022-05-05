@@ -145,7 +145,7 @@ impl pallet_currency_adapter::Config for Test {
 
 parameter_types! {
     pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
-    pub const MaxStreamsCount: u32 = 32;
+    pub const MaxStreamsCount: u32 = 128;
 }
 
 impl Config for Test {
