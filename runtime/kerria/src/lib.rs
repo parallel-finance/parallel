@@ -25,7 +25,7 @@ use frame_support::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
         ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter,
-        Nothing, OnRuntimeUpgrade,
+        Nothing,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -144,10 +144,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("kerria"),
     impl_name: create_runtime_str!("kerria"),
     authoring_version: 1,
-    spec_version: 184,
-    impl_version: 29,
+    spec_version: 185,
+    impl_version: 30,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 13,
+    transaction_version: 14,
     state_version: 0,
 };
 
@@ -248,6 +248,8 @@ impl Contains<Call> for WhiteListFilter {
             Call::Utility(_) |
             Call::Proxy(_) |
             Call::Identity(_) |
+            Call::EmergencyShutdown(_) |
+            Call::XcmHelper(_) |
             // 3rd Party
             Call::Oracle(_) |
             Call::XTokens(_) |
@@ -1945,25 +1947,8 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    MoneyMarketMigrationV3,
+    (),
 >;
-
-pub struct MoneyMarketMigrationV3;
-impl OnRuntimeUpgrade for MoneyMarketMigrationV3 {
-    fn on_runtime_upgrade() -> frame_support::weights::Weight {
-        pallet_loans::migrations::v3::migrate::<Runtime>()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn pre_upgrade() -> Result<(), &'static str> {
-        pallet_loans::migrations::v3::pre_migrate::<Runtime>()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn post_upgrade() -> Result<(), &'static str> {
-        pallet_loans::migrations::v3::post_migrate::<Runtime>()
-    }
-}
 
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
