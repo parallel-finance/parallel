@@ -242,9 +242,6 @@ pub mod pallet {
                 Error::<T>::NoRoundsStartedYet
             );
 
-            // Gets Manager's Coffer
-            let coffer = Self::get_manager(&Self::account_id()).unwrap();
-
             StakingPool::<T>::mutate(
                 who.clone(),
                 asset,
@@ -337,7 +334,7 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(who)?;
-
+            let current_time_stamp = T::UnixTime::now().as_secs();
             // Only repeaters can stake
             ensure!(
                 Repeaters::<T>::contains_key(who.clone()),
@@ -365,16 +362,35 @@ pub mod pallet {
                 .checked_add(amount)
                 .ok_or(ArithmeticError::Underflow)?;
 
-            oracle_stake_deposit.timestamp = T::UnixTime::now().as_secs();
+            oracle_stake_deposit.timestamp = current_time_stamp.clone();
 
             oracle_stake_deposit.blocks_in_round = oracle_stake_deposit
                 .blocks_in_round
                 .checked_add(1u128)
                 .ok_or(ArithmeticError::Underflow)?;
 
-            StakingPool::<T>::insert(&who, &asset, oracle_stake_deposit);
+            // Rewards
+            // repeater.balance / staker_time_stamp * 100
+            Repeaters::<T>::mutate(who.clone(), |repeater| -> DispatchResultWithPostInfo {
+                let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidStaker)?;
 
-            // TODO: Implement rewards here!
+                repeater.staked_balance = oracle_stake_deposit.total;
+
+                let reward = repeater
+                    .staked_balance
+                    .checked_div(current_time_stamp.clone() as u128)
+                    .and_then(|r| r.checked_div(100_000_000u128))
+                    .ok_or(ArithmeticError::Underflow)?;
+
+                repeater.reward = repeater
+                    .reward
+                    .checked_add(reward)
+                    .ok_or(ArithmeticError::Underflow)?;
+
+                Ok(().into())
+            })?;
+
+            StakingPool::<T>::insert(&who, &asset, oracle_stake_deposit);
 
             // manager has a coffer which stores balances and rounds
             // TODO: We might need to use mutate rather than inserting here
@@ -475,12 +491,6 @@ pub mod pallet {
                             .balance
                             .checked_sub(amount)
                             .ok_or(ArithmeticError::Underflow)?;
-
-                        // TODO: Rounds not updated in Unstake?
-                        // coffer.blocks_in_round = coffer
-                        //     .blocks_in_round
-                        //     .checked_add(1u128)
-                        //     .ok_or(ArithmeticError::Underflow)?;
 
                         Ok(())
                     })?;

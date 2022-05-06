@@ -45,7 +45,7 @@ pub struct Relayer<T: Config> {
 pub struct Repeater {
     pub staked_balance: Balance,
     pub last_submission: Timestamp,
-    pub pending: Balance,
+    pub reward: Balance,
 }
 
 impl Default for Repeater {
@@ -53,7 +53,7 @@ impl Default for Repeater {
         Self {
             staked_balance: 0u128,
             last_submission: 0,
-            pending: 0u128,
+            reward: 0u128,
         }
     }
 }
