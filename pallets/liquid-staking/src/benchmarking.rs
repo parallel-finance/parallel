@@ -375,7 +375,7 @@ benchmarks! {
     verify {
         let reserve = ReserveFactor::<T>::get().mul_floor(STAKE_AMOUNT) - reduce_amount;
         assert_eq!(TotalReserves::<T>::get(), reserve);
-        // assert_last_event::<T>(Event::<T>::ReservesReduced(alice, reduce_amount.into()));
+        assert_last_event::<T>(Event::<T>::ReservesReduced(alice, reduce_amount.into()).into());
     }
 }
 
