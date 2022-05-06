@@ -114,6 +114,9 @@ pub mod pallet {
         /// Allowed staking currency
         #[pallet::constant]
         type StakingCurrency: Get<AssetIdOf<Self>>;
+
+        #[pallet::constant]
+        type MinSlashedTime: Get<u64>;
     }
 
     #[pallet::error]
@@ -124,40 +127,28 @@ pub mod pallet {
         InsufficientUnStakeAmount,
         /// Invalid Staking Currency
         InvalidStakingCurrency,
-
         /// Stake added successfully
         AddedStake,
-
         /// Stake removed successfully
         RemovedStake,
-
         /// Error removing stake insufficient balance
         ErrorRemovingStakeInsufficientBalance,
-
         /// Staking Account not found
         StakingAccountNotFound,
-
         /// Unstake Amount Exceeds Balance
         UnstakeAmoutExceedsStakedBalance,
-
         /// Tries to register an existing repeater
         RepeaterExists,
-
         /// Only a repeater can stake
         InvalidStaker,
-
         /// Only a repeater can unstake,
         InvalidUnstaker,
-
-        /// Account Grounded for bad behavior unabel to unstake
+        /// Account Grounded for bad behavior unable to unstake
         UnableToStakeOnPunishment,
-
         /// Coffer balance low :cry:
         InsufficientCofferBalance,
-
         /// No Coffer found for the repeater
         CofferMissing,
-
         /// No rounds yet, but someone called the manager ?
         NoRoundsStartedYet,
         /// Staked Amount Is Less than Min Stake Amount
@@ -173,16 +164,12 @@ pub mod pallet {
         Unstaked(T::AccountId, AssetIdOf<T>, BalanceOf<T>),
         /// Stake Account  Removed
         StakeAccountRemoved(T::AccountId, AssetIdOf<T>),
-
         /// Register Repeater
         RepeaterRegistered(T::AccountId),
-
         /// Slashed
         Slashed(T::AccountId),
-
         /// Slashed and Removed
         SlashedandsRemoved(T::AccountId),
-
         /// Set emergency price. \[asset_id, price_detail\]
         SetPrice(CurrencyId, Price),
         /// Reset emergency price. \[asset_id\]
@@ -236,8 +223,13 @@ pub mod pallet {
         /// Punish Slash !
         #[pallet::weight(T::WeightInfo::stake())]
         #[transactional]
-        pub fn slash(origin: OriginFor<T>, asset: AssetIdOf<T>) -> DispatchResultWithPostInfo {
+        pub fn slash_staking_pool(
+            origin: OriginFor<T>,
+            asset: AssetIdOf<T>,
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
+            let now = T::UnixTime::now().as_secs();
 
             // Cannot slash a non repeater
             ensure!(
@@ -261,24 +253,24 @@ pub mod pallet {
                         .as_mut()
                         .ok_or(Error::<T>::StakingAccountNotFound)?;
 
-                    // Checks the diff
-                    let round_diff = coffer
-                        .blocks_in_round
-                        .checked_sub(oracle_stake_deposit.blocks_in_round)
-                        .ok_or(ArithmeticError::Underflow)?;
+                    // Calculates time delta
+                    let time_delta = now
+                        .checked_sub(oracle_stake_deposit.timestamp)
+                        .ok_or(Error::<T>::StakingAccountNotFound)?;
 
-                    // TODO: This can be improved!
-                    // Slashing_amount = -> If (OracleDeposit.total / minimum_staking_amount) * missed_rounds >= OracleDeposit.total
-                    //    Then -> OracleDeposit.total - (OracleDeposit.total / minimum_staking_amount) * missed_rounds
+                    // Slash if the time diff is more than half an hour
+                    // slash_amount = (OracleDeposit.total / minimum_staking_amount) * missed_unix_time_stamp) / 100
+                    // If slash_amount >= OracleDeposit.total
+                    //    Then -> OracleDeposit.total - slash_amount
                     // Else
                     //    OracleDeposit.total -> 0
                     //    Remove Repeater
-
-                    if round_diff > 0 {
+                    if time_delta > T::MinSlashedTime::get() {
                         let slash_amount = oracle_stake_deposit
                             .total
                             .checked_div(T::MinStake::get())
-                            .and_then(|r| r.checked_mul(round_diff))
+                            .and_then(|r| r.checked_mul(time_delta as u128))
+                            .and_then(|r| r.checked_sub(100u128))
                             .ok_or(ArithmeticError::Underflow)?;
 
                         if slash_amount >= oracle_stake_deposit.total {
@@ -286,6 +278,7 @@ pub mod pallet {
                                 .total
                                 .checked_sub(slash_amount)
                                 .ok_or(ArithmeticError::Underflow)?;
+
                             Self::deposit_event(Event::<T>::Slashed(who.clone()));
 
                             log::trace!(

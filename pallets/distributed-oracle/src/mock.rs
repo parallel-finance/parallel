@@ -153,6 +153,7 @@ parameter_types! {
     pub const MinHoldTime: u128 = 10000_u128;
     pub const MinStake: u128 = 100_u128;
     pub const MinUnStake: u128 = 10_u128;
+    pub const MinSlashedTime: u64 = 1800_u64;
 }
 
 pub struct MockDataProvider;
@@ -235,6 +236,7 @@ impl Config for Test {
     type MinUnstake = MinUnStake;
     type MinHoldTime = MinHoldTime;
     type StakingCurrency = NativeCurrencyId;
+    type MinSlashedTime = MinSlashedTime;
 }
 
 pub fn dollar(d: u128) -> u128 {
