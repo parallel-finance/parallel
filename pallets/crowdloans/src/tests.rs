@@ -1,5 +1,6 @@
 use super::{types::*, *};
 use crate::mock::*;
+use crate::DEFAULT_PV_RATE;
 
 use codec::Encode;
 use frame_support::{
@@ -8,8 +9,9 @@ use frame_support::{
     traits::{Hooks, OneSessionHandler},
 };
 use frame_system::RawOrigin;
+use pallet_traits::ExchangeRateProvider;
 use polkadot_parachain::primitives::{HeadData, ValidationCode};
-use primitives::{tokens::DOT, BlockNumber, ParaId};
+use primitives::{tokens::DOT, BlockNumber, ParaId, Rate};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
     DispatchError,
@@ -1419,5 +1421,66 @@ fn withdraw_for_should_work() {
             vault.phase == VaultPhase::Failed,
             "Vault in incorrect state"
         );
+    });
+}
+
+#[test]
+fn get_ctoken_exchange_rate_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            Id(Crowdloans::account_id()),
+            true,
+            One::one(),
+        ));
+
+        assert_ok!(Crowdloans::create_vault(
+            Origin::signed(ALICE), // origin
+            crowdloan,             // crowdloan
+            ctoken,                // ctoken
+            LEASE_START,           // lease_start
+            LEASE_END,             // lease_end
+            contribution_strategy, // contribution_strategy
+            cap,                   // cap
+            end_block              // end_block
+        ));
+        //set as lease_start
+        sp_io::storage::set(&RELAY_BLOCK_KEY, &0_u32.encode());
+        assert_eq!(
+            Crowdloans::get_exchange_rate(&ctoken),
+            Some(DEFAULT_PV_RATE)
+        );
+
+        //set as (lease_start + 1)
+        sp_io::storage::set(
+            &RELAY_BLOCK_KEY,
+            &((LEASE_START + 1) * LeasePeriod::get()).encode(),
+        );
+        assert_eq!(
+            Crowdloans::get_exchange_rate(&ctoken),
+            Some(Rate::from_inner(475_000_000_000_000_000))
+        );
+
+        //set as (lease_end + 1)
+        sp_io::storage::set(
+            &RELAY_BLOCK_KEY,
+            &((LEASE_END + 1) * LeasePeriod::get()).encode(),
+        );
+        assert_eq!(Crowdloans::get_exchange_rate(&ctoken), Some(Rate::one()));
+
+        //set as (lease_end + 100)
+        sp_io::storage::set(
+            &RELAY_BLOCK_KEY,
+            &((LEASE_END + 100) * LeasePeriod::get()).encode(),
+        );
+        assert_eq!(Crowdloans::get_exchange_rate(&ctoken), Some(Rate::one()));
     });
 }

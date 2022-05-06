@@ -56,14 +56,18 @@ pub mod pallet {
     };
     use pallet_xcm::ensure_response;
     use primitives::{
-        ArithmeticKind, Balance, CurrencyId, LeasePeriod, ParaId, TrieIndex, VaultId,
+        ArithmeticKind, Balance, CurrencyId, LeasePeriod, ParaId, Rate, TrieIndex, VaultId,
     };
     use sp_runtime::{
-        traits::{AccountIdConversion, BlockNumberProvider, Hash, StaticLookup, Zero},
-        ArithmeticError, DispatchError,
+        traits::{
+            AccountIdConversion, BlockNumberProvider, Hash, One, Saturating, StaticLookup, Zero,
+        },
+        ArithmeticError, DispatchError, FixedPointNumber, SaturatedConversion,
     };
     use sp_std::{boxed::Box, vec::Vec};
     use xcm::latest::prelude::*;
+
+    use pallet_traits::{CTokenCurrenciesProvider, ExchangeRateProvider};
 
     use pallet_xcm_helper::XcmHelper;
 
@@ -72,6 +76,8 @@ pub mod pallet {
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
     pub type BalanceOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+
+    pub const DEFAULT_PV_RATE: Rate = Rate::from_inner(400_000_000_000_000_000); //40%
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -126,6 +132,9 @@ pub mod pallet {
 
         #[pallet::constant]
         type RemoveKeysLimit: Get<u32>; // default it to 1000
+
+        #[pallet::constant]
+        type LeasePeriod: Get<Self::BlockNumber>;
 
         /// The origin which can migrate pending contribution
         type MigrateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
@@ -317,6 +326,11 @@ pub mod pallet {
     >;
 
     #[pallet::storage]
+    #[pallet::getter(fn ctoken_vault_of)]
+    pub type CTokenVaultRegistry<T: Config> =
+        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, VaultId, OptionQuery>;
+
+    #[pallet::storage]
     #[pallet::getter(fn current_lease)]
     pub type LeasesRegistry<T: Config> =
         StorageMap<_, Blake2_128Concat, ParaId, (LeasePeriod, LeasePeriod), OptionQuery>;
@@ -411,6 +425,7 @@ pub mod pallet {
             NextTrieIndex::<T>::put(next_trie_index);
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), new_vault);
             CTokensRegistry::<T>::insert((&lease_start, &lease_end), ctoken);
+            CTokenVaultRegistry::<T>::insert(ctoken, (lease_start, lease_end));
             LeasesRegistry::<T>::insert(&crowdloan, (lease_start, lease_end));
 
             Self::deposit_event(Event::<T>::VaultCreated(
@@ -1558,6 +1573,42 @@ pub mod pallet {
             ));
 
             Ok(())
+        }
+    }
+
+    impl<T: Config> ExchangeRateProvider<AssetIdOf<T>> for Pallet<T> {
+        fn get_exchange_rate(asset_id: &AssetIdOf<T>) -> Option<Rate> {
+            Self::ctoken_vault_of(asset_id).and_then(|vault| {
+                let current_block = T::RelayChainBlockNumberProvider::current_block_number();
+                let lease_period = T::LeasePeriod::get();
+                let start_block = lease_period.saturating_mul(vault.0.into());
+                let end_block = lease_period.saturating_mul((vault.1 + 1).into());
+                let current_rate: Rate;
+                if current_block < start_block {
+                    current_rate = DEFAULT_PV_RATE;
+                } else if current_block >= start_block && current_block < end_block {
+                    current_rate = DEFAULT_PV_RATE.saturating_add(
+                        Rate::saturating_from_rational(
+                            current_block
+                                .saturating_sub(start_block)
+                                .saturated_into::<u32>(),
+                            lease_period
+                                .saturating_mul(T::BlockNumber::from(vault.1 - vault.0 + 1))
+                                .saturated_into::<u32>(),
+                        )
+                        .saturating_mul(Rate::one().saturating_sub(DEFAULT_PV_RATE)),
+                    );
+                } else {
+                    current_rate = Rate::one()
+                }
+                Some(current_rate)
+            })
+        }
+    }
+
+    impl<T: Config> CTokenCurrenciesProvider<AssetIdOf<T>> for Pallet<T> {
+        fn is_ctoken(asset_id: &AssetIdOf<T>) -> bool {
+            Self::ctoken_vault_of(asset_id).is_some()
         }
     }
 }

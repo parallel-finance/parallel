@@ -143,9 +143,9 @@ impl DataFeeder<CurrencyId, TimeStampedPrice, AccountId> for MockDataProvider {
 }
 
 pub struct LiquidStakingExchangeRateProvider;
-impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
-    fn get_exchange_rate() -> Rate {
-        Rate::saturating_from_rational(150, 100)
+impl ExchangeRateProvider<CurrencyId> for LiquidStakingExchangeRateProvider {
+    fn get_exchange_rate(_: &CurrencyId) -> Option<Rate> {
+        Some(Rate::saturating_from_rational(150, 100))
     }
 }
 
@@ -171,10 +171,28 @@ impl LiquidStakingCurrenciesProvider<CurrencyId> for LiquidStaking {
     }
 }
 
-impl ExchangeRateProvider for LiquidStaking {
-    fn get_exchange_rate() -> Rate {
-        Rate::saturating_from_rational(150, 100)
+impl ExchangeRateProvider<CurrencyId> for LiquidStaking {
+    fn get_exchange_rate(_: &CurrencyId) -> Option<Rate> {
+        Some(Rate::saturating_from_rational(150, 100))
     }
+}
+
+pub struct CTokenExchangeRateProvider;
+impl ExchangeRateProvider<CurrencyId> for CTokenExchangeRateProvider {
+    fn get_exchange_rate(_: &CurrencyId) -> Option<Rate> {
+        Some(Rate::saturating_from_rational(100, 150))
+    }
+}
+
+pub struct CTokenCurrencies;
+impl CTokenCurrenciesProvider<CurrencyId> for CTokenCurrencies {
+    fn is_ctoken(_ctoken: &CurrencyId) -> bool {
+        return false;
+    }
+}
+
+parameter_types! {
+    pub const RelayCurrency: CurrencyId = KSM;
 }
 
 impl pallet_prices::Config for Test {
@@ -183,6 +201,9 @@ impl pallet_prices::Config for Test {
     type FeederOrigin = EnsureRoot<AccountId>;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
+    type CTokenCurrenciesProvider = CTokenCurrencies;
+    type CTokenExchangeRateProvider = CTokenExchangeRateProvider;
+    type RelayCurrency = RelayCurrency;
     type Decimal = Decimal;
     type WeightInfo = ();
 }

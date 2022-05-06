@@ -175,7 +175,26 @@ fn get_liquid_price_work() {
 
         assert_eq!(
             Prices::get_price(&SKSM),
-            LiquidStakingExchangeRateProvider::get_exchange_rate()
+            LiquidStakingExchangeRateProvider::get_exchange_rate(&SKSM)
+                .unwrap()
+                .checked_mul_int(500 * 1_000_000 * PRICE_ONE)
+                .map(|i| (Price::from_inner(i), 0))
+        );
+    });
+}
+
+#[test]
+fn get_ctoken_price_work() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(
+            Prices::get_price(&KSM),
+            Some((Price::from_inner(500 * 1_000_000 * PRICE_ONE), 0))
+        );
+
+        assert_eq!(
+            Prices::get_price(&CKSM_20_27),
+            CTokenExchangeRateProvider::get_exchange_rate(&CKSM_20_27)
+                .unwrap()
                 .checked_mul_int(500 * 1_000_000 * PRICE_ONE)
                 .map(|i| (Price::from_inner(i), 0))
         );

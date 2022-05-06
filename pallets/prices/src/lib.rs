@@ -65,7 +65,18 @@ pub mod pallet {
 
         /// The provider of the exchange rate between liquid currency and
         /// staking currency.
-        type LiquidStakingExchangeRateProvider: ExchangeRateProvider;
+        type LiquidStakingExchangeRateProvider: ExchangeRateProvider<CurrencyId>;
+
+        /// CToken currency provider
+        type CTokenCurrenciesProvider: CTokenCurrenciesProvider<CurrencyId>;
+
+        /// The provider of the exchange rate between ctoken currency and
+        /// relay currency.
+        type CTokenExchangeRateProvider: ExchangeRateProvider<CurrencyId>;
+
+        /// Relay currency
+        #[pallet::constant]
+        type RelayCurrency: Get<CurrencyId>;
 
         /// Decimal provider.
         type Decimal: DecimalProvider<CurrencyId>;
@@ -166,17 +177,33 @@ impl<T: Config> PriceFeeder for Pallet<T> {
                             .checked_div(&FixedU128::from_inner(mantissa))
                             .and_then(|staking_currency_price| {
                                 staking_currency_price.checked_mul(
-                                    &T::LiquidStakingExchangeRateProvider::get_exchange_rate(),
+                                    &T::LiquidStakingExchangeRateProvider::get_exchange_rate(
+                                        &liquid_currency,
+                                    )
+                                    .unwrap_or(Rate::default()),
                                 )
                             })
                             .map(|price| (price, p.timestamp))
                     })
                 }
-                _ => T::Source::get(asset_id).and_then(|p| {
-                    p.value
-                        .checked_div(&FixedU128::from_inner(mantissa))
-                        .map(|price| (price, p.timestamp))
-                }),
+                _ => match T::CTokenCurrenciesProvider::is_ctoken(asset_id) {
+                    true => T::Source::get(&T::RelayCurrency::get()).and_then(|p| {
+                        p.value
+                            .checked_div(&FixedU128::from_inner(mantissa))
+                            .and_then(|relay_currency_price| {
+                                relay_currency_price.checked_mul(
+                                    &T::CTokenExchangeRateProvider::get_exchange_rate(asset_id)
+                                        .unwrap_or(Rate::default()),
+                                )
+                            })
+                            .map(|price| (price, p.timestamp))
+                    }),
+                    false => T::Source::get(asset_id).and_then(|p| {
+                        p.value
+                            .checked_div(&FixedU128::from_inner(mantissa))
+                            .map(|price| (price, p.timestamp))
+                    }),
+                },
             }
         })
     }
@@ -205,14 +232,32 @@ impl<T: Config> DataProviderExtended<CurrencyId, TimeStampedPrice> for Pallet<T>
             Some((staking_currency, liquid_currency)) if &liquid_currency == asset_id => {
                 T::Source::get_no_op(&staking_currency).and_then(|p| {
                     p.value
-                        .checked_mul(&T::LiquidStakingExchangeRateProvider::get_exchange_rate())
+                        .checked_mul(
+                            &T::LiquidStakingExchangeRateProvider::get_exchange_rate(
+                                &liquid_currency,
+                            )
+                            .unwrap_or(Rate::default()),
+                        )
                         .map(|price| TimeStampedPrice {
                             value: price,
                             timestamp: p.timestamp,
                         })
                 })
             }
-            _ => T::Source::get_no_op(asset_id),
+            _ => match T::CTokenCurrenciesProvider::is_ctoken(asset_id) {
+                true => T::Source::get_no_op(&T::RelayCurrency::get()).and_then(|p| {
+                    p.value
+                        .checked_mul(
+                            &T::CTokenExchangeRateProvider::get_exchange_rate(asset_id)
+                                .unwrap_or(Rate::default()),
+                        )
+                        .map(|price| TimeStampedPrice {
+                            value: price,
+                            timestamp: p.timestamp,
+                        })
+                }),
+                false => T::Source::get_no_op(asset_id),
+            },
         }
     }
 

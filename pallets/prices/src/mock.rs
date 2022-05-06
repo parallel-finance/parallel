@@ -20,7 +20,7 @@ use frame_system::EnsureSignedBy;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, FixedPointNumber};
 
-pub use primitives::tokens::{DOT, KSM, SDOT, SKSM};
+pub use primitives::tokens::{CKSM_20_27, DOT, KSM, SDOT, SKSM};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
@@ -91,9 +91,16 @@ impl DataFeeder<CurrencyId, TimeStampedPrice, AccountId> for MockDataProvider {
 }
 
 pub struct LiquidStakingExchangeRateProvider;
-impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
-    fn get_exchange_rate() -> Rate {
-        Rate::saturating_from_rational(150, 100)
+impl ExchangeRateProvider<CurrencyId> for LiquidStakingExchangeRateProvider {
+    fn get_exchange_rate(_: &CurrencyId) -> Option<Rate> {
+        Some(Rate::saturating_from_rational(150, 100))
+    }
+}
+
+pub struct CTokenExchangeRateProvider;
+impl ExchangeRateProvider<CurrencyId> for CTokenExchangeRateProvider {
+    fn get_exchange_rate(_: &CurrencyId) -> Option<Rate> {
+        Some(Rate::saturating_from_rational(100, 150))
     }
 }
 
@@ -108,6 +115,7 @@ impl DecimalProvider<CurrencyId> for Decimal {
         match *asset_id {
             DOT | SDOT => Some(10),
             KSM | SKSM => Some(12),
+            CKSM_20_27 => Some(12),
             _ => None,
         }
     }
@@ -123,12 +131,26 @@ impl LiquidStakingCurrenciesProvider<CurrencyId> for LiquidStaking {
     }
 }
 
+pub struct CTokenCurrencies;
+impl CTokenCurrenciesProvider<CurrencyId> for CTokenCurrencies {
+    fn is_ctoken(asset_id: &CurrencyId) -> bool {
+        asset_id == &CKSM_20_27
+    }
+}
+
+parameter_types! {
+    pub const RelayCurrency: CurrencyId = KSM;
+}
+
 impl crate::Config for Test {
     type Event = Event;
     type Source = MockDataProvider;
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
+    type CTokenCurrenciesProvider = CTokenCurrencies;
+    type CTokenExchangeRateProvider = CTokenExchangeRateProvider;
+    type RelayCurrency = RelayCurrency;
     type Decimal = Decimal;
     type WeightInfo = ();
 }

@@ -26,8 +26,8 @@ pub trait EmergencyPriceFeeder<CurrencyId, Price> {
     fn reset_emergency_price(asset_id: CurrencyId);
 }
 
-pub trait ExchangeRateProvider {
-    fn get_exchange_rate() -> Rate;
+pub trait ExchangeRateProvider<CurrencyId> {
+    fn get_exchange_rate(asset_id: &CurrencyId) -> Option<Rate>;
 }
 
 pub trait LiquidStakingConvert<Balance> {
@@ -38,6 +38,10 @@ pub trait LiquidStakingConvert<Balance> {
 pub trait LiquidStakingCurrenciesProvider<CurrencyId> {
     fn get_staking_currency() -> Option<CurrencyId>;
     fn get_liquid_currency() -> Option<CurrencyId>;
+}
+
+pub trait CTokenCurrenciesProvider<CurrencyId> {
+    fn is_ctoken(ctoken: &CurrencyId) -> bool;
 }
 
 /// Exported traits from our AMM pallet. These functions are to be used
