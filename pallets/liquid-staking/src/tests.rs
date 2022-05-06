@@ -928,7 +928,7 @@ fn reduce_reserves_works() {
         ));
         assert_eq!(LiquidStaking::total_reserves(), ksm(0.3f64));
 
-        // should faile if exceed the cap
+        // should failed if exceed the cap
         assert_noop!(
             LiquidStaking::reduce_reserves(Origin::root(), Id(ALICE), ksm(0.31f64)),
             Underflow
