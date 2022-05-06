@@ -1,8 +1,8 @@
 PARA_ID        											:= 2012
-CHAIN          											:= kerria-dev
+CHAIN          											:= vanilla-dev
 RELAY_CHAIN                         := polkadot-local
 CUMULUS_CHAIN     									:= statemint-dev
-RUNTIME        											:= kerria-runtime
+RUNTIME        											:= vanilla-runtime
 BLOCK_AT       											:= 0x0000000000000000000000000000000000000000000000000000000000000000
 URL            											:= ws://localhost:9948
 KEYSTORE_PATH  											:= keystore

@@ -298,4 +298,10 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 			.saturating_add(T::DbWeight::get().reads(25 as Weight))
 			.saturating_add(T::DbWeight::get().writes(12 as Weight))
 	}
+
+	fn reduce_reserves() -> Weight {
+		(84_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(7 as Weight))
+			.saturating_add(T::DbWeight::get().writes(5 as Weight))
+	}
 }
