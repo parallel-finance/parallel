@@ -364,6 +364,19 @@ benchmarks! {
         let bond_amount = STAKE_AMOUNT - xcm_fee - reserve - UNBOND_AMOUNT;
         assert_last_event::<T>(Event::<T>::Matching(bond_amount, UNBOND_AMOUNT, 0).into());
     }
+
+    reduce_reserves {
+        let alice: T::AccountId = account("Sample", 100, SEED);
+        let account_id = T::Lookup::unlookup(alice.clone());
+        let reduce_amount: u128 = 1000;
+        initial_set_up::<T>(alice.clone());
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
+    }: _(SystemOrigin::Root, account_id, reduce_amount)
+    verify {
+        let reserve = ReserveFactor::<T>::get().mul_floor(STAKE_AMOUNT) - reduce_amount;
+        assert_eq!(TotalReserves::<T>::get(), reserve);
+        assert_last_event::<T>(Event::<T>::ReservesReduced(alice, reduce_amount).into());
+    }
 }
 
 impl_benchmark_test_suite!(LiquidStaking, crate::mock::para_ext(1), crate::mock::Test);
