@@ -236,6 +236,9 @@ pub mod pallet {
         /// on relay chain
         /// [bond_amount, rebond_amount, unbond_amount]
         Matching(BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
+        /// Event emitted when the reserves are reduced
+        /// [receiver, reduced_amount]
+        ReservesReduced(T::AccountId, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -840,6 +843,37 @@ pub mod pallet {
                 *ledger = staking_ledger;
                 Ok(())
             })?;
+
+            Ok(().into())
+        }
+
+        /// Reduces reserves by transferring to receiver.
+        #[pallet::weight(<T as Config>::WeightInfo::reduce_reserves())]
+        #[transactional]
+        pub fn reduce_reserves(
+            origin: OriginFor<T>,
+            receiver: <T::Lookup as StaticLookup>::Source,
+            #[pallet::compact] reduce_amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            let receiver = T::Lookup::lookup(receiver)?;
+
+            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b
+                    .checked_sub(reduce_amount)
+                    .ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+
+            T::Assets::transfer(
+                Self::staking_currency()?,
+                &Self::account_id(),
+                &receiver,
+                reduce_amount,
+                false,
+            )?;
+
+            Self::deposit_event(Event::<T>::ReservesReduced(receiver, reduce_amount));
 
             Ok(().into())
         }
