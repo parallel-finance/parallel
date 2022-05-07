@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # Stream pallet
+//! # Streaming pallet
 //!
 //! ## Overview
 //!
@@ -112,7 +112,8 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Creates a payment stream. \[stream_id, sender, recipient, deposit, asset_id, start_time, stop_time\]
+        /// Creates a payment stream.
+        /// \[stream_id, sender, recipient, deposit, asset_id, start_time, stop_time\]
         StreamCreated(
             StreamId,
             AccountOf<T>,
@@ -122,9 +123,11 @@ pub mod pallet {
             Timestamp,
             Timestamp,
         ),
-        /// Withdraw payment from stream. \[stream_id, recipient, asset_id, amount\]
+        /// Withdraw payment from stream.
+        /// \[stream_id, recipient, asset_id, amount\]
         StreamWithdrawn(StreamId, AccountOf<T>, AssetIdOf<T>, BalanceOf<T>),
-        /// Cancel an existing stream. \[stream_id, sender, recipient, sender_balance, recipient_balance]
+        /// Cancel an existing stream.
+        /// \[stream_id, sender, recipient, sender_balance, recipient_balance]
         StreamCanceled(
             StreamId,
             AccountOf<T>,
@@ -134,6 +137,7 @@ pub mod pallet {
             BalanceOf<T>,
         ),
         /// Set minimum deposit for creating a stream
+        /// \[asset_id, minimum_deposit\]
         MinimumDepositSet(AssetIdOf<T>, BalanceOf<T>),
     }
 
@@ -147,6 +151,8 @@ pub mod pallet {
     #[pallet::getter(fn get_stream)]
     pub type Streams<T: Config> = StorageMap<_, Blake2_128Concat, StreamId, Stream<T>, OptionQuery>;
 
+    /// Streaming holds by account
+    /// account_id => stream_kind => stream_id
     #[pallet::storage]
     #[pallet::getter(fn stream_library)]
     pub type StreamLibrary<T: Config> = StorageDoubleMap<
