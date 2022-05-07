@@ -33,7 +33,7 @@ use frame_system::pallet_prelude::*;
 pub use pallet::*;
 use primitives::*;
 use sp_runtime::{
-    traits::{AccountIdConversion, One, Zero},
+    traits::{AccountIdConversion, One},
     ArithmeticError, DispatchError,
 };
 use sp_std::prelude::*;
@@ -151,7 +151,7 @@ pub mod pallet {
     #[pallet::getter(fn get_stream)]
     pub type Streams<T: Config> = StorageMap<_, Blake2_128Concat, StreamId, Stream<T>, OptionQuery>;
 
-    /// Streaming holds by account
+    /// Streams holds by each account
     /// account_id => stream_kind => stream_id
     #[pallet::storage]
     #[pallet::getter(fn stream_library)]
@@ -254,8 +254,8 @@ pub mod pallet {
                     *r = Some(registry);
                     Ok(())
                 };
-            StreamLibrary::<T>::try_mutate(&sender.clone(), &StreamKind::Send, checked_push)?;
-            StreamLibrary::<T>::try_mutate(&recipient.clone(), &StreamKind::Receive, checked_push)?;
+            StreamLibrary::<T>::try_mutate(&sender, &StreamKind::Send, checked_push)?;
+            StreamLibrary::<T>::try_mutate(&recipient, &StreamKind::Receive, checked_push)?;
 
             Self::deposit_event(Event::<T>::StreamCreated(
                 stream_id, sender, recipient, deposit, asset_id, start_time, stop_time,
@@ -280,8 +280,8 @@ pub mod pallet {
             ensure!(sender == stream.sender, Error::<T>::NotTheStreamer);
 
             // calculate the balance to return
-            let sender_balance = Self::balance_of(&stream, &sender)?;
-            let recipient_balance = Self::balance_of(&stream, &stream.recipient)?;
+            let sender_balance = stream.balance_of(&sender)?;
+            let recipient_balance = stream.balance_of(&stream.recipient)?;
 
             // return funds back to sender and recipient
             T::Assets::transfer(
@@ -336,7 +336,7 @@ pub mod pallet {
             );
             ensure!(sender == stream.recipient, Error::<T>::NotTheRecipient);
 
-            let balance = Self::balance_of(&stream, &stream.recipient)?;
+            let balance = stream.balance_of(&stream.recipient)?;
             ensure!(balance >= amount, Error::<T>::LowRemainingBalance);
             stream.try_deduct(amount)?;
             stream.try_complete()?;
@@ -379,67 +379,5 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> AccountOf<T> {
         T::PalletId::get().into_account()
-    }
-
-    pub fn delta_of(stream: &Stream<T>) -> Result<u64, DispatchError> {
-        let now = T::UnixTime::now().as_secs();
-        if now <= stream.start_time {
-            Ok(Zero::zero())
-        } else if now < stream.stop_time {
-            now.checked_sub(stream.start_time)
-                .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow))
-        } else {
-            stream
-                .stop_time
-                .checked_sub(stream.start_time)
-                .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow))
-        }
-    }
-
-    // Measure balance of streaming with rate per sec
-    pub fn balance_of(
-        stream: &Stream<T>,
-        who: &AccountOf<T>,
-    ) -> Result<BalanceOf<T>, DispatchError> {
-        let delta = Self::delta_of(stream)? as BalanceOf<T>;
-
-        /*
-         * If the stream `balance` does not equal `deposit`, it means there have been withdrawals.
-         * We have to subtract the total amount withdrawn from the amount of money that has been
-         * streamed until now.
-         */
-        let recipient_balance = if stream.deposit > stream.remaining_balance {
-            let withdrawal_amount = stream
-                .deposit
-                .checked_sub(stream.remaining_balance)
-                .ok_or(ArithmeticError::Underflow)?;
-            let recipient_balance = delta
-                .checked_mul(stream.rate_per_sec)
-                .ok_or(ArithmeticError::Overflow)?;
-            recipient_balance
-                .checked_sub(withdrawal_amount)
-                .ok_or(ArithmeticError::Underflow)?
-        } else {
-            delta
-                .checked_mul(stream.rate_per_sec)
-                .ok_or(ArithmeticError::Overflow)?
-        };
-
-        if *who == stream.recipient {
-            if delta == (stream.stop_time - stream.start_time).into() {
-                Ok(stream.remaining_balance)
-            } else {
-                Ok(recipient_balance)
-            }
-        } else if *who == stream.sender {
-            let _recipient_balance = &recipient_balance;
-            let sender_balance = stream
-                .remaining_balance
-                .checked_sub(*_recipient_balance)
-                .ok_or(ArithmeticError::Underflow)?;
-            Ok(sender_balance)
-        } else {
-            Ok(Zero::zero())
-        }
     }
 }

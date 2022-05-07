@@ -98,7 +98,7 @@ fn withdraw_from_stream_works() {
         TimestampPallet::set_timestamp(7000);
 
         let stream = Streams::<Test>::get(0).unwrap();
-        assert_eq!(Streaming::delta_of(&stream), Ok(1));
+        assert_eq!(stream.delta_of(), Ok(1));
         // Bob withdraws some
         assert_ok!(Streaming::withdraw_from_stream(
             Origin::signed(BOB),
@@ -153,7 +153,7 @@ fn withdraw_from_with_slower_rate_works() {
                                                // check if 12 second has passed
         let stream = Streams::<Test>::get(0).unwrap();
         // delta of should only increase until stop_time
-        assert_eq!(Streaming::delta_of(&stream), Ok(12));
+        assert_eq!(stream.delta_of(), Ok(12));
         // Bob withdraws some
         assert_ok!(Streaming::withdraw_from_stream(
             Origin::signed(BOB),
@@ -188,7 +188,7 @@ fn cancel_stream_works_with_withdrawal() {
         TimestampPallet::set_timestamp(7000); // 6000(init) + 1000(second)
                                               // check if 1 second has passed
         let mut stream = Streams::<Test>::get(0).unwrap();
-        assert_eq!(Streaming::delta_of(&stream), Ok(1));
+        assert_eq!(stream.delta_of(), Ok(1));
         // Bob withdraws some
         assert_ok!(Streaming::withdraw_from_stream(
             Origin::signed(BOB),
@@ -196,7 +196,7 @@ fn cancel_stream_works_with_withdrawal() {
             dollar(25)
         ));
         stream = Streams::<Test>::get(0).unwrap();
-        assert_eq!(Streaming::balance_of(&stream, &BOB).unwrap(), dollar(0));
+        assert_eq!(stream.balance_of(&BOB).unwrap(), dollar(0));
         // Time passes for 1 second
         TimestampPallet::set_timestamp(8000); // 7000(before) + 1000(second)
                                               // Alice cancels existing stream sent to bob
