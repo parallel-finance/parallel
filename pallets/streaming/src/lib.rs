@@ -254,8 +254,8 @@ pub mod pallet {
                     *r = Some(registry);
                     Ok(())
                 };
-            StreamLibrary::<T>::try_mutate(&sender.clone(), &StreamKind::Send, checked_push)?;
-            StreamLibrary::<T>::try_mutate(&recipient.clone(), &StreamKind::Receive, checked_push)?;
+            StreamLibrary::<T>::try_mutate(&sender, &StreamKind::Send, checked_push)?;
+            StreamLibrary::<T>::try_mutate(&recipient, &StreamKind::Receive, checked_push)?;
 
             Self::deposit_event(Event::<T>::StreamCreated(
                 stream_id, sender, recipient, deposit, asset_id, start_time, stop_time,
