@@ -24,7 +24,7 @@ pub enum StreamKind {
     Receive,
     // Stream was `Cancelled` or `Completed`
     Finish,
-    // Can expand Lock and other statuss if needed
+    // Can expand Lock and other status if needed
 }
 
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
