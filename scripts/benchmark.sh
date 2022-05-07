@@ -30,6 +30,7 @@ pallets=(
   pallet_farming
   pallet_loans
   pallet_xcm_helper
+  pallet_streaming
 )
 
 for p in ${pallets[@]}

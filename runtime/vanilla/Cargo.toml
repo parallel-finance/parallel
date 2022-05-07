@@ -140,6 +140,7 @@ runtime-benchmarks = [
   'pallet-crowdloans/runtime-benchmarks',
   'pallet-xcm-helper/runtime-benchmarks',
   'pallet-stableswap/runtime-benchmarks',
+  'pallet-streaming/runtime-benchmarks',
 ]
 std                = [
   'codec/std',
