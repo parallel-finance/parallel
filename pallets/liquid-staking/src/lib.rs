@@ -41,6 +41,7 @@ pub mod distribution;
 pub mod migrations;
 pub mod types;
 pub mod weights;
+pub use weights::WeightInfo;
 
 #[macro_use]
 extern crate primitives;
@@ -82,7 +83,7 @@ pub mod pallet {
     use pallet_xcm_helper::XcmHelper;
     use primitives::{Balance, CurrencyId, DerivativeIndex, EraIndex, ParaId, Rate, Ratio};
 
-    use super::{types::*, weights::WeightInfo, *};
+    use super::{types::*, *};
 
     pub const MAX_UNLOCKING_CHUNKS: usize = 32;
 
@@ -235,6 +236,9 @@ pub mod pallet {
         /// on relay chain
         /// [bond_amount, rebond_amount, unbond_amount]
         Matching(BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
+        /// Event emitted when the reserves are reduced
+        /// [receiver, reduced_amount]
+        ReservesReduced(T::AccountId, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -842,6 +846,37 @@ pub mod pallet {
 
             Ok(().into())
         }
+
+        /// Reduces reserves by transferring to receiver.
+        #[pallet::weight(<T as Config>::WeightInfo::reduce_reserves())]
+        #[transactional]
+        pub fn reduce_reserves(
+            origin: OriginFor<T>,
+            receiver: <T::Lookup as StaticLookup>::Source,
+            #[pallet::compact] reduce_amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            let receiver = T::Lookup::lookup(receiver)?;
+
+            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b
+                    .checked_sub(reduce_amount)
+                    .ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+
+            T::Assets::transfer(
+                Self::staking_currency()?,
+                &Self::account_id(),
+                &receiver,
+                reduce_amount,
+                false,
+            )?;
+
+            Self::deposit_event(Event::<T>::ReservesReduced(receiver, reduce_amount));
+
+            Ok(().into())
+        }
     }
 
     #[pallet::hooks]
@@ -959,6 +994,12 @@ pub mod pallet {
         fn get_total_bonded() -> BalanceOf<T> {
             StakingLedgers::<T>::iter_values()
                 .fold(Zero::zero(), |acc, ledger| acc.saturating_add(ledger.total))
+        }
+
+        fn get_total_active_bonded() -> BalanceOf<T> {
+            StakingLedgers::<T>::iter_values().fold(Zero::zero(), |acc, ledger| {
+                acc.saturating_add(ledger.active)
+            })
         }
 
         fn get_market_cap() -> BalanceOf<T> {
@@ -1264,10 +1305,17 @@ pub mod pallet {
                 return Ok(());
             }
 
-            let amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
-                .iter()
-                .map(|&index| (index, Self::total_bonded_of(index)))
-                .collect();
+            let amounts: Vec<(DerivativeIndex, BalanceOf<T>, BalanceOf<T>)> =
+                T::DerivativeIndexList::get()
+                    .iter()
+                    .map(|&index| {
+                        (
+                            index,
+                            Self::active_bonded_of(index),
+                            Self::total_bonded_of(index),
+                        )
+                    })
+                    .collect();
             let distributions = T::DistributionStrategy::get_bond_distributions(
                 amounts,
                 total_amount,
@@ -1435,13 +1483,13 @@ pub mod pallet {
         #[require_transactional]
         fn do_update_exchange_rate() -> DispatchResult {
             let matching_ledger = Self::matching_pool();
-            let total_bonded = Self::get_total_bonded();
+            let total_active_bonded = Self::get_total_active_bonded();
             let issuance = T::Assets::total_issuance(Self::liquid_currency()?);
             if issuance.is_zero() {
                 return Ok(());
             }
             let new_exchange_rate = Rate::checked_from_rational(
-                total_bonded
+                total_active_bonded
                     .checked_add(matching_ledger.total_stake_amount.total)
                     .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount.total))
                     .ok_or(ArithmeticError::Overflow)?,

@@ -144,10 +144,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 184,
-    impl_version: 29,
+    spec_version: 185,
+    impl_version: 30,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 13,
+    transaction_version: 14,
     state_version: 0,
 };
 
@@ -248,6 +248,8 @@ impl Contains<Call> for WhiteListFilter {
             Call::Utility(_) |
             Call::Proxy(_) |
             Call::Identity(_) |
+            Call::EmergencyShutdown(_) |
+            Call::XcmHelper(_) |
             // 3rd Party
             Call::Oracle(_) |
             Call::XTokens(_) |
@@ -610,7 +612,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type WeightInfo = ();
+    type WeightInfo = weights::pallet_liquid_staking::WeightInfo<Runtime>;
     type SelfParaId = ParachainInfo;
     type Assets = Assets;
     type StakingCurrency = StakingCurrency;
@@ -1906,7 +1908,7 @@ impl pallet_router::Config for Runtime {
     type Event = Event;
     type PalletId = RouterPalletId;
     type AMM = AMM;
-    type AMMRouterWeightInfo = pallet_router::weights::SubstrateWeight<Runtime>;
+    type AMMRouterWeightInfo = weights::pallet_router::WeightInfo<Runtime>;
     type MaxLengthRoute = MaxLengthRoute;
     type Assets = CurrencyAdapter;
 }

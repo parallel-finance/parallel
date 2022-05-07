@@ -26,7 +26,7 @@ use frame_support::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
         ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter,
-        Nothing, OnRuntimeUpgrade,
+        Nothing,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -148,10 +148,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 184,
-    impl_version: 29,
+    spec_version: 185,
+    impl_version: 30,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 13,
+    transaction_version: 14,
     state_version: 0,
 };
 
@@ -253,6 +253,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Proxy(_) |
             Call::Identity(_) |
             Call::EmergencyShutdown(_) |
+            Call::XcmHelper(_) |
             // 3rd Party
             Call::Vesting(_) |
             Call::Oracle(_) |
@@ -595,7 +596,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type Origin = Origin;
     type Call = Call;
     type PalletId = StakingPalletId;
-    type WeightInfo = ();
+    type WeightInfo = weights::pallet_liquid_staking::WeightInfo<Runtime>;
     type SelfParaId = ParachainInfo;
     type Assets = Assets;
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -1816,7 +1817,7 @@ impl pallet_router::Config for Runtime {
     type Event = Event;
     type PalletId = RouterPalletId;
     type AMM = AMM;
-    type AMMRouterWeightInfo = pallet_router::weights::SubstrateWeight<Runtime>;
+    type AMMRouterWeightInfo = weights::pallet_router::WeightInfo<Runtime>;
     type MaxLengthRoute = MaxLengthRoute;
     type Assets = CurrencyAdapter;
 }
@@ -1969,66 +1970,8 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (
-        CrowdloansMigrationV2,
-        LiquidStakingMigrationV3,
-        MoneyMarketMigrationV3,
-    ),
+    (),
 >;
-
-pub struct MoneyMarketMigrationV3;
-impl OnRuntimeUpgrade for MoneyMarketMigrationV3 {
-    fn on_runtime_upgrade() -> frame_support::weights::Weight {
-        pallet_loans::migrations::v3::migrate::<Runtime>()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn pre_upgrade() -> Result<(), &'static str> {
-        pallet_loans::migrations::v3::pre_migrate::<Runtime>()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn post_upgrade() -> Result<(), &'static str> {
-        pallet_loans::migrations::v3::post_migrate::<Runtime>()
-    }
-}
-
-// Migration for liquid staking pallet to add multiple ledgers support
-pub struct LiquidStakingMigrationV3;
-
-impl OnRuntimeUpgrade for LiquidStakingMigrationV3 {
-    fn on_runtime_upgrade() -> frame_support::weights::Weight {
-        pallet_liquid_staking::migrations::v3::migrate::<Runtime>()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn pre_upgrade() -> Result<(), &'static str> {
-        pallet_liquid_staking::migrations::v3::pre_migrate::<Runtime>()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn post_upgrade() -> Result<(), &'static str> {
-        pallet_liquid_staking::migrations::v3::post_migrate::<Runtime>()
-    }
-}
-
-pub struct CrowdloansMigrationV2;
-
-impl OnRuntimeUpgrade for CrowdloansMigrationV2 {
-    fn on_runtime_upgrade() -> frame_support::weights::Weight {
-        pallet_crowdloans::migrations::v2::migrate::<Runtime>()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn pre_upgrade() -> Result<(), &'static str> {
-        pallet_crowdloans::migrations::v2::pre_migrate::<Runtime>()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn post_upgrade() -> Result<(), &'static str> {
-        pallet_crowdloans::migrations::v2::post_migrate::<Runtime>()
-    }
-}
 
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {

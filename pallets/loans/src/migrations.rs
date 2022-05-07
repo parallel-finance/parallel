@@ -49,6 +49,10 @@ pub mod v3 {
         (Blake2_128Concat, AssetIdOf<T>),
         BalanceOf<T>
     >);
+    frame_support::generate_storage_alias!(Loans, RewardAccured<T: Config> => Map<
+        (Blake2_128Concat, T::AccountId),
+        BalanceOf<T>
+    >);
     frame_support::generate_storage_alias!(Loans, LastAccruedTimestamp => Value<Timestamp, ValueQuery>);
 
     #[cfg(feature = "try-runtime")]
@@ -74,6 +78,14 @@ pub mod v3 {
         log::info!(
             "LastAccruedTimestamp: {:#?} is about to move.",
             last_accrued_timestamp
+        );
+
+        let old_name_items_count = RewardAccured::<T>::iter().count();
+        let new_name_items_count = RewardAccrued::<T>::iter().count();
+        log::info!(
+            "old_name_items_count: {:#?}, new_name_items_count: {:#?}.",
+            old_name_items_count,
+            new_name_items_count,
         );
 
         log::info!("👜 loans v3 migration passes PRE migrate checks ✅",);
@@ -157,6 +169,14 @@ pub mod v3 {
         log::info!(
             "LastAccruedTimestamp: {:#?} after migrate.",
             last_accrued_timestamp
+        );
+
+        let old_name_items_count = RewardAccured::<T>::iter().count();
+        let new_name_items_count = RewardAccrued::<T>::iter().count();
+        log::info!(
+            "old_name_items_count: {:#?}, new_name_items_count: {:#?}.",
+            old_name_items_count,
+            new_name_items_count,
         );
 
         log::info!("👜 loans v3 migration passes POST migrate checks ✅",);

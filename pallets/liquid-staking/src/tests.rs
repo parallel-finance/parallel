@@ -4,6 +4,7 @@ use frame_support::{
 };
 use sp_runtime::{
     traits::{BlakeTwo256, One, Zero},
+    ArithmeticError::Underflow,
     MultiAddress::Id,
     TransactionOutcome,
 };
@@ -910,5 +911,27 @@ fn test_verify_merkle_proof_work() {
             value,
             get_mock_proof_bytes()
         ));
+    })
+}
+
+#[test]
+fn reduce_reserves_works() {
+    new_test_ext().execute_with(|| {
+        // Stake 1000 KSM, 0.5% for reserves
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(100f64)));
+        assert_eq!(LiquidStaking::total_reserves(), ksm(0.5f64));
+        // Reduce 20 KSM reserves
+        assert_ok!(LiquidStaking::reduce_reserves(
+            Origin::root(),
+            Id(ALICE),
+            ksm(0.2f64)
+        ));
+        assert_eq!(LiquidStaking::total_reserves(), ksm(0.3f64));
+
+        // should failed if exceed the cap
+        assert_noop!(
+            LiquidStaking::reduce_reserves(Origin::root(), Id(ALICE), ksm(0.31f64)),
+            Underflow
+        );
     })
 }

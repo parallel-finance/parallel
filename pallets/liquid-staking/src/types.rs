@@ -164,19 +164,22 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
     }
 
     fn clear(&mut self) -> DispatchResult {
-        if !self.total_stake_amount.reserved.is_zero()
-            || !self.total_unstake_amount.reserved.is_zero()
-        {
+        let total_free_stake_amount = self.total_stake_amount.free()?;
+        let total_free_unstake_amount = self.total_unstake_amount.free()?;
+        if total_free_stake_amount != total_free_unstake_amount {
             return Ok(());
         }
 
-        if self.total_stake_amount.total != self.total_unstake_amount.total {
-            return Ok(());
-        }
-
-        self.total_stake_amount.total = Zero::zero();
-        self.total_unstake_amount.total = Zero::zero();
-
+        self.total_stake_amount.total = self
+            .total_stake_amount
+            .total
+            .checked_sub(&total_free_stake_amount)
+            .ok_or(ArithmeticError::Underflow)?;
+        self.total_unstake_amount.total = self
+            .total_unstake_amount
+            .total
+            .checked_sub(&total_free_stake_amount)
+            .ok_or(ArithmeticError::Underflow)?;
         Ok(())
     }
 }

@@ -147,7 +147,6 @@ pub mod pallet {
     #[pallet::getter(fn get_stream)]
     pub type Streams<T: Config> = StorageMap<_, Blake2_128Concat, StreamId, Stream<T>, OptionQuery>;
 
-    /// Storage
     #[pallet::storage]
     #[pallet::getter(fn stream_library)]
     pub type StreamLibrary<T: Config> = StorageDoubleMap<

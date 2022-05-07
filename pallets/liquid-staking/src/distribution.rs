@@ -7,23 +7,23 @@ use sp_std::vec::Vec;
 pub struct AverageDistribution;
 impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for AverageDistribution {
     fn get_bond_distributions(
-        total_bonded_amounts: Vec<(DerivativeIndex, Balance)>,
+        bonded_amounts: Vec<(DerivativeIndex, Balance, Balance)>,
         input: Balance,
         cap: Balance,
         min_nominator_bond: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
-        let length = TryInto::<Balance>::try_into(total_bonded_amounts.len()).unwrap_or_default();
+        let length = TryInto::<Balance>::try_into(bonded_amounts.len()).unwrap_or_default();
         if length.is_zero() {
             return Default::default();
         }
 
         let mut distributions: Vec<(DerivativeIndex, Balance)> = vec![];
         let amount = input.checked_div(&length).unwrap_or_default();
-        for (index, bonded) in total_bonded_amounts.into_iter() {
-            if amount.saturating_add(bonded) < min_nominator_bond {
+        for (index, active_bonded, total_bonded) in bonded_amounts.into_iter() {
+            if amount.saturating_add(active_bonded) < min_nominator_bond {
                 continue;
             }
-            let amount = cap.saturating_sub(bonded).min(amount);
+            let amount = cap.saturating_sub(total_bonded).min(amount);
             if amount.is_zero() {
                 continue;
             }
@@ -84,29 +84,29 @@ impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for Av
 pub struct MaxMinDistribution;
 impl<Balance: BalanceT + FixedPointOperand> DistributionStrategy<Balance> for MaxMinDistribution {
     fn get_bond_distributions(
-        mut total_bonded_amounts: Vec<(DerivativeIndex, Balance)>,
+        mut bonded_amounts: Vec<(DerivativeIndex, Balance, Balance)>,
         input: Balance,
         cap: Balance,
         min_nominator_bond: Balance,
     ) -> Vec<(DerivativeIndex, Balance)> {
         // ascending sequence
-        total_bonded_amounts.sort_by(|a, b| a.1.cmp(&b.1));
+        bonded_amounts.sort_by(|a, b| a.1.cmp(&b.1));
 
         let mut distributions: Vec<(DerivativeIndex, Balance)> = vec![];
         let mut remain = input;
 
-        for (index, bonded) in total_bonded_amounts.into_iter() {
+        for (index, active_bonded, total_bonded) in bonded_amounts.into_iter() {
             if remain.is_zero() {
                 break;
             }
-            let amount = cap.saturating_sub(bonded).min(remain);
+            let amount = cap.saturating_sub(total_bonded).min(remain);
             if amount.is_zero() {
                 // `bonding_amounts` is an ascending sequence
                 // if occurs an item that exceed the cap, the items after this one must all be exceeded
                 break;
             }
 
-            if amount.saturating_add(bonded) < min_nominator_bond {
+            if amount.saturating_add(active_bonded) < min_nominator_bond {
                 continue;
             }
 

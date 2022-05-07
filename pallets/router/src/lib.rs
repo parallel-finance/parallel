@@ -28,10 +28,11 @@ mod mock;
 mod tests;
 
 pub mod weights;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use crate::weights::WeightInfo;
+    use super::*;
     use frame_support::{
         ensure, log,
         pallet_prelude::{DispatchResult, DispatchResultWithPostInfo},

@@ -44,16 +44,6 @@ fn market_mock<T: Config>() -> Market<BalanceOf<T>> {
     }
 }
 
-fn create_mock_reward_data<T: Config>() {
-    let mut i = 0;
-    while i < 30 {
-        let user = account::<T::AccountId>("mock_user", i, 0);
-        let balance: BalanceOf<T> = i.into();
-        RewardAccured::<T>::insert(user, balance);
-        i += 1;
-    }
-}
-
 fn pending_market_mock<T: Config>(ptoken_id: CurrencyId) -> Market<BalanceOf<T>> {
     let mut market = market_mock::<T>();
     market.state = MarketState::Pending;
@@ -168,7 +158,7 @@ benchmarks! {
     add_market {
     }: _(SystemOrigin::Root, SKSM, pending_market_mock::<T>(PSKSM))
     verify {
-        assert_last_event::<T>(Event::<T>::NewMarket(pending_market_mock::<T>(PSKSM)).into());
+        assert_last_event::<T>(Event::<T>::NewMarket(SKSM, pending_market_mock::<T>(PSKSM)).into());
     }
 
     activate_market {
@@ -184,7 +174,7 @@ benchmarks! {
     verify {
         let mut market = pending_market_mock::<T>(PUSDT);
         market.rate_model = RATE_MODEL_MOCK;
-        assert_last_event::<T>(Event::<T>::UpdatedMarket(market).into());
+        assert_last_event::<T>(Event::<T>::UpdatedMarket(USDT, market).into());
     }
 
     update_market {
@@ -205,14 +195,14 @@ benchmarks! {
         let mut market = pending_market_mock::<T>(PKSM);
         market.reserve_factor = Ratio::from_percent(50);
         market.close_factor = Ratio::from_percent(15);
-        assert_last_event::<T>(Event::<T>::UpdatedMarket(market).into());
+        assert_last_event::<T>(Event::<T>::UpdatedMarket(KSM, market).into());
     }
 
     force_update_market {
         assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), USDT, pending_market_mock::<T>(PUSDT)));
     }: _(SystemOrigin::Root,USDT, pending_market_mock::<T>(PUSDT))
     verify {
-        assert_last_event::<T>(Event::<T>::UpdatedMarket(pending_market_mock::<T>(PUSDT)).into());
+        assert_last_event::<T>(Event::<T>::UpdatedMarket(USDT, pending_market_mock::<T>(PUSDT)).into());
     }
 
     add_reward {
@@ -412,11 +402,6 @@ benchmarks! {
     verify {
         assert_last_event::<T>(Event::<T>::ReservesReduced(caller, USDT, reduce_amount.into(), (add_amount-reduce_amount).into()).into());
     }
-
-    migrate_reward_data {
-        let caller: T::AccountId = whitelisted_caller();
-        create_mock_reward_data::<T>();
-    }: _(SystemOrigin::Signed(caller.clone()))
 }
 
 impl_benchmark_test_suite!(Loans, crate::mock::new_test_ext(), crate::mock::Test);

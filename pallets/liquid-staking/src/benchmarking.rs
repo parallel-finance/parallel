@@ -272,7 +272,7 @@ benchmarks! {
         Response::ExecutionResult(None)
     )
     verify {
-        assert_last_event::<T>(Event::<T>::NotificationReceived(Box::new(MultiLocation::parent()),0u64, None).into());
+        assert_last_event::<T>(Event::<T>::NotificationReceived(Box::new(MultiLocation::parent()), 0u64, None).into());
     }
 
     claim_for {
@@ -282,7 +282,7 @@ benchmarks! {
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
         assert_ok!(with_transaction(|| -> TransactionOutcome<DispatchResult>{
-            LiquidStaking::<T>::do_advance_era(4).unwrap();
+            LiquidStaking::<T>::do_advance_era(T::BondingDuration::get() + 1).unwrap();
             TransactionOutcome::Commit(Ok(()))
         }));
         LiquidStaking::<T>::notification_received(
@@ -363,6 +363,19 @@ benchmarks! {
         let reserve = ReserveFactor::<T>::get().mul_floor(STAKE_AMOUNT);
         let bond_amount = STAKE_AMOUNT - xcm_fee - reserve - UNBOND_AMOUNT;
         assert_last_event::<T>(Event::<T>::Matching(bond_amount, UNBOND_AMOUNT, 0).into());
+    }
+
+    reduce_reserves {
+        let alice: T::AccountId = account("Sample", 100, SEED);
+        let account_id = T::Lookup::unlookup(alice.clone());
+        let reduce_amount: u128 = 1000;
+        initial_set_up::<T>(alice.clone());
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
+    }: _(SystemOrigin::Root, account_id, reduce_amount)
+    verify {
+        let reserve = ReserveFactor::<T>::get().mul_floor(STAKE_AMOUNT) - reduce_amount;
+        assert_eq!(TotalReserves::<T>::get(), reserve);
+        assert_last_event::<T>(Event::<T>::ReservesReduced(alice, reduce_amount).into());
     }
 }
 
