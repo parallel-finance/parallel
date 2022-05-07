@@ -4,6 +4,7 @@ use primitives::Timestamp;
 use scale_info::TypeInfo;
 
 use crate::{AccountOf, AssetIdOf, BalanceOf, Config};
+use sp_runtime::{traits::Zero, ArithmeticError, DispatchResult};
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum StreamStatus {
@@ -46,4 +47,23 @@ pub struct Stream<T: Config>
     pub stop_time: Timestamp,
     // The current status of the stream
     pub status: StreamStatus,
+}
+
+impl<T: Config> Stream<T> {
+    pub fn try_deduct(&mut self, amount: BalanceOf<T>) -> DispatchResult {
+        self.remaining_balance = self
+            .remaining_balance
+            .checked_sub(amount)
+            .ok_or(ArithmeticError::Underflow)?;
+
+        Ok(())
+    }
+
+    pub fn try_complete(&mut self) -> DispatchResult {
+        if self.remaining_balance.is_zero() {
+            self.status = StreamStatus::Completed;
+        }
+
+        Ok(())
+    }
 }

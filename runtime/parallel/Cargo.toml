@@ -138,6 +138,7 @@ runtime-benchmarks = [
   'pallet-xcm-helper/runtime-benchmarks',
   'pallet-farming/runtime-benchmarks',
   'pallet-asset-registry/runtime-benchmarks',
+  'pallet-streaming/runtime-benchmarks',
 ]
 std                = [
   'codec/std',
