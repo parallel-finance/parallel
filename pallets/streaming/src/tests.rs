@@ -13,9 +13,9 @@
 // limitations under the License.
 
 use super::*;
-use mock::*;
-
 use frame_support::{assert_err, assert_ok};
+use mock::*;
+use sp_runtime::traits::Zero;
 
 #[test]
 fn create_stream_works() {
@@ -68,7 +68,7 @@ fn cancel_stream_works_without_withdrawal() {
         // Bob cannot access to previous stream
         assert_err!(
             Streaming::withdraw_from_stream(Origin::signed(BOB), 0, 1),
-            Error::<Test>::StreamCompleted
+            Error::<Test>::StreamHasFinished
         );
     });
 }
@@ -135,6 +135,7 @@ fn withdraw_from_with_slower_rate_works() {
     new_test_ext().execute_with(|| {
         let before_bob = <Test as Config>::Assets::balance(DOT, &BOB);
         // Alice creates stream 100 DOT to Bob
+        assert_eq!(TimestampPallet::now(), 6000);
         assert_ok!(Streaming::create_stream(
             Origin::signed(ALICE),
             BOB,
@@ -148,9 +149,10 @@ fn withdraw_from_with_slower_rate_works() {
             Streaming::withdraw_from_stream(Origin::signed(DAVE), 0, 1),
             Error::<Test>::NotTheRecipient
         );
-        // Time passes after stop time
-        TimestampPallet::set_timestamp(20000); // after stop timestamp in milliseconds
-                                               // check if 12 second has passed
+
+        // passed 12 seconds
+        TimestampPallet::set_timestamp(18000);
+
         let stream = Streams::<Test>::get(0).unwrap();
         // delta of should only increase until stop_time
         assert_eq!(stream.delta_of(), Ok(12));
@@ -213,7 +215,7 @@ fn cancel_stream_works_with_withdrawal() {
         // Bob cannot access to previous stream
         assert_err!(
             Streaming::withdraw_from_stream(Origin::signed(BOB), 0, 1),
-            Error::<Test>::StreamCompleted,
+            Error::<Test>::StreamHasFinished,
         );
     });
 }

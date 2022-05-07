@@ -12,6 +12,8 @@ pub enum StreamStatus {
     Ongoing,
     // stream is completed, remaining_balance should be zero
     Completed,
+    // stream is cancelled, remaining_balance may be zero
+    Cancelled,
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -20,7 +22,9 @@ pub enum StreamKind {
     Send,
     // Stream would be received by an account
     Receive,
-    // Can expand Cancel, Lock and other states if needed
+    // Stream was `Cancelled` or `Completed`
+    Finish,
+    // Can expand Lock and other statuss if needed
 }
 
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -29,27 +33,85 @@ pub enum StreamKind {
 pub struct Stream<T: Config>
 // where Stream<T>: Encode
 {
-    // Remaining Balance
+    // The remaining balance can be claimed of the stream
     pub remaining_balance: BalanceOf<T>,
-    // Deposit
+    // The deposit amount of the stream
     pub deposit: BalanceOf<T>,
-    // Currency Id
+    // The asset id of the stream
     pub asset_id: AssetIdOf<T>,
-    // Rate Per Second
+    // The rate per-second of the stream
     pub rate_per_sec: BalanceOf<T>,
-    // Recipient
-    pub recipient: AccountOf<T>,
-    // Sender
+    // The sender of the stream
     pub sender: AccountOf<T>,
-    // Start Time
+    // The recipient of the stream
+    pub recipient: AccountOf<T>,
+    // The start time of the stream
     pub start_time: Timestamp,
-    // Stop Time
+    // The stop time of the stream
     pub stop_time: Timestamp,
     // The current status of the stream
     pub status: StreamStatus,
 }
 
 impl<T: Config> Stream<T> {
+    pub fn new(
+        deposit: BalanceOf<T>,
+        asset_id: AssetIdOf<T>,
+        rate_per_sec: BalanceOf<T>,
+        sender: AccountOf<T>,
+        recipient: AccountOf<T>,
+        start_time: Timestamp,
+        stop_time: Timestamp,
+    ) -> Self {
+        Self {
+            remaining_balance: deposit.clone(),
+            deposit,
+            asset_id,
+            rate_per_sec,
+            sender: sender.clone(),
+            recipient: recipient.clone(),
+            start_time,
+            stop_time,
+            status: StreamStatus::Ongoing,
+        }
+    }
+    pub fn is_sender(&self, account: &AccountOf<T>) -> bool {
+        *account == self.sender
+    }
+
+    pub fn is_recipient(&self, account: &AccountOf<T>) -> bool {
+        *account == self.recipient
+    }
+
+    pub fn sender_balance(&self) -> Result<BalanceOf<T>, DispatchError> {
+        self.balance_of(&self.sender)
+    }
+
+    pub fn recipient_balance(&self) -> Result<BalanceOf<T>, DispatchError> {
+        self.balance_of(&self.recipient)
+    }
+
+    pub fn has_finished(&self) -> bool {
+        self.status == StreamStatus::Completed || self.status == StreamStatus::Cancelled
+    }
+
+    // pub fn duration(&self) -> Result<u64, DispatchError> {
+    //     Ok(self.stop_time
+    //         .checked_sub(self.start_time)
+    //         .ok_or(ArithmeticError::Underflow)?)
+    // }
+
+    // pub fn has_started(&self, n) -> bool {
+    //     self.status == StreamStatus::Ongoing &&
+    // }
+
+    fn claimed_balance(&self) -> Result<BalanceOf<T>, DispatchError> {
+        Ok(self
+            .deposit
+            .checked_sub(self.remaining_balance)
+            .ok_or(ArithmeticError::Underflow)?)
+    }
+
     pub fn try_deduct(&mut self, amount: BalanceOf<T>) -> Result<BalanceOf<T>, DispatchError> {
         self.remaining_balance = self
             .remaining_balance
@@ -65,13 +127,6 @@ impl<T: Config> Stream<T> {
         }
 
         Ok(())
-    }
-
-    fn claimed_balance(&self) -> Result<BalanceOf<T>, DispatchError> {
-        Ok(self
-            .deposit
-            .checked_sub(self.remaining_balance)
-            .ok_or(ArithmeticError::Underflow)?)
     }
 
     pub fn delta_of(&self) -> Result<u64, DispatchError> {

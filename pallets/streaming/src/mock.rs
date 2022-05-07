@@ -146,12 +146,14 @@ impl pallet_currency_adapter::Config for Test {
 parameter_types! {
     pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
     pub const MaxStreamsCount: u32 = 128;
+    pub const MaxFinisehdStreamsCount: u32 = 10;
 }
 
 impl Config for Test {
     type Event = Event;
     type PalletId = StreamPalletId;
     type MaxStreamsCount = MaxStreamsCount;
+    type MaxFinisehdStreamsCount = MaxFinisehdStreamsCount;
     type UnixTime = TimestampPallet;
     type Assets = CurrencyAdapter;
     type UpdateOrigin = EnsureRoot<AccountId>;

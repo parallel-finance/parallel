@@ -77,6 +77,10 @@ pub mod pallet {
         #[pallet::constant]
         type MaxStreamsCount: Get<u32>;
 
+        /// Specify max count of streams that has been cancelled or completed for an account
+        #[pallet::constant]
+        type MaxFinisehdStreamsCount: Get<u32>;
+
         /// Unix time
         type UnixTime: UnixTime;
 
@@ -97,16 +101,20 @@ pub mod pallet {
         StartBeforeBlockTime,
         /// Stop time is before start time
         StopBeforeStart,
+        /// The duration calculated is too short or too long
+        InvalidDuration,
+        /// The stream id is not found
+        InvalidStreamId,
         /// Caller is not the streamer
         NotTheStreamer,
         /// Caller is not the recipient
         NotTheRecipient,
         /// Amount exceeds balance
-        LowRemainingBalance,
+        InsufficientStreamBalance,
         /// Excess max streams count
         ExcessMaxStreamsCount,
-        /// Stream was completed
-        StreamCompleted,
+        /// Stream was cancelled or completed
+        StreamHasFinished,
     }
 
     #[pallet::event]
@@ -199,7 +207,8 @@ pub mod pallet {
             stop_time: Timestamp,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-            ensure!(recipient != sender, Error::<T>::RecipientIsAlsoSender);
+
+            ensure!(sender != recipient, Error::<T>::RecipientIsAlsoSender);
             ensure!(
                 start_time >= T::UnixTime::now().as_secs(),
                 Error::<T>::StartBeforeBlockTime
@@ -214,26 +223,24 @@ pub mod pallet {
 
             let duration = stop_time
                 .checked_sub(start_time)
-                .ok_or(ArithmeticError::Underflow)?;
+                .ok_or(Error::<T>::InvalidDuration)?;
             let rate_per_sec = deposit
                 .checked_div(duration as u128)
-                .ok_or(ArithmeticError::DivisionByZero)?;
+                .ok_or(Error::<T>::InvalidDuration)?;
 
             // Transfer deposit asset from sender to global EOA
             T::Assets::transfer(asset_id, &sender, &Self::account_id(), deposit, false)?;
 
             // The remaining balance will be the same value as the deposit due to initialization
-            let stream: Stream<T> = Stream {
-                remaining_balance: deposit,
+            let stream: Stream<T> = Stream::new(
                 deposit,
                 asset_id,
                 rate_per_sec,
-                recipient: recipient.clone(),
-                sender: sender.clone(),
+                sender.clone(),
+                recipient.clone(),
                 start_time,
                 stop_time,
-                status: StreamStatus::Ongoing,
-            };
+            );
 
             let stream_id = NextStreamId::<T>::get();
             // Increment next stream id and store the new created stream
@@ -242,20 +249,14 @@ pub mod pallet {
                     .checked_add(One::one())
                     .ok_or(ArithmeticError::Overflow)?,
             );
-            Streams::<T>::insert(stream_id, stream);
+            Streams::<T>::insert(stream_id.clone(), stream);
 
-            // Add the stream to stream_library for both the sender and receiver.
-            let checked_push =
-                |r: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
-                    let mut registry = r.take().unwrap_or_default();
-                    registry
-                        .try_push(stream_id)
-                        .map_err(|_| Error::<T>::ExcessMaxStreamsCount)?;
-                    *r = Some(registry);
-                    Ok(())
-                };
-            StreamLibrary::<T>::try_mutate(&sender, &StreamKind::Send, checked_push)?;
-            StreamLibrary::<T>::try_mutate(&recipient, &StreamKind::Receive, checked_push)?;
+            // Remove the outdated and finished streams
+            Self::update_finished_stream_library(&sender)?;
+            Self::update_finished_stream_library(&recipient)?;
+            // Add the stream_id to stream_library for both the sender and receiver.
+            Self::try_push_stream_library(&sender, StreamKind::Send, stream_id)?;
+            Self::try_push_stream_library(&recipient, StreamKind::Receive, stream_id)?;
 
             Self::deposit_event(Event::<T>::StreamCreated(
                 stream_id, sender, recipient, deposit, asset_id, start_time, stop_time,
@@ -263,7 +264,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Cancel a existed stream and return the deposit to sender
+        /// Cancel a existed stream and return back the deposit to sender and recipient
         ///
         /// Can only be called by the sender
         ///
@@ -276,21 +277,14 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
-            let mut stream = Streams::<T>::get(stream_id).ok_or(DispatchError::CannotLookup)?;
-            ensure!(sender == stream.sender, Error::<T>::NotTheStreamer);
+            let mut stream = Streams::<T>::get(stream_id).ok_or(Error::<T>::InvalidStreamId)?;
+            ensure!(stream.is_sender(&sender), Error::<T>::NotTheStreamer);
 
             // calculate the balance to return
-            let sender_balance = stream.balance_of(&sender)?;
-            let recipient_balance = stream.balance_of(&stream.recipient)?;
+            let sender_balance = stream.sender_balance()?;
+            let recipient_balance = stream.recipient_balance()?;
 
             // return funds back to sender and recipient
-            T::Assets::transfer(
-                stream.asset_id,
-                &Self::account_id(),
-                &stream.recipient,
-                recipient_balance,
-                false,
-            )?;
             T::Assets::transfer(
                 stream.asset_id,
                 &Self::account_id(),
@@ -298,8 +292,19 @@ pub mod pallet {
                 sender_balance,
                 false,
             )?;
+            T::Assets::transfer(
+                stream.asset_id,
+                &Self::account_id(),
+                &stream.recipient,
+                recipient_balance,
+                false,
+            )?;
 
-            stream.status = StreamStatus::Completed;
+            // Will keep remaining_balance in the stream
+            stream.status = StreamStatus::Cancelled;
+            Self::try_push_stream_library(&stream.sender, StreamKind::Finish, stream_id)?;
+            Self::try_push_stream_library(&stream.recipient, StreamKind::Finish, stream_id)?;
+
             Streams::<T>::insert(stream_id, stream.clone());
 
             Self::deposit_event(Event::<T>::StreamCanceled(
@@ -327,23 +332,33 @@ pub mod pallet {
             stream_id: StreamId,
             amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            let sender = ensure_signed(origin)?;
+            let recipient = ensure_signed(origin)?;
 
-            let mut stream = Streams::<T>::get(stream_id).ok_or(DispatchError::CannotLookup)?;
+            let mut stream = Streams::<T>::get(stream_id).ok_or(Error::<T>::InvalidStreamId)?;
+            ensure!(!stream.has_finished(), Error::<T>::StreamHasFinished);
+            ensure!(stream.is_recipient(&recipient), Error::<T>::NotTheRecipient);
+            let recipient_balance = stream.recipient_balance()?;
             ensure!(
-                stream.status != StreamStatus::Completed,
-                Error::<T>::StreamCompleted
+                recipient_balance >= amount,
+                Error::<T>::InsufficientStreamBalance
             );
-            ensure!(sender == stream.recipient, Error::<T>::NotTheRecipient);
 
-            let balance = stream.balance_of(&stream.recipient)?;
-            ensure!(balance >= amount, Error::<T>::LowRemainingBalance);
             stream.try_deduct(amount)?;
             stream.try_complete()?;
+            if stream.has_finished() {
+                Self::try_push_stream_library(&stream.sender, StreamKind::Finish, stream_id)?;
+                Self::try_push_stream_library(&recipient, StreamKind::Finish, stream_id)?;
+            }
             Streams::<T>::insert(stream_id, stream.clone());
 
-            // withdraw deposit from stream
-            T::Assets::transfer(stream.asset_id, &Self::account_id(), &sender, amount, false)?;
+            // Withdraw deposit from stream
+            T::Assets::transfer(
+                stream.asset_id,
+                &Self::account_id(),
+                &recipient,
+                amount,
+                false,
+            )?;
             Self::deposit_event(Event::<T>::StreamWithdrawn(
                 stream_id,
                 stream.recipient,
@@ -379,5 +394,48 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> AccountOf<T> {
         T::PalletId::get().into_account()
+    }
+
+    pub fn update_finished_stream_library(account: &AccountOf<T>) -> DispatchResult {
+        let checked_pop =
+            |regisry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
+                let mut r = regisry.take().unwrap_or_default();
+                r.as_mut().sort_unstable_by(|a, b| b.cmp(a));
+
+                let len = r.len() as u32;
+                match len {
+                    _x if len >= T::MaxFinisehdStreamsCount::get() => {
+                        if let Some(index) = r.pop() {
+                            Streams::<T>::remove(index);
+                        }
+                    }
+                    _ => {}
+                }
+
+                *regisry = Some(r);
+                Ok(())
+            };
+
+        StreamLibrary::<T>::try_mutate(account, &StreamKind::Finish, checked_pop)?;
+
+        Ok(())
+    }
+
+    pub fn try_push_stream_library(
+        account: &AccountOf<T>,
+        kind: StreamKind,
+        stream_id: StreamId,
+    ) -> DispatchResult {
+        let checked_push =
+            |regisry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
+                let mut r = regisry.take().unwrap_or_default();
+                r.try_push(stream_id)
+                    .map_err(|_| Error::<T>::ExcessMaxStreamsCount)?;
+                *regisry = Some(r);
+                Ok(())
+            };
+
+        StreamLibrary::<T>::try_mutate(account, &kind, checked_push)?;
+        Ok(())
     }
 }
