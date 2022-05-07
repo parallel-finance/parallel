@@ -270,6 +270,79 @@ fn streams_library_should_works() {
 }
 
 #[test]
+fn max_finished_streams_count_should_work() {
+    new_test_ext().execute_with(|| {
+        let stream_id_0 = NextStreamId::<Test>::get();
+        assert_ok!(Streaming::create_stream(
+            Origin::signed(ALICE),
+            BOB,
+            dollar(10),
+            DOT,
+            6,
+            10,
+        ));
+        TimestampPallet::set_timestamp(10000);
+        assert_ok!(Streaming::withdraw_from_stream(
+            Origin::signed(BOB),
+            stream_id_0,
+            dollar(10)
+        ));
+
+        // StreamLibrary should contains stream_id_0
+        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+            .unwrap()
+            .binary_search(&stream_id_0));
+
+        let stream_id_1 = NextStreamId::<Test>::get();
+        assert_ok!(Streaming::create_stream(
+            Origin::signed(ALICE),
+            BOB,
+            dollar(10),
+            DOT,
+            11,
+            20,
+        ));
+        TimestampPallet::set_timestamp(15000);
+        assert_ok!(Streaming::withdraw_from_stream(
+            Origin::signed(BOB),
+            stream_id_1,
+            dollar(2)
+        ));
+        assert_ok!(Streaming::cancel_stream(Origin::signed(ALICE), stream_id_1));
+
+        // StreamLibrary should contains stream_id_1
+        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+            .unwrap()
+            .binary_search(&stream_id_1));
+
+        let stream_id_3 = NextStreamId::<Test>::get();
+        assert_ok!(Streaming::create_stream(
+            Origin::signed(ALICE),
+            BOB,
+            dollar(10),
+            DOT,
+            16,
+            30,
+        ));
+
+        // storage shouldn't be removed due to MaxFinisehdStreamsCount = 2
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+                .unwrap()
+                .contains(&stream_id_0),
+            false
+        );
+
+        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
+            .unwrap()
+            .binary_search(&stream_id_3));
+        assert_ok!(StreamLibrary::<Test>::get(BOB, StreamKind::Receive)
+            .unwrap()
+            .binary_search(&stream_id_3));
+    })
+}
+
+#[test]
 fn create_stream_with_minimum_deposit_works() {
     new_test_ext().execute_with(|| {
         // Set minimum deposit for DOT

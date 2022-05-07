@@ -34,7 +34,7 @@ pub use pallet::*;
 use primitives::*;
 use sp_runtime::{
     traits::{AccountIdConversion, One},
-    ArithmeticError, DispatchError,
+    ArithmeticError,
 };
 use sp_std::prelude::*;
 
