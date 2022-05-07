@@ -95,16 +95,6 @@ impl<T: Config> Stream<T> {
         self.status == StreamStatus::Completed || self.status == StreamStatus::Cancelled
     }
 
-    // pub fn duration(&self) -> Result<u64, DispatchError> {
-    //     Ok(self.stop_time
-    //         .checked_sub(self.start_time)
-    //         .ok_or(ArithmeticError::Underflow)?)
-    // }
-
-    // pub fn has_started(&self, n) -> bool {
-    //     self.status == StreamStatus::Ongoing &&
-    // }
-
     fn claimed_balance(&self) -> Result<BalanceOf<T>, DispatchError> {
         Ok(self
             .deposit
