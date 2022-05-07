@@ -79,7 +79,7 @@ pub mod pallet {
 
         /// Specify max count of streams that has been cancelled or completed for an account
         #[pallet::constant]
-        type MaxFinisehdStreamsCount: Get<u32>;
+        type MaxFinishedStreamsCount: Get<u32>;
 
         /// Unix time
         type UnixTime: UnixTime;
@@ -156,7 +156,7 @@ pub mod pallet {
 
     /// Global storage for streams
     #[pallet::storage]
-    #[pallet::getter(fn get_stream)]
+    #[pallet::getter(fn streams)]
     pub type Streams<T: Config> = StorageMap<_, Blake2_128Concat, StreamId, Stream<T>, OptionQuery>;
 
     /// Streams holds by each account
@@ -398,21 +398,30 @@ impl<T: Config> Pallet<T> {
 
     pub fn update_finished_stream_library(account: &AccountOf<T>) -> DispatchResult {
         let checked_pop =
-            |regisry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
-                let mut r = regisry.take().unwrap_or_default();
+            |registry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
+                let mut r = registry.take().unwrap_or_default();
                 r.as_mut().sort_unstable_by(|a, b| b.cmp(a));
 
                 let len = r.len() as u32;
                 match len {
-                    _x if len >= T::MaxFinisehdStreamsCount::get() => {
-                        if let Some(index) = r.pop() {
-                            Streams::<T>::remove(index);
+                    _x if len >= T::MaxFinishedStreamsCount::get() => {
+                        if let Some(stream_id) = r.pop() {
+                            if Streams::<T>::get(stream_id).is_some() {
+                                Streams::<T>::remove(stream_id);
+                            }
+
+                            Self::try_remove_stream_library(account, StreamKind::Send, stream_id)?;
+                            Self::try_remove_stream_library(
+                                account,
+                                StreamKind::Receive,
+                                stream_id,
+                            )?;
                         }
                     }
                     _ => {}
                 }
 
-                *regisry = Some(r);
+                *registry = Some(r);
                 Ok(())
             };
 
@@ -427,15 +436,34 @@ impl<T: Config> Pallet<T> {
         stream_id: StreamId,
     ) -> DispatchResult {
         let checked_push =
-            |regisry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
-                let mut r = regisry.take().unwrap_or_default();
+            |registry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
+                let mut r = registry.take().unwrap_or_default();
                 r.try_push(stream_id)
                     .map_err(|_| Error::<T>::ExcessMaxStreamsCount)?;
-                *regisry = Some(r);
+                *registry = Some(r);
                 Ok(())
             };
 
         StreamLibrary::<T>::try_mutate(account, &kind, checked_push)?;
+        Ok(())
+    }
+
+    pub fn try_remove_stream_library(
+        account: &AccountOf<T>,
+        kind: StreamKind,
+        stream_id: StreamId,
+    ) -> DispatchResult {
+        let checked_remove =
+            |registry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
+                let mut r = registry.take().unwrap_or_default();
+                if let Ok(index) = r.binary_search(&stream_id) {
+                    r.remove(index);
+                }
+                *registry = Some(r);
+                Ok(())
+            };
+
+        StreamLibrary::<T>::try_mutate(account, &kind, checked_remove)?;
         Ok(())
     }
 }

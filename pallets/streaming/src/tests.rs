@@ -315,7 +315,7 @@ fn max_finished_streams_count_should_work() {
             .unwrap()
             .binary_search(&stream_id_1));
 
-        let stream_id_3 = NextStreamId::<Test>::get();
+        // storage should be removed due to MaxFinishedStreamsCount = 2
         assert_ok!(Streaming::create_stream(
             Origin::signed(ALICE),
             BOB,
@@ -324,21 +324,56 @@ fn max_finished_streams_count_should_work() {
             16,
             30,
         ));
-
-        // storage shouldn't be removed due to MaxFinisehdStreamsCount = 2
         assert_eq!(
             StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
                 .unwrap()
                 .contains(&stream_id_0),
             false
         );
+        assert_eq!(
+            StreamLibrary::<Test>::get(BOB, StreamKind::Finish)
+                .unwrap()
+                .contains(&stream_id_0),
+            false
+        );
 
-        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
-            .unwrap()
-            .binary_search(&stream_id_3));
-        assert_ok!(StreamLibrary::<Test>::get(BOB, StreamKind::Receive)
-            .unwrap()
-            .binary_search(&stream_id_3));
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
+                .unwrap()
+                .contains(&stream_id_0),
+            false
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(BOB, StreamKind::Receive)
+                .unwrap()
+                .contains(&stream_id_0),
+            false
+        );
+
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+                .unwrap()
+                .contains(&stream_id_1),
+            true
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(BOB, StreamKind::Finish)
+                .unwrap()
+                .contains(&stream_id_1),
+            true
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
+                .unwrap()
+                .contains(&stream_id_1),
+            true
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(BOB, StreamKind::Receive)
+                .unwrap()
+                .contains(&stream_id_1),
+            true
+        );
     })
 }
 
