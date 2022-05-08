@@ -550,7 +550,7 @@ pub mod pallet {
                 &who,
                 &Self::account_id(),
                 amount,
-                true,
+                false,
             )?;
 
             if vault.phase == VaultPhase::Contributing {
@@ -984,7 +984,7 @@ pub mod pallet {
                             &Self::account_id(),
                             &who,
                             amount,
-                            true,
+                            false,
                         )?;
                     }
 
@@ -1258,7 +1258,7 @@ pub mod pallet {
                         &Self::account_id(),
                         &who,
                         amount,
-                        true,
+                        false,
                     )?;
 
                     Self::do_update_contribution(
