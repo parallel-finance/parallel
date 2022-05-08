@@ -249,7 +249,7 @@ pub mod pallet {
                     .checked_add(One::one())
                     .ok_or(ArithmeticError::Overflow)?,
             );
-            Streams::<T>::insert(stream_id.clone(), stream);
+            Streams::<T>::insert(stream_id, stream);
 
             // Remove the outdated and finished streams
             Self::update_finished_stream_library(&sender)?;

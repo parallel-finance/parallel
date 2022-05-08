@@ -30,9 +30,7 @@ pub enum StreamKind {
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(T))]
 #[codec(mel_bound())]
-pub struct Stream<T: Config>
-// where Stream<T>: Encode
-{
+pub struct Stream<T: Config> {
     // The remaining balance can be claimed of the stream
     pub remaining_balance: BalanceOf<T>,
     // The deposit amount of the stream
@@ -64,12 +62,12 @@ impl<T: Config> Stream<T> {
         stop_time: Timestamp,
     ) -> Self {
         Self {
-            remaining_balance: deposit.clone(),
+            remaining_balance: deposit,
             deposit,
             asset_id,
             rate_per_sec,
-            sender: sender.clone(),
-            recipient: recipient.clone(),
+            sender,
+            recipient,
             start_time,
             stop_time,
             status: StreamStatus::Ongoing,

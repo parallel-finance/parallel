@@ -291,7 +291,8 @@ pub mod pallet {
             // Ensure the trader has enough tokens for transaction.
             let from_currency_id = route[0];
             ensure!(
-                <T as Config<I>>::Assets::balance(from_currency_id, &trader) > amount_in,
+                <T as Config<I>>::Assets::reducible_balance(from_currency_id, &trader, false)
+                    >= amount_in,
                 Error::<T, I>::InsufficientBalance
             );
 
