@@ -1488,6 +1488,8 @@ pub mod pallet {
             if issuance.is_zero() {
                 return Ok(());
             }
+            // TODO: when one era has big amount of stakes, the exchange rate
+            // will not look great
             let new_exchange_rate = Rate::checked_from_rational(
                 total_active_bonded
                     .checked_add(matching_ledger.total_stake_amount.total)
