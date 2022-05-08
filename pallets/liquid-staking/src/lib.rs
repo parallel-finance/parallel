@@ -1181,7 +1181,6 @@ pub mod pallet {
                 StakingLedgers::<T>::contains_key(&derivative_index),
                 Error::<T>::NotBonded
             );
-            Self::ensure_staking_ledger_cap(derivative_index, amount)?;
 
             log::trace!(
                 target: "liquidStaking::rebond",
