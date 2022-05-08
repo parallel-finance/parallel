@@ -1841,6 +1841,7 @@ impl pallet_crowdloans::Config for Runtime {
 parameter_types! {
     pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
     pub const MaxStreamsCount: u32 = 128;
+    pub const MaxFinishedStreamsCount: u32 = 10;
 }
 
 impl pallet_streaming::Config for Runtime {
@@ -1848,6 +1849,7 @@ impl pallet_streaming::Config for Runtime {
     type Assets = CurrencyAdapter;
     type PalletId = StreamPalletId;
     type MaxStreamsCount = MaxStreamsCount;
+    type MaxFinishedStreamsCount = MaxFinishedStreamsCount;
     type UnixTime = Timestamp;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_streaming::weights::SubstrateWeight<Runtime>;

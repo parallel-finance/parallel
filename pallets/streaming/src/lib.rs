@@ -33,8 +33,8 @@ use frame_system::pallet_prelude::*;
 pub use pallet::*;
 use primitives::*;
 use sp_runtime::{
-    traits::{AccountIdConversion, One, Zero},
-    ArithmeticError, DispatchError,
+    traits::{AccountIdConversion, One},
+    ArithmeticError,
 };
 use sp_std::prelude::*;
 
@@ -77,6 +77,10 @@ pub mod pallet {
         #[pallet::constant]
         type MaxStreamsCount: Get<u32>;
 
+        /// Specify max count of streams that has been cancelled or completed for an account
+        #[pallet::constant]
+        type MaxFinishedStreamsCount: Get<u32>;
+
         /// Unix time
         type UnixTime: UnixTime;
 
@@ -97,16 +101,20 @@ pub mod pallet {
         StartBeforeBlockTime,
         /// Stop time is before start time
         StopBeforeStart,
+        /// The duration calculated is too short or too long
+        InvalidDuration,
+        /// The stream id is not found
+        InvalidStreamId,
         /// Caller is not the streamer
         NotTheStreamer,
         /// Caller is not the recipient
         NotTheRecipient,
         /// Amount exceeds balance
-        LowRemainingBalance,
+        InsufficientStreamBalance,
         /// Excess max streams count
         ExcessMaxStreamsCount,
-        /// Stream was completed
-        StreamCompleted,
+        /// Stream was cancelled or completed
+        StreamHasFinished,
     }
 
     #[pallet::event]
@@ -148,10 +156,10 @@ pub mod pallet {
 
     /// Global storage for streams
     #[pallet::storage]
-    #[pallet::getter(fn get_stream)]
+    #[pallet::getter(fn streams)]
     pub type Streams<T: Config> = StorageMap<_, Blake2_128Concat, StreamId, Stream<T>, OptionQuery>;
 
-    /// Streaming holds by account
+    /// Streams holds by each account
     /// account_id => stream_kind => stream_id
     #[pallet::storage]
     #[pallet::getter(fn stream_library)]
@@ -199,7 +207,8 @@ pub mod pallet {
             stop_time: Timestamp,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-            ensure!(recipient != sender, Error::<T>::RecipientIsAlsoSender);
+
+            ensure!(sender != recipient, Error::<T>::RecipientIsAlsoSender);
             ensure!(
                 start_time >= T::UnixTime::now().as_secs(),
                 Error::<T>::StartBeforeBlockTime
@@ -214,26 +223,24 @@ pub mod pallet {
 
             let duration = stop_time
                 .checked_sub(start_time)
-                .ok_or(ArithmeticError::Underflow)?;
+                .ok_or(Error::<T>::InvalidDuration)?;
             let rate_per_sec = deposit
                 .checked_div(duration as u128)
-                .ok_or(ArithmeticError::DivisionByZero)?;
+                .ok_or(Error::<T>::InvalidDuration)?;
 
             // Transfer deposit asset from sender to global EOA
             T::Assets::transfer(asset_id, &sender, &Self::account_id(), deposit, false)?;
 
             // The remaining balance will be the same value as the deposit due to initialization
-            let stream: Stream<T> = Stream {
-                remaining_balance: deposit,
+            let stream: Stream<T> = Stream::new(
                 deposit,
                 asset_id,
                 rate_per_sec,
-                recipient: recipient.clone(),
-                sender: sender.clone(),
+                sender.clone(),
+                recipient.clone(),
                 start_time,
                 stop_time,
-                status: StreamStatus::Ongoing,
-            };
+            );
 
             let stream_id = NextStreamId::<T>::get();
             // Increment next stream id and store the new created stream
@@ -242,20 +249,14 @@ pub mod pallet {
                     .checked_add(One::one())
                     .ok_or(ArithmeticError::Overflow)?,
             );
-            Streams::<T>::insert(stream_id, stream);
+            Streams::<T>::insert(stream_id.clone(), stream);
 
-            // Add the stream to stream_library for both the sender and receiver.
-            let checked_push =
-                |r: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
-                    let mut registry = r.take().unwrap_or_default();
-                    registry
-                        .try_push(stream_id)
-                        .map_err(|_| Error::<T>::ExcessMaxStreamsCount)?;
-                    *r = Some(registry);
-                    Ok(())
-                };
-            StreamLibrary::<T>::try_mutate(&sender, &StreamKind::Send, checked_push)?;
-            StreamLibrary::<T>::try_mutate(&recipient, &StreamKind::Receive, checked_push)?;
+            // Remove the outdated and finished streams
+            Self::update_finished_stream_library(&sender)?;
+            Self::update_finished_stream_library(&recipient)?;
+            // Add the stream_id to stream_library for both the sender and receiver.
+            Self::try_push_stream_library(&sender, StreamKind::Send, stream_id)?;
+            Self::try_push_stream_library(&recipient, StreamKind::Receive, stream_id)?;
 
             Self::deposit_event(Event::<T>::StreamCreated(
                 stream_id, sender, recipient, deposit, asset_id, start_time, stop_time,
@@ -263,7 +264,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Cancel a existed stream and return the deposit to sender
+        /// Cancel a existed stream and return back the deposit to sender and recipient
         ///
         /// Can only be called by the sender
         ///
@@ -276,21 +277,14 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
-            let mut stream = Streams::<T>::get(stream_id).ok_or(DispatchError::CannotLookup)?;
-            ensure!(sender == stream.sender, Error::<T>::NotTheStreamer);
+            let mut stream = Streams::<T>::get(stream_id).ok_or(Error::<T>::InvalidStreamId)?;
+            ensure!(stream.is_sender(&sender), Error::<T>::NotTheStreamer);
 
             // calculate the balance to return
-            let sender_balance = Self::balance_of(&stream, &sender)?;
-            let recipient_balance = Self::balance_of(&stream, &stream.recipient)?;
+            let sender_balance = stream.sender_balance()?;
+            let recipient_balance = stream.recipient_balance()?;
 
             // return funds back to sender and recipient
-            T::Assets::transfer(
-                stream.asset_id,
-                &Self::account_id(),
-                &stream.recipient,
-                recipient_balance,
-                false,
-            )?;
             T::Assets::transfer(
                 stream.asset_id,
                 &Self::account_id(),
@@ -298,8 +292,19 @@ pub mod pallet {
                 sender_balance,
                 false,
             )?;
+            T::Assets::transfer(
+                stream.asset_id,
+                &Self::account_id(),
+                &stream.recipient,
+                recipient_balance,
+                false,
+            )?;
 
-            stream.status = StreamStatus::Completed;
+            // Will keep remaining_balance in the stream
+            stream.status = StreamStatus::Cancelled;
+            Self::try_push_stream_library(&stream.sender, StreamKind::Finish, stream_id)?;
+            Self::try_push_stream_library(&stream.recipient, StreamKind::Finish, stream_id)?;
+
             Streams::<T>::insert(stream_id, stream.clone());
 
             Self::deposit_event(Event::<T>::StreamCanceled(
@@ -327,23 +332,33 @@ pub mod pallet {
             stream_id: StreamId,
             amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            let sender = ensure_signed(origin)?;
+            let recipient = ensure_signed(origin)?;
 
-            let mut stream = Streams::<T>::get(stream_id).ok_or(DispatchError::CannotLookup)?;
+            let mut stream = Streams::<T>::get(stream_id).ok_or(Error::<T>::InvalidStreamId)?;
+            ensure!(!stream.has_finished(), Error::<T>::StreamHasFinished);
+            ensure!(stream.is_recipient(&recipient), Error::<T>::NotTheRecipient);
+            let recipient_balance = stream.recipient_balance()?;
             ensure!(
-                stream.status != StreamStatus::Completed,
-                Error::<T>::StreamCompleted
+                recipient_balance >= amount,
+                Error::<T>::InsufficientStreamBalance
             );
-            ensure!(sender == stream.recipient, Error::<T>::NotTheRecipient);
 
-            let balance = Self::balance_of(&stream, &stream.recipient)?;
-            ensure!(balance >= amount, Error::<T>::LowRemainingBalance);
             stream.try_deduct(amount)?;
             stream.try_complete()?;
+            if stream.has_finished() {
+                Self::try_push_stream_library(&stream.sender, StreamKind::Finish, stream_id)?;
+                Self::try_push_stream_library(&recipient, StreamKind::Finish, stream_id)?;
+            }
             Streams::<T>::insert(stream_id, stream.clone());
 
-            // withdraw deposit from stream
-            T::Assets::transfer(stream.asset_id, &Self::account_id(), &sender, amount, false)?;
+            // Withdraw deposit from stream
+            T::Assets::transfer(
+                stream.asset_id,
+                &Self::account_id(),
+                &recipient,
+                amount,
+                false,
+            )?;
             Self::deposit_event(Event::<T>::StreamWithdrawn(
                 stream_id,
                 stream.recipient,
@@ -381,65 +396,74 @@ impl<T: Config> Pallet<T> {
         T::PalletId::get().into_account()
     }
 
-    pub fn delta_of(stream: &Stream<T>) -> Result<u64, DispatchError> {
-        let now = T::UnixTime::now().as_secs();
-        if now <= stream.start_time {
-            Ok(Zero::zero())
-        } else if now < stream.stop_time {
-            now.checked_sub(stream.start_time)
-                .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow))
-        } else {
-            stream
-                .stop_time
-                .checked_sub(stream.start_time)
-                .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow))
-        }
+    pub fn update_finished_stream_library(account: &AccountOf<T>) -> DispatchResult {
+        let checked_pop =
+            |registry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
+                let mut r = registry.take().unwrap_or_default();
+                r.as_mut().sort_unstable_by(|a, b| b.cmp(a));
+
+                let len = r.len() as u32;
+                match len {
+                    _x if len >= T::MaxFinishedStreamsCount::get() => {
+                        if let Some(stream_id) = r.pop() {
+                            if Streams::<T>::get(stream_id).is_some() {
+                                Streams::<T>::remove(stream_id);
+                            }
+
+                            Self::try_remove_stream_library(account, StreamKind::Send, stream_id)?;
+                            Self::try_remove_stream_library(
+                                account,
+                                StreamKind::Receive,
+                                stream_id,
+                            )?;
+                        }
+                    }
+                    _ => {}
+                }
+
+                *registry = Some(r);
+                Ok(())
+            };
+
+        StreamLibrary::<T>::try_mutate(account, &StreamKind::Finish, checked_pop)?;
+
+        Ok(())
     }
 
-    // Measure balance of streaming with rate per sec
-    pub fn balance_of(
-        stream: &Stream<T>,
-        who: &AccountOf<T>,
-    ) -> Result<BalanceOf<T>, DispatchError> {
-        let delta = Self::delta_of(stream)? as BalanceOf<T>;
+    pub fn try_push_stream_library(
+        account: &AccountOf<T>,
+        kind: StreamKind,
+        stream_id: StreamId,
+    ) -> DispatchResult {
+        let checked_push =
+            |registry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
+                let mut r = registry.take().unwrap_or_default();
+                r.try_push(stream_id)
+                    .map_err(|_| Error::<T>::ExcessMaxStreamsCount)?;
+                *registry = Some(r);
+                Ok(())
+            };
 
-        /*
-         * If the stream `balance` does not equal `deposit`, it means there have been withdrawals.
-         * We have to subtract the total amount withdrawn from the amount of money that has been
-         * streamed until now.
-         */
-        let recipient_balance = if stream.deposit > stream.remaining_balance {
-            let withdrawal_amount = stream
-                .deposit
-                .checked_sub(stream.remaining_balance)
-                .ok_or(ArithmeticError::Underflow)?;
-            let recipient_balance = delta
-                .checked_mul(stream.rate_per_sec)
-                .ok_or(ArithmeticError::Overflow)?;
-            recipient_balance
-                .checked_sub(withdrawal_amount)
-                .ok_or(ArithmeticError::Underflow)?
-        } else {
-            delta
-                .checked_mul(stream.rate_per_sec)
-                .ok_or(ArithmeticError::Overflow)?
-        };
+        StreamLibrary::<T>::try_mutate(account, &kind, checked_push)?;
+        Ok(())
+    }
 
-        if *who == stream.recipient {
-            if delta == (stream.stop_time - stream.start_time).into() {
-                Ok(stream.remaining_balance)
-            } else {
-                Ok(recipient_balance)
-            }
-        } else if *who == stream.sender {
-            let _recipient_balance = &recipient_balance;
-            let sender_balance = stream
-                .remaining_balance
-                .checked_sub(*_recipient_balance)
-                .ok_or(ArithmeticError::Underflow)?;
-            Ok(sender_balance)
-        } else {
-            Ok(Zero::zero())
-        }
+    pub fn try_remove_stream_library(
+        account: &AccountOf<T>,
+        kind: StreamKind,
+        stream_id: StreamId,
+    ) -> DispatchResult {
+        let checked_remove =
+            |registry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
+                let mut r = registry.take().unwrap_or_default();
+                if let Ok(index) = r.binary_search(&stream_id) {
+                    r.remove(index);
+                }
+                *registry = Some(r);
+                Ok(())
+            };
+
+        StreamLibrary::<T>::try_mutate(account, &kind, checked_remove)?;
+        Ok(())
     }
 }

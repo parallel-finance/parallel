@@ -13,9 +13,9 @@
 // limitations under the License.
 
 use super::*;
-use mock::*;
-
 use frame_support::{assert_err, assert_ok};
+use mock::*;
+use sp_runtime::traits::Zero;
 
 #[test]
 fn create_stream_works() {
@@ -68,7 +68,7 @@ fn cancel_stream_works_without_withdrawal() {
         // Bob cannot access to previous stream
         assert_err!(
             Streaming::withdraw_from_stream(Origin::signed(BOB), 0, 1),
-            Error::<Test>::StreamCompleted
+            Error::<Test>::StreamHasFinished
         );
     });
 }
@@ -98,7 +98,7 @@ fn withdraw_from_stream_works() {
         TimestampPallet::set_timestamp(7000);
 
         let stream = Streams::<Test>::get(0).unwrap();
-        assert_eq!(Streaming::delta_of(&stream), Ok(1));
+        assert_eq!(stream.delta_of(), Ok(1));
         // Bob withdraws some
         assert_ok!(Streaming::withdraw_from_stream(
             Origin::signed(BOB),
@@ -135,6 +135,7 @@ fn withdraw_from_with_slower_rate_works() {
     new_test_ext().execute_with(|| {
         let before_bob = <Test as Config>::Assets::balance(DOT, &BOB);
         // Alice creates stream 100 DOT to Bob
+        assert_eq!(TimestampPallet::now(), 6000);
         assert_ok!(Streaming::create_stream(
             Origin::signed(ALICE),
             BOB,
@@ -148,12 +149,13 @@ fn withdraw_from_with_slower_rate_works() {
             Streaming::withdraw_from_stream(Origin::signed(DAVE), 0, 1),
             Error::<Test>::NotTheRecipient
         );
-        // Time passes after stop time
-        TimestampPallet::set_timestamp(20000); // after stop timestamp in milliseconds
-                                               // check if 12 second has passed
+
+        // passed 12 seconds
+        TimestampPallet::set_timestamp(18000);
+
         let stream = Streams::<Test>::get(0).unwrap();
         // delta of should only increase until stop_time
-        assert_eq!(Streaming::delta_of(&stream), Ok(12));
+        assert_eq!(stream.delta_of(), Ok(12));
         // Bob withdraws some
         assert_ok!(Streaming::withdraw_from_stream(
             Origin::signed(BOB),
@@ -188,7 +190,7 @@ fn cancel_stream_works_with_withdrawal() {
         TimestampPallet::set_timestamp(7000); // 6000(init) + 1000(second)
                                               // check if 1 second has passed
         let mut stream = Streams::<Test>::get(0).unwrap();
-        assert_eq!(Streaming::delta_of(&stream), Ok(1));
+        assert_eq!(stream.delta_of(), Ok(1));
         // Bob withdraws some
         assert_ok!(Streaming::withdraw_from_stream(
             Origin::signed(BOB),
@@ -196,7 +198,7 @@ fn cancel_stream_works_with_withdrawal() {
             dollar(25)
         ));
         stream = Streams::<Test>::get(0).unwrap();
-        assert_eq!(Streaming::balance_of(&stream, &BOB).unwrap(), dollar(0));
+        assert_eq!(stream.balance_of(&BOB).unwrap(), dollar(0));
         // Time passes for 1 second
         TimestampPallet::set_timestamp(8000); // 7000(before) + 1000(second)
                                               // Alice cancels existing stream sent to bob
@@ -213,7 +215,7 @@ fn cancel_stream_works_with_withdrawal() {
         // Bob cannot access to previous stream
         assert_err!(
             Streaming::withdraw_from_stream(Origin::signed(BOB), 0, 1),
-            Error::<Test>::StreamCompleted,
+            Error::<Test>::StreamHasFinished,
         );
     });
 }
@@ -264,6 +266,114 @@ fn streams_library_should_works() {
         assert_ok!(StreamLibrary::<Test>::get(BOB, StreamKind::Receive)
             .unwrap()
             .binary_search(&stream_id));
+    })
+}
+
+#[test]
+fn max_finished_streams_count_should_work() {
+    new_test_ext().execute_with(|| {
+        let stream_id_0 = NextStreamId::<Test>::get();
+        assert_ok!(Streaming::create_stream(
+            Origin::signed(ALICE),
+            BOB,
+            dollar(10),
+            DOT,
+            6,
+            10,
+        ));
+        TimestampPallet::set_timestamp(10000);
+        assert_ok!(Streaming::withdraw_from_stream(
+            Origin::signed(BOB),
+            stream_id_0,
+            dollar(10)
+        ));
+
+        // StreamLibrary should contains stream_id_0
+        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+            .unwrap()
+            .binary_search(&stream_id_0));
+
+        let stream_id_1 = NextStreamId::<Test>::get();
+        assert_ok!(Streaming::create_stream(
+            Origin::signed(ALICE),
+            BOB,
+            dollar(10),
+            DOT,
+            11,
+            20,
+        ));
+        TimestampPallet::set_timestamp(15000);
+        assert_ok!(Streaming::withdraw_from_stream(
+            Origin::signed(BOB),
+            stream_id_1,
+            dollar(2)
+        ));
+        assert_ok!(Streaming::cancel_stream(Origin::signed(ALICE), stream_id_1));
+
+        // StreamLibrary should contains stream_id_1
+        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+            .unwrap()
+            .binary_search(&stream_id_1));
+
+        // storage should be removed due to MaxFinishedStreamsCount = 2
+        assert_ok!(Streaming::create_stream(
+            Origin::signed(ALICE),
+            BOB,
+            dollar(10),
+            DOT,
+            16,
+            30,
+        ));
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+                .unwrap()
+                .contains(&stream_id_0),
+            false
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(BOB, StreamKind::Finish)
+                .unwrap()
+                .contains(&stream_id_0),
+            false
+        );
+
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
+                .unwrap()
+                .contains(&stream_id_0),
+            false
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(BOB, StreamKind::Receive)
+                .unwrap()
+                .contains(&stream_id_0),
+            false
+        );
+
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+                .unwrap()
+                .contains(&stream_id_1),
+            true
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(BOB, StreamKind::Finish)
+                .unwrap()
+                .contains(&stream_id_1),
+            true
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
+                .unwrap()
+                .contains(&stream_id_1),
+            true
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(BOB, StreamKind::Receive)
+                .unwrap()
+                .contains(&stream_id_1),
+            true
+        );
     })
 }
 

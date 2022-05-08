@@ -90,7 +90,7 @@ benchmarks! {
         let withdraw_amount: u128 = dollar(2);
     }: _(SystemOrigin::Signed(recipient.clone()), stream_id, withdraw_amount)
     verify {
-        assert_last_event::<T>(Event::StreamWithdrawn(stream_id, recipient.clone(), KSM, withdraw_amount).into())
+        assert_last_event::<T>(Event::StreamWithdrawn(stream_id, recipient, KSM, withdraw_amount).into())
     }
 
     set_minimum_deposit {
