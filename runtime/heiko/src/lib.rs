@@ -1741,7 +1741,7 @@ impl pallet_bridge::Config for Runtime {
     type ExistentialDeposit = ExistentialDeposit;
     type ProposalLifetime = ProposalLifetime;
     type ThresholdPercentage = ThresholdPercentage;
-    type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_bridge::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1852,7 +1852,7 @@ impl pallet_streaming::Config for Runtime {
     type MaxFinishedStreamsCount = MaxFinishedStreamsCount;
     type UnixTime = Timestamp;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type WeightInfo = pallet_streaming::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_streaming::WeightInfo<Runtime>;
 }
 
 parameter_types! {

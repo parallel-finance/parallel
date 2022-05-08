@@ -30,7 +30,6 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
-pub use pallet::*;
 use primitives::*;
 use sp_runtime::{
     traits::{AccountIdConversion, One},
@@ -47,7 +46,10 @@ mod benchmarking;
 
 mod types;
 
+pub use pallet::*;
+
 pub mod weights;
+pub use weights::WeightInfo;
 
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
