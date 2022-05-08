@@ -1741,7 +1741,7 @@ impl pallet_bridge::Config for Runtime {
     type ExistentialDeposit = ExistentialDeposit;
     type ProposalLifetime = ProposalLifetime;
     type ThresholdPercentage = ThresholdPercentage;
-    type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_bridge::WeightInfo<Runtime>;
 }
 
 parameter_types! {
