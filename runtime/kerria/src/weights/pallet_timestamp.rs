@@ -6,7 +6,7 @@
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("kerria-dev"), DB CACHE: 1024
 
 // Executed Command:
-// ./target/release/parallel
+// ./parallel
 // benchmark
 // pallet
 // --chain=kerria-dev
@@ -30,11 +30,11 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_timestamp::WeightInfo for WeightInfo<T> {
 	// Storage: Timestamp Now (r:1 w:1)
 	fn set() -> Weight {
-		(10_000_000 as Weight)
+		(12_894_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn on_finalize() -> Weight {
-		(5_000_000 as Weight)
+		(8_054_000 as Weight)
 	}
 }

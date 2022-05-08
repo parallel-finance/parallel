@@ -6,7 +6,7 @@
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("kerria-dev"), DB CACHE: 1024
 
 // Executed Command:
-// ./target/release/parallel
+// ./parallel
 // benchmark
 // pallet
 // --chain=kerria-dev
@@ -28,40 +28,42 @@ use sp_std::marker::PhantomData;
 /// Weight functions for `frame_system`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
-	fn remark(_b: u32, ) -> Weight {
-		(896_000 as Weight)
+	fn remark(b: u32, ) -> Weight {
+		(0 as Weight)
+			// Standard Error: 0
+			.saturating_add((1_000 as Weight).saturating_mul(b as Weight))
 	}
 	fn remark_with_event(b: u32, ) -> Weight {
 		(0 as Weight)
 			// Standard Error: 0
-			.saturating_add((2_000 as Weight).saturating_mul(b as Weight))
+			.saturating_add((3_000 as Weight).saturating_mul(b as Weight))
 	}
 	// Storage: System Digest (r:1 w:1)
 	// Storage: unknown [0x3a686561707061676573] (r:0 w:1)
 	fn set_heap_pages() -> Weight {
-		(7_000_000 as Weight)
+		(9_479_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	// Storage: Skipped Metadata (r:0 w:0)
 	fn set_storage(i: u32, ) -> Weight {
 		(0 as Weight)
-			// Standard Error: 0
-			.saturating_add((821_000 as Weight).saturating_mul(i as Weight))
+			// Standard Error: 1_000
+			.saturating_add((999_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(T::DbWeight::get().writes((1 as Weight).saturating_mul(i as Weight)))
 	}
 	// Storage: Skipped Metadata (r:0 w:0)
 	fn kill_storage(i: u32, ) -> Weight {
 		(0 as Weight)
-			// Standard Error: 0
-			.saturating_add((595_000 as Weight).saturating_mul(i as Weight))
+			// Standard Error: 1_000
+			.saturating_add((709_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(T::DbWeight::get().writes((1 as Weight).saturating_mul(i as Weight)))
 	}
 	// Storage: Skipped Metadata (r:0 w:0)
 	fn kill_prefix(p: u32, ) -> Weight {
-		(0 as Weight)
-			// Standard Error: 1_000
-			.saturating_add((1_401_000 as Weight).saturating_mul(p as Weight))
+		(1_706_000 as Weight)
+			// Standard Error: 2_000
+			.saturating_add((1_452_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().writes((1 as Weight).saturating_mul(p as Weight)))
 	}
 }

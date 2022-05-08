@@ -6,7 +6,7 @@
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("vanilla-dev"), DB CACHE: 1024
 
 // Executed Command:
-// ./target/release/parallel
+// ./parallel
 // benchmark
 // pallet
 // --chain=vanilla-dev
@@ -33,7 +33,7 @@ impl<T: frame_system::Config> pallet_router::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:4 w:4)
 	// Storage: AMM Pools (r:1 w:1)
 	fn swap_exact_tokens_for_tokens() -> Weight {
-		(189_000_000 as Weight)
+		(201_642_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(8 as Weight))
 			.saturating_add(T::DbWeight::get().writes(8 as Weight))
 	}
@@ -42,7 +42,7 @@ impl<T: frame_system::Config> pallet_router::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:4 w:4)
 	// Storage: Assets Asset (r:2 w:2)
 	fn swap_tokens_for_exact_tokens() -> Weight {
-		(186_000_000 as Weight)
+		(199_593_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(8 as Weight))
 			.saturating_add(T::DbWeight::get().writes(8 as Weight))
 	}

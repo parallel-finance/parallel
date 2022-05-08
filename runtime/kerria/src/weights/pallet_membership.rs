@@ -6,7 +6,7 @@
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("kerria-dev"), DB CACHE: 1024
 
 // Executed Command:
-// ./target/release/parallel
+// ./parallel
 // benchmark
 // pallet
 // --chain=kerria-dev
@@ -33,9 +33,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Members (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	fn add_member(m: u32, ) -> Weight {
-		(32_833_000 as Weight)
-			// Standard Error: 1_000
-			.saturating_add((75_000 as Weight).saturating_mul(m as Weight))
+		(37_771_000 as Weight)
+			// Standard Error: 4_000
+			.saturating_add((144_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
@@ -45,9 +45,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Members (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	fn remove_member(m: u32, ) -> Weight {
-		(39_042_000 as Weight)
-			// Standard Error: 2_000
-			.saturating_add((82_000 as Weight).saturating_mul(m as Weight))
+		(44_099_000 as Weight)
+			// Standard Error: 0
+			.saturating_add((107_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
@@ -57,9 +57,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Members (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	fn swap_member(m: u32, ) -> Weight {
-		(39_264_000 as Weight)
-			// Standard Error: 0
-			.saturating_add((82_000 as Weight).saturating_mul(m as Weight))
+		(44_844_000 as Weight)
+			// Standard Error: 1_000
+			.saturating_add((133_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
@@ -69,9 +69,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Members (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	fn reset_member(m: u32, ) -> Weight {
-		(40_325_000 as Weight)
-			// Standard Error: 8_000
-			.saturating_add((212_000 as Weight).saturating_mul(m as Weight))
+		(44_725_000 as Weight)
+			// Standard Error: 1_000
+			.saturating_add((364_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
@@ -81,9 +81,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Members (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	fn change_key(m: u32, ) -> Weight {
-		(42_372_000 as Weight)
-			// Standard Error: 6_000
-			.saturating_add((59_000 as Weight).saturating_mul(m as Weight))
+		(46_249_000 as Weight)
+			// Standard Error: 0
+			.saturating_add((122_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
@@ -91,16 +91,18 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommitteeMembership Prime (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	fn set_prime(m: u32, ) -> Weight {
-		(10_601_000 as Weight)
+		(13_669_000 as Weight)
 			// Standard Error: 0
-			.saturating_add((26_000 as Weight).saturating_mul(m as Weight))
+			.saturating_add((69_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	// Storage: TechnicalCommitteeMembership Prime (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
-	fn clear_prime(_m: u32, ) -> Weight {
-		(3_812_000 as Weight)
+	fn clear_prime(m: u32, ) -> Weight {
+		(6_093_000 as Weight)
+			// Standard Error: 0
+			.saturating_add((1_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 }

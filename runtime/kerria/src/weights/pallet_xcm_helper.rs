@@ -6,7 +6,7 @@
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("kerria-dev"), DB CACHE: 1024
 
 // Executed Command:
-// ./target/release/parallel
+// ./parallel
 // benchmark
 // pallet
 // --chain=kerria-dev
@@ -31,7 +31,7 @@ impl<T: frame_system::Config> pallet_xcm_helper::WeightInfo for WeightInfo<T> {
 	// Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
 	// Storage: XcmHelper XcmWeightFee (r:1 w:1)
 	fn update_xcm_weight_fee() -> Weight {
-		(31_000_000 as Weight)
+		(38_822_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}

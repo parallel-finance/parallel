@@ -6,7 +6,7 @@
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("parallel-dev"), DB CACHE: 1024
 
 // Executed Command:
-// ./target/release/parallel
+// ./parallel
 // benchmark
 // pallet
 // --chain=parallel-dev
@@ -38,7 +38,7 @@ impl<T: frame_system::Config> pallet_streaming::WeightInfo for WeightInfo<T> {
 	// Storage: Streaming StreamLibrary (r:4 w:4)
 	// Storage: Streaming Streams (r:0 w:1)
 	fn create_stream() -> Weight {
-		(145_000_000 as Weight)
+		(159_916_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(12 as Weight))
 			.saturating_add(T::DbWeight::get().writes(11 as Weight))
 	}
@@ -50,7 +50,7 @@ impl<T: frame_system::Config> pallet_streaming::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	// Storage: Streaming StreamLibrary (r:2 w:2)
 	fn cancel_stream() -> Weight {
-		(143_000_000 as Weight)
+		(160_741_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(9 as Weight))
 			.saturating_add(T::DbWeight::get().writes(8 as Weight))
 	}
@@ -61,14 +61,14 @@ impl<T: frame_system::Config> pallet_streaming::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn withdraw_from_stream() -> Weight {
-		(112_000_000 as Weight)
+		(128_812_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(7 as Weight))
 			.saturating_add(T::DbWeight::get().writes(6 as Weight))
 	}
 	// Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
 	// Storage: Streaming MinimumDeposits (r:0 w:1)
 	fn set_minimum_deposit() -> Weight {
-		(27_000_000 as Weight)
+		(34_223_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}

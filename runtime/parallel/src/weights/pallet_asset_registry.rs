@@ -6,7 +6,7 @@
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("parallel-dev"), DB CACHE: 1024
 
 // Executed Command:
-// ./target/release/parallel
+// ./parallel
 // benchmark
 // pallet
 // --chain=parallel-dev
@@ -31,7 +31,7 @@ impl<T: frame_system::Config> pallet_asset_registry::WeightInfo for WeightInfo<T
 	// Storage: AssetRegistry AssetIdType (r:1 w:1)
 	// Storage: AssetRegistry AssetTypeId (r:0 w:1)
 	fn register_asset() -> Weight {
-		(31_000_000 as Weight)
+		(36_680_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -39,7 +39,7 @@ impl<T: frame_system::Config> pallet_asset_registry::WeightInfo for WeightInfo<T
 	// Storage: AssetRegistry SupportedFeePaymentAssets (r:1 w:1)
 	// Storage: AssetRegistry AssetTypeUnitsPerSecond (r:0 w:1)
 	fn update_asset_units_per_second() -> Weight {
-		(36_000_000 as Weight)
+		(47_030_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -48,14 +48,14 @@ impl<T: frame_system::Config> pallet_asset_registry::WeightInfo for WeightInfo<T
 	// Storage: AssetRegistry AssetTypeUnitsPerSecond (r:1 w:2)
 	// Storage: AssetRegistry AssetTypeId (r:0 w:2)
 	fn update_asset_type() -> Weight {
-		(54_000_000 as Weight)
+		(62_865_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(6 as Weight))
 	}
 	// Storage: AssetRegistry SupportedFeePaymentAssets (r:1 w:1)
 	// Storage: AssetRegistry AssetTypeUnitsPerSecond (r:0 w:1)
 	fn remove_fee_payment_asset() -> Weight {
-		(30_000_000 as Weight)
+		(40_559_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -64,7 +64,7 @@ impl<T: frame_system::Config> pallet_asset_registry::WeightInfo for WeightInfo<T
 	// Storage: AssetRegistry AssetTypeUnitsPerSecond (r:0 w:1)
 	// Storage: AssetRegistry AssetTypeId (r:0 w:1)
 	fn deregister_asset() -> Weight {
-		(42_000_000 as Weight)
+		(50_364_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
