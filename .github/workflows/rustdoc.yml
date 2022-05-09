@@ -13,29 +13,16 @@ env:
   CLOUDFLARE_PURGE_URLS: '["https://api-docs.parallel.fi/rustdocs/"]'
 
 jobs:
-  cancel:
-    name: "Cancel Previous Runs"
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    steps:
-      - uses: styfle/cancel-workflow-action@0.9.1
-        with:
-          workflow_id: 7259686,8377401,8911402,9157672,10574645
-          access_token: ${{ github.token }}
-
   docs:
     if: github.repository == 'parallel-finance/parallel'
     name: GitHub Pages
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [self-hosted]
+        os: [ubuntu-latest]
         rust: [nightly-2022-04-24]
 
     steps:
-      - name: cleaning up
-        run: |
-          echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
       - name: Checkout Repository
         uses: actions/checkout@v1
 
