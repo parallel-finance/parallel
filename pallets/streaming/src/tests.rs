@@ -54,6 +54,7 @@ fn create_works() {
 fn cancel_works_without_withdrawal() {
     new_test_ext().execute_with(|| {
         // Alice creates stream 100 DOT to Bob
+        let stream_id_0 = NextStreamId::<Test>::get();
         assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
@@ -68,7 +69,7 @@ fn cancel_works_without_withdrawal() {
         // Time passes for 10 seconds
         TimestampPallet::set_timestamp(6010); // 6000(init) + 10
                                               // Alice cancels existing stream sent to bob
-        assert_ok!(Streaming::cancel(Origin::signed(ALICE), 0));
+        assert_ok!(Streaming::cancel(Origin::signed(ALICE), stream_id_0));
         // Alice and Bob is received with 100 DOT and 0 DOT respectively as deposit == remaining_balance
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &ALICE) - before_alice,
@@ -80,11 +81,12 @@ fn cancel_works_without_withdrawal() {
         );
         // Bob cannot access to previous stream
         assert_err!(
-            Streaming::withdraw(Origin::signed(BOB), 0, 1),
+            Streaming::withdraw(Origin::signed(BOB), stream_id_0, 1),
             Error::<Test>::StreamHasFinished
         );
 
         // If steam is as collateral, it cannot be cancelled
+        let stream_id_1 = NextStreamId::<Test>::get();
         assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
@@ -93,11 +95,11 @@ fn cancel_works_without_withdrawal() {
             60,
             180
         ));
-        let mut stream = Streams::<Test>::get(1).unwrap();
+        let mut stream = Streams::<Test>::get(stream_id_1).unwrap();
         stream.as_collateral().unwrap();
-        Streams::<Test>::insert(1, stream);
+        Streams::<Test>::insert(stream_id_1, stream);
         assert_err!(
-            Streaming::cancel(Origin::signed(ALICE), 1),
+            Streaming::cancel(Origin::signed(ALICE), stream_id_1),
             Error::<Test>::CannotBeCancelled,
         );
     });
