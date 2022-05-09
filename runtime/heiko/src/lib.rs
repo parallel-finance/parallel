@@ -248,6 +248,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Proxy(_) |
             Call::Identity(_) |
             Call::EmergencyShutdown(_) |
+            Call::CurrencyAdapter(_) |
             Call::XcmHelper(_) |
             // 3rd Party
             Call::Vesting(_) |

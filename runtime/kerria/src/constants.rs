@@ -71,8 +71,8 @@ pub mod fee {
     impl WeightToFeePolynomial for WeightToFee {
         type Balance = Balance;
         fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-            // in kerria, extrinsic base weight (smallest non-zero weight) is mapped to 1/2 CENTS
-            let p = super::currency::CENTS / 2;
+            // in kerria, extrinsic base weight (smallest non-zero weight) is mapped to 2 CENTS
+            let p = super::currency::CENTS * 2;
             let q = Balance::from(ExtrinsicBaseWeight::get());
             smallvec![WeightToFeeCoefficient {
                 degree: 1,
