@@ -110,9 +110,9 @@ pub mod pallet {
         /// The stream id is not found
         InvalidStreamId,
         /// Caller is not the stream sender
-        NotTheStreamSender,
+        NotTheSender,
         /// Caller is not the stream recipient
-        NotTheStreamRecipient,
+        NotTheRecipient,
         /// Amount exceeds balance
         InsufficientStreamBalance,
         /// Excess max streams count
@@ -275,7 +275,7 @@ pub mod pallet {
             let sender = ensure_signed(origin)?;
 
             let mut stream = Streams::<T>::get(stream_id).ok_or(Error::<T>::InvalidStreamId)?;
-            ensure!(stream.is_sender(&sender), Error::<T>::NotTheStreamSender);
+            ensure!(stream.is_sender(&sender), Error::<T>::NotTheSender);
 
             // calculate the balance to return
             let sender_balance = stream.sender_balance()?;
@@ -333,10 +333,7 @@ pub mod pallet {
 
             let mut stream = Streams::<T>::get(stream_id).ok_or(Error::<T>::InvalidStreamId)?;
             ensure!(!stream.has_finished(), Error::<T>::StreamHasFinished);
-            ensure!(
-                stream.is_recipient(&recipient),
-                Error::<T>::NotTheStreamRecipient
-            );
+            ensure!(stream.is_recipient(&recipient), Error::<T>::NotTheRecipient);
             let recipient_balance = stream.recipient_balance()?;
             ensure!(
                 recipient_balance >= amount,

@@ -32,7 +32,7 @@ fn create_stream_works() {
         // Dave cannot access
         assert_err!(
             Streaming::withdraw_from_stream(Origin::signed(DAVE), 0, 1),
-            Error::<Test>::NotTheStreamRecipient
+            Error::<Test>::NotTheRecipient
         );
 
         // Alice creates stream 100 DOT to Bob
@@ -102,7 +102,7 @@ fn withdraw_from_stream_works() {
         // Dave cannot access
         assert_err!(
             Streaming::withdraw_from_stream(Origin::signed(DAVE), 0, 1),
-            Error::<Test>::NotTheStreamRecipient
+            Error::<Test>::NotTheRecipient
         );
 
         // Time passes for 1 second
@@ -160,7 +160,7 @@ fn withdraw_from_with_slower_rate_works() {
         // Dave cannot access
         assert_err!(
             Streaming::withdraw_from_stream(Origin::signed(DAVE), 0, 1),
-            Error::<Test>::NotTheStreamRecipient
+            Error::<Test>::NotTheRecipient
         );
 
         // passed 12 seconds
