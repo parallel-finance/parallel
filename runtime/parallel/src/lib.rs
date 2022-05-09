@@ -253,6 +253,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Proxy(_) |
             Call::Identity(_) |
             Call::EmergencyShutdown(_) |
+            Call::CurrencyAdapter(_) |
             Call::XcmHelper(_) |
             // 3rd Party
             Call::Vesting(_) |
@@ -1048,9 +1049,11 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = 125 * DOLLARS / 100; // 1.25PARA
+        let default_gift_amount = 5 * DOLLARS / 2; // 2.5PARA
         Ok(match asset_id {
-            DOT if balance >= 5 * 10_u128.pow(decimal.into()) => default_gift_amount,
+            DOT if balance >= 5 * 10_u128.pow(decimal.into()).saturating_sub(96_000_000u128) => {
+                default_gift_amount
+            }
             EUSDT | EUSDC if balance >= 300 * 10_u128.pow(decimal.into()) => default_gift_amount,
             _ => Zero::zero(),
         })
