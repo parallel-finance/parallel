@@ -193,7 +193,7 @@ fn get_ctoken_price_work() {
 
         assert_eq!(
             Prices::get_price(&CKSM_20_27),
-            CTokenExchangeRateProvider::get_exchange_rate(&CKSM_20_27)
+            TokenExchangeRateProvider::get_exchange_rate(&CKSM_20_27)
                 .unwrap()
                 .checked_mul_int(500 * 1_000_000 * PRICE_ONE)
                 .map(|i| (Price::from_inner(i), 0))

@@ -14,6 +14,7 @@ use frame_support::{
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::IsNativeConcrete;
+pub use pallet_traits::{VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::{IsSystem, Sibling};
 use polkadot_runtime_parachains::configuration::HostConfiguration;

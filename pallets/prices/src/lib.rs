@@ -67,12 +67,12 @@ pub mod pallet {
         /// staking currency.
         type LiquidStakingExchangeRateProvider: ExchangeRateProvider<CurrencyId>;
 
-        /// CToken currency provider
-        type CTokenCurrenciesProvider: CTokenCurrenciesProvider<CurrencyId>;
+        /// VaultToken currency matcher
+        type VaultTokenCurrenciesFilter: VaultTokenCurrenciesFilter<CurrencyId>;
 
-        /// The provider of the exchange rate between ctoken currency and
+        /// The provider of the exchange rate between vault_token currency and
         /// relay currency.
-        type CTokenExchangeRateProvider: ExchangeRateProvider<CurrencyId>;
+        type VaultTokenExchangeRateProvider: VaultTokenExchangeRateProvider<CurrencyId>;
 
         /// Relay currency
         #[pallet::constant]
@@ -178,23 +178,21 @@ impl<T: Config> PriceFeeder for Pallet<T> {
                             .and_then(|staking_currency_price| {
                                 staking_currency_price.checked_mul(
                                     &T::LiquidStakingExchangeRateProvider::get_exchange_rate(
-                                        &liquid_currency,
+                                        asset_id,
                                     )
-                                    .unwrap_or(Rate::default()),
+                                    .unwrap_or_default(),
                                 )
                             })
                             .map(|price| (price, p.timestamp))
                     })
                 }
-                _ => match T::CTokenCurrenciesProvider::is_ctoken(asset_id) {
+                _ => match T::VaultTokenCurrenciesFilter::contains(asset_id) {
                     true => T::Source::get(&T::RelayCurrency::get()).and_then(|p| {
                         p.value
                             .checked_div(&FixedU128::from_inner(mantissa))
                             .and_then(|relay_currency_price| {
-                                relay_currency_price.checked_mul(
-                                    &T::CTokenExchangeRateProvider::get_exchange_rate(asset_id)
-                                        .unwrap_or(Rate::default()),
-                                )
+                                T::VaultTokenExchangeRateProvider::get_exchange_rate(asset_id)
+                                    .and_then(|rate| relay_currency_price.checked_mul(&rate))
                             })
                             .map(|price| (price, p.timestamp))
                     }),
@@ -233,10 +231,8 @@ impl<T: Config> DataProviderExtended<CurrencyId, TimeStampedPrice> for Pallet<T>
                 T::Source::get_no_op(&staking_currency).and_then(|p| {
                     p.value
                         .checked_mul(
-                            &T::LiquidStakingExchangeRateProvider::get_exchange_rate(
-                                &liquid_currency,
-                            )
-                            .unwrap_or(Rate::default()),
+                            &T::LiquidStakingExchangeRateProvider::get_exchange_rate(asset_id)
+                                .unwrap_or_default(),
                         )
                         .map(|price| TimeStampedPrice {
                             value: price,
@@ -244,13 +240,10 @@ impl<T: Config> DataProviderExtended<CurrencyId, TimeStampedPrice> for Pallet<T>
                         })
                 })
             }
-            _ => match T::CTokenCurrenciesProvider::is_ctoken(asset_id) {
+            _ => match T::VaultTokenCurrenciesFilter::contains(asset_id) {
                 true => T::Source::get_no_op(&T::RelayCurrency::get()).and_then(|p| {
-                    p.value
-                        .checked_mul(
-                            &T::CTokenExchangeRateProvider::get_exchange_rate(asset_id)
-                                .unwrap_or(Rate::default()),
-                        )
+                    T::VaultTokenExchangeRateProvider::get_exchange_rate(asset_id)
+                        .and_then(|rate| p.value.checked_mul(&rate))
                         .map(|price| TimeStampedPrice {
                             value: price,
                             timestamp: p.timestamp,

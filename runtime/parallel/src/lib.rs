@@ -1350,8 +1350,8 @@ impl pallet_prices::Config for Runtime {
     type FeederOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
-    type CTokenCurrenciesProvider = Crowdloans;
-    type CTokenExchangeRateProvider = Crowdloans;
+    type VaultTokenCurrenciesFilter = Crowdloans;
+    type VaultTokenExchangeRateProvider = Crowdloans;
     type RelayCurrency = RelayCurrency;
     type Decimal = Decimal;
     type WeightInfo = pallet_prices::weights::SubstrateWeight<Runtime>;

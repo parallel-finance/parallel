@@ -22,6 +22,9 @@ fn create_pool_should_work() {
         assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 1_414);
         // should be issuance minus the min liq locked
         assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 414);
+        assert_eq!(AMM::get_pool_by_lp_asset(SAMPLE_LP_TOKEN).is_some(), true);
+        assert_eq!(AMM::get_pool_by_asset_pair((DOT, SDOT)).is_some(), true);
+        assert_eq!(AMM::get_pool_by_asset_pair((SDOT, DOT)).is_some(), true);
     })
 }
 

@@ -97,8 +97,8 @@ impl ExchangeRateProvider<CurrencyId> for LiquidStakingExchangeRateProvider {
     }
 }
 
-pub struct CTokenExchangeRateProvider;
-impl ExchangeRateProvider<CurrencyId> for CTokenExchangeRateProvider {
+pub struct TokenExchangeRateProvider;
+impl VaultTokenExchangeRateProvider<CurrencyId> for TokenExchangeRateProvider {
     fn get_exchange_rate(_: &CurrencyId) -> Option<Rate> {
         Some(Rate::saturating_from_rational(100, 150))
     }
@@ -131,9 +131,9 @@ impl LiquidStakingCurrenciesProvider<CurrencyId> for LiquidStaking {
     }
 }
 
-pub struct CTokenCurrencies;
-impl CTokenCurrenciesProvider<CurrencyId> for CTokenCurrencies {
-    fn is_ctoken(asset_id: &CurrencyId) -> bool {
+pub struct TokenCurrenciesFilter;
+impl VaultTokenCurrenciesFilter<CurrencyId> for TokenCurrenciesFilter {
+    fn contains(asset_id: &CurrencyId) -> bool {
         asset_id == &CKSM_20_27
     }
 }
@@ -148,8 +148,8 @@ impl crate::Config for Test {
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
-    type CTokenCurrenciesProvider = CTokenCurrencies;
-    type CTokenExchangeRateProvider = CTokenExchangeRateProvider;
+    type VaultTokenCurrenciesFilter = TokenCurrenciesFilter;
+    type VaultTokenExchangeRateProvider = TokenExchangeRateProvider;
     type RelayCurrency = RelayCurrency;
     type Decimal = Decimal;
     type WeightInfo = ();

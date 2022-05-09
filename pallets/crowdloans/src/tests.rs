@@ -1,6 +1,5 @@
 use super::{types::*, *};
 use crate::mock::*;
-use crate::DEFAULT_PV_RATE;
 
 use codec::Encode;
 use frame_support::{
@@ -9,7 +8,6 @@ use frame_support::{
     traits::{Hooks, OneSessionHandler},
 };
 use frame_system::RawOrigin;
-use pallet_traits::ExchangeRateProvider;
 use polkadot_parachain::primitives::{HeadData, ValidationCode};
 use primitives::{tokens::DOT, BlockNumber, ParaId, Rate};
 use sp_runtime::{
@@ -1456,7 +1454,7 @@ fn get_ctoken_exchange_rate_should_work() {
         sp_io::storage::set(&RELAY_BLOCK_KEY, &0_u32.encode());
         assert_eq!(
             Crowdloans::get_exchange_rate(&ctoken),
-            Some(DEFAULT_PV_RATE)
+            Some(Crowdloans::vault_token_start_rate())
         );
 
         //set as (lease_start + 1)

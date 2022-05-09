@@ -74,7 +74,7 @@ pub mod pallet {
         type PalletId: Get<PalletId>;
 
         /// Specify all the AMMs we are routing between
-        type AMM: AMM<AccountIdOf<Self>, AssetIdOf<Self, I>, BalanceOf<Self, I>>;
+        type AMM: AMM<AccountIdOf<Self>, AssetIdOf<Self, I>, BalanceOf<Self, I>, Self::BlockNumber>;
 
         /// Weight information for extrinsics in this pallet.
         type AMMRouterWeightInfo: WeightInfo;
