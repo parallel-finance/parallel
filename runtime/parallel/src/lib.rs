@@ -108,7 +108,7 @@ use pallet_traits::{
 };
 use primitives::{
     network::PARALLEL_PREFIX,
-    tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, SDOT},
+    tokens::{ACA, AUSD, DOT, EQ, EUSDC, EUSDT, GLMR, IBTC, INTR, LC_DOT, LDOT, PARA, PHA, SDOT},
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
     Signature,
@@ -412,6 +412,33 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(paras::acala::LCDOT_KEY.to_vec()),
                 ),
             )),
+            // Moonbeam
+            GLMR => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::moonbeam::ID),
+                    PalletInstance(paras::moonbeam::GLMR_KEY),
+                ),
+            )),
+            // Phala
+            PHA => Some(MultiLocation::new(1, X1(Parachain(paras::phala::ID)))),
+            // Interlay
+            INTR => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::interlay::ID),
+                    GeneralKey(paras::interlay::INTR_KEY.to_vec()),
+                ),
+            )),
+            IBTC => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::interlay::ID),
+                    GeneralKey(paras::interlay::IBTC_KEY.to_vec()),
+                ),
+            )),
+            // Equilibrium
+            EQ => Some(MultiLocation::new(1, X1(Parachain(paras::equilibrium::ID)))),
             _ => None,
         }
     }
@@ -444,6 +471,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 0,
                 interior: X1(GeneralKey(key)),
             } if key == b"PARA".to_vec() => Some(PARA),
+            // Acala
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
@@ -476,6 +504,34 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             {
                 Some(LC_DOT)
             }
+            // Moonbeam
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), PalletInstance(key)),
+            } if id == paras::moonbeam::ID && key == paras::moonbeam::GLMR_KEY => Some(GLMR),
+            // Phala
+            MultiLocation {
+                parents: 1,
+                interior: X1(Parachain(id)),
+            } if id == paras::phala::ID => Some(PHA),
+            // Interlay
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::interlay::ID && key == paras::interlay::INTR_KEY.to_vec() => {
+                Some(INTR)
+            }
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::interlay::ID && key == paras::interlay::IBTC_KEY.to_vec() => {
+                Some(IBTC)
+            }
+            // Equilibrium
+            MultiLocation {
+                parents: 1,
+                interior: X1(Parachain(id)),
+            } if id == paras::equilibrium::ID => Some(EQ),
             _ => None,
         }
     }
@@ -1160,6 +1216,45 @@ parameter_types! {
         ).into(),
         dot_per_second()
     );
+    // Moonbeam
+    pub GlmrPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::moonbeam::ID), PalletInstance(paras::moonbeam::GLMR_KEY)),
+        ).into(),
+        dot_per_second() * 50
+    );
+    // Phala
+    pub PhaPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X1(Parachain(paras::phala::ID)),
+        ).into(),
+        dot_per_second() * 400
+    );
+    // Interlay
+    pub IntrPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::interlay::ID), GeneralKey(paras::interlay::INTR_KEY.to_vec())),
+        ).into(),
+        dot_per_second() * 400
+    );
+    pub IbtcPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::interlay::ID), GeneralKey(paras::interlay::IBTC_KEY.to_vec())),
+        ).into(),
+        dot_per_second() / 1_500_000
+    );
+    // Equilibrium
+    pub EqPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X1(Parachain(paras::equilibrium::ID)),
+        ).into(),
+        dot_per_second() * 5000
+    );
 }
 
 match_types! {
@@ -1197,10 +1292,20 @@ pub type Trader = (
     FixedRateOfFungible<SDOTPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<ParaPerSecond, ToTreasury>,
     FixedRateOfFungible<ParaPerSecondOfCanonicalLocation, ToTreasury>,
+    // Acala
     FixedRateOfFungible<AusdPerSecond, ToTreasury>,
     FixedRateOfFungible<AcaPerSecond, ToTreasury>,
     FixedRateOfFungible<LDOTPerSecond, ToTreasury>,
     FixedRateOfFungible<LCDOTPerSecond, ToTreasury>,
+    // Moonbeam
+    FixedRateOfFungible<GlmrPerSecond, ToTreasury>,
+    // Phala
+    FixedRateOfFungible<PhaPerSecond, ToTreasury>,
+    // Interlay
+    FixedRateOfFungible<IntrPerSecond, ToTreasury>,
+    FixedRateOfFungible<IbtcPerSecond, ToTreasury>,
+    // Equilibrium
+    FixedRateOfFungible<EqPerSecond, ToTreasury>,
     // Foreign Assets registered in AssetRegistry
     // TODO: replace all above except local reserved asset later
     FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,

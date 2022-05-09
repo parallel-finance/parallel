@@ -35,10 +35,14 @@ pub const ASTR: CurrencyId = 112;
 pub const MOVR: CurrencyId = 113;
 pub const GLMR: CurrencyId = 114;
 pub const PHA: CurrencyId = 115;
-pub const KMA: CurrencyId = 116;
-pub const KINT: CurrencyId = 118;
-pub const KBTC: CurrencyId = 119;
-pub const GENS: CurrencyId = 120;
+pub const KMA: CurrencyId = 117;
+pub const MA: CurrencyId = 118;
+pub const KINT: CurrencyId = 119;
+pub const INTR: CurrencyId = 120;
+pub const KBTC: CurrencyId = 121;
+pub const IBTC: CurrencyId = 122;
+pub const GENS: CurrencyId = 123;
+pub const EQ: CurrencyId = 124;
 
 // Ethereum ecosystem
 pub const EUSDT: CurrencyId = 201;
