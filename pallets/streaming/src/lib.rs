@@ -113,6 +113,8 @@ pub mod pallet {
         NotTheSender,
         /// Caller is not the stream recipient
         NotTheRecipient,
+        /// Stream cannot be cancelled
+        CannotBeCancelled,
         /// Amount exceeds balance
         InsufficientStreamBalance,
         /// Excess max streams count
@@ -273,6 +275,7 @@ pub mod pallet {
 
             let mut stream = Streams::<T>::get(stream_id).ok_or(Error::<T>::InvalidStreamId)?;
             ensure!(stream.is_sender(&sender), Error::<T>::NotTheSender);
+            ensure!(stream.cancellable, Error::<T>::CannotBeCancelled);
 
             // calculate the balance to return
             let sender_balance = stream.sender_balance()?;

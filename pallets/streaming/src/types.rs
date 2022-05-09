@@ -123,6 +123,13 @@ impl<T: Config> Stream<T> {
         Ok(())
     }
 
+    pub fn as_collateral(&mut self) -> DispatchResult {
+        self.status = StreamStatus::AsCollateral;
+        self.cancellable = false;
+
+        Ok(())
+    }
+
     pub fn delta_of(&self) -> Result<u64, DispatchError> {
         let now = T::UnixTime::now().as_secs();
         if now <= self.start_time {

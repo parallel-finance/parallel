@@ -83,6 +83,23 @@ fn cancel_works_without_withdrawal() {
             Streaming::withdraw(Origin::signed(BOB), 0, 1),
             Error::<Test>::StreamHasFinished
         );
+
+        // If steam is as collateral, it cannot be cancelled
+        assert_ok!(Streaming::create(
+            Origin::signed(ALICE),
+            BOB,
+            dollar(100),
+            DOT,
+            60,
+            180
+        ));
+        let mut stream = Streams::<Test>::get(1).unwrap();
+        stream.as_collateral().unwrap();
+        Streams::<Test>::insert(1, stream);
+        assert_err!(
+            Streaming::cancel(Origin::signed(ALICE), 1),
+            Error::<Test>::CannotBeCancelled,
+        );
     });
 }
 
