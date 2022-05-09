@@ -49,41 +49,41 @@ benchmarks! {
         + pallet_timestamp::Config<Moment = u64>
     }
 
-    create_stream {
+    create {
         let caller: T::AccountId = whitelisted_caller();
         transfer_initial_balance::<T>(caller.clone());
         let recipient: T::AccountId = account("Streaming", 101, SEED);
         let deposit_amount: u128 = dollar(5);
         let start_time: u64 = 6;
-        let stop_time: u64 = 18;
-    }: _(SystemOrigin::Signed(caller.clone()), recipient.clone(), deposit_amount, KSM, start_time, stop_time)
+        let end_time: u64 = 18;
+    }: _(SystemOrigin::Signed(caller.clone()), recipient.clone(), deposit_amount, KSM, start_time, end_time)
     verify {
-        assert_last_event::<T>(Event::StreamCreated(0, caller, recipient, deposit_amount, KSM, start_time, stop_time).into())
+        assert_last_event::<T>(Event::StreamCreated(0, caller, recipient, deposit_amount, KSM, start_time, end_time).into())
     }
 
-    cancel_stream {
+    cancel {
         let caller: T::AccountId = whitelisted_caller();
         transfer_initial_balance::<T>(caller.clone());
         let recipient: T::AccountId = account("Streaming", 101, SEED);
         let deposit_amount: u128 = dollar(5);
         let start_time: u64 = 6;
-        let stop_time: u64 = 18;
-        assert_ok!(Streaming::<T>::create_stream(SystemOrigin::Signed(caller.clone()).into(), recipient.clone(), deposit_amount, KSM, start_time, stop_time));
+        let end_time: u64 = 18;
+        assert_ok!(Streaming::<T>::create(SystemOrigin::Signed(caller.clone()).into(), recipient.clone(), deposit_amount, KSM, start_time, end_time));
         let stream_id: u128 = 0;
     }: _(SystemOrigin::Signed(caller.clone()), stream_id)
     verify {
         assert_last_event::<T>(Event::StreamCanceled(stream_id, caller, recipient, KSM, deposit_amount, 0).into())
     }
 
-    withdraw_from_stream {
+    withdraw {
         let caller: T::AccountId = whitelisted_caller();
         transfer_initial_balance::<T>(caller.clone());
         let recipient: T::AccountId = account("Streaming", 101, SEED);
 
         let deposit_amount: u128 = dollar(5);
         let start_time: u64 = 6;
-        let stop_time: u64 = 18;
-        assert_ok!(Streaming::<T>::create_stream(SystemOrigin::Signed(caller).into(), recipient.clone(), deposit_amount, KSM, start_time, stop_time));
+        let end_time: u64 = 18;
+        assert_ok!(Streaming::<T>::create(SystemOrigin::Signed(caller).into(), recipient.clone(), deposit_amount, KSM, start_time, end_time));
         pallet_timestamp::Pallet::<T>::set_timestamp(18000);
 
         let stream_id: u128 = 0;

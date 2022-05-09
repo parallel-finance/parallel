@@ -37,7 +37,7 @@ impl<T: frame_system::Config> pallet_streaming::WeightInfo for WeightInfo<T> {
 	// Storage: Streaming NextStreamId (r:1 w:1)
 	// Storage: Streaming StreamLibrary (r:4 w:4)
 	// Storage: Streaming Streams (r:0 w:1)
-	fn create_stream() -> Weight {
+	fn create() -> Weight {
 		(162_357_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(12 as Weight))
 			.saturating_add(T::DbWeight::get().writes(11 as Weight))
@@ -49,7 +49,7 @@ impl<T: frame_system::Config> pallet_streaming::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	// Storage: Streaming StreamLibrary (r:2 w:2)
-	fn cancel_stream() -> Weight {
+	fn cancel() -> Weight {
 		(161_361_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(9 as Weight))
 			.saturating_add(T::DbWeight::get().writes(8 as Weight))
@@ -60,7 +60,7 @@ impl<T: frame_system::Config> pallet_streaming::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
-	fn withdraw_from_stream() -> Weight {
+	fn withdraw() -> Weight {
 		(129_916_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(7 as Weight))
 			.saturating_add(T::DbWeight::get().writes(6 as Weight))
