@@ -32,7 +32,20 @@ fn create_stream_works() {
         // Dave cannot access
         assert_err!(
             Streaming::withdraw_from_stream(Origin::signed(DAVE), 0, 1),
-            Error::<Test>::NotTheRecipient
+            Error::<Test>::NotTheStreamRecipient
+        );
+
+        // Alice creates stream 100 DOT to Bob
+        assert_err!(
+            Streaming::create_stream(
+                Origin::signed(ALICE),
+                BOB,
+                dollar(100),
+                DOT,
+                6,
+                922337203685477580
+            ),
+            Error::<Test>::InvalidRatePerSecond
         );
     });
 }
@@ -89,7 +102,7 @@ fn withdraw_from_stream_works() {
         // Dave cannot access
         assert_err!(
             Streaming::withdraw_from_stream(Origin::signed(DAVE), 0, 1),
-            Error::<Test>::NotTheRecipient
+            Error::<Test>::NotTheStreamRecipient
         );
 
         // Time passes for 1 second
@@ -147,14 +160,14 @@ fn withdraw_from_with_slower_rate_works() {
         // Dave cannot access
         assert_err!(
             Streaming::withdraw_from_stream(Origin::signed(DAVE), 0, 1),
-            Error::<Test>::NotTheRecipient
+            Error::<Test>::NotTheStreamRecipient
         );
 
         // passed 12 seconds
         TimestampPallet::set_timestamp(18000);
 
         let stream = Streams::<Test>::get(0).unwrap();
-        // delta of should only increase until stop_time
+        // delta of should only increase until end_time
         assert_eq!(stream.delta_of(), Ok(12));
         // Bob withdraws some
         assert_ok!(Streaming::withdraw_from_stream(
@@ -162,7 +175,7 @@ fn withdraw_from_with_slower_rate_works() {
             0,
             dollar(100)
         ));
-        // Bob is received with 100 DOT as stream stop time has passed
+        // Bob is received with 100 DOT as stream end time has passed
         // Stream is removed as balance goes zero
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &BOB) - before_bob,

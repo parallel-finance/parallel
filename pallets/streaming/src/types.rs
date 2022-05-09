@@ -45,8 +45,8 @@ pub struct Stream<T: Config> {
     pub recipient: AccountOf<T>,
     // The start time of the stream
     pub start_time: Timestamp,
-    // The stop time of the stream
-    pub stop_time: Timestamp,
+    // The end time of the stream
+    pub end_time: Timestamp,
     // The current status of the stream
     pub status: StreamStatus,
 }
@@ -59,7 +59,7 @@ impl<T: Config> Stream<T> {
         sender: AccountOf<T>,
         recipient: AccountOf<T>,
         start_time: Timestamp,
-        stop_time: Timestamp,
+        end_time: Timestamp,
     ) -> Self {
         Self {
             remaining_balance: deposit,
@@ -69,7 +69,7 @@ impl<T: Config> Stream<T> {
             sender,
             recipient,
             start_time,
-            stop_time,
+            end_time,
             status: StreamStatus::Ongoing,
         }
     }
@@ -121,11 +121,11 @@ impl<T: Config> Stream<T> {
         let now = T::UnixTime::now().as_secs();
         if now <= self.start_time {
             Ok(Zero::zero())
-        } else if now < self.stop_time {
+        } else if now < self.end_time {
             now.checked_sub(self.start_time)
                 .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow))
         } else {
-            self.stop_time
+            self.end_time
                 .checked_sub(self.start_time)
                 .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow))
         }
@@ -156,7 +156,7 @@ impl<T: Config> Stream<T> {
 
         match *who {
             ref _recipient if *who == self.recipient => {
-                if delta == (self.stop_time - self.start_time).into() {
+                if delta == (self.end_time - self.start_time).into() {
                     Ok(self.remaining_balance)
                 } else {
                     Ok(recipient_balance)

@@ -32,7 +32,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use primitives::*;
 use sp_runtime::{
-    traits::{AccountIdConversion, One},
+    traits::{AccountIdConversion, One, Zero},
     ArithmeticError,
 };
 use sp_std::prelude::*;
@@ -100,17 +100,19 @@ pub mod pallet {
         /// Insufficient deposit size
         DepositLowerThanMinimum,
         /// Start time is before current block time
-        StartBeforeBlockTime,
-        /// Stop time is before start time
-        StopBeforeStart,
+        StartTimeBeforeCurrentTime,
+        /// End time is before start time
+        EndTimeBeforeStartTime,
         /// The duration calculated is too short or too long
         InvalidDuration,
+        /// The rate per second calculated is zero
+        InvalidRatePerSecond,
         /// The stream id is not found
         InvalidStreamId,
-        /// Caller is not the streamer
-        NotTheStreamer,
-        /// Caller is not the recipient
-        NotTheRecipient,
+        /// Caller is not the stream sender
+        NotTheStreamSender,
+        /// Caller is not the stream recipient
+        NotTheStreamRecipient,
         /// Amount exceeds balance
         InsufficientStreamBalance,
         /// Excess max streams count
@@ -123,7 +125,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Creates a payment stream.
-        /// \[stream_id, sender, recipient, deposit, asset_id, start_time, stop_time\]
+        /// \[stream_id, sender, recipient, deposit, asset_id, start_time, end_time\]
         StreamCreated(
             StreamId,
             AccountOf<T>,
@@ -197,7 +199,7 @@ pub mod pallet {
         /// - `deposit`: the amount sender will deposit to create the stream
         /// - `asset_id`: asset should be able to lookup.
         /// - `start_time`: the time when the stream will start
-        /// - `stop_time`: the time when the stream will end
+        /// - `end_time`: the time when the stream will end
         #[pallet::weight(<T as Config>::WeightInfo::create_stream())]
         #[transactional]
         pub fn create_stream(
@@ -206,16 +208,10 @@ pub mod pallet {
             deposit: BalanceOf<T>,
             asset_id: AssetIdOf<T>,
             start_time: Timestamp,
-            stop_time: Timestamp,
+            end_time: Timestamp,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-
             ensure!(sender != recipient, Error::<T>::RecipientIsAlsoSender);
-            ensure!(
-                start_time >= T::UnixTime::now().as_secs(),
-                Error::<T>::StartBeforeBlockTime
-            );
-            ensure!(stop_time > start_time, Error::<T>::StopBeforeStart);
 
             let minimum_deposit = MinimumDeposits::<T>::get(asset_id);
             ensure!(
@@ -223,12 +219,11 @@ pub mod pallet {
                 Error::<T>::DepositLowerThanMinimum
             );
 
-            let duration = stop_time
-                .checked_sub(start_time)
-                .ok_or(Error::<T>::InvalidDuration)?;
+            let duration = Self::ensure_valid_duration(start_time, end_time)?;
             let rate_per_sec = deposit
                 .checked_div(duration as u128)
-                .ok_or(Error::<T>::InvalidDuration)?;
+                .ok_or(Error::<T>::InvalidRatePerSecond)?;
+            ensure!(!rate_per_sec.is_zero(), Error::<T>::InvalidRatePerSecond);
 
             // Transfer deposit asset from sender to global EOA
             T::Assets::transfer(asset_id, &sender, &Self::account_id(), deposit, false)?;
@@ -241,7 +236,7 @@ pub mod pallet {
                 sender.clone(),
                 recipient.clone(),
                 start_time,
-                stop_time,
+                end_time,
             );
 
             let stream_id = NextStreamId::<T>::get();
@@ -261,7 +256,7 @@ pub mod pallet {
             Self::try_push_stream_library(&recipient, StreamKind::Receive, stream_id)?;
 
             Self::deposit_event(Event::<T>::StreamCreated(
-                stream_id, sender, recipient, deposit, asset_id, start_time, stop_time,
+                stream_id, sender, recipient, deposit, asset_id, start_time, end_time,
             ));
             Ok(().into())
         }
@@ -280,7 +275,7 @@ pub mod pallet {
             let sender = ensure_signed(origin)?;
 
             let mut stream = Streams::<T>::get(stream_id).ok_or(Error::<T>::InvalidStreamId)?;
-            ensure!(stream.is_sender(&sender), Error::<T>::NotTheStreamer);
+            ensure!(stream.is_sender(&sender), Error::<T>::NotTheStreamSender);
 
             // calculate the balance to return
             let sender_balance = stream.sender_balance()?;
@@ -338,7 +333,10 @@ pub mod pallet {
 
             let mut stream = Streams::<T>::get(stream_id).ok_or(Error::<T>::InvalidStreamId)?;
             ensure!(!stream.has_finished(), Error::<T>::StreamHasFinished);
-            ensure!(stream.is_recipient(&recipient), Error::<T>::NotTheRecipient);
+            ensure!(
+                stream.is_recipient(&recipient),
+                Error::<T>::NotTheStreamRecipient
+            );
             let recipient_balance = stream.recipient_balance()?;
             ensure!(
                 recipient_balance >= amount,
@@ -396,6 +394,23 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> AccountOf<T> {
         T::PalletId::get().into_account()
+    }
+
+    pub fn ensure_valid_duration(
+        start_time: Timestamp,
+        end_time: Timestamp,
+    ) -> Result<Timestamp, DispatchError> {
+        ensure!(
+            start_time >= T::UnixTime::now().as_secs(),
+            Error::<T>::StartTimeBeforeCurrentTime
+        );
+        ensure!(end_time > start_time, Error::<T>::EndTimeBeforeStartTime);
+
+        let duration = end_time
+            .checked_sub(start_time)
+            .ok_or(Error::<T>::InvalidDuration)?;
+
+        Ok(duration)
     }
 
     pub fn update_finished_stream_library(account: &AccountOf<T>) -> DispatchResult {
