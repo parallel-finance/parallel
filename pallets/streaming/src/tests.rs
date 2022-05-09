@@ -18,10 +18,10 @@ use mock::*;
 use sp_runtime::traits::Zero;
 
 #[test]
-fn create_stream_works() {
+fn create_works() {
     new_test_ext().execute_with(|| {
         // Alice creates stream 100 DOT to Bob
-        assert_ok!(Streaming::create_stream(
+        assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
             dollar(100),
@@ -31,13 +31,13 @@ fn create_stream_works() {
         ));
         // Dave cannot access
         assert_err!(
-            Streaming::withdraw_from_stream(Origin::signed(DAVE), 0, 1),
+            Streaming::withdraw(Origin::signed(DAVE), 0, 1),
             Error::<Test>::NotTheRecipient
         );
 
         // Alice creates stream 100 DOT to Bob
         assert_err!(
-            Streaming::create_stream(
+            Streaming::create(
                 Origin::signed(ALICE),
                 BOB,
                 dollar(100),
@@ -51,10 +51,10 @@ fn create_stream_works() {
 }
 
 #[test]
-fn cancel_stream_works_without_withdrawal() {
+fn cancel_works_without_withdrawal() {
     new_test_ext().execute_with(|| {
         // Alice creates stream 100 DOT to Bob
-        assert_ok!(Streaming::create_stream(
+        assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
             dollar(100),
@@ -68,7 +68,7 @@ fn cancel_stream_works_without_withdrawal() {
         // Time passes for 10 seconds
         TimestampPallet::set_timestamp(6010); // 6000(init) + 10
                                               // Alice cancels existing stream sent to bob
-        assert_ok!(Streaming::cancel_stream(Origin::signed(ALICE), 0));
+        assert_ok!(Streaming::cancel(Origin::signed(ALICE), 0));
         // Alice and Bob is received with 100 DOT and 0 DOT respectively as deposit == remaining_balance
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &ALICE) - before_alice,
@@ -80,18 +80,18 @@ fn cancel_stream_works_without_withdrawal() {
         );
         // Bob cannot access to previous stream
         assert_err!(
-            Streaming::withdraw_from_stream(Origin::signed(BOB), 0, 1),
+            Streaming::withdraw(Origin::signed(BOB), 0, 1),
             Error::<Test>::StreamHasFinished
         );
     });
 }
 
 #[test]
-fn withdraw_from_stream_works() {
+fn withdraw_works() {
     new_test_ext().execute_with(|| {
         let before_bob = <Test as Config>::Assets::balance(DOT, &BOB);
         // Alice creates stream 100 DOT to Bob
-        assert_ok!(Streaming::create_stream(
+        assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
             dollar(100),
@@ -101,7 +101,7 @@ fn withdraw_from_stream_works() {
         ));
         // Dave cannot access
         assert_err!(
-            Streaming::withdraw_from_stream(Origin::signed(DAVE), 0, 1),
+            Streaming::withdraw(Origin::signed(DAVE), 0, 1),
             Error::<Test>::NotTheRecipient
         );
 
@@ -113,11 +113,7 @@ fn withdraw_from_stream_works() {
         let stream = Streams::<Test>::get(0).unwrap();
         assert_eq!(stream.delta_of(), Ok(1));
         // Bob withdraws some
-        assert_ok!(Streaming::withdraw_from_stream(
-            Origin::signed(BOB),
-            0,
-            dollar(1)
-        ));
+        assert_ok!(Streaming::withdraw(Origin::signed(BOB), 0, dollar(1)));
         // Bob is received with 100 DOT
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &BOB) - before_bob,
@@ -130,11 +126,7 @@ fn withdraw_from_stream_works() {
         );
 
         TimestampPallet::set_timestamp(18000);
-        assert_ok!(Streaming::withdraw_from_stream(
-            Origin::signed(BOB),
-            0,
-            dollar(99)
-        ));
+        assert_ok!(Streaming::withdraw(Origin::signed(BOB), 0, dollar(99)));
         assert_eq!(Streams::<Test>::get(&0).unwrap().remaining_balance, 0);
         assert_eq!(
             Streams::<Test>::get(&0).unwrap().status,
@@ -144,12 +136,12 @@ fn withdraw_from_stream_works() {
 }
 
 #[test]
-fn withdraw_from_with_slower_rate_works() {
+fn withdraw_fwith_slower_rate_works() {
     new_test_ext().execute_with(|| {
         let before_bob = <Test as Config>::Assets::balance(DOT, &BOB);
         // Alice creates stream 100 DOT to Bob
         assert_eq!(TimestampPallet::now(), 6000);
-        assert_ok!(Streaming::create_stream(
+        assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
             dollar(100),
@@ -159,7 +151,7 @@ fn withdraw_from_with_slower_rate_works() {
         ));
         // Dave cannot access
         assert_err!(
-            Streaming::withdraw_from_stream(Origin::signed(DAVE), 0, 1),
+            Streaming::withdraw(Origin::signed(DAVE), 0, 1),
             Error::<Test>::NotTheRecipient
         );
 
@@ -170,11 +162,7 @@ fn withdraw_from_with_slower_rate_works() {
         // delta of should only increase until end_time
         assert_eq!(stream.delta_of(), Ok(12));
         // Bob withdraws some
-        assert_ok!(Streaming::withdraw_from_stream(
-            Origin::signed(BOB),
-            0,
-            dollar(100)
-        ));
+        assert_ok!(Streaming::withdraw(Origin::signed(BOB), 0, dollar(100)));
         // Bob is received with 100 DOT as stream end time has passed
         // Stream is removed as balance goes zero
         assert_eq!(
@@ -185,10 +173,10 @@ fn withdraw_from_with_slower_rate_works() {
 }
 
 #[test]
-fn cancel_stream_works_with_withdrawal() {
+fn cancel_works_with_withdrawal() {
     new_test_ext().execute_with(|| {
         // Alice creates stream 100 DOT to Bob
-        assert_ok!(Streaming::create_stream(
+        assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
             dollar(100),
@@ -205,17 +193,13 @@ fn cancel_stream_works_with_withdrawal() {
         let mut stream = Streams::<Test>::get(0).unwrap();
         assert_eq!(stream.delta_of(), Ok(1));
         // Bob withdraws some
-        assert_ok!(Streaming::withdraw_from_stream(
-            Origin::signed(BOB),
-            0,
-            dollar(25)
-        ));
+        assert_ok!(Streaming::withdraw(Origin::signed(BOB), 0, dollar(25)));
         stream = Streams::<Test>::get(0).unwrap();
         assert_eq!(stream.balance_of(&BOB).unwrap(), dollar(0));
         // Time passes for 1 second
         TimestampPallet::set_timestamp(8000); // 7000(before) + 1000(second)
                                               // Alice cancels existing stream sent to bob
-        assert_ok!(Streaming::cancel_stream(Origin::signed(ALICE), 0));
+        assert_ok!(Streaming::cancel(Origin::signed(ALICE), 0));
         // Alice and Bob is received with 98 DOT and 2 DOT respectively as deposit == remaining_balance
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &ALICE) - before_alice,
@@ -227,7 +211,7 @@ fn cancel_stream_works_with_withdrawal() {
         );
         // Bob cannot access to previous stream
         assert_err!(
-            Streaming::withdraw_from_stream(Origin::signed(BOB), 0, 1),
+            Streaming::withdraw(Origin::signed(BOB), 0, 1),
             Error::<Test>::StreamHasFinished,
         );
     });
@@ -237,7 +221,7 @@ fn cancel_stream_works_with_withdrawal() {
 fn streams_library_should_works() {
     new_test_ext().execute_with(|| {
         let stream_id = NextStreamId::<Test>::get();
-        assert_ok!(Streaming::create_stream(
+        assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
             dollar(100),
@@ -262,7 +246,7 @@ fn streams_library_should_works() {
             Streams::<Test>::get(stream_id).unwrap().remaining_balance,
             dollar(100),
         );
-        assert_ok!(Streaming::withdraw_from_stream(
+        assert_ok!(Streaming::withdraw(
             Origin::signed(BOB),
             stream_id,
             dollar(100)
@@ -286,7 +270,7 @@ fn streams_library_should_works() {
 fn max_finished_streams_count_should_work() {
     new_test_ext().execute_with(|| {
         let stream_id_0 = NextStreamId::<Test>::get();
-        assert_ok!(Streaming::create_stream(
+        assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
             dollar(10),
@@ -295,7 +279,7 @@ fn max_finished_streams_count_should_work() {
             10,
         ));
         TimestampPallet::set_timestamp(10000);
-        assert_ok!(Streaming::withdraw_from_stream(
+        assert_ok!(Streaming::withdraw(
             Origin::signed(BOB),
             stream_id_0,
             dollar(10)
@@ -307,7 +291,7 @@ fn max_finished_streams_count_should_work() {
             .binary_search(&stream_id_0));
 
         let stream_id_1 = NextStreamId::<Test>::get();
-        assert_ok!(Streaming::create_stream(
+        assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
             dollar(10),
@@ -316,12 +300,12 @@ fn max_finished_streams_count_should_work() {
             20,
         ));
         TimestampPallet::set_timestamp(15000);
-        assert_ok!(Streaming::withdraw_from_stream(
+        assert_ok!(Streaming::withdraw(
             Origin::signed(BOB),
             stream_id_1,
             dollar(2)
         ));
-        assert_ok!(Streaming::cancel_stream(Origin::signed(ALICE), stream_id_1));
+        assert_ok!(Streaming::cancel(Origin::signed(ALICE), stream_id_1));
 
         // StreamLibrary should contains stream_id_1
         assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
@@ -329,7 +313,7 @@ fn max_finished_streams_count_should_work() {
             .binary_search(&stream_id_1));
 
         // storage should be removed due to MaxFinishedStreamsCount = 2
-        assert_ok!(Streaming::create_stream(
+        assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
             dollar(10),
@@ -391,7 +375,7 @@ fn max_finished_streams_count_should_work() {
 }
 
 #[test]
-fn create_stream_with_minimum_deposit_works() {
+fn create_with_minimum_deposit_works() {
     new_test_ext().execute_with(|| {
         // Set minimum deposit for DOT
         assert_ok!(Streaming::set_minimum_deposit(
@@ -402,13 +386,13 @@ fn create_stream_with_minimum_deposit_works() {
 
         // Alice creates stream 100 DOT to Bob, which is equal to minimum deposit
         assert_err!(
-            Streaming::create_stream(Origin::signed(ALICE), BOB, dollar(99), DOT, 6, 10),
+            Streaming::create(Origin::signed(ALICE), BOB, dollar(99), DOT, 6, 10),
             Error::<Test>::DepositLowerThanMinimum
         );
 
         // Check with default option
         assert_err!(
-            Streaming::create_stream(Origin::signed(ALICE), BOB, 0, KSM, 6, 10),
+            Streaming::create(Origin::signed(ALICE), BOB, 0, KSM, 6, 10),
             Error::<Test>::DepositLowerThanMinimum
         );
     })

@@ -75,15 +75,15 @@ pub mod pallet {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
-        /// Specify max count of streams for an account
+        /// The max count of streams for an account
         #[pallet::constant]
         type MaxStreamsCount: Get<u32>;
 
-        /// Specify max count of streams that has been cancelled or completed for an account
+        /// The max count of streams that has been cancelled or completed for an account
         #[pallet::constant]
         type MaxFinishedStreamsCount: Get<u32>;
 
-        /// Unix time
+        /// The Unix time
         type UnixTime: UnixTime;
 
         /// The origin which can update minimum_deposit
@@ -200,9 +200,9 @@ pub mod pallet {
         /// - `asset_id`: asset should be able to lookup.
         /// - `start_time`: the time when the stream will start
         /// - `end_time`: the time when the stream will end
-        #[pallet::weight(<T as Config>::WeightInfo::create_stream())]
+        #[pallet::weight(<T as Config>::WeightInfo::create())]
         #[transactional]
-        pub fn create_stream(
+        pub fn create(
             origin: OriginFor<T>,
             recipient: AccountOf<T>,
             deposit: BalanceOf<T>,
@@ -266,12 +266,9 @@ pub mod pallet {
         /// Can only be called by the sender
         ///
         /// - `stream_id`: the stream id which will be canceled
-        #[pallet::weight(T::WeightInfo::cancel_stream())]
+        #[pallet::weight(T::WeightInfo::cancel())]
         #[transactional]
-        pub fn cancel_stream(
-            origin: OriginFor<T>,
-            stream_id: StreamId,
-        ) -> DispatchResultWithPostInfo {
+        pub fn cancel(origin: OriginFor<T>, stream_id: StreamId) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
             let mut stream = Streams::<T>::get(stream_id).ok_or(Error::<T>::InvalidStreamId)?;
@@ -322,9 +319,9 @@ pub mod pallet {
         ///
         /// - `stream_id`: the stream id which will be withdraw from
         /// ` `amount`: the amount of asset to withdraw
-        #[pallet::weight(T::WeightInfo::withdraw_from_stream())]
+        #[pallet::weight(T::WeightInfo::withdraw())]
         #[transactional]
-        pub fn withdraw_from_stream(
+        pub fn withdraw(
             origin: OriginFor<T>,
             stream_id: StreamId,
             amount: BalanceOf<T>,
