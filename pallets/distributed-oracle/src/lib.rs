@@ -68,7 +68,7 @@ pub use weights::WeightInfo;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use crate::helpers::{Coffer, OracleDeposit, Relayer, Repeater};
+    use crate::helpers::{Coffer, OracleDeposit, Repeater};
     use sp_runtime::traits::Zero;
     use sp_runtime::ArithmeticError;
 
@@ -117,6 +117,10 @@ pub mod pallet {
 
         #[pallet::constant]
         type MinSlashedTime: Get<u64>;
+
+        // Balance that parallel finance funds to pay repeaters
+        #[pallet::constant]
+        type Treasury: Get<BalanceOf<Self>>;
     }
 
     #[pallet::error]
@@ -175,11 +179,6 @@ pub mod pallet {
         /// Reset emergency price. \[asset_id\]
         ResetPrice(CurrencyId),
     }
-
-    /// Global storage for relayers
-    #[pallet::storage]
-    #[pallet::getter(fn get_relayer)]
-    pub type Relayers<T: Config> = StorageMap<_, Twox64Concat, RelayerId, Relayer<T>>;
 
     /// Platform's staking pool
     /// An Account can stake multiple assets
@@ -362,7 +361,7 @@ pub mod pallet {
                 .checked_add(amount)
                 .ok_or(ArithmeticError::Underflow)?;
 
-            oracle_stake_deposit.timestamp = current_time_stamp.clone();
+            oracle_stake_deposit.timestamp = current_time_stamp;
 
             oracle_stake_deposit.blocks_in_round = oracle_stake_deposit
                 .blocks_in_round
@@ -378,7 +377,7 @@ pub mod pallet {
 
                 let reward = repeater
                     .staked_balance
-                    .checked_div(current_time_stamp.clone() as u128)
+                    .checked_div(current_time_stamp as u128)
                     .and_then(|r| r.checked_div(100_000_000u128))
                     .ok_or(ArithmeticError::Underflow)?;
 
@@ -509,6 +508,10 @@ pub mod pallet {
                 },
             )
         }
+
+        // pub fn set_price_in_round() {
+        //     //
+        // }
 
         /// Set emergency price
         #[pallet::weight((<T as Config>::WeightInfo::set_price(), DispatchClass::Operational))]

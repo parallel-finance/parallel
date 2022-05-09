@@ -82,7 +82,10 @@ pub type AccountId = u128;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const DAVE: AccountId = 3;
+pub const CHARLIE: AccountId = 3;
+pub const DAVE: AccountId = 4;
+pub const EVE: AccountId = 5;
+pub const FRANK: AccountId = 6;
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;
@@ -154,6 +157,7 @@ parameter_types! {
     pub const MinStake: u128 = 100_u128;
     pub const MinUnStake: u128 = 10_u128;
     pub const MinSlashedTime: u64 = 1800_u64;
+    pub const TreasuryAmount: Balance = 100_000_000_000;
 }
 
 pub struct MockDataProvider;
@@ -237,6 +241,7 @@ impl Config for Test {
     type MinHoldTime = MinHoldTime;
     type StakingCurrency = NativeCurrencyId;
     type MinSlashedTime = MinSlashedTime;
+    type Treasury = TreasuryAmount;
 }
 
 pub fn dollar(d: u128) -> u128 {

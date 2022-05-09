@@ -5,7 +5,7 @@ use frame_system::Config;
 use primitives::Balance;
 use scale_info::TypeInfo;
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
 #[scale_info(skip_type_params(T))]
 pub struct OracleDeposit {
     /// The total amount of the stash's balance that we are currently accounting for.
@@ -20,16 +20,6 @@ pub struct OracleDeposit {
     pub blocks_in_round: u128,
 }
 
-impl Default for OracleDeposit {
-    fn default() -> Self {
-        Self {
-            total: 0u128,
-            timestamp: 0,
-            blocks_in_round: 0u128,
-        }
-    }
-}
-
 // Struct for Relayer
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(T))]
@@ -40,7 +30,7 @@ pub struct Relayer<T: Config> {
 }
 
 // Struct for Repeater
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
 #[scale_info(skip_type_params(T))]
 pub struct Repeater {
     pub staked_balance: Balance,
@@ -48,29 +38,48 @@ pub struct Repeater {
     pub reward: Balance,
 }
 
-impl Default for Repeater {
-    fn default() -> Self {
-        Self {
-            staked_balance: 0u128,
-            last_submission: 0,
-            reward: 0u128,
-        }
-    }
-}
-
 /// global state that collects and distributes funds to repeaters
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
 #[scale_info(skip_type_params(T))]
 pub struct Coffer {
     pub balance: Balance,
     pub blocks_in_round: u128,
 }
 
-impl Default for Coffer {
-    fn default() -> Self {
-        Self {
-            balance: 0_u128,
-            blocks_in_round: 0,
-        }
-    }
-}
+// type Participated = (AccountId, Timestamp);
+
+// // we want to know who has particiapted in this round
+// // and we we want to know who is slashed and rewarded when round is done
+
+// #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
+// #[scale_info(skip_type_params(T))]
+// pub struct RoundManager {
+//     pub participated: Vec<Participated>,
+//     pub people_to_slash: Vec<AccountId>,
+//     pub people_to_reward: Vec<AccountId>,
+// }
+
+// impl RoundManager {
+//     fn reward_at_round_end(&mut self) {
+
+//     };
+//     fn slash_at_round_end(&mut self) {
+
+//     };
+// }
+
+// round starts
+// people add prices
+// round price acceptance ends
+// RoundManager
+// checks who didnt respond
+// who's prices were 50% greater then median price for round
+// who did respond
+// Round Manager
+// updates slashes
+// updates rewards (`pendings_rewards`)
+// round ends
+
+// laterrrr
+// a repeater comes by and claims_rewards
+// moves pendings_rewards into account?
