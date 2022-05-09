@@ -1063,9 +1063,15 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = DOLLARS; // 1HKO
+        let default_gift_amount = 5 * DOLLARS / 2; // 2.5HKO
         Ok(match asset_id {
-            KSM if balance >= 10_u128.pow((decimal - 1).into()) => default_gift_amount,
+            KSM if balance
+                >= 10_u128
+                    .pow((decimal - 1).into())
+                    .saturating_sub(96_000_000u128) =>
+            {
+                default_gift_amount
+            }
             EUSDT | EUSDC if balance >= 300 * 10_u128.pow(decimal.into()) => default_gift_amount,
             _ => Zero::zero(),
         })

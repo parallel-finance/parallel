@@ -360,9 +360,6 @@ pub struct MultiCurrencyAdapter<
 );
 
 enum Error {
-    /// Failed to match fungible.
-    #[allow(dead_code)]
-    FailedToMatchFungible,
     /// `MultiLocation` to `AccountId` Conversion failed.
     AccountIdConversionFailed,
     /// `CurrencyId` conversion failed.
@@ -372,9 +369,6 @@ enum Error {
 impl From<Error> for XcmError {
     fn from(e: Error) -> Self {
         match e {
-            Error::FailedToMatchFungible => {
-                XcmError::FailedToTransactAsset("FailedToMatchFungible")
-            }
             Error::AccountIdConversionFailed => {
                 XcmError::FailedToTransactAsset("AccountIdConversionFailed")
             }
@@ -443,8 +437,7 @@ impl<
                         && reducible_balance >= gift_amount
                         && beneficiary_native_balance < gift_amount
                     {
-                        let diff =
-                            ExistentialDeposit::get() + gift_amount - beneficiary_native_balance;
+                        let diff = gift_amount - beneficiary_native_balance;
                         if let Err(e) = MultiCurrency::transfer(
                             native_currency_id,
                             &gift_account,
