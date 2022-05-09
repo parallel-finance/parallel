@@ -11,16 +11,20 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       validator: program.NUMBER
     })
     .option('-r, --relay-ws [url]', 'the relaychain API endpoint', {
-      default: 'ws://127.0.0.1:9944'
+      default: 'wss://polkadot-rpc.parallel.fi'
     })
     .option('-p, --para-ws [url]', 'the parachain API endpoint', {
-      default: 'ws://127.0.0.1:9948'
+      default: 'wss://rpc.parallel.fi'
+    })
+    .option('-d, --dry-run [boolean]', 'whether to execute using PARA_CHAIN_SUDO_KEY', {
+      validator: program.BOOLEAN,
+      default: false
     })
     .action(async actionParameters => {
       const {
         logger,
         args: { source, target },
-        options: { relayWs, paraWs }
+        options: { relayWs, paraWs, dryRun }
       } = actionParameters
       const relayApi = await getRelayApi(relayWs.toString())
       const encoded = relayApi.tx.hrmp.hrmpAcceptOpenChannel(source.valueOf() as number).toHex()
@@ -28,18 +32,22 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       const signer = new Keyring({ type: 'sr25519' }).addFromUri(
         `${process.env.PARA_CHAIN_SUDO_KEY || '//Dave'}`
       )
-      await api.tx.sudo
-        .sudo(
-          api.tx.polkadotXcm.send(
-            {
-              V1: {
-                parents: 1,
-                interior: 'Here'
-              }
-            },
-            createXcm(`0x${encoded.slice(6)}`, sovereignRelayOf(target.valueOf() as number))
-          )
-        )
+      const proposal = api.tx.ormlXcm.sendAsSovereign(
+        {
+          V1: {
+            parents: 1,
+            interior: 'Here'
+          }
+        },
+        createXcm(`0x${encoded.slice(6)}`, sovereignRelayOf(target.valueOf() as number))
+      )
+      const tx = api.tx.generalCouncil.propose(2, proposal, proposal.length)
+
+      if (dryRun) {
+        return logger.info(`hex-encoded call: ${tx.toHex()}`)
+      }
+
+      await tx
         .signAndSend(signer, { nonce: await nextNonce(api, signer) })
         .then(() => process.exit(0))
         .catch(err => {

@@ -222,7 +222,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
             Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
             // Governance
-            Call::Sudo(_) |
+            // Call::Sudo(_) |
             Call::Democracy(_) |
             Call::GeneralCouncil(_) |
             Call::TechnicalCommittee(_) |
