@@ -14,6 +14,8 @@ pub enum StreamStatus {
     Completed,
     // stream is cancelled, remaining_balance may be zero
     Cancelled,
+    // Ongoing(<=> AsCollateral) => Completed
+    AsCollateral,
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -49,6 +51,8 @@ pub struct Stream<T: Config> {
     pub end_time: Timestamp,
     // The current status of the stream
     pub status: StreamStatus,
+    // Whether the stream can be cancelled
+    pub cancellable: bool,
 }
 
 impl<T: Config> Stream<T> {
@@ -71,8 +75,10 @@ impl<T: Config> Stream<T> {
             start_time,
             end_time,
             status: StreamStatus::Ongoing,
+            cancellable: true,
         }
     }
+
     pub fn is_sender(&self, account: &AccountOf<T>) -> bool {
         *account == self.sender
     }
