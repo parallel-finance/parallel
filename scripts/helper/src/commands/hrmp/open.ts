@@ -12,14 +12,14 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       validator: program.NUMBER
     })
     .option('-r, --relay-ws [url]', 'the relaychain API endpoint', {
-      default: 'wss://polkdot-rpc.parallel.fi'
+      default: 'wss://rpc.polkadot.io'
     })
     .option('-p, --para-ws [url]', 'the parachain API endpoint', {
       default: 'wss://rpc.parallel.fi'
     })
     .option('-d, --dry-run [boolean]', 'whether to execute using PARA_CHAIN_SUDO_KEY', {
       validator: program.BOOLEAN,
-      default: false
+      default: true
     })
     .action(async actionParameters => {
       const {
