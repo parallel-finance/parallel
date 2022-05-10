@@ -68,7 +68,7 @@ pub use weights::WeightInfo;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use crate::helpers::{Coffer, OracleDeposit, Repeater};
+    use crate::helpers::{OracleDeposit, PriceHolder, Repeater, RoundManager};
     use sp_runtime::traits::Zero;
     use sp_runtime::ArithmeticError;
 
@@ -118,7 +118,7 @@ pub mod pallet {
         #[pallet::constant]
         type MinSlashedTime: Get<u64>;
 
-        // Balance that parallel finance funds to pay repeaters
+        // Balance that parallel finance funds to pay repeaters , prep populated value
         #[pallet::constant]
         type Treasury: Get<BalanceOf<Self>>;
     }
@@ -174,8 +174,8 @@ pub mod pallet {
         Slashed(T::AccountId),
         /// Slashed and Removed
         SlashedandsRemoved(T::AccountId),
-        /// Set emergency price. \[asset_id, price_detail\]
-        SetPrice(CurrencyId, Price),
+        /// Set emergency price Asset Price, Round number
+        SetPrice(CurrencyId, Price, RoundNumber),
         /// Reset emergency price. \[asset_id\]
         ResetPrice(CurrencyId),
     }
@@ -203,15 +203,24 @@ pub mod pallet {
     #[pallet::getter(fn get_rounds)]
     pub type Round<T: Config> = StorageValue<_, u128>;
 
-    #[pallet::storage]
-    #[pallet::getter(fn get_manager)]
-    pub type Manager<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Coffer>;
+    // #[pallet::storage]
+    // #[pallet::getter(fn get_manager)]
+    // pub type Manager<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Coffer>;
 
-    /// Mapping from currency id to it's emergency price
+    #[pallet::storage]
+    #[pallet::getter(fn get_round_manager)]
+    pub type Manager<T: Config> = StorageValue<_, RoundManager>;
+
+    /// Sets price with round Id PriceHolder
+    // #[pallet::storage]
+    // #[pallet::getter(fn emergency_price)]
+    // pub type EmergencyPrice<T: Config> =
+    //     StorageMap<_, Twox64Concat, CurrencyId, Price, u128, OptionQuery>;
+
     #[pallet::storage]
     #[pallet::getter(fn emergency_price)]
     pub type EmergencyPrice<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, Price, OptionQuery>;
+        StorageMap<_, Twox64Concat, CurrencyId, PriceHolder, OptionQuery>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -219,6 +228,20 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        /// Register Repeaters
+        #[pallet::weight(T::WeightInfo::stake())]
+        #[transactional]
+        pub fn set_price_for_round(
+            who: OriginFor<T>,
+            asset: AssetIdOf<T>,
+            price: FixedU128,
+            round: RoundNumber,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(who)?;
+
+            Ok(().into())
+        }
+
         /// Punish Slash !
         #[pallet::weight(T::WeightInfo::stake())]
         #[transactional]
@@ -236,10 +259,14 @@ pub mod pallet {
                 Error::<T>::InvalidStaker
             );
 
-            ensure!(
-                Manager::<T>::contains_key(&Self::account_id()),
-                Error::<T>::NoRoundsStartedYet
-            );
+            let mut round_manager = Manager::<T>::get().unwrap_or_default();
+
+            // **********************************************************************
+            // ensure!(
+            //     Manager::<T>::contains_key(&Self::account_id()),
+            //     Error::<T>::NoRoundsStartedYet
+            // );
+            // **********************************************************************
 
             StakingPool::<T>::mutate(
                 who.clone(),
@@ -375,6 +402,8 @@ pub mod pallet {
 
                 repeater.staked_balance = oracle_stake_deposit.total;
 
+                // Should calculate in 30 mins time frame
+
                 let reward = repeater
                     .staked_balance
                     .checked_div(current_time_stamp as u128)
@@ -391,21 +420,23 @@ pub mod pallet {
 
             StakingPool::<T>::insert(&who, &asset, oracle_stake_deposit);
 
+            // **************************************************************************************
             // manager has a coffer which stores balances and rounds
             // TODO: We might need to use mutate rather than inserting here
-            let mut coffer = Self::get_manager(&Self::account_id()).unwrap_or_default();
-
-            coffer.balance = coffer
-                .balance
-                .checked_add(amount)
-                .ok_or(ArithmeticError::Underflow)?;
-
-            coffer.blocks_in_round = coffer
-                .blocks_in_round
-                .checked_add(1u128)
-                .ok_or(ArithmeticError::Underflow)?;
-
-            Manager::<T>::insert(Self::account_id(), coffer);
+            // let mut coffer = Self::get_manager(&Self::account_id()).unwrap_or_default();
+            //
+            // coffer.balance = coffer
+            //     .balance
+            //     .checked_add(amount)
+            //     .ok_or(ArithmeticError::Underflow)?;
+            //
+            // coffer.blocks_in_round = coffer
+            //     .blocks_in_round
+            //     .checked_add(1u128)
+            //     .ok_or(ArithmeticError::Underflow)?;
+            //
+            // Manager::<T>::insert(Self::account_id(), coffer);
+            // **************************************************************************************
 
             Self::deposit_event(Event::<T>::Staked(who, asset, amount));
 
@@ -475,24 +506,27 @@ pub mod pallet {
 
                     oracle_stake_deposit.timestamp = T::UnixTime::now().as_secs();
 
-                    // TODO: Handle this error properly
+                    // TODO: Replace this
                     // Update the balances -> remove unstake amount from balances
-                    Manager::<T>::mutate(Self::account_id(), |coffer| -> DispatchResult {
-                        let coffer = coffer.as_mut().ok_or(Error::<T>::CofferMissing)?;
+                    // Manager::<T>::mutate(Self::account_id(), |coffer| -> DispatchResult {
+                    //     let coffer = coffer.as_mut().ok_or(Error::<T>::CofferMissing)?;
+                    //
+                    //     ensure!(
+                    //         coffer.balance >= amount,
+                    //         Error::<T>::InsufficientCofferBalance
+                    //     );
+                    //
+                    //     // Deduct balance from unstaked amount
+                    //     coffer.balance = coffer
+                    //         .balance
+                    //         .checked_sub(amount)
+                    //         .ok_or(ArithmeticError::Underflow)?;
+                    //
+                    //     Ok(())
+                    // })?;
 
-                        ensure!(
-                            coffer.balance >= amount,
-                            Error::<T>::InsufficientCofferBalance
-                        );
-
-                        // Deduct balance from unstaked amount
-                        coffer.balance = coffer
-                            .balance
-                            .checked_sub(amount)
-                            .ok_or(ArithmeticError::Underflow)?;
-
-                        Ok(())
-                    })?;
+                    // *****************************************************************************
+                    // *****************************************************************************
 
                     Self::deposit_event(Event::<T>::Unstaked(who.clone(), asset, amount));
 
@@ -508,10 +542,6 @@ pub mod pallet {
                 },
             )
         }
-
-        // pub fn set_price_in_round() {
-        //     //
-        // }
 
         /// Set emergency price
         #[pallet::weight((<T as Config>::WeightInfo::set_price(), DispatchClass::Operational))]
@@ -529,9 +559,22 @@ pub mod pallet {
                     > T::MinUnstake::get(),
                 Error::<T>::StakedAmountIsLessThanMinStakeAmount
             );
-            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::set_emergency_price(
-                asset_id, price,
-            );
+            let round = 0u128;
+
+            let price_holder = PriceHolder { price, round };
+
+            // *******************************************************
+            // Replaced
+            EmergencyPrice::<T>::insert(asset_id, price_holder.clone());
+
+            Self::deposit_event(Event::SetPrice(asset_id, price, price_holder.round));
+            // <Pallet<T>>::deposit_event(Event::SetPrice(asset_id, price, round));
+
+            // <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::set_emergency_price(
+            //     asset_id, price, round
+            // );
+
+            // TODO: Add Logs
             Ok(().into())
         }
 
@@ -550,7 +593,10 @@ pub mod pallet {
                     > T::MinUnstake::get(),
                 Error::<T>::StakedAmountIsLessThanMinStakeAmount
             );
-            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::reset_emergency_price(asset_id);
+            EmergencyPrice::<T>::remove(asset_id);
+            Self::deposit_event(Event::ResetPrice(asset_id));
+            // <Pallet<T>>::deposit_event(Event::ResetPrice(asset_id));
+            // <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::reset_emergency_price(asset_id);
             Ok(().into())
         }
     }
@@ -570,7 +616,8 @@ impl<T: Config> Pallet<T> {
                 "mantissa: {:?}",
                 mantissa
             );
-            p.checked_div(&FixedU128::from_inner(mantissa))
+            p.price
+                .checked_div(&FixedU128::from_inner(mantissa))
                 .map(|price| (price, 0))
         })
     }
@@ -602,20 +649,20 @@ impl<T: Config> PriceFeeder for Pallet<T> {
     }
 }
 
-impl<T: Config> EmergencyPriceFeeder<CurrencyId, Price> for Pallet<T> {
-    /// Set emergency price
-    fn set_emergency_price(asset_id: CurrencyId, price: Price) {
-        // set price direct
-        EmergencyPrice::<T>::insert(asset_id, price);
-        <Pallet<T>>::deposit_event(Event::SetPrice(asset_id, price));
-    }
-
-    /// Reset emergency price
-    fn reset_emergency_price(asset_id: CurrencyId) {
-        EmergencyPrice::<T>::remove(asset_id);
-        <Pallet<T>>::deposit_event(Event::ResetPrice(asset_id));
-    }
-}
+// impl<T: Config> EmergencyPriceFeeder<CurrencyId, Price> for Pallet<T> {
+//     /// Set emergency price
+//     fn set_emergency_price(asset_id: CurrencyId, price: Price, round: RoundNumber) {
+//         // set price direct
+//         EmergencyPrice::<T>::insert(asset_id, price, round);
+//         <Pallet<T>>::deposit_event(Event::SetPrice(asset_id, price, round));
+//     }
+//
+//     /// Reset emergency price
+//     fn reset_emergency_price(asset_id: CurrencyId) {
+//         EmergencyPrice::<T>::remove(asset_id);
+//         <Pallet<T>>::deposit_event(Event::ResetPrice(asset_id));
+//     }
+// }
 
 impl<T: Config> DataProviderExtended<CurrencyId, TimeStampedPrice> for Pallet<T> {
     fn get_no_op(asset_id: &CurrencyId) -> Option<TimeStampedPrice> {

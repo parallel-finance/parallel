@@ -75,6 +75,8 @@ pub type Shortfall = FixedU128;
 
 pub type Price = FixedU128;
 
+pub type RoundNumber = u128;
+
 pub type Timestamp = u64;
 
 pub type CurrencyId = u32;

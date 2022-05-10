@@ -2,7 +2,7 @@ use crate::{AccountOf, Timestamp};
 use codec::{Decode, Encode};
 use frame_support::pallet_prelude::*;
 use frame_system::Config;
-use primitives::Balance;
+use primitives::{AccountId, Balance, Price, RoundNumber};
 use scale_info::TypeInfo;
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
@@ -46,18 +46,18 @@ pub struct Coffer {
     pub blocks_in_round: u128,
 }
 
-// type Participated = (AccountId, Timestamp);
+type Participated = (AccountId, Timestamp);
 
-// // we want to know who has particiapted in this round
-// // and we we want to know who is slashed and rewarded when round is done
+// we want to know who has participated in this round
+// and we we want to know who is slashed and rewarded when round is done
 
-// #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
-// #[scale_info(skip_type_params(T))]
-// pub struct RoundManager {
-//     pub participated: Vec<Participated>,
-//     pub people_to_slash: Vec<AccountId>,
-//     pub people_to_reward: Vec<AccountId>,
-// }
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
+#[scale_info(skip_type_params(T))]
+pub struct RoundManager {
+    pub participated: Vec<Participated>,
+    pub people_to_slash: Vec<AccountId>,
+    pub people_to_reward: Vec<AccountId>,
+}
 
 // impl RoundManager {
 //     fn reward_at_round_end(&mut self) {
@@ -67,6 +67,14 @@ pub struct Coffer {
 
 //     };
 // }
+
+/// Holds Price Per Round
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
+#[scale_info(skip_type_params(T))]
+pub struct PriceHolder {
+    pub price: Price,
+    pub round: RoundNumber,
+}
 
 // round starts
 // people add prices

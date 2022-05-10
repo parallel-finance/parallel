@@ -15,6 +15,7 @@
 //! Unit tests for the prices pallet.
 
 use super::*;
+use crate::helpers::PriceHolder;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
 use sp_runtime::FixedPointNumber;
@@ -74,7 +75,13 @@ fn reset_price_work() {
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         // set DOT price
-        EmergencyPrice::<Test>::insert(DOT, Price::saturating_from_integer(99));
+
+        let price_holder = PriceHolder {
+            round: 0,
+            price: Price::saturating_from_integer(99),
+        };
+        EmergencyPrice::<Test>::insert(DOT, price_holder);
+        // EmergencyPrice::<Test>::insert(DOT, Price::saturating_from_integer(99));
         assert_eq!(
             Doracle::get_price(&DOT),
             Some((Price::from_inner(9_900_000_000 * PRICE_ONE), 0))
@@ -118,7 +125,9 @@ fn set_price_call_work() {
         let set_price_event = Event::Doracle(crate::Event::SetPrice(
             DOT,
             Price::saturating_from_integer(90),
+            0,
         ));
+
         assert!(System::events()
             .iter()
             .any(|record| record.event == set_price_event));
