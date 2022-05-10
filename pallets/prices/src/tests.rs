@@ -17,7 +17,10 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
-use sp_runtime::{traits::BadOrigin, FixedPointNumber};
+use sp_runtime::{
+    traits::{BadOrigin, One},
+    FixedPointNumber,
+};
 
 const PRICE_ONE: u128 = 1_000_000_000_000_000_000;
 
@@ -193,7 +196,7 @@ fn get_ctoken_price_work() {
 
         assert_eq!(
             Prices::get_price(&CKSM_20_27),
-            TokenExchangeRateProvider::get_exchange_rate(&CKSM_20_27)
+            TokenExchangeRateProvider::get_exchange_rate(&CKSM_20_27, primitives::Rate::one())
                 .unwrap()
                 .checked_mul_int(500 * 1_000_000 * PRICE_ONE)
                 .map(|i| (Price::from_inner(i), 0))

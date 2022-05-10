@@ -42,6 +42,7 @@ use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chai
 
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
+use crate::BLOCKS_PER_YEAR;
 pub use kusama_runtime;
 use pallet_traits::{
     ump::{XcmCall, XcmWeightFeeMisc},
@@ -453,7 +454,7 @@ parameter_types! {
     pub const RemoveKeysLimit: u32 = 1000;
     pub SelfParaId: ParaId = para_a_id();
     pub RefundLocation: AccountId = para_a_id().into_account();
-    pub const LeasePeriod: BlockNumber = 100;
+    pub const LeasePeriod: BlockNumber = BLOCKS_PER_YEAR/4;
 }
 
 pub type CreateVaultOrigin =

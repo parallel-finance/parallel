@@ -45,7 +45,11 @@ pub trait LiquidStakingCurrenciesProvider<CurrencyId> {
 }
 
 pub trait VaultTokenExchangeRateProvider<CurrencyId> {
-    fn get_exchange_rate(asset_id: &CurrencyId) -> Option<Rate>;
+    /// init_rate + (current_relay_block_num-lease_start_block)/total_lease_length*(1-init_rate)
+    fn get_linear_exchange_rate(asset_id: &CurrencyId, init_rate: Rate) -> Option<Rate>;
+    /// 1/(1+r)^T
+    /// T is the remaining term-to-maturity with year as unit and r is the implied yield rate
+    fn get_exchange_rate(asset_id: &CurrencyId, init_rate: Rate) -> Option<Rate>;
 }
 
 pub trait LPVaultTokenExchangeRateProvider<CurrencyId> {
@@ -215,4 +219,8 @@ pub trait DistributionStrategy<Balance> {
         unbonding_amounts: Vec<(DerivativeIndex, Balance)>,
         input: Balance,
     ) -> Vec<(DerivativeIndex, Balance)>;
+}
+
+pub trait LoansRateProvider<CurrencyId> {
+    fn get_full_interest_rate(asset_id: &CurrencyId) -> Option<Rate>;
 }

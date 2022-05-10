@@ -60,7 +60,8 @@ pub mod pallet {
     };
     use sp_runtime::{
         traits::{
-            AccountIdConversion, BlockNumberProvider, Hash, One, Saturating, StaticLookup, Zero,
+            AccountIdConversion, BlockNumberProvider, CheckedDiv, Hash, One, Saturating,
+            StaticLookup, Zero,
         },
         ArithmeticError, DispatchError, FixedPointNumber, SaturatedConversion,
     };
@@ -76,6 +77,8 @@ pub mod pallet {
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
     pub type BalanceOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+
+    pub const BLOCKS_PER_YEAR: u32 = 365 * 24 * 60 * 60 as u32 / 12;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -322,15 +325,6 @@ pub mod pallet {
         AssetIdOf<T>,
         OptionQuery,
     >;
-
-    #[pallet::type_value]
-    pub fn DefaultVaultTokenStartRate() -> Rate {
-        Rate::from_inner(400_000_000_000_000_000)
-    }
-    #[pallet::storage]
-    #[pallet::getter(fn vault_token_start_rate)]
-    pub type VaultTokenStartRate<T: Config> =
-        StorageValue<_, Rate, ValueQuery, DefaultVaultTokenStartRate>;
 
     #[pallet::storage]
     #[pallet::getter(fn current_lease)]
@@ -1585,35 +1579,70 @@ pub mod pallet {
             }
             None
         }
+
+        fn get_vault_term_rate(
+            (start_lease, end_lease): (LeasePeriod, LeasePeriod),
+        ) -> Option<(Rate, Rate)> {
+            let current_block = T::RelayChainBlockNumberProvider::current_block_number();
+            if current_block == T::BlockNumber::zero() {
+                return None;
+            }
+            let lease_period = T::LeasePeriod::get();
+            let start_block = lease_period.saturating_mul(start_lease.into());
+            let end_block = lease_period.saturating_mul((end_lease + 1).into());
+            let lease_length = lease_period.saturating_mul((end_lease - start_lease + 1).into());
+            let total_term_by_year = Rate::from_inner(
+                lease_length
+                    .checked_div(&T::BlockNumber::from(BLOCKS_PER_YEAR))
+                    .unwrap()
+                    .saturated_into(),
+            );
+            let term_rate: Rate;
+            if current_block < start_block {
+                term_rate = Rate::zero();
+            } else if current_block >= start_block && current_block < end_block {
+                term_rate = Rate::saturating_from_rational(
+                    current_block
+                        .saturating_sub(start_block)
+                        .saturated_into::<u32>(),
+                    lease_length.saturated_into::<u32>(),
+                );
+            } else {
+                term_rate = Rate::one();
+            }
+            Some((term_rate, total_term_by_year))
+        }
     }
 
     impl<T: Config> VaultTokenExchangeRateProvider<AssetIdOf<T>> for Pallet<T> {
-        fn get_exchange_rate(asset_id: &AssetIdOf<T>) -> Option<Rate> {
+        fn get_linear_exchange_rate(
+            asset_id: &AssetIdOf<T>,
+            start_exchange_rate: Rate,
+        ) -> Option<Rate> {
             Self::find_vault_by_asset_id(asset_id).and_then(|vault| {
-                let start_exchange_rate = Self::vault_token_start_rate();
-                let current_block = T::RelayChainBlockNumberProvider::current_block_number();
-                let lease_period = T::LeasePeriod::get();
-                let start_block = lease_period.saturating_mul(vault.0.into());
-                let end_block = lease_period.saturating_mul((vault.1 + 1).into());
-                let current_rate: Rate;
-                if current_block < start_block {
-                    current_rate = start_exchange_rate;
-                } else if current_block >= start_block && current_block < end_block {
-                    current_rate = start_exchange_rate.saturating_add(
-                        Rate::saturating_from_rational(
-                            current_block
-                                .saturating_sub(start_block)
-                                .saturated_into::<u32>(),
-                            lease_period
-                                .saturating_mul(T::BlockNumber::from(vault.1 - vault.0 + 1))
-                                .saturated_into::<u32>(),
-                        )
-                        .saturating_mul(Rate::one().saturating_sub(start_exchange_rate)),
+                Self::get_vault_term_rate(vault).and_then(|(term_rate, _)| {
+                    let current_rate: Rate = start_exchange_rate.saturating_add(
+                        term_rate.saturating_mul(Rate::one().saturating_sub(start_exchange_rate)),
                     );
-                } else {
-                    current_rate = Rate::one()
-                }
-                Some(current_rate)
+                    Some(current_rate)
+                })
+            })
+        }
+        fn get_exchange_rate(asset_id: &AssetIdOf<T>, start_exchange_rate: Rate) -> Option<Rate> {
+            Self::find_vault_by_asset_id(asset_id).and_then(|vault| {
+                Self::get_vault_term_rate(vault).and_then(|(term_rate, total_term_by_year)| {
+                    let remaining_year = total_term_by_year
+                        .saturating_mul(Rate::one().saturating_sub(term_rate))
+                        .into_inner()
+                        .try_into()
+                        .unwrap_or_default();
+                    let current_rate: Rate = Rate::one()
+                        .saturating_add(start_exchange_rate)
+                        .saturating_pow(remaining_year)
+                        .reciprocal()
+                        .unwrap_or_default();
+                    Some(current_rate)
+                })
             })
         }
     }

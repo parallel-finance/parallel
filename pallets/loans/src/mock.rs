@@ -179,7 +179,11 @@ impl ExchangeRateProvider<CurrencyId> for LiquidStaking {
 
 pub struct TokenExchangeRateProvider;
 impl VaultTokenExchangeRateProvider<CurrencyId> for TokenExchangeRateProvider {
-    fn get_exchange_rate(_: &CurrencyId) -> Option<Rate> {
+    fn get_exchange_rate(_: &CurrencyId, _: Rate) -> Option<Rate> {
+        Some(Rate::saturating_from_rational(100, 150))
+    }
+
+    fn get_linear_exchange_rate(_: &CurrencyId, _: Rate) -> Option<Rate> {
         Some(Rate::saturating_from_rational(100, 150))
     }
 }
@@ -188,6 +192,13 @@ pub struct TokenCurrenciesFilter;
 impl VaultTokenCurrenciesFilter<CurrencyId> for TokenCurrenciesFilter {
     fn contains(_asset_id: &CurrencyId) -> bool {
         return false;
+    }
+}
+
+pub struct VaultLoansRateProvider;
+impl LoansRateProvider<CurrencyId> for VaultLoansRateProvider {
+    fn get_full_interest_rate(_asset_id: &CurrencyId) -> Option<Rate> {
+        Some(Rate::from_inner(450_000_000_000_000_000))
     }
 }
 
@@ -203,6 +214,7 @@ impl pallet_prices::Config for Test {
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type VaultTokenCurrenciesFilter = TokenCurrenciesFilter;
     type VaultTokenExchangeRateProvider = TokenExchangeRateProvider;
+    type VaultLoansRateProvider = VaultLoansRateProvider;
     type RelayCurrency = RelayCurrency;
     type Decimal = Decimal;
     type WeightInfo = ();

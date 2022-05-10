@@ -33,7 +33,7 @@ use sp_runtime::{
 use sp_std::vec::Vec;
 
 pub use pallet::*;
-use pallet_traits::*;
+pub use pallet_traits::*;
 
 #[cfg(test)]
 mod mock;
@@ -73,6 +73,9 @@ pub mod pallet {
         /// The provider of the exchange rate between vault_token currency and
         /// relay currency.
         type VaultTokenExchangeRateProvider: VaultTokenExchangeRateProvider<CurrencyId>;
+
+        /// The provider of Loans rate for vault_token
+        type VaultLoansRateProvider: LoansRateProvider<CurrencyId>;
 
         /// Relay currency
         #[pallet::constant]
@@ -188,13 +191,20 @@ impl<T: Config> PriceFeeder for Pallet<T> {
                 }
                 _ => match T::VaultTokenCurrenciesFilter::contains(asset_id) {
                     true => T::Source::get(&T::RelayCurrency::get()).and_then(|p| {
-                        p.value
-                            .checked_div(&FixedU128::from_inner(mantissa))
-                            .and_then(|relay_currency_price| {
-                                T::VaultTokenExchangeRateProvider::get_exchange_rate(asset_id)
-                                    .and_then(|rate| relay_currency_price.checked_mul(&rate))
-                            })
-                            .map(|price| (price, p.timestamp))
+                        T::VaultLoansRateProvider::get_full_interest_rate(asset_id).and_then(
+                            |implied_yield_rate| {
+                                p.value
+                                    .checked_div(&FixedU128::from_inner(mantissa))
+                                    .and_then(|relay_currency_price| {
+                                        T::VaultTokenExchangeRateProvider::get_exchange_rate(
+                                            asset_id,
+                                            implied_yield_rate,
+                                        )
+                                        .and_then(|rate| relay_currency_price.checked_mul(&rate))
+                                    })
+                                    .map(|price| (price, p.timestamp))
+                            },
+                        )
                     }),
                     false => T::Source::get(asset_id).and_then(|p| {
                         p.value
@@ -242,12 +252,19 @@ impl<T: Config> DataProviderExtended<CurrencyId, TimeStampedPrice> for Pallet<T>
             }
             _ => match T::VaultTokenCurrenciesFilter::contains(asset_id) {
                 true => T::Source::get_no_op(&T::RelayCurrency::get()).and_then(|p| {
-                    T::VaultTokenExchangeRateProvider::get_exchange_rate(asset_id)
-                        .and_then(|rate| p.value.checked_mul(&rate))
-                        .map(|price| TimeStampedPrice {
-                            value: price,
-                            timestamp: p.timestamp,
-                        })
+                    T::VaultLoansRateProvider::get_full_interest_rate(asset_id).and_then(
+                        |implied_yield_rate| {
+                            T::VaultTokenExchangeRateProvider::get_exchange_rate(
+                                asset_id,
+                                implied_yield_rate,
+                            )
+                            .and_then(|rate| p.value.checked_mul(&rate))
+                            .map(|price| TimeStampedPrice {
+                                value: price,
+                                timestamp: p.timestamp,
+                            })
+                        },
+                    )
                 }),
                 false => T::Source::get_no_op(asset_id),
             },

@@ -1330,6 +1330,7 @@ impl pallet_prices::Config for Runtime {
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type VaultTokenCurrenciesFilter = Crowdloans;
     type VaultTokenExchangeRateProvider = Crowdloans;
+    type VaultLoansRateProvider = Loans;
     type RelayCurrency = RelayCurrency;
     type Decimal = Decimal;
     type WeightInfo = pallet_prices::weights::SubstrateWeight<Runtime>;

@@ -1439,46 +1439,65 @@ fn get_ctoken_exchange_rate_should_work() {
             true,
             One::one(),
         ));
+        //start from 1
+        let start_lease = LEASE_START + 1;
+        let end_lease = LEASE_END + 1;
 
         assert_ok!(Crowdloans::create_vault(
             Origin::signed(ALICE), // origin
             crowdloan,             // crowdloan
             ctoken,                // ctoken
-            LEASE_START,           // lease_start
-            LEASE_END,             // lease_end
+            start_lease,           // lease_start
+            end_lease,             // lease_end
             contribution_strategy, // contribution_strategy
             cap,                   // cap
             end_block              // end_block
         ));
-        //set as lease_start
-        sp_io::storage::set(&RELAY_BLOCK_KEY, &0_u32.encode());
-        assert_eq!(
-            Crowdloans::get_exchange_rate(&ctoken),
-            Some(Crowdloans::vault_token_start_rate())
-        );
-
-        //set as (lease_start + 1)
+        let start_rate = Rate::from_inner(450_000_000_000_000_000);
+        //set relay_block_num as lease_start
         sp_io::storage::set(
             &RELAY_BLOCK_KEY,
-            &((LEASE_START + 1) * LeasePeriod::get()).encode(),
+            &(start_lease * LeasePeriod::get()).encode(),
         );
         assert_eq!(
-            Crowdloans::get_exchange_rate(&ctoken),
-            Some(Rate::from_inner(475_000_000_000_000_000))
+            Crowdloans::get_exchange_rate(&ctoken, start_rate),
+            Some(Rate::from_inner(475624256837098692))
+        );
+
+        //set relay_block_num as (lease_start + 1)
+        sp_io::storage::set(
+            &RELAY_BLOCK_KEY,
+            &((start_lease + 1) * LeasePeriod::get()).encode(),
+        );
+        //exponential rate
+        assert_eq!(
+            Crowdloans::get_exchange_rate(&ctoken, start_rate),
+            Some(Rate::from_inner(689655172413793103))
+        );
+        //linear rate is less
+        assert_eq!(
+            Crowdloans::get_linear_exchange_rate(&ctoken, start_rate),
+            Some(Rate::from_inner(518750000000000000))
         );
 
         //set as (lease_end + 1)
         sp_io::storage::set(
             &RELAY_BLOCK_KEY,
-            &((LEASE_END + 1) * LeasePeriod::get()).encode(),
+            &((end_lease + 1) * LeasePeriod::get()).encode(),
         );
-        assert_eq!(Crowdloans::get_exchange_rate(&ctoken), Some(Rate::one()));
+        assert_eq!(
+            Crowdloans::get_exchange_rate(&ctoken, start_rate),
+            Some(Rate::one())
+        );
 
         //set as (lease_end + 100)
         sp_io::storage::set(
             &RELAY_BLOCK_KEY,
-            &((LEASE_END + 100) * LeasePeriod::get()).encode(),
+            &((end_lease + 100) * LeasePeriod::get()).encode(),
         );
-        assert_eq!(Crowdloans::get_exchange_rate(&ctoken), Some(Rate::one()));
+        assert_eq!(
+            Crowdloans::get_exchange_rate(&ctoken, Rate::one()),
+            Some(Rate::one())
+        );
     });
 }
