@@ -68,7 +68,7 @@ pub use weights::WeightInfo;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use crate::helpers::{OracleDeposit, PriceHolder, Repeater, RoundManager};
+    use crate::helpers::{OracleDeposit, PriceHolder, Repeater, RoundManager, Submissions};
     use sp_runtime::traits::Zero;
     use sp_runtime::ArithmeticError;
 
@@ -218,9 +218,16 @@ pub mod pallet {
     //     StorageMap<_, Twox64Concat, CurrencyId, Price, u128, OptionQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn emergency_price)]
-    pub type EmergencyPrice<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, PriceHolder, OptionQuery>;
+    #[pallet::getter(fn get_currency_price)]
+    pub type CurrencyPrice<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        CurrencyId,
+        Blake2_128Concat,
+        RoundNumber,
+        PriceHolder,
+        OptionQuery,
+    >;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -228,20 +235,6 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Register Repeaters
-        #[pallet::weight(T::WeightInfo::stake())]
-        #[transactional]
-        pub fn set_price_for_round(
-            who: OriginFor<T>,
-            asset: AssetIdOf<T>,
-            price: FixedU128,
-            round: RoundNumber,
-        ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(who)?;
-
-            Ok(().into())
-        }
-
         /// Punish Slash !
         #[pallet::weight(T::WeightInfo::stake())]
         #[transactional]
@@ -258,6 +251,8 @@ pub mod pallet {
                 Repeaters::<T>::contains_key(who.clone()),
                 Error::<T>::InvalidStaker
             );
+
+            // For the given round fetch
 
             let mut round_manager = Manager::<T>::get().unwrap_or_default();
 
@@ -546,10 +541,11 @@ pub mod pallet {
         /// Set emergency price
         #[pallet::weight((<T as Config>::WeightInfo::set_price(), DispatchClass::Operational))]
         #[transactional]
-        pub fn set_price(
+        pub fn set_price_for_round(
             origin: OriginFor<T>,
             asset_id: CurrencyId,
             price: Price,
+            round: u128,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             ensure!(
@@ -559,22 +555,40 @@ pub mod pallet {
                     > T::MinUnstake::get(),
                 Error::<T>::StakedAmountIsLessThanMinStakeAmount
             );
-            let round = 0u128;
 
-            let price_holder = PriceHolder { price, round };
+            /*
+            For a given round get current price by asset_id and round number
 
-            // *******************************************************
-            // Replaced
-            EmergencyPrice::<T>::insert(asset_id, price_holder.clone());
+            Check if the account already submitted a price -> if yes throws an error
+            If not if its a new account -> (add its price  + previous price)  / unique price submitters
+            Update the `price`
+            Add the account to submitter's list
+            This has to be done per round
+             */
+            // let submissions = Vec<Submissions>
+            //
+            // let price_holder = PriceHolder{
+            //     price: price,
+            //     submissions: Vec<AccountId>
+            // }
+            // let mut current = Self::get_currency_price(asset_id, round);
 
-            Self::deposit_event(Event::SetPrice(asset_id, price, price_holder.round));
-            // <Pallet<T>>::deposit_event(Event::SetPrice(asset_id, price, round));
+            //
+            // let mut current_price = Self::get_currency_price(asset_id, round).unwrap();
+            //
+            // let mut current_average_price = current_price.price;
+            // let mut current_submissions = current_price.submissions;
 
-            // <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::set_emergency_price(
-            //     asset_id, price, round
-            // );
+            // ensure!(cur)
 
-            // TODO: Add Logs
+            // let price_holder = PriceHolder { price, , submissions: Default::default() };
+
+            // If Submitted multiple prices per round get the average
+
+            // CurrencyPrice::<T>::insert(asset_id, round, price_holder.clone());
+
+            Self::deposit_event(Event::SetPrice(asset_id, price, round));
+
             Ok(().into())
         }
 
@@ -593,7 +607,7 @@ pub mod pallet {
                     > T::MinUnstake::get(),
                 Error::<T>::StakedAmountIsLessThanMinStakeAmount
             );
-            EmergencyPrice::<T>::remove(asset_id);
+            // CurrencyPrice::<T>::remove(asset_id);
             Self::deposit_event(Event::ResetPrice(asset_id));
             // <Pallet<T>>::deposit_event(Event::ResetPrice(asset_id));
             // <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::reset_emergency_price(asset_id);
@@ -608,46 +622,46 @@ impl<T: Config> Pallet<T> {
     }
 
     // get emergency price, the timestamp is zero
-    fn get_emergency_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
-        Self::emergency_price(asset_id).and_then(|p| {
-            let mantissa = Self::get_asset_mantissa(asset_id)?;
-            log::trace!(
-                target: "price::get_emergency_price",
-                "mantissa: {:?}",
-                mantissa
-            );
-            p.price
-                .checked_div(&FixedU128::from_inner(mantissa))
-                .map(|price| (price, 0))
-        })
-    }
-
-    fn get_asset_mantissa(asset_id: &CurrencyId) -> Option<u128> {
-        let decimal = T::Decimal::get_decimal(asset_id)?;
-        10u128.checked_pow(decimal as u32)
-    }
+    // fn get_emergency_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
+    //     Self::set_price_for_round(asset_id).and_then(|p| {
+    //         let mantissa = Self::get_asset_mantissa(asset_id)?;
+    //         log::trace!(
+    //             target: "price::get_emergency_price",
+    //             "mantissa: {:?}",
+    //             mantissa
+    //         );
+    //         p.price
+    //             .checked_div(&FixedU128::from_inner(mantissa))
+    //             .map(|price| (price, 0))
+    //     })
+    // }
+    //
+    // fn get_asset_mantissa(asset_id: &CurrencyId) -> Option<u128> {
+    //     let decimal = T::Decimal::get_decimal(asset_id)?;
+    //     10u128.checked_pow(decimal as u32)
+    // }
 }
 
-impl<T: Config> PriceFeeder for Pallet<T> {
-    /// Returns the uniform format price and timestamp by asset id.
-    /// Formula: `price = oracle_price * 10.pow(18 - asset_decimal)`
-    /// We use `oracle_price.checked_div(&FixedU128::from_inner(mantissa))` represent that.
-    /// This particular price makes it easy to calculate the asset value in other pallets,
-    /// because we don't have to consider decimal for each asset.
-    ///
-    /// Timestamp is zero means the price is emergency price
-    fn get_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
-        // if emergency price exists, return it, otherwise return latest price from oracle.
-        Self::get_emergency_price(asset_id).or_else(|| {
-            let mantissa = Self::get_asset_mantissa(asset_id)?;
-            T::Source::get(asset_id).and_then(|p| {
-                p.value
-                    .checked_div(&FixedU128::from_inner(mantissa))
-                    .map(|price| (price, p.timestamp))
-            })
-        })
-    }
-}
+// impl<T: Config> PriceFeeder for Pallet<T> {
+/// Returns the uniform format price and timestamp by asset id.
+/// Formula: `price = oracle_price * 10.pow(18 - asset_decimal)`
+/// We use `oracle_price.checked_div(&FixedU128::from_inner(mantissa))` represent that.
+/// This particular price makes it easy to calculate the asset value in other pallets,
+/// because we don't have to consider decimal for each asset.
+///
+/// Timestamp is zero means the price is emergency price
+// fn get_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
+//     // if emergency price exists, return it, otherwise return latest price from oracle.
+//     Self::get_emergency_price(asset_id).or_else(|| {
+//         let mantissa = Self::get_asset_mantissa(asset_id)?;
+//         T::Source::get(asset_id).and_then(|p| {
+//             p.value
+//                 .checked_div(&FixedU128::from_inner(mantissa))
+//                 .map(|price| (price, p.timestamp))
+//         })
+//     })
+// }
+// }
 
 // impl<T: Config> EmergencyPriceFeeder<CurrencyId, Price> for Pallet<T> {
 //     /// Set emergency price

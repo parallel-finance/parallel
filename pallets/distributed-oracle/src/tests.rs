@@ -148,6 +148,7 @@ fn test_unstake_stake_erroneous_scenarios() {
 #[test]
 fn test_register_repeater() {
     new_test_ext().execute_with(|| {
+        // TODO: Flip This -> Stake and register~
         // NOTE: we might want to flip this? stake then register
 
         // Register a staking account as a repeater
@@ -245,6 +246,7 @@ fn test_rewards() {
 #[test]
 fn test_slashing_for_no_response() {
     new_test_ext().execute_with(|| {
+        // Checks the functionality Set Price for Rounds
         // we want to setup a couple of repeater
         assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_00));
@@ -269,12 +271,20 @@ fn test_slashing_for_no_response() {
             round_id                               // round_id
         ));
 
+        // let price_holder = Doracle::get_currency_price(HKO).unwrap();
+
+        // assert_eq!(price_holder.round, 1);
+        // assert_eq!(price_holder.price, Price::from_inner(10_000_000_000 * 1));
+
         assert_ok!(Doracle::set_price_for_round(
             Origin::signed(BOB),                   // origin
             HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
+            Price::from_inner(20_000_000_000 * 1), // price
             round_id                               // round_id
         ));
+
+        // assert_eq!(price_holder.round, 1);
+        // assert_eq!(price_holder.price, Price::from_inner(10_000_000_000 * 1));
 
         assert_ok!(Doracle::set_price_for_round(
             Origin::signed(CHARLIE),               // origin
@@ -283,6 +293,9 @@ fn test_slashing_for_no_response() {
             round_id                               // round_id
         ));
 
+        // assert_eq!(price_holder.round, 1);
+        // assert_eq!(price_holder.price, Price::from_inner(10_000_000_000 * 1));
+        // //
         // round 2
         // alice, bob
         let round_id = 2;
@@ -323,8 +336,8 @@ fn test_slashing_for_no_response() {
             Price::from_inner(10_000_000_000 * 1), // price
             round_id                               // round_id
         ));
-
-        assert_eq!(0, 1);
+        //
+        // assert_eq!(0, 1);
     })
 }
 

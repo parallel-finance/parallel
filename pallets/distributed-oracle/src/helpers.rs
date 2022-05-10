@@ -4,6 +4,7 @@ use frame_support::pallet_prelude::*;
 use frame_system::Config;
 use primitives::{AccountId, Balance, Price, RoundNumber};
 use scale_info::TypeInfo;
+use std::collections::HashMap;
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
 #[scale_info(skip_type_params(T))]
@@ -59,6 +60,15 @@ pub struct RoundManager {
     pub people_to_reward: Vec<AccountId>,
 }
 
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct Submissions {
+    pub submitter: AccountId,
+    pub price: Price,
+}
+
+type submission = Submissions;
+
 // impl RoundManager {
 //     fn reward_at_round_end(&mut self) {
 
@@ -73,7 +83,9 @@ pub struct RoundManager {
 #[scale_info(skip_type_params(T))]
 pub struct PriceHolder {
     pub price: Price,
-    pub round: RoundNumber,
+    pub submissions: Vec<Submissions>,
+    // pub account: AccountId,
+    // pub round: RoundNumber,
 }
 
 // round starts
