@@ -10,13 +10,13 @@ use sp_runtime::{traits::Zero, ArithmeticError, DispatchError, DispatchResult};
 pub enum StreamStatus {
     // The stream has not completed yet
     // as_collateral:
-    // `false`: the stream is still in progress
-    // `true`: the steam is in progress, but is being used as collateral
+    // - `false`: the stream is still in progress
+    // - `true`: the steam is in progress, but is being used as collateral
     Ongoing { as_collateral: bool },
     // The stream is completed
     // cancelled:
-    // `false`: remaining_balance should be zero
-    // `true`: remaining_balance could be zero (or not be zero)
+    // - `false`: remaining_balance should be zero
+    // - `true`: remaining_balance could be zero (or not be zero)
     Completed { cancelled: bool },
 }
 
