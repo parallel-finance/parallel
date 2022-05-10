@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::types::{Context, StreamStatus};
+use crate::types::StreamStatus;
 
 use super::*;
 use frame_support::{assert_err, assert_ok};
@@ -102,7 +102,9 @@ fn cancel_works_without_withdrawal() {
         Streams::<Test>::insert(stream_id_1, stream);
         assert_eq!(
             Streams::<Test>::get(&stream_id_1).unwrap().status,
-            StreamStatus::Ongoing(Context::AsCollateral),
+            StreamStatus::Ongoing {
+                as_collateral: true
+            },
         );
         assert_err!(
             Streaming::cancel(Origin::signed(ALICE), stream_id_1),
@@ -155,7 +157,7 @@ fn withdraw_works() {
         assert_eq!(Streams::<Test>::get(&0).unwrap().remaining_balance, 0);
         assert_eq!(
             Streams::<Test>::get(&0).unwrap().status,
-            StreamStatus::Completed(Context::default())
+            StreamStatus::Completed { cancelled: false },
         );
     });
 }
@@ -273,7 +275,9 @@ fn streams_library_should_works() {
 
         assert!(
             Streams::<Test>::get(stream_id).unwrap().status
-                == StreamStatus::Ongoing(Context::default())
+                == StreamStatus::Ongoing {
+                    as_collateral: false
+                }
         );
         assert_eq!(
             Streams::<Test>::get(stream_id).unwrap().remaining_balance,
@@ -287,7 +291,7 @@ fn streams_library_should_works() {
 
         let stream = Streams::<Test>::get(stream_id).unwrap();
         assert!(stream.remaining_balance == Zero::zero());
-        assert!(stream.status == StreamStatus::Completed(Context::default()));
+        assert!(stream.status == StreamStatus::Completed { cancelled: false });
 
         // storage shouldn't be removed though stream completed
         assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamKind::Send)

@@ -6,33 +6,42 @@ use scale_info::TypeInfo;
 use crate::{AccountOf, AssetIdOf, BalanceOf, Config};
 use sp_runtime::{traits::Zero, ArithmeticError, DispatchError, DispatchResult};
 
+// #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+// pub struct Ongoing {
+//     pub
+// }
+
+// #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+// pub struct Completed {
+//     pub cancelled: bool
+// }
+
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum StreamStatus {
     // The stream has not completed yet
     // `Default`: the stream is still in progress
     // `AsCollateral`: the steam is in progress, but is being used as collateral
-    Ongoing(Context),
+    Ongoing { as_collateral: bool },
     // The stream is completed
     // `Default`: remaining_balance should be zero
     // `Cancelled`: remaining_balance could be zero (or not be zero)
-    Completed(Context),
+    Completed { cancelled: bool },
 }
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-pub enum Context {
-    /// The stream is initiated by the sender, and the recipient will receive the deposit.
-    Default,
-    /// The stream is paused due to the collateral
-    AsCollateral,
-    /// The stream was cancelled, a special case of Completed
-    Cancelled,
-}
-
-impl Default for Context {
-    fn default() -> Self {
-        Context::Default
-    }
-}
+// #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+// pub enum Context {
+//     /// The stream is initiated by the sender, and the recipient will receive the deposit.
+//     Default,
+//     /// The stream is paused due to the collateral
+//     AsCollateral,
+//     /// The stream was cancelled, a special case of Completed
+//     Cancelled,
+// }
+// impl Default for Context {
+//     fn default() -> Self {
+//         Context::Default
+//     }
+// }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum StreamKind {
@@ -90,7 +99,9 @@ impl<T: Config> Stream<T> {
             recipient,
             start_time,
             end_time,
-            status: StreamStatus::Ongoing(Context::default()),
+            status: StreamStatus::Ongoing {
+                as_collateral: false,
+            },
             cancellable: true,
         }
     }
@@ -113,12 +124,8 @@ impl<T: Config> Stream<T> {
 
     pub fn has_finished(&self) -> bool {
         match &self.status {
-            StreamStatus::Ongoing(_) => false,
-            StreamStatus::Completed(context) => match context {
-                Context::Default => true,
-                Context::Cancelled => true,
-                _ => false,
-            },
+            StreamStatus::Ongoing { as_collateral: _ } => false,
+            StreamStatus::Completed { cancelled: _ } => true,
         }
     }
 
@@ -140,7 +147,7 @@ impl<T: Config> Stream<T> {
 
     pub fn try_complete(&mut self) -> DispatchResult {
         if self.remaining_balance.is_zero() {
-            self.status = StreamStatus::Completed(Context::default());
+            self.status = StreamStatus::Completed { cancelled: false };
         }
 
         Ok(())
@@ -148,13 +155,15 @@ impl<T: Config> Stream<T> {
 
     pub fn try_cancel(&mut self, remaining_balance: BalanceOf<T>) -> DispatchResult {
         self.remaining_balance = remaining_balance;
-        self.status = StreamStatus::Completed(Context::Cancelled);
+        self.status = StreamStatus::Completed { cancelled: true };
 
         Ok(())
     }
 
     pub fn as_collateral(&mut self) -> DispatchResult {
-        self.status = StreamStatus::Ongoing(Context::AsCollateral);
+        self.status = StreamStatus::Ongoing {
+            as_collateral: true,
+        };
         self.cancellable = false;
 
         Ok(())
