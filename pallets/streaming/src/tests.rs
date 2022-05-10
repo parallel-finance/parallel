@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::types::{Context, StreamStatus};
+
 use super::*;
 use frame_support::{assert_err, assert_ok};
 use mock::*;
@@ -98,6 +100,10 @@ fn cancel_works_without_withdrawal() {
         let mut stream = Streams::<Test>::get(stream_id_1).unwrap();
         stream.as_collateral().unwrap();
         Streams::<Test>::insert(stream_id_1, stream);
+        assert_eq!(
+            Streams::<Test>::get(&stream_id_1).unwrap().status,
+            StreamStatus::Ongoing(Context::AsCollateral),
+        );
         assert_err!(
             Streaming::cancel(Origin::signed(ALICE), stream_id_1),
             Error::<Test>::CannotBeCancelled,
@@ -149,7 +155,7 @@ fn withdraw_works() {
         assert_eq!(Streams::<Test>::get(&0).unwrap().remaining_balance, 0);
         assert_eq!(
             Streams::<Test>::get(&0).unwrap().status,
-            StreamStatus::Completed
+            StreamStatus::Completed(Context::default())
         );
     });
 }
@@ -195,38 +201,43 @@ fn withdraw_fwith_slower_rate_works() {
 fn cancel_works_with_withdrawal() {
     new_test_ext().execute_with(|| {
         // Alice creates stream 100 DOT to Bob
+        let stream_id_0 = NextStreamId::<Test>::get();
         assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
             dollar(100),
             DOT,
             6,
-            10
+            11
         ));
         // Get before bob and alice balance
         let before_alice = <Test as Config>::Assets::balance(DOT, &ALICE);
         let before_bob = <Test as Config>::Assets::balance(DOT, &BOB);
+
         // Time passes for 1 second
-        TimestampPallet::set_timestamp(7000); // 6000(init) + 1000(second)
-                                              // check if 1 second has passed
-        let mut stream = Streams::<Test>::get(0).unwrap();
+        TimestampPallet::set_timestamp(7000);
+        let mut stream = Streams::<Test>::get(stream_id_0).unwrap();
         assert_eq!(stream.delta_of(), Ok(1));
         // Bob withdraws some
-        assert_ok!(Streaming::withdraw(Origin::signed(BOB), 0, dollar(25)));
-        stream = Streams::<Test>::get(0).unwrap();
+        assert_ok!(Streaming::withdraw(
+            Origin::signed(BOB),
+            stream_id_0,
+            dollar(20)
+        ));
+        stream = Streams::<Test>::get(stream_id_0).unwrap();
         assert_eq!(stream.balance_of(&BOB).unwrap(), dollar(0));
+
         // Time passes for 1 second
-        TimestampPallet::set_timestamp(8000); // 7000(before) + 1000(second)
-                                              // Alice cancels existing stream sent to bob
-        assert_ok!(Streaming::cancel(Origin::signed(ALICE), 0));
-        // Alice and Bob is received with 98 DOT and 2 DOT respectively as deposit == remaining_balance
+        TimestampPallet::set_timestamp(8000);
+        assert_ok!(Streaming::cancel(Origin::signed(ALICE), stream_id_0));
+        // Alice and Bob is received with 60 DOT and 40 DOT respectively as deposit == remaining_balance
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &ALICE) - before_alice,
-            dollar(50)
+            dollar(60)
         );
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &BOB) - before_bob,
-            dollar(50)
+            dollar(40)
         );
         // Bob cannot access to previous stream
         assert_err!(
@@ -260,7 +271,10 @@ fn streams_library_should_works() {
         // 6000(init) + 4000(ms)
         TimestampPallet::set_timestamp(10000);
 
-        assert!(Streams::<Test>::get(stream_id).unwrap().status == StreamStatus::Ongoing);
+        assert!(
+            Streams::<Test>::get(stream_id).unwrap().status
+                == StreamStatus::Ongoing(Context::default())
+        );
         assert_eq!(
             Streams::<Test>::get(stream_id).unwrap().remaining_balance,
             dollar(100),
@@ -273,7 +287,7 @@ fn streams_library_should_works() {
 
         let stream = Streams::<Test>::get(stream_id).unwrap();
         assert!(stream.remaining_balance == Zero::zero());
-        assert!(stream.status == StreamStatus::Completed);
+        assert!(stream.status == StreamStatus::Completed(Context::default()));
 
         // storage shouldn't be removed though stream completed
         assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamKind::Send)

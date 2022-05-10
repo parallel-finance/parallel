@@ -8,14 +8,30 @@ use sp_runtime::{traits::Zero, ArithmeticError, DispatchError, DispatchResult};
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum StreamStatus {
-    // stream has not finished yet
-    Ongoing,
-    // stream is completed, remaining_balance should be zero
-    Completed,
-    // stream is cancelled, remaining_balance may be zero
-    Cancelled,
-    // Ongoing(<=> AsCollateral) => Completed
+    // The stream has not completed yet
+    // `Default`: the stream is still in progress
+    // `AsCollateral`: the steam is in progress, but is being used as collateral
+    Ongoing(Context),
+    // The stream is completed
+    // `Default`: remaining_balance should be zero
+    // `Cancelled`: remaining_balance could be zero (or not be zero)
+    Completed(Context),
+}
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+pub enum Context {
+    /// The stream is initiated by the sender, and the recipient will receive the deposit.
+    Default,
+    /// The stream is paused due to the collateral
     AsCollateral,
+    /// The stream was cancelled, a special case of Completed
+    Cancelled,
+}
+
+impl Default for Context {
+    fn default() -> Self {
+        Context::Default
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -74,7 +90,7 @@ impl<T: Config> Stream<T> {
             recipient,
             start_time,
             end_time,
-            status: StreamStatus::Ongoing,
+            status: StreamStatus::Ongoing(Context::default()),
             cancellable: true,
         }
     }
@@ -96,7 +112,14 @@ impl<T: Config> Stream<T> {
     }
 
     pub fn has_finished(&self) -> bool {
-        self.status == StreamStatus::Completed || self.status == StreamStatus::Cancelled
+        match &self.status {
+            StreamStatus::Ongoing(_) => false,
+            StreamStatus::Completed(context) => match context {
+                Context::Default => true,
+                Context::Cancelled => true,
+                _ => false,
+            },
+        }
     }
 
     fn claimed_balance(&self) -> Result<BalanceOf<T>, DispatchError> {
@@ -117,14 +140,21 @@ impl<T: Config> Stream<T> {
 
     pub fn try_complete(&mut self) -> DispatchResult {
         if self.remaining_balance.is_zero() {
-            self.status = StreamStatus::Completed;
+            self.status = StreamStatus::Completed(Context::default());
         }
 
         Ok(())
     }
 
+    pub fn try_cancel(&mut self, remaining_balance: BalanceOf<T>) -> DispatchResult {
+        self.remaining_balance = remaining_balance;
+        self.status = StreamStatus::Completed(Context::Cancelled);
+
+        Ok(())
+    }
+
     pub fn as_collateral(&mut self) -> DispatchResult {
-        self.status = StreamStatus::AsCollateral;
+        self.status = StreamStatus::Ongoing(Context::AsCollateral);
         self.cancellable = false;
 
         Ok(())

@@ -20,7 +20,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::types::{Stream, StreamKind, StreamStatus};
+use crate::types::{Stream, StreamKind};
 use frame_support::{
     pallet_prelude::*,
     traits::{
@@ -297,12 +297,11 @@ pub mod pallet {
                 false,
             )?;
 
-            // Will keep remaining_balance in the stream
-            stream.status = StreamStatus::Cancelled;
+            stream.try_cancel(sender_balance)?;
+            Streams::<T>::insert(stream_id, stream.clone());
+
             Self::try_push_stream_library(&stream.sender, StreamKind::Finish, stream_id)?;
             Self::try_push_stream_library(&stream.recipient, StreamKind::Finish, stream_id)?;
-
-            Streams::<T>::insert(stream_id, stream.clone());
 
             Self::deposit_event(Event::<T>::StreamCanceled(
                 stream_id,
