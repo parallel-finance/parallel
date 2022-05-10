@@ -217,14 +217,11 @@ fn ump_transact_should_work() {
 #[test]
 fn add_proxy_should_work() {
     new_test_ext().execute_with(|| {
-        let remark = "test".as_bytes().to_vec();
-        let call = TestCall::System(frame_system::Call::remark { remark });
         assert_ok!(XcmHelpers::add_proxy(
             frame_system::RawOrigin::Root.into(), // origin
             ALICE,
             None,
             1,
-            Box::new(call)
         ));
     });
 }
@@ -232,14 +229,11 @@ fn add_proxy_should_work() {
 #[test]
 fn remove_proxy_should_work() {
     new_test_ext().execute_with(|| {
-        let remark = "test".as_bytes().to_vec();
-        let call = TestCall::System(frame_system::Call::remark { remark });
         assert_ok!(XcmHelpers::remove_proxy(
             frame_system::RawOrigin::Root.into(), // origin
             ALICE,
             None,
             1,
-            Box::new(call)
         ));
     });
 }

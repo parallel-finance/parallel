@@ -372,11 +372,10 @@ pub mod pallet {
             delegate: AccountId,
             proxy_type: Option<ProxyType>,
             delay: BlockNumber,
-            notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_add_proxy(delegate, proxy_type, delay, *notify)?;
+            Self::do_add_proxy(delegate, proxy_type, delay)?;
 
             Self::deposit_event(Event::<T>::ProxyAdded);
             Ok(())
@@ -389,11 +388,10 @@ pub mod pallet {
             delegate: AccountId,
             proxy_type: Option<ProxyType>,
             delay: BlockNumber,
-            notify: Box<CallIdOf<T>>,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_remove_proxy(delegate, proxy_type, delay, *notify)?;
+            Self::do_remove_proxy(delegate, proxy_type, delay)?;
 
             Self::deposit_event(Event::<T>::ProxyRemoved);
             Ok(())
@@ -468,15 +466,13 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, TAccountId> {
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
-    ) -> Result<QueryId, DispatchError>;
+    ) -> Result<Option<QueryId>, DispatchError>;
 
     fn do_remove_proxy(
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
-    ) -> Result<QueryId, DispatchError>;
+    ) -> Result<Option<QueryId>, DispatchError>;
 }
 
 impl<T: Config> Pallet<T> {
@@ -565,8 +561,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
-    ) -> Result<QueryId, DispatchError> {
+    ) -> Result<Option<QueryId>, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::AddProxy);
         Ok(switch_relay!({
             let call =
@@ -576,25 +571,17 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                     delay,
                 })));
 
-            let mut msg = Self::do_ump_transact(
+            let msg = Self::do_ump_transact(
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
                 xcm_weight_fee_misc.fee,
             )?;
 
-            let query_id = Self::report_outcome_notify(
-                &mut msg,
-                MultiLocation::parent(),
-                notify,
-                T::NotifyTimeout::get(),
-            )?;
-
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
-
-            query_id
+            None
         }))
     }
 
@@ -602,8 +589,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
-    ) -> Result<QueryId, DispatchError> {
+    ) -> Result<Option<QueryId>, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::RemoveProxy);
         Ok(switch_relay!({
             let call = RelaychainCall::<T>::Proxy(Box::new(ProxyCall::RemoveProxy(
@@ -614,25 +600,17 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 },
             )));
 
-            let mut msg = Self::do_ump_transact(
+            let msg = Self::do_ump_transact(
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
                 xcm_weight_fee_misc.fee,
             )?;
 
-            let query_id = Self::report_outcome_notify(
-                &mut msg,
-                MultiLocation::parent(),
-                notify,
-                T::NotifyTimeout::get(),
-            )?;
-
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
-
-            query_id
+            None
         }))
     }
 
