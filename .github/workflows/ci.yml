@@ -103,4 +103,5 @@ jobs:
 
       - name: Check Benchmarks With Real Runtimes
         run: |
+          make clean
           make bench
