@@ -6,42 +6,19 @@ use scale_info::TypeInfo;
 use crate::{AccountOf, AssetIdOf, BalanceOf, Config};
 use sp_runtime::{traits::Zero, ArithmeticError, DispatchError, DispatchResult};
 
-// #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-// pub struct Ongoing {
-//     pub
-// }
-
-// #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-// pub struct Completed {
-//     pub cancelled: bool
-// }
-
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum StreamStatus {
     // The stream has not completed yet
-    // `Default`: the stream is still in progress
-    // `AsCollateral`: the steam is in progress, but is being used as collateral
+    // as_collateral:
+    // `false`: the stream is still in progress
+    // `true`: the steam is in progress, but is being used as collateral
     Ongoing { as_collateral: bool },
     // The stream is completed
-    // `Default`: remaining_balance should be zero
-    // `Cancelled`: remaining_balance could be zero (or not be zero)
+    // cancelled:
+    // `false`: remaining_balance should be zero
+    // `true`: remaining_balance could be zero (or not be zero)
     Completed { cancelled: bool },
 }
-
-// #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-// pub enum Context {
-//     /// The stream is initiated by the sender, and the recipient will receive the deposit.
-//     Default,
-//     /// The stream is paused due to the collateral
-//     AsCollateral,
-//     /// The stream was cancelled, a special case of Completed
-//     Cancelled,
-// }
-// impl Default for Context {
-//     fn default() -> Self {
-//         Context::Default
-//     }
-// }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub enum StreamKind {
