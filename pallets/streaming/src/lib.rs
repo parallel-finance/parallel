@@ -127,7 +127,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Creates a payment stream.
-        /// \[stream_id, sender, recipient, deposit, asset_id, start_time, end_time\]
+        /// \[stream_id, sender, recipient, deposit, asset_id, start_time, end_time, cancellable\]
         StreamCreated(
             StreamId,
             AccountOf<T>,
@@ -136,13 +136,14 @@ pub mod pallet {
             AssetIdOf<T>,
             Timestamp,
             Timestamp,
+            bool,
         ),
         /// Withdraw payment from stream.
         /// \[stream_id, recipient, asset_id, amount\]
         StreamWithdrawn(StreamId, AccountOf<T>, AssetIdOf<T>, BalanceOf<T>),
         /// Cancel an existing stream.
         /// \[stream_id, sender, recipient, sender_balance, recipient_balance]
-        StreamCanceled(
+        StreamCancelled(
             StreamId,
             AccountOf<T>,
             AccountOf<T>,
@@ -260,7 +261,7 @@ pub mod pallet {
             Self::try_push_stream_library(&recipient, StreamKind::Receive, stream_id)?;
 
             Self::deposit_event(Event::<T>::StreamCreated(
-                stream_id, sender, recipient, deposit, asset_id, start_time, end_time,
+                stream_id, sender, recipient, deposit, asset_id, start_time, end_time, true,
             ));
             Ok(().into())
         }
@@ -305,7 +306,7 @@ pub mod pallet {
             Self::try_push_stream_library(&stream.sender, StreamKind::Finish, stream_id)?;
             Self::try_push_stream_library(&stream.recipient, StreamKind::Finish, stream_id)?;
 
-            Self::deposit_event(Event::<T>::StreamCanceled(
+            Self::deposit_event(Event::<T>::StreamCancelled(
                 stream_id,
                 sender,
                 stream.recipient,

@@ -58,7 +58,7 @@ benchmarks! {
         let end_time: u64 = 18;
     }: _(SystemOrigin::Signed(caller.clone()), recipient.clone(), deposit_amount, KSM, start_time, end_time, true)
     verify {
-        assert_last_event::<T>(Event::StreamCreated(0, caller, recipient, deposit_amount, KSM, start_time, end_time).into())
+        assert_last_event::<T>(Event::StreamCreated(0, caller, recipient, deposit_amount, KSM, start_time, end_time, true).into())
     }
 
     cancel {
@@ -72,7 +72,7 @@ benchmarks! {
         let stream_id: u128 = 0;
     }: _(SystemOrigin::Signed(caller.clone()), stream_id)
     verify {
-        assert_last_event::<T>(Event::StreamCanceled(stream_id, caller, recipient, KSM, deposit_amount, 0).into())
+        assert_last_event::<T>(Event::StreamCancelled(stream_id, caller, recipient, KSM, deposit_amount, 0).into())
     }
 
     withdraw {

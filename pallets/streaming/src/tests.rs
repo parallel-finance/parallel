@@ -168,7 +168,7 @@ fn withdraw_works() {
 }
 
 #[test]
-fn withdraw_fwith_slower_rate_works() {
+fn withdraw_with_slower_rate_works() {
     new_test_ext().execute_with(|| {
         let before_bob = <Test as Config>::Assets::balance(DOT, &BOB);
         // Alice creates stream 100 DOT to Bob
