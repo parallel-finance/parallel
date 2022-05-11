@@ -172,7 +172,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        // Init network tokens to execute extrinsics
+        // Init network tokens to execute extrinsic
         Balances::set_balance(Origin::root(), BOB, dollar(1000), dollar(0)).unwrap();
         Balances::set_balance(Origin::root(), ALICE, dollar(1000), dollar(0)).unwrap();
         Balances::set_balance(Origin::root(), DAVE, dollar(1000), dollar(0)).unwrap();
