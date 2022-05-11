@@ -211,6 +211,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
             start_time: Timestamp,
             end_time: Timestamp,
+            cancellable: bool,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             ensure!(sender != recipient, Error::<T>::RecipientIsAlsoSender);
@@ -239,6 +240,7 @@ pub mod pallet {
                 recipient.clone(),
                 start_time,
                 end_time,
+                cancellable,
             );
 
             let stream_id = NextStreamId::<T>::get();

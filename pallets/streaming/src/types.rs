@@ -65,6 +65,7 @@ impl<T: Config> Stream<T> {
         recipient: AccountOf<T>,
         start_time: Timestamp,
         end_time: Timestamp,
+        cancellable: bool,
     ) -> Self {
         Self {
             remaining_balance: deposit,
@@ -78,7 +79,7 @@ impl<T: Config> Stream<T> {
             status: StreamStatus::Ongoing {
                 as_collateral: false,
             },
-            cancellable: true,
+            cancellable,
         }
     }
 

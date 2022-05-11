@@ -29,7 +29,8 @@ fn create_works() {
             dollar(100),
             DOT,
             6000,
-            12000
+            12000,
+            true,
         ));
         // Dave cannot access
         assert_err!(
@@ -45,7 +46,8 @@ fn create_works() {
                 dollar(100),
                 DOT,
                 6,
-                922337203685477580
+                922337203685477580,
+                true,
             ),
             Error::<Test>::InvalidRatePerSecond
         );
@@ -63,7 +65,8 @@ fn cancel_works_without_withdrawal() {
             dollar(100),
             DOT,
             6,
-            18
+            18,
+            true,
         ));
         // Get before bob and alice balance
         let before_alice = <Test as Config>::Assets::balance(DOT, &ALICE);
@@ -95,7 +98,8 @@ fn cancel_works_without_withdrawal() {
             dollar(100),
             DOT,
             60,
-            180
+            180,
+            true,
         ));
         let mut stream = Streams::<Test>::get(stream_id_1).unwrap();
         stream.as_collateral().unwrap();
@@ -124,7 +128,8 @@ fn withdraw_works() {
             dollar(100),
             DOT,
             6,
-            18
+            18,
+            true,
         ));
         // Dave cannot access
         assert_err!(
@@ -174,7 +179,8 @@ fn withdraw_fwith_slower_rate_works() {
             dollar(100),
             DOT,
             6,
-            18
+            18,
+            true,
         ));
         // Dave cannot access
         assert_err!(
@@ -210,7 +216,8 @@ fn cancel_works_with_withdrawal() {
             dollar(100),
             DOT,
             6,
-            11
+            11,
+            true,
         ));
         // Get before bob and alice balance
         let before_alice = <Test as Config>::Assets::balance(DOT, &ALICE);
@@ -260,6 +267,7 @@ fn streams_library_should_works() {
             DOT,
             6,
             10,
+            true,
         ));
 
         // StreamLibrary should contains stream_id = 0
@@ -314,6 +322,7 @@ fn max_finished_streams_count_should_work() {
             DOT,
             6,
             10,
+            true,
         ));
         TimestampPallet::set_timestamp(10000);
         assert_ok!(Streaming::withdraw(
@@ -335,6 +344,7 @@ fn max_finished_streams_count_should_work() {
             DOT,
             11,
             20,
+            true,
         ));
         TimestampPallet::set_timestamp(15000);
         assert_ok!(Streaming::withdraw(
@@ -357,6 +367,7 @@ fn max_finished_streams_count_should_work() {
             DOT,
             16,
             30,
+            true,
         ));
         assert_eq!(
             StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
@@ -423,13 +434,13 @@ fn create_with_minimum_deposit_works() {
 
         // Alice creates stream 100 DOT to Bob, which is equal to minimum deposit
         assert_err!(
-            Streaming::create(Origin::signed(ALICE), BOB, dollar(99), DOT, 6, 10),
+            Streaming::create(Origin::signed(ALICE), BOB, dollar(99), DOT, 6, 10, true),
             Error::<Test>::DepositLowerThanMinimum
         );
 
         // Check with default option
         assert_err!(
-            Streaming::create(Origin::signed(ALICE), BOB, 0, KSM, 6, 10),
+            Streaming::create(Origin::signed(ALICE), BOB, 0, KSM, 6, 10, true),
             Error::<Test>::DepositLowerThanMinimum
         );
     })
