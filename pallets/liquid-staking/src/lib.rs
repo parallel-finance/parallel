@@ -71,7 +71,7 @@ pub mod pallet {
     use sp_runtime::{
         traits::{
             AccountIdConversion, BlakeTwo256, BlockNumberProvider, CheckedDiv, CheckedSub,
-            StaticLookup,
+            Saturating, StaticLookup,
         },
         ArithmeticError, FixedPointNumber, TransactionOutcome,
     };
@@ -189,6 +189,11 @@ pub mod pallet {
 
         /// Current strategy for distributing assets to multi-accounts
         type DistributionStrategy: DistributionStrategy<BalanceOf<Self>>;
+
+        /// Number of blocknumbers that do_matching after each era updated.
+        /// Need to do_bond before relaychain store npos solution
+        #[pallet::constant]
+        type ElectionSolutionStoredOffset: Get<BlockNumberFor<Self>>;
     }
 
     #[pallet::event]
@@ -365,6 +370,12 @@ pub mod pallet {
     #[pallet::storage]
     pub(crate) type StorageVersion<T: Config> =
         StorageValue<_, Versions, ValueQuery, DefaultVersion<T>>;
+
+    /// Set to true if already do matching in current era
+    /// Set to false once advance era
+    #[pallet::storage]
+    #[pallet::getter(fn is_matching)]
+    pub type IsMatching<T: Config> = StorageValue<_, bool, ValueQuery>;
 
     #[derive(Default)]
     #[pallet::genesis_config]
@@ -893,6 +904,7 @@ pub mod pallet {
                 &block_number,
                 &offset
             );
+            weight += Self::do_matching_before_store_solution();
             if offset.is_zero() {
                 return weight;
             }
@@ -1523,6 +1535,23 @@ pub mod pallet {
             })
         }
 
+        pub(crate) fn do_matching_before_store_solution() -> Weight {
+            let mut weight = Default::default();
+            if !Self::is_matching()
+                && T::ElectionSolutionStoredOffset::get().saturating_add(Self::era_start_block())
+                    <= T::RelayChainValidationDataProvider::current_block_number()
+            {
+                weight = with_transaction(|| match Self::do_matching() {
+                    Ok(()) => TransactionOutcome::Commit(Ok(<T as Config>::WeightInfo::force_matching())),
+                    Err(err) => TransactionOutcome::Rollback(Err(err)),
+                }).unwrap_or_else(|err|{
+                    log::error!(target: "liquidStaking::do_matching_before_store_solution", "Could not do_matching! error: {:?}", &err);
+                    Default::default()
+                });
+            }
+            weight
+        }
+
         #[require_transactional]
         pub(crate) fn do_matching() -> DispatchResult {
             let total_unbonding = Self::get_total_unbonding();
@@ -1536,6 +1565,8 @@ pub mod pallet {
                 &rebond_amount,
                 &unbond_amount
             );
+
+            IsMatching::<T>::put(true);
 
             Self::do_multi_bond(bond_amount, RewardDestination::Staked)?;
             Self::do_multi_rebond(rebond_amount)?;
@@ -1569,9 +1600,10 @@ pub mod pallet {
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
             // ignore error
-            if let Err(e) = Self::do_matching().and(Self::do_update_exchange_rate()) {
+            if let Err(e) = Self::do_update_exchange_rate() {
                 log::error!(target: "liquidStaking::do_advance_era", "advance era error caught: {:?}", &e);
             }
+            IsMatching::<T>::put(false);
 
             Self::deposit_event(Event::<T>::NewEra(Self::current_era()));
             Ok(())
