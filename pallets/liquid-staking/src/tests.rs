@@ -55,6 +55,7 @@ fn stake_should_work() {
         assert_ok!(with_transaction(
             || -> TransactionOutcome<DispatchResult> {
                 LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::do_matching().unwrap();
                 LiquidStaking::notification_received(
                     pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                     0,
@@ -94,6 +95,7 @@ fn stake_should_work() {
         assert_ok!(with_transaction(
             || -> TransactionOutcome<DispatchResult> {
                 LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::do_matching().unwrap();
                 LiquidStaking::notification_received(
                     pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                     1,
@@ -155,6 +157,7 @@ fn unstake_should_work() {
         assert_ok!(with_transaction(
             || -> TransactionOutcome<DispatchResult> {
                 LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::do_matching().unwrap();
                 LiquidStaking::notification_received(
                     pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                     0,
@@ -205,6 +208,7 @@ fn unstake_should_work() {
         assert_ok!(with_transaction(
             || -> TransactionOutcome<DispatchResult> {
                 LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::do_matching().unwrap();
                 LiquidStaking::notification_received(
                     pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                     1,
@@ -277,6 +281,7 @@ fn test_matching_should_work() {
             assert_ok!(with_transaction(
                 || -> TransactionOutcome<DispatchResult> {
                     LiquidStaking::do_advance_era(1).unwrap();
+                    LiquidStaking::do_matching().unwrap();
                     LiquidStaking::notification_received(
                         pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                         i.try_into().unwrap(),
@@ -665,6 +670,7 @@ fn claim_for_should_work() {
         assert_ok!(with_transaction(
             || -> TransactionOutcome<DispatchResult> {
                 assert_ok!(LiquidStaking::do_advance_era(4));
+                assert_ok!(LiquidStaking::do_matching());
                 TransactionOutcome::Commit(Ok(()))
             }
         ));
