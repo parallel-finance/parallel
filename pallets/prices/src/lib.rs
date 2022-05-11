@@ -22,13 +22,15 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{log, pallet_prelude::*, transactional, weights::DispatchClass};
+use frame_support::{
+    log, pallet_prelude::*, traits::fungibles::Inspect, transactional, weights::DispatchClass,
+};
 use frame_system::pallet_prelude::*;
 use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
 use primitives::*;
 use sp_runtime::{
     traits::{CheckedDiv, CheckedMul},
-    FixedU128,
+    FixedPointNumber, FixedU128,
 };
 use sp_std::vec::Vec;
 
@@ -183,20 +185,20 @@ impl<T: Config> Pallet<T> {
 
     fn get_staking_asset_price(
         asset_id: &CurrencyId,
-        mantissa: u128,
         base_price: TimeStampedPrice,
-    ) -> Option<(Price, TimeStampedPrice)> {
+    ) -> Option<TimeStampedPrice> {
         if Some(asset_id.clone()) == T::LiquidStakingCurrenciesProvider::get_liquid_currency() {
-            return base_price
-                .value
-                .checked_div(&FixedU128::from_inner(mantissa))
-                .and_then(|staking_currency_price| {
-                    staking_currency_price.checked_mul(
-                        &T::LiquidStakingExchangeRateProvider::get_exchange_rate(&asset_id)
-                            .unwrap_or_default(),
-                    )
-                })
-                .map(|price| (price, base_price));
+            return T::LiquidStakingExchangeRateProvider::get_exchange_rate(&asset_id).and_then(
+                |rate| {
+                    base_price
+                        .value
+                        .checked_mul(&rate)
+                        .map(|price| TimeStampedPrice {
+                            value: price,
+                            timestamp: base_price.timestamp,
+                        })
+                },
+            );
         }
         None
     }
@@ -206,42 +208,26 @@ impl<T: Config> Pallet<T> {
         mantissa: u128,
         base_price: TimeStampedPrice,
     ) -> Option<PriceDetail> {
-        Self::get_staking_asset_price(asset_id, mantissa, base_price)
-            .map(|(price, base_price)| (price, base_price.timestamp))
-    }
-
-    fn get_staking_asset_no_op_price(
-        asset_id: &CurrencyId,
-        mantissa: u128,
-        base_price: TimeStampedPrice,
-    ) -> Option<TimeStampedPrice> {
-        Self::get_staking_asset_price(asset_id, mantissa, base_price).map(|(price, base_price)| {
-            TimeStampedPrice {
-                value: price,
-                timestamp: base_price.timestamp,
-            }
-        })
+        Self::get_staking_asset_price(asset_id, base_price)
+            .and_then(|price| Self::normalize_detail_price(price, mantissa))
     }
 
     fn get_vault_asset_price(
         asset_id: &CurrencyId,
-        mantissa: u128,
         base_price: TimeStampedPrice,
-    ) -> Option<(Price, TimeStampedPrice)> {
+    ) -> Option<TimeStampedPrice> {
         if T::VaultTokenCurrenciesFilter::contains(asset_id) {
             return T::VaultLoansRateProvider::get_full_interest_rate(asset_id).and_then(
                 |implied_yield_rate| {
-                    base_price
-                        .value
-                        .checked_div(&FixedU128::from_inner(mantissa))
-                        .and_then(|relay_currency_price| {
-                            T::VaultTokenExchangeRateProvider::get_exchange_rate(
-                                asset_id,
-                                implied_yield_rate,
-                            )
-                            .and_then(|rate| relay_currency_price.checked_mul(&rate))
-                        })
-                        .map(|price| (price, base_price))
+                    T::VaultTokenExchangeRateProvider::get_exchange_rate(
+                        asset_id,
+                        implied_yield_rate,
+                    )
+                    .and_then(|rate| base_price.value.checked_mul(&rate))
+                    .map(|price| TimeStampedPrice {
+                        value: price,
+                        timestamp: base_price.timestamp,
+                    })
                 },
             );
         }
@@ -253,33 +239,33 @@ impl<T: Config> Pallet<T> {
         mantissa: u128,
         base_price: TimeStampedPrice,
     ) -> Option<PriceDetail> {
-        Self::get_vault_asset_price(asset_id, mantissa, base_price)
-            .map(|(price, base_price)| (price, base_price.timestamp))
-    }
-
-    fn get_vault_asset_no_op_price(
-        asset_id: &CurrencyId,
-        mantissa: u128,
-        base_price: TimeStampedPrice,
-    ) -> Option<TimeStampedPrice> {
-        Self::get_vault_asset_price(asset_id, mantissa, base_price).map(|(price, base_price)| {
-            TimeStampedPrice {
-                value: price,
-                timestamp: base_price.timestamp,
-            }
-        })
+        Self::get_vault_asset_price(asset_id, base_price)
+            .and_then(|price| Self::normalize_detail_price(price, mantissa))
     }
 
     fn get_lp_vault_asset_price(
         asset_id: &CurrencyId,
-        _mantissa: u128,
-        _base_price: TimeStampedPrice,
-    ) -> Option<(Price, TimeStampedPrice)> {
-        if let Some((base_asset, _quota_asset, _pool)) =
+        mantissa: u128,
+        base_price: TimeStampedPrice,
+    ) -> Option<TimeStampedPrice> {
+        if let Some((base_asset, quote_asset, pool)) =
             T::AMM::get_pool_by_lp_asset(asset_id.clone())
         {
-            if T::VaultTokenCurrenciesFilter::contains(&base_asset) {
-                //todo impl
+            if T::VaultTokenCurrenciesFilter::contains(&base_asset)
+                && quote_asset == T::RelayCurrency::get()
+            {
+                let quote_asset_mantissa = Self::get_asset_mantissa(&quote_asset)?;
+                let lp_asset_total_supply = T::Assets::total_issuance(asset_id.clone());
+                let quote_asset_amount = pool
+                    .quote_amount
+                    .checked_div(quote_asset_mantissa)
+                    .and_then(|quote_amount| quote_amount.checked_mul(2u128))?;
+                let lp_asset_amount = lp_asset_total_supply.checked_div(mantissa)?;
+                let rate = FixedU128::checked_from_rational(quote_asset_amount, lp_asset_amount)?;
+                base_price
+                    .value
+                    .checked_mul(&rate)
+                    .map(|price| (price, base_price));
             }
         }
         None
@@ -291,20 +277,7 @@ impl<T: Config> Pallet<T> {
         base_price: TimeStampedPrice,
     ) -> Option<PriceDetail> {
         Self::get_lp_vault_asset_price(asset_id, mantissa, base_price)
-            .map(|(price, time_stamped_price)| (price, time_stamped_price.timestamp))
-    }
-
-    fn get_lp_vault_asset_no_op_price(
-        asset_id: &CurrencyId,
-        mantissa: u128,
-        base_price: TimeStampedPrice,
-    ) -> Option<TimeStampedPrice> {
-        Self::get_lp_vault_asset_price(asset_id, mantissa, base_price).map(|(price, base_price)| {
-            TimeStampedPrice {
-                value: price,
-                timestamp: base_price.timestamp,
-            }
-        })
+            .and_then(|price| Self::normalize_detail_price(price, mantissa))
     }
 }
 
@@ -367,21 +340,16 @@ impl<T: Config> DataProviderExtended<CurrencyId, TimeStampedPrice> for Pallet<T>
         let mantissa = Self::get_asset_mantissa(asset_id)?;
         if let Some(base_price) = T::Source::get_no_op(&T::RelayCurrency::get()) {
             // then check staking asset
-            return Self::get_staking_asset_no_op_price(asset_id, mantissa, base_price).or_else(
-                || {
-                    // then check vault asset
-                    Self::get_vault_asset_no_op_price(asset_id, mantissa, base_price).or_else(
-                        || {
-                            // then check lp_vault asset
-                            Self::get_lp_vault_asset_no_op_price(asset_id, mantissa, base_price)
-                                .or_else(|| {
-                                    // fall through to oracle
-                                    T::Source::get_no_op(asset_id)
-                                })
-                        },
-                    )
-                },
-            );
+            return Self::get_staking_asset_price(asset_id, base_price).or_else(|| {
+                // then check vault asset
+                Self::get_vault_asset_price(asset_id, base_price).or_else(|| {
+                    // then check lp_vault asset
+                    Self::get_lp_vault_asset_price(asset_id, mantissa, base_price).or_else(|| {
+                        // fall through to oracle
+                        T::Source::get_no_op(asset_id)
+                    })
+                })
+            });
         }
         return T::Source::get_no_op(asset_id);
     }
