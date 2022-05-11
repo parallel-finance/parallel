@@ -128,7 +128,7 @@ fn withdraw_works() {
             dollar(100),
             DOT,
             6,
-            18,
+            16,
             true,
         ));
         // Dave cannot access
@@ -139,26 +139,26 @@ fn withdraw_works() {
 
         // Time passes for 1 second
         assert_eq!(TimestampPallet::now(), 6000);
-        // 6000(init) + 1000(ms)
-        TimestampPallet::set_timestamp(7000);
+        // 6000(init) + 2000(ms)
+        TimestampPallet::set_timestamp(8000);
 
         let stream = Streams::<Test>::get(0).unwrap();
-        assert_eq!(stream.delta_of(), Ok(1));
+        assert_eq!(stream.delta_of(), Ok(2));
         // Bob withdraws some
-        assert_ok!(Streaming::withdraw(Origin::signed(BOB), 0, dollar(1)));
-        // Bob is received with 100 DOT
+        assert_ok!(Streaming::withdraw(Origin::signed(BOB), 0, dollar(20)));
+        // Bob is received with 20 dollars
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &BOB) - before_bob,
-            dollar(1)
+            dollar(20)
         );
         // balance is updated in the existing stream
         assert_eq!(
             Streams::<Test>::get(0).unwrap().remaining_balance,
-            dollar(99),
+            dollar(80),
         );
 
-        TimestampPallet::set_timestamp(18000);
-        assert_ok!(Streaming::withdraw(Origin::signed(BOB), 0, dollar(99)));
+        TimestampPallet::set_timestamp(16000);
+        assert_ok!(Streaming::withdraw(Origin::signed(BOB), 0, dollar(80)));
         assert_eq!(Streams::<Test>::get(&0).unwrap().remaining_balance, 0);
         assert_eq!(
             Streams::<Test>::get(&0).unwrap().status,
@@ -339,7 +339,7 @@ fn max_finished_streams_count_should_work() {
         let stream_id_1 = NextStreamId::<Test>::get();
         assert_ok!(Streaming::create(
             Origin::signed(ALICE),
-            BOB,
+            DAVE,
             dollar(10),
             DOT,
             11,
@@ -348,7 +348,7 @@ fn max_finished_streams_count_should_work() {
         ));
         TimestampPallet::set_timestamp(15000);
         assert_ok!(Streaming::withdraw(
-            Origin::signed(BOB),
+            Origin::signed(DAVE),
             stream_id_1,
             dollar(2)
         ));
@@ -359,7 +359,6 @@ fn max_finished_streams_count_should_work() {
             .unwrap()
             .binary_search(&stream_id_1));
 
-        // storage should be removed due to MaxFinishedStreamsCount = 2
         assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
@@ -369,6 +368,11 @@ fn max_finished_streams_count_should_work() {
             30,
             true,
         ));
+
+        // storage should be removed due to MaxFinishedStreamsCount = 2
+        // Alice: [1, 0], pop 0, push 2 => vec![2, 1]
+        // Bob: [2, 0], pop 0 => vec![2]
+        // DAVE: [1] => vec![1]
         assert_eq!(
             StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
                 .unwrap()
@@ -376,14 +380,32 @@ fn max_finished_streams_count_should_work() {
             false
         );
         assert_eq!(
-            StreamLibrary::<Test>::get(BOB, StreamKind::Finish)
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+                .unwrap()
+                .contains(&stream_id_1),
+            true
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
+                .unwrap()
+                .contains(&stream_id_0),
+            false
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Receive)
                 .unwrap()
                 .contains(&stream_id_0),
             false
         );
 
         assert_eq!(
-            StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
+            StreamLibrary::<Test>::get(BOB, StreamKind::Finish)
+                .unwrap()
+                .contains(&stream_id_0),
+            false
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(BOB, StreamKind::Send)
                 .unwrap()
                 .contains(&stream_id_0),
             false
@@ -396,25 +418,19 @@ fn max_finished_streams_count_should_work() {
         );
 
         assert_eq!(
-            StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+            StreamLibrary::<Test>::get(DAVE, StreamKind::Finish)
                 .unwrap()
                 .contains(&stream_id_1),
             true
         );
         assert_eq!(
-            StreamLibrary::<Test>::get(BOB, StreamKind::Finish)
+            StreamLibrary::<Test>::get(DAVE, StreamKind::Send)
                 .unwrap()
                 .contains(&stream_id_1),
             true
         );
         assert_eq!(
-            StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
-                .unwrap()
-                .contains(&stream_id_1),
-            true
-        );
-        assert_eq!(
-            StreamLibrary::<Test>::get(BOB, StreamKind::Receive)
+            StreamLibrary::<Test>::get(DAVE, StreamKind::Receive)
                 .unwrap()
                 .contains(&stream_id_1),
             true
