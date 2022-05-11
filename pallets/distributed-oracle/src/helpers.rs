@@ -2,9 +2,9 @@ use crate::{AccountOf, Timestamp};
 use codec::{Decode, Encode};
 use frame_support::pallet_prelude::*;
 use frame_system::Config;
-use primitives::{AccountId, Balance, Price, RoundNumber};
+// use primitives::{AccountId, Balance, Price, RoundNumber};
+use primitives::{AccountId, Balance, Price};
 use scale_info::TypeInfo;
-use std::collections::HashMap;
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
 #[scale_info(skip_type_params(T))]
@@ -60,15 +60,6 @@ pub struct RoundManager {
     pub people_to_reward: Vec<AccountId>,
 }
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-#[scale_info(skip_type_params(T))]
-pub struct Submissions {
-    pub submitter: AccountId,
-    pub price: Price,
-}
-
-type submission = Submissions;
-
 // impl RoundManager {
 //     fn reward_at_round_end(&mut self) {
 
@@ -78,12 +69,19 @@ type submission = Submissions;
 //     };
 // }
 
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct Submitter {
+    pub submitter: AccountId,
+    pub price: Price,
+}
+
 /// Holds Price Per Round
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
 #[scale_info(skip_type_params(T))]
 pub struct PriceHolder {
     pub price: Price,
-    pub submissions: Vec<Submissions>,
+    pub submitters: Vec<Submitter>,
 }
 
 // round starts

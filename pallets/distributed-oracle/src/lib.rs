@@ -45,8 +45,8 @@ use sp_std::prelude::*;
 #[cfg(test)]
 mod mock;
 
-#[cfg(test)]
-mod orml_tests;
+// #[cfg(test)]
+// mod orml_tests;
 
 #[cfg(test)]
 mod tests;
@@ -68,10 +68,9 @@ pub use weights::WeightInfo;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use crate::helpers::{OracleDeposit, PriceHolder, Repeater, RoundManager, Submissions};
+    use crate::helpers::{OracleDeposit, PriceHolder, Repeater, RoundManager, Submitter};
     use sp_runtime::traits::Zero;
     use sp_runtime::ArithmeticError;
-    use std::borrow::Borrow;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -551,7 +550,7 @@ pub mod pallet {
             round: u128,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-
+            let current_time_stamp = T::UnixTime::now().as_secs();
             ensure!(
                 Self::staking_pool(who, T::StakingCurrency::get())
                     .unwrap_or_default()
@@ -561,41 +560,69 @@ pub mod pallet {
             );
 
             // For a given round get current price by asset_id and round number
-            //
             // Check if the account already submitted a price -> if yes throws an error
             // If not if its a new account -> (add its price  + previous price)  / unique price submitters
             // Update the `price`
             // Add the account to submitters list
             // This has to be done per round
+            // gets price holder
+            let mut price_holder = Self::get_currency_price(asset_id, round).unwrap_or_default();
 
-            let mut current = Self::get_currency_price(asset_id, round).unwrap_or_default();
-
-            let mut submitters = current.submissions;
+            let mut submitters = price_holder.submitters;
             let sub_len = submitters.len() as u128;
 
+            // TODO: Not Required!
             // An Account can submit  Price only once per round or ele throw an error
-            ensure!(
-                submitters.iter().any(|&s| s.submitter != who),
-                Error::<T>::PriceSubmittedAlready
-            );
+            // ensure!(
+            //     submitters.iter().any(|&s| s.submitter != who),
+            //     Error::<T>::PriceSubmittedAlready
+            // );
 
+            // ***********************************************************************************
+            // Checks for prices
+
+            // Gets Manager
+            let mut round_manager = Manager::<T>::get().unwrap_or_default();
+
+            // Adds the participant
+            round_manager
+                .participated
+                .push((who.clone(), current_time_stamp));
+
+            let current_price = price_holder.price;
+
+            let threshhold_price = current_price
+                .checked_mul(50u128)
+                .and_then(|r| r.checked_div(100u128))
+                .ok_or(ArithmeticError::Underflow)?;
+
+            if price > threshhold_price {
+                // who's prices were 50% greater then median price for round
+                round_manager.people_to_slash.push(who.clone());
+            } else {
+                // accounts to reward
+                round_manager.people_to_reward.push(who.clone());
+            }
+            Manager::<T>::put(round_manager);
+            // ***********************************************************************************
             // Adds the specified round's account as a submitter along side with the submitted price
-            current.submitters.push(Submissions {
+            let submission = Submitter {
                 submitter: who.clone(),
                 price,
-            });
+            };
+            price_holder.submitters.push(submission);
 
             let sub_len = submitters.len() as u128;
-            // // Update the current rounds average price
-            current.price = current
+            // Update the current rounds average price
+            price_holder.price = price_holder
                 .price
                 .checked_add(&price)
-                .and_then(|r| r.checked_div(&sub_len))
+                .and_then(|r| r.checked_div(&FixedU128::from_inner(sub_len)))
                 .ok_or(ArithmeticError::Underflow)?;
 
             // Updates the price per round
             CurrencyPrice::<T>::remove(asset_id, round);
-            CurrencyPrice::<T>::insert(asset_id, round, current);
+            CurrencyPrice::<T>::insert(asset_id, round, price_holder);
 
             Self::deposit_event(Event::SetPrice(asset_id, price, round));
 
@@ -609,6 +636,7 @@ impl<T: Config> Pallet<T> {
         T::PalletId::get().into_account()
     }
 
+    // TODO: We do not need the followings Remove before the final PR!
     // get emergency price, the timestamp is zero
     // fn get_emergency_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
     //     Self::set_price_for_round(asset_id).and_then(|p| {
@@ -628,50 +656,4 @@ impl<T: Config> Pallet<T> {
     //     let decimal = T::Decimal::get_decimal(asset_id)?;
     //     10u128.checked_pow(decimal as u32)
     // }
-}
-
-// impl<T: Config> PriceFeeder for Pallet<T> {
-/// Returns the uniform format price and timestamp by asset id.
-/// Formula: `price = oracle_price * 10.pow(18 - asset_decimal)`
-/// We use `oracle_price.checked_div(&FixedU128::from_inner(mantissa))` represent that.
-/// This particular price makes it easy to calculate the asset value in other pallets,
-/// because we don't have to consider decimal for each asset.
-///
-/// Timestamp is zero means the price is emergency price
-// fn get_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
-//     // if emergency price exists, return it, otherwise return latest price from oracle.
-//     Self::get_emergency_price(asset_id).or_else(|| {
-//         let mantissa = Self::get_asset_mantissa(asset_id)?;
-//         T::Source::get(asset_id).and_then(|p| {
-//             p.value
-//                 .checked_div(&FixedU128::from_inner(mantissa))
-//                 .map(|price| (price, p.timestamp))
-//         })
-//     })
-// }
-// }
-
-// impl<T: Config> EmergencyPriceFeeder<CurrencyId, Price> for Pallet<T> {
-//     /// Set emergency price
-//     fn set_emergency_price(asset_id: CurrencyId, price: Price, round: RoundNumber) {
-//         // set price direct
-//         EmergencyPrice::<T>::insert(asset_id, price, round);
-//         <Pallet<T>>::deposit_event(Event::SetPrice(asset_id, price, round));
-//     }
-//
-//     /// Reset emergency price
-//     fn reset_emergency_price(asset_id: CurrencyId) {
-//         EmergencyPrice::<T>::remove(asset_id);
-//         <Pallet<T>>::deposit_event(Event::ResetPrice(asset_id));
-//     }
-// }
-
-impl<T: Config> DataProviderExtended<CurrencyId, TimeStampedPrice> for Pallet<T> {
-    fn get_no_op(asset_id: &CurrencyId) -> Option<TimeStampedPrice> {
-        T::Source::get_no_op(asset_id)
-    }
-
-    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
-        T::Source::get_all_values()
-    }
 }

@@ -18,7 +18,7 @@ use super::*;
 use crate::helpers::PriceHolder;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
-use sp_runtime::FixedPointNumber;
+// use sp_runtime::FixedPointNumber;
 
 const PRICE_ONE: u128 = 1_000_000_000_000_000_000;
 
