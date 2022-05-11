@@ -375,7 +375,8 @@ pub mod pallet {
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
 
-            Self::do_add_proxy(delegate, proxy_type, delay)?;
+            let notify: Option<CallIdOf<T>> = None;
+            Self::do_add_proxy(delegate, proxy_type, delay, notify)?;
 
             Self::deposit_event(Event::<T>::ProxyAdded);
             Ok(())
@@ -390,8 +391,8 @@ pub mod pallet {
             delay: BlockNumber,
         ) -> DispatchResult {
             T::XcmOrigin::ensure_origin(origin)?;
-
-            Self::do_remove_proxy(delegate, proxy_type, delay)?;
+            let notify: Option<CallIdOf<T>> = None;
+            Self::do_remove_proxy(delegate, proxy_type, delay, notify)?;
 
             Self::deposit_event(Event::<T>::ProxyRemoved);
             Ok(())
@@ -466,13 +467,15 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, TAccountId> {
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-    ) -> Result<Option<QueryId>, DispatchError>;
+        notify: Option<impl Into<<T as pallet_xcm::Config>::Call>>,
+    ) -> DispatchResult;
 
     fn do_remove_proxy(
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-    ) -> Result<Option<QueryId>, DispatchError>;
+        notify: Option<impl Into<<T as pallet_xcm::Config>::Call>>,
+    ) -> DispatchResult;
 }
 
 impl<T: Config> Pallet<T> {
@@ -557,11 +560,13 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
         ]))
     }
 
+    #[allow(clippy::unit_arg)]
     fn do_add_proxy(
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-    ) -> Result<Option<QueryId>, DispatchError> {
+        notify: Option<impl Into<<T as pallet_xcm::Config>::Call>>,
+    ) -> DispatchResult {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::AddProxy);
         Ok(switch_relay!({
             let call =
@@ -571,25 +576,35 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                     delay,
                 })));
 
-            let msg = Self::do_ump_transact(
+            let mut msg = Self::do_ump_transact(
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
                 xcm_weight_fee_misc.fee,
             )?;
 
+            if let Some(n) = notify {
+                Self::report_outcome_notify(
+                    &mut msg,
+                    MultiLocation::parent(),
+                    n,
+                    T::NotifyTimeout::get(),
+                )?;
+            }
+
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
-            None
         }))
     }
 
+    #[allow(clippy::unit_arg)]
     fn do_remove_proxy(
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-    ) -> Result<Option<QueryId>, DispatchError> {
+        notify: Option<impl Into<<T as pallet_xcm::Config>::Call>>,
+    ) -> DispatchResult {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::RemoveProxy);
         Ok(switch_relay!({
             let call = RelaychainCall::<T>::Proxy(Box::new(ProxyCall::RemoveProxy(
@@ -600,17 +615,25 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 },
             )));
 
-            let msg = Self::do_ump_transact(
+            let mut msg = Self::do_ump_transact(
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
                 xcm_weight_fee_misc.fee,
             )?;
 
+            if let Some(n) = notify {
+                Self::report_outcome_notify(
+                    &mut msg,
+                    MultiLocation::parent(),
+                    n,
+                    T::NotifyTimeout::get(),
+                )?;
+            }
+
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
-            None
         }))
     }
 
