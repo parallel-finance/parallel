@@ -32,7 +32,7 @@ use frame_system::pallet_prelude::*;
 pub use pallet::*;
 use primitives::*;
 use sp_runtime::{
-    traits::{AccountIdConversion, CheckedDiv},
+    traits::{AccountIdConversion, CheckedAdd, CheckedDiv},
     FixedU128,
 };
 
@@ -71,6 +71,7 @@ pub mod pallet {
     use crate::helpers::{OracleDeposit, PriceHolder, Repeater, RoundManager, Submissions};
     use sp_runtime::traits::Zero;
     use sp_runtime::ArithmeticError;
+    use std::borrow::Borrow;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -157,6 +158,8 @@ pub mod pallet {
         NoRoundsStartedYet,
         /// Staked Amount Is Less than Min Stake Amount
         StakedAmountIsLessThanMinStakeAmount,
+        /// PriceSubmittedAlready
+        PriceSubmittedAlready,
     }
 
     #[pallet::event]
@@ -548,6 +551,7 @@ pub mod pallet {
             round: u128,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
             ensure!(
                 Self::staking_pool(who, T::StakingCurrency::get())
                     .unwrap_or_default()
@@ -556,61 +560,45 @@ pub mod pallet {
                 Error::<T>::StakedAmountIsLessThanMinStakeAmount
             );
 
-            /*
-            For a given round get current price by asset_id and round number
-
-            Check if the account already submitted a price -> if yes throws an error
-            If not if its a new account -> (add its price  + previous price)  / unique price submitters
-            Update the `price`
-            Add the account to submitter's list
-            This has to be done per round
-             */
-            // let submissions = Vec<Submissions>
+            // For a given round get current price by asset_id and round number
             //
-            // let price_holder = PriceHolder{
-            //     price: price,
-            //     submissions: Vec<AccountId>
-            // }
-            // let mut current = Self::get_currency_price(asset_id, round);
+            // Check if the account already submitted a price -> if yes throws an error
+            // If not if its a new account -> (add its price  + previous price)  / unique price submitters
+            // Update the `price`
+            // Add the account to submitters list
+            // This has to be done per round
 
-            //
-            // let mut current_price = Self::get_currency_price(asset_id, round).unwrap();
-            //
-            // let mut current_average_price = current_price.price;
-            // let mut current_submissions = current_price.submissions;
+            let mut current = Self::get_currency_price(asset_id, round).unwrap_or_default();
 
-            // ensure!(cur)
+            let mut submitters = current.submissions;
+            let sub_len = submitters.len() as u128;
 
-            // let price_holder = PriceHolder { price, , submissions: Default::default() };
+            // An Account can submit  Price only once per round or ele throw an error
+            ensure!(
+                submitters.iter().any(|&s| s.submitter != who),
+                Error::<T>::PriceSubmittedAlready
+            );
 
-            // If Submitted multiple prices per round get the average
+            // Adds the specified round's account as a submitter along side with the submitted price
+            current.submitters.push(Submissions {
+                submitter: who.clone(),
+                price,
+            });
 
-            // CurrencyPrice::<T>::insert(asset_id, round, price_holder.clone());
+            let sub_len = submitters.len() as u128;
+            // // Update the current rounds average price
+            current.price = current
+                .price
+                .checked_add(&price)
+                .and_then(|r| r.checked_div(&sub_len))
+                .ok_or(ArithmeticError::Underflow)?;
+
+            // Updates the price per round
+            CurrencyPrice::<T>::remove(asset_id, round);
+            CurrencyPrice::<T>::insert(asset_id, round, current);
 
             Self::deposit_event(Event::SetPrice(asset_id, price, round));
 
-            Ok(().into())
-        }
-
-        /// Reset emergency price
-        #[pallet::weight((<T as Config>::WeightInfo::reset_price(), DispatchClass::Operational))]
-        #[transactional]
-        pub fn reset_price(
-            origin: OriginFor<T>,
-            asset_id: CurrencyId,
-        ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            ensure!(
-                Self::staking_pool(who, T::StakingCurrency::get())
-                    .unwrap_or_default()
-                    .total
-                    > T::MinUnstake::get(),
-                Error::<T>::StakedAmountIsLessThanMinStakeAmount
-            );
-            // CurrencyPrice::<T>::remove(asset_id);
-            Self::deposit_event(Event::ResetPrice(asset_id));
-            // <Pallet<T>>::deposit_event(Event::ResetPrice(asset_id));
-            // <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::reset_emergency_price(asset_id);
             Ok(().into())
         }
     }

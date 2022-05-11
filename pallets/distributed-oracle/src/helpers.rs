@@ -84,8 +84,6 @@ type submission = Submissions;
 pub struct PriceHolder {
     pub price: Price,
     pub submissions: Vec<Submissions>,
-    // pub account: AccountId,
-    // pub round: RoundNumber,
 }
 
 // round starts
