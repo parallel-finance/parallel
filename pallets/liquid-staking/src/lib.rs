@@ -1544,8 +1544,6 @@ pub mod pallet {
 
             Self::do_multi_withdraw_unbonded(T::NumSlashingSpans::get())?;
 
-            Self::do_update_exchange_rate()?;
-
             Self::deposit_event(Event::<T>::Matching(
                 bond_amount,
                 rebond_amount,
@@ -1571,8 +1569,8 @@ pub mod pallet {
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
             // ignore error
-            if let Err(e) = Self::do_matching() {
-                log::error!(target: "liquidStaking::do_advance_era", "Could not advance era! error: {:?}", &e);
+            if let Err(e) = Self::do_matching().and(Self::do_update_exchange_rate()) {
+                log::error!(target: "liquidStaking::do_advance_era", "advance era error caught: {:?}", &e);
             }
 
             Self::deposit_event(Event::<T>::NewEra(Self::current_era()));

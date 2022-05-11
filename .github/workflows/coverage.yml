@@ -5,38 +5,19 @@ on:
     branches:
       - master
   pull_request:
-    branches:
-      - master
-    types:
-      - synchronize
-      - review_requested
-      - review_request_removed
-      - ready_for_review
-  pull_request_review:
+    branches: [master]
 
 jobs:
-  cancel:
-    name: 'Cancel Previous Runs'
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    steps:
-      - uses: styfle/cancel-workflow-action@0.9.1
-        with:
-          workflow_id: 7259686,8377401,8911402,9157672,10574645
-          access_token: ${{ github.token }}
   coverage:
-    if: ${{ (github.repository == 'parallel-finance/parallel') && ((github.event_name == 'push') || (github.event.review.state == 'approved')) }}
+    if: github.repository == 'parallel-finance/parallel'
     name: Auto Codecov Coverage
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [self-hosted]
+        os: [ubuntu-latest]
         rust: [nightly-2022-04-24]
 
     steps:
-      - name: cleaning up
-        run: |
-          echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
       - name: Checkout Repository
         uses: actions/checkout@master
 

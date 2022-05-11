@@ -35,6 +35,12 @@ build:
 build-release:
 	cargo build --workspace --exclude runtime-integration-tests --bin parallel --release  --features runtime-benchmarks --features try-runtime
 
+.PHONY: build-release-if-not-exists
+build-release-if-not-exists:
+	if [ ! -f ./target/release/parallel ]; then \
+		make build-release; \
+	fi
+
 .PHONY: clean
 clean:
 	cargo clean -p parallel -p vanilla-runtime -p kerria-runtime -p heiko-runtime -p parallel-runtime
@@ -71,45 +77,44 @@ bench: bench-loans bench-liquid-staking bench-amm bench-amm-router bench-crowdlo
 	./scripts/benchmark.sh
 
 .PHONY: bench-farming
-bench-farming:
-	cargo run --release --features runtime-benchmarks -- benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-farming --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/farming/src/weights.rs
+bench-farming: build-release-if-not-exists
+	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-farming --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/farming/src/weights.rs
 
 .PHONY: bench-loans
-bench-loans:
-	cargo run --release --features runtime-benchmarks -- benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
+bench-loans: build-release-if-not-exists
+	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
 
 .PHONY: bench-crowdloans
-bench-crowdloans:
-	cargo run --release --features runtime-benchmarks -- benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-crowdloans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/crowdloans/src/weights.rs
+bench-crowdloans: build-release-if-not-exists
+	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-crowdloans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/crowdloans/src/weights.rs
 
 .PHONY: bench-bridge
-bench-bridge:
-	cargo run --release --features runtime-benchmarks -- benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-bridge --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/bridge/src/weights.rs
+bench-bridge: build-release-if-not-exists
+	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-bridge --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/bridge/src/weights.rs
 
 .PHONY: bench-xcm-helper
-bench-xcm-helper:
-	cargo run --release --features runtime-benchmarks -- benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-xcm-helper --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/xcm-helper/src/weights.rs
+bench-xcm-helper: build-release-if-not-exists
+	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-xcm-helper --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/xcm-helper/src/weights.rs
 
 .PHONY: bench-amm
-bench-amm:
-	cargo run --release --features runtime-benchmarks -- benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-amm --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/amm/src/weights.rs
+bench-amm: build-release-if-not-exists
+	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-amm --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/amm/src/weights.rs
 
 .PHONY: bench-liquid-staking
-bench-liquid-staking:
-	cargo run --release --features runtime-benchmarks -- benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-liquid-staking --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/liquid-staking/src/weights.rs
+bench-liquid-staking: build-release-if-not-exists
+	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-liquid-staking --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/liquid-staking/src/weights.rs
 
 .PHONY: bench-amm-router
-bench-amm-router:
-	cargo run --release --features runtime-benchmarks -- benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-router --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/router/src/weights.rs
-
+bench-amm-router: build-release-if-not-exists
+	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-router --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/router/src/weights.rs
 
 .PHONY: bench-streaming
-bench-streaming:
-	cargo run --release --features runtime-benchmarks -- benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-streaming --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/streaming/src/weights.rs
+bench-streaming: build-release-if-not-exists
+	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-streaming --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/streaming/src/weights.rs
 
 .PHONY: bench-asset-registry
-bench-asset-registry:
-	cargo run --release --features runtime-benchmarks -- benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-asset-registry --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/asset-registry/src/weights.rs
+bench-asset-registry: build-release-if-not-exists
+	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-asset-registry --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/asset-registry/src/weights.rs
 
 .PHONY: lint
 lint:
