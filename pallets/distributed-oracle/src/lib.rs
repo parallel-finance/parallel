@@ -32,7 +32,7 @@ use frame_system::pallet_prelude::*;
 pub use pallet::*;
 use primitives::*;
 use sp_runtime::{
-    traits::{AccountIdConversion, CheckedAdd, CheckedDiv},
+    traits::{AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul},
     FixedU128,
 };
 
