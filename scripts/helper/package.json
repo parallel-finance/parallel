@@ -29,6 +29,7 @@
     "@polkadot/rpc-core": "^8.3.2-2",
     "@polkadot/util": "^9.1.1",
     "@polkadot/util-crypto": "^9.1.1",
+    "axios": "^0.27.2",
     "dotenv": "^16.0.0",
     "shelljs": "^0.8.5"
   }
