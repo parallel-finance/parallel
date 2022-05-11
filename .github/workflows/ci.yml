@@ -17,11 +17,30 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-20.04]
         rust: [nightly-2022-04-24]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+      - name: Additional free space
+        run: |
+          # Workaround to provide additional free space for testing.
+          #   https://github.com/actions/virtual-environments/issues/2840
+          echo "Listing 100 largest packages"
+          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 100
+          df -h
+          echo "Removing large packages"
+          sudo apt-get remove -y php.*
+          sudo apt-get remove -y azure-cli google-cloud-sdk hhvm google-chrome-stable firefox powershell mono-devel
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean -y
+          sudo apt-get clean -y
+          sudo dpkg -l |grep ^rc|awk '{print $2}' |sudo xargs dpkg -P
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -hT
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout Repository
         uses: actions/checkout@v2
