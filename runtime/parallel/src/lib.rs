@@ -646,6 +646,7 @@ parameter_types! {
     pub const MinNominatorBond: Balance = 100_000_000_000; // 10DOT
     pub const NumSlashingSpans: u32 = 0;
     pub DerivativeIndexList: Vec<u16> = vec![0, 1, 2, 3, 4, 5];
+    pub const ElectionSolutionStoredOffset: BlockNumber = 12600;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -672,6 +673,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelayChainValidationDataProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
+    type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;
 }
 
 parameter_types! {
