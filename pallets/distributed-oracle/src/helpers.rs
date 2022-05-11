@@ -21,14 +21,14 @@ pub struct OracleDeposit {
     pub blocks_in_round: u128,
 }
 
-// Struct for Relayer
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[scale_info(skip_type_params(T))]
-#[codec(mel_bound())]
-pub struct Relayer<T: Config> {
-    // Owner
-    owner: AccountOf<T>,
-}
+// // Struct for Relayer
+// #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+// #[scale_info(skip_type_params(T))]
+// #[codec(mel_bound())]
+// pub struct Relayer<T: Config> {
+//     // Owner
+//     owner: AccountOf<T>,
+// }
 
 // Struct for Repeater
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
@@ -47,17 +47,27 @@ pub struct Coffer {
     pub blocks_in_round: u128,
 }
 
-type Participated = (AccountId, Timestamp);
+type Participated<T> = (AccountOf<T>, Timestamp);
 
 // we want to know who has participated in this round
 // and we we want to know who is slashed and rewarded when round is done
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
-pub struct RoundManager {
-    pub participated: Vec<Participated>,
-    pub people_to_slash: Vec<AccountId>,
-    pub people_to_reward: Vec<AccountId>,
+pub struct RoundManager<T: Config> {
+    pub participated: Vec<Participated<T>>,
+    pub people_to_slash: Vec<AccountOf<T>>,
+    pub people_to_reward: Vec<AccountOf<T>>,
+}
+
+impl<T: Config> Default for RoundManager<T> {
+    fn default() -> Self {
+        Self {
+            participated: Vec::new(),
+            people_to_slash: Vec::new(),
+            people_to_reward: Vec::new(),
+        }
+    }
 }
 
 // impl RoundManager {
@@ -71,17 +81,26 @@ pub struct RoundManager {
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
-pub struct Submitter {
-    pub submitter: AccountId,
+pub struct Submitter<T: Config> {
+    pub submitter: AccountOf<T>,
     pub price: Price,
 }
 
 /// Holds Price Per Round
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
-pub struct PriceHolder {
+pub struct PriceHolder<T: Config> {
     pub price: Price,
-    pub submitters: Vec<Submitter>,
+    pub submitters: Vec<Submitter<T>>,
+}
+
+impl<T: Config> Default for PriceHolder<T> {
+    fn default() -> Self {
+        Self {
+            price: Price::default(),
+            submitters: Vec::new(),
+        }
+    }
 }
 
 // round starts

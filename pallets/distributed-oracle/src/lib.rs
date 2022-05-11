@@ -211,7 +211,7 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn get_round_manager)]
-    pub type Manager<T: Config> = StorageValue<_, RoundManager>;
+    pub type Manager<T: Config> = StorageValue<_, RoundManager<T>>;
 
     /// Sets price with round Id PriceHolder
     // #[pallet::storage]
@@ -227,7 +227,7 @@ pub mod pallet {
         CurrencyId,
         Blake2_128Concat,
         RoundNumber,
-        PriceHolder,
+        PriceHolder<T>,
         OptionQuery,
     >;
 
@@ -552,7 +552,7 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let current_time_stamp = T::UnixTime::now().as_secs();
             ensure!(
-                Self::staking_pool(who, T::StakingCurrency::get())
+                Self::staking_pool(who.clone(), T::StakingCurrency::get())
                     .unwrap_or_default()
                     .total
                     > T::MinUnstake::get(),
@@ -568,7 +568,7 @@ pub mod pallet {
             // gets price holder
             let mut price_holder = Self::get_currency_price(asset_id, round).unwrap_or_default();
 
-            let mut submitters = price_holder.submitters;
+            let submitters = price_holder.submitters.clone();
             let sub_len = submitters.len() as u128;
 
             // TODO: Not Required!
@@ -592,8 +592,8 @@ pub mod pallet {
             let current_price = price_holder.price;
 
             let threshhold_price = current_price
-                .checked_mul(50u128)
-                .and_then(|r| r.checked_div(100u128))
+                .checked_mul(&FixedU128::from_inner(50u128))
+                .and_then(|r| r.checked_div(&FixedU128::from_inner(100u128)))
                 .ok_or(ArithmeticError::Underflow)?;
 
             if price > threshhold_price {
