@@ -1123,10 +1123,14 @@ impl<T: Config<I>, I: 'static>
     /// Returns pool by lp_asset
     fn get_pool_by_lp_asset(
         asset_id: AssetIdOf<T, I>,
-    ) -> Option<Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>> {
-        for (_, _, pool) in Pools::<T, I>::iter() {
+    ) -> Option<(
+        AssetIdOf<T, I>,
+        AssetIdOf<T, I>,
+        Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
+    )> {
+        for (base_asset, quote_asset, pool) in Pools::<T, I>::iter() {
             if pool.lp_token_id == asset_id {
-                return Some(pool);
+                return Some((base_asset, quote_asset, pool));
             }
         }
         None

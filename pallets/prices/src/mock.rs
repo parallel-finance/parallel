@@ -15,8 +15,11 @@
 //! Mocks for the prices module.
 
 use super::*;
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types, traits::Everything};
-use frame_system::EnsureSignedBy;
+use frame_support::{
+    construct_runtime, ord_parameter_types, parameter_types, traits::Everything,
+    traits::SortedMembers, PalletId,
+};
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, FixedPointNumber};
 
@@ -24,6 +27,8 @@ pub use primitives::tokens::{CKSM_20_27, DOT, KSM, SDOT, SKSM};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
+pub const ALICE: AccountId = 1;
+pub const CHARLIE: AccountId = 2;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -45,7 +50,7 @@ impl frame_system::Config for Test {
     type BlockLength = ();
     type Version = ();
     type PalletInfo = PalletInfo;
-    type AccountData = ();
+    type AccountData = pallet_balances::AccountData<Balance>;
     type OnNewAccount = ();
     type OnKilledAccount = ();
     type DbWeight = ();
@@ -151,6 +156,94 @@ impl LoansRateProvider<CurrencyId> for VaultLoansRateProvider {
 
 parameter_types! {
     pub const RelayCurrency: CurrencyId = KSM;
+    pub const NativeCurrencyId: CurrencyId = 0;
+}
+
+impl pallet_currency_adapter::Config for Test {
+    type Assets = Assets;
+    type Balances = Balances;
+    type GetNativeCurrencyId = NativeCurrencyId;
+    type LockOrigin = EnsureRoot<AccountId>;
+}
+
+// pallet-balances configuration
+parameter_types! {
+    pub const ExistentialDeposit: Balance = 1;
+    pub const MaxLocks: u32 = 50;
+}
+
+impl pallet_balances::Config for Test {
+    type MaxLocks = MaxLocks;
+    type Balance = Balance;
+    type Event = Event;
+    type DustRemoval = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
+    type ExistentialDeposit = ExistentialDeposit;
+    type AccountStore = System;
+    type WeightInfo = ();
+}
+
+// pallet-assets configuration
+parameter_types! {
+    pub const AssetDeposit: u64 = 1;
+    pub const ApprovalDeposit: u64 = 1;
+    pub const AssetAccountDeposit: u64 = 1;
+    pub const StringLimit: u32 = 50;
+    pub const MetadataDepositBase: u64 = 1;
+    pub const MetadataDepositPerByte: u64 = 1;
+}
+
+impl pallet_assets::Config for Test {
+    type Event = Event;
+    type Balance = Balance;
+    type AssetId = CurrencyId;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = StringLimit;
+    type Freezer = ();
+    type Extra = ();
+    type WeightInfo = ();
+}
+
+// AMM instance initialization
+parameter_types! {
+    pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
+    // pub const DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
+    // pub const DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);
+    pub  DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);         // 0.3%
+    pub  DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.2%
+    pub const DefaultProtocolFeeReceiver: AccountId = CHARLIE;
+    pub const MinimumLiquidity: u128 = 1_000u128;
+    pub const LockAccountId: AccountId = ALICE;
+    pub const MaxLengthRoute: u8 = 10;
+}
+
+pub struct AliceCreatePoolOrigin;
+impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![ALICE]
+    }
+}
+
+impl pallet_amm::Config for Test {
+    type Event = Event;
+    type Assets = CurrencyAdapter;
+    type PalletId = AMMPalletId;
+    type LockAccountId = LockAccountId;
+    type AMMWeightInfo = ();
+    type CreatePoolOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
+    type LpFee = DefaultLpFee;
+    type ProtocolFee = DefaultProtocolFee;
+    type MinimumLiquidity = MinimumLiquidity;
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
+    type MaxLengthRoute = MaxLengthRoute;
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 impl crate::Config for Test {
@@ -164,6 +257,8 @@ impl crate::Config for Test {
     type VaultLoansRateProvider = VaultLoansRateProvider;
     type RelayCurrency = RelayCurrency;
     type Decimal = Decimal;
+    type AMM = DefaultAMM;
+    type Assets = CurrencyAdapter;
     type WeightInfo = ();
 }
 
@@ -177,6 +272,10 @@ construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+        Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
+        DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
+        CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
         Prices: crate::{Pallet, Storage, Call, Event<T>},
     }
 );

@@ -1422,6 +1422,8 @@ impl pallet_prices::Config for Runtime {
     type VaultLoansRateProvider = Loans;
     type RelayCurrency = RelayCurrency;
     type Decimal = Decimal;
+    type AMM = AMM;
+    type Assets = CurrencyAdapter;
     type WeightInfo = pallet_prices::weights::SubstrateWeight<Runtime>;
 }
 

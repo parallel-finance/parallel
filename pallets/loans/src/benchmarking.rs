@@ -120,9 +120,9 @@ fn transfer_initial_balance<
         0_u128,
     )
     .unwrap();
-    T::Assets::mint_into(USDT, &caller, INITIAL_AMOUNT.into()).unwrap();
-    T::Assets::mint_into(KSM, &caller, INITIAL_AMOUNT.into()).unwrap();
-    T::Assets::mint_into(SKSM, &caller, INITIAL_AMOUNT.into()).unwrap();
+    <T as pallet::Config>::Assets::mint_into(USDT, &caller, INITIAL_AMOUNT.into()).unwrap();
+    <T as pallet::Config>::Assets::mint_into(KSM, &caller, INITIAL_AMOUNT.into()).unwrap();
+    <T as pallet::Config>::Assets::mint_into(SKSM, &caller, INITIAL_AMOUNT.into()).unwrap();
     pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), USDT, 1.into()).unwrap();
     pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), KSM, 1.into()).unwrap();
     pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), SKSM, 1.into()).unwrap();

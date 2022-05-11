@@ -141,8 +141,13 @@ pub trait AMM<AccountId, CurrencyId, Balance, BlockNumber> {
     fn get_pools() -> Result<Vec<(CurrencyId, CurrencyId)>, DispatchError>;
 
     ///  Returns pool by lp_asset
-    fn get_pool_by_lp_asset(asset_id: CurrencyId)
-        -> Option<Pool<CurrencyId, Balance, BlockNumber>>;
+    fn get_pool_by_lp_asset(
+        asset_id: CurrencyId,
+    ) -> Option<(
+        CurrencyId,
+        CurrencyId,
+        Pool<CurrencyId, Balance, BlockNumber>,
+    )>;
 
     /// Returns pool by asset pair
     fn get_pool_by_asset_pair(
