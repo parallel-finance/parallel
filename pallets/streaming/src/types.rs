@@ -106,6 +106,12 @@ impl<T: Config> Stream<T> {
         }
     }
 
+    pub fn has_started(&self) -> Result<bool, DispatchError> {
+        let delta = self.delta_of()? as BalanceOf<T>;
+
+        Ok(!delta.is_zero())
+    }
+
     fn claimed_balance(&self) -> Result<BalanceOf<T>, DispatchError> {
         Ok(self
             .deposit
