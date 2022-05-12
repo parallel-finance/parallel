@@ -379,6 +379,16 @@ benchmarks! {
         assert_eq!(TotalReserves::<T>::get(), reserve);
         assert_last_event::<T>(Event::<T>::ReservesReduced(alice, reduce_amount).into());
     }
+
+    cancel_unstake {
+        let alice: T::AccountId = account("Sample", 100, SEED);
+        initial_set_up::<T>(alice.clone());
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
+        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
+    }: _(SystemOrigin::Signed(alice.clone()), UNSTAKE_AMOUNT)
+    verify {
+        assert_last_event::<T>(Event::<T>::UnstakeCancelled(alice, UNSTAKE_AMOUNT, UNSTAKE_AMOUNT).into());
+    }
 }
 
 impl_benchmark_test_suite!(LiquidStaking, crate::mock::para_ext(1), crate::mock::Test);

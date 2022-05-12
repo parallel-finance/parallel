@@ -941,3 +941,55 @@ fn reduce_reserves_works() {
         );
     })
 }
+
+#[test]
+fn cancel_unstake_works() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(6f64)));
+
+        // Check storage is correct
+        assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
+        assert_eq!(
+            MatchingPool::<Test>::get(),
+            MatchingLedger {
+                total_stake_amount: ReservableAmount {
+                    total: ksm(9.95f64),
+                    reserved: 0
+                },
+                total_unstake_amount: ReservableAmount {
+                    total: ksm(6f64),
+                    reserved: 0
+                }
+            }
+        );
+
+        assert_eq!(
+            Unlockings::<Test>::get(ALICE).unwrap(),
+            vec![UnlockChunk {
+                value: ksm(6f64),
+                era: 4
+            }]
+        );
+
+        assert_ok!(LiquidStaking::cancel_unstake(
+            Origin::signed(ALICE),
+            ksm(6f64)
+        ));
+        assert_eq!(
+            MatchingPool::<Test>::get(),
+            MatchingLedger {
+                total_stake_amount: ReservableAmount {
+                    total: ksm(9.95f64),
+                    reserved: 0
+                },
+                total_unstake_amount: ReservableAmount {
+                    total: 0,
+                    reserved: 0
+                }
+            }
+        );
+
+        assert_eq!(Unlockings::<Test>::get(ALICE).unwrap(), vec![]);
+    })
+}

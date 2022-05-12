@@ -101,19 +101,19 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    fn sub_stake_amount(&mut self, amount: Balance) -> DispatchResult {
+    pub fn sub_stake_amount(&mut self, amount: Balance) -> DispatchResult {
         self.total_stake_amount.total = self
             .total_stake_amount
-            .total
+            .free()?
             .checked_sub(&amount)
             .ok_or(ArithmeticError::Underflow)?;
         Ok(())
     }
 
-    fn sub_unstake_amount(&mut self, amount: Balance) -> DispatchResult {
+    pub fn sub_unstake_amount(&mut self, amount: Balance) -> DispatchResult {
         self.total_unstake_amount.total = self
             .total_unstake_amount
-            .total
+            .free()?
             .checked_sub(&amount)
             .ok_or(ArithmeticError::Underflow)?;
         Ok(())
