@@ -511,6 +511,13 @@ pub mod pallet {
                 .participated
                 .insert(who.clone(), current_time_stamp);
 
+            // TODO: Check slashing
+            // * Time diff
+            // * Reward good actors -> Tak from Treasury
+            // * Slash bad actors -> give back to treasury
+            // * Slash bad actors -> not participating for N amount of time -> give back to treasury
+            // * Update tests
+
             // New round , no one has submitted any thing
             if recent_round.avg_price == Zero::zero() {
                 round_manager

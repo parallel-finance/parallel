@@ -41,9 +41,6 @@ pub struct RoundManager<T: Config> {
     pub participated: BTreeMap<AccountOf<T>, Timestamp>,
     pub people_to_slash: BTreeMap<AccountOf<T>, Timestamp>,
     pub people_to_reward: BTreeMap<AccountOf<T>, Timestamp>,
-    // pub participated: Vec<Participated<T>>,
-    // pub people_to_slash: Vec<AccountOf<T>>,
-    // pub people_to_reward: Vec<AccountOf<T>>,
 }
 
 impl<T: Config> Default for RoundManager<T> {
@@ -65,13 +62,6 @@ impl<T: Config> Default for RoundManager<T> {
 //     };
 // }
 
-// #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-// #[scale_info(skip_type_params(T))]
-// pub struct RoundInfo {
-//     pub price: Price,
-//     pub timestamp: Timestamp,
-// }
-
 /// Holds Price Per Round
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
@@ -88,24 +78,6 @@ impl<T: Config> Default for RoundHolder<T> {
         }
     }
 }
-
-// impl Default for RoundInfo {
-//     fn default() -> Self {
-//         Self {
-//             price: Price::default(),
-//             timestamp: 0
-//         }
-//     }
-// }
-
-// impl<T: Config> Default for RoundInfo {
-//     fn default() -> Self {
-//         Self {
-//             price: Price::default(),
-//             timestamp: 0
-//         }
-//     }
-// }
 
 // round starts
 // people add prices
