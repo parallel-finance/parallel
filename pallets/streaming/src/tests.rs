@@ -380,12 +380,6 @@ fn max_finished_streams_count_should_work() {
             false
         );
         assert_eq!(
-            StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
-                .unwrap()
-                .contains(&stream_id_1),
-            true
-        );
-        assert_eq!(
             StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
                 .unwrap()
                 .contains(&stream_id_0),
@@ -396,6 +390,18 @@ fn max_finished_streams_count_should_work() {
                 .unwrap()
                 .contains(&stream_id_0),
             false
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+                .unwrap()
+                .contains(&stream_id_1),
+            true
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
+                .unwrap()
+                .contains(&stream_id_1),
+            true
         );
 
         assert_eq!(
@@ -419,12 +425,6 @@ fn max_finished_streams_count_should_work() {
 
         assert_eq!(
             StreamLibrary::<Test>::get(DAVE, StreamKind::Finish)
-                .unwrap()
-                .contains(&stream_id_1),
-            true
-        );
-        assert_eq!(
-            StreamLibrary::<Test>::get(DAVE, StreamKind::Send)
                 .unwrap()
                 .contains(&stream_id_1),
             true
