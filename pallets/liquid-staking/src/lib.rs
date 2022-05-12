@@ -372,10 +372,10 @@ pub mod pallet {
         StorageValue<_, Versions, ValueQuery, DefaultVersion<T>>;
 
     /// Set to true if already do matching in current era
-    /// Set to false once advance era
+    /// clear after arriving at next era
     #[pallet::storage]
-    #[pallet::getter(fn is_matching)]
-    pub type IsMatching<T: Config> = StorageValue<_, bool, ValueQuery>;
+    #[pallet::getter(fn is_matched)]
+    pub type IsMatched<T: Config> = StorageValue<_, bool, ValueQuery>;
 
     #[derive(Default)]
     #[pallet::genesis_config]
@@ -738,6 +738,7 @@ pub mod pallet {
         #[transactional]
         pub fn force_set_current_era(origin: OriginFor<T>, era: EraIndex) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
+            IsMatched::<T>::put(false);
             CurrentEra::<T>::put(era);
             Ok(())
         }
@@ -892,24 +893,28 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
+        fn on_initialize(_block_number: T::BlockNumber) -> frame_support::weights::Weight {
+            let mut weight = <T as Config>::WeightInfo::on_initialize();
             let relaychain_block_number =
                 T::RelayChainValidationDataProvider::current_block_number();
-            let offset = Self::offset(relaychain_block_number);
-            let mut weight = <T as Config>::WeightInfo::on_initialize();
-            log::trace!(
-                target: "liquidStaking::on_initialize",
-                "relaychain_block_number: {:?}, block_number: {:?}, advance_offset: {:?}",
-                &relaychain_block_number,
-                &block_number,
-                &offset
-            );
-            weight += Self::do_matching_before_store_solution();
-            if offset.is_zero() {
-                return weight;
-            }
-            weight += <T as Config>::WeightInfo::force_advance_era();
-            let _ = with_transaction(|| match Self::do_advance_era(offset) {
+            let mut do_on_initialize = || -> DispatchResult {
+                if !Self::is_matched()
+                    && T::ElectionSolutionStoredOffset::get()
+                        .saturating_add(Self::era_start_block())
+                        <= relaychain_block_number
+                {
+                    weight += <T as Config>::WeightInfo::force_matching();
+                    Self::do_matching()?;
+                }
+
+                let offset = Self::offset(relaychain_block_number);
+                if offset.is_zero() {
+                    return Ok(());
+                }
+                weight += <T as Config>::WeightInfo::force_advance_era();
+                Self::do_advance_era(offset)
+            };
+            let _ = with_transaction(|| match do_on_initialize() {
                 Ok(()) => TransactionOutcome::Commit(Ok(())),
                 Err(err) => TransactionOutcome::Rollback(Err(err)),
             });
@@ -1535,23 +1540,6 @@ pub mod pallet {
             })
         }
 
-        pub(crate) fn do_matching_before_store_solution() -> Weight {
-            let mut weight = Default::default();
-            if !Self::is_matching()
-                && T::ElectionSolutionStoredOffset::get().saturating_add(Self::era_start_block())
-                    <= T::RelayChainValidationDataProvider::current_block_number()
-            {
-                weight = with_transaction(|| match Self::do_matching() {
-                    Ok(()) => TransactionOutcome::Commit(Ok(<T as Config>::WeightInfo::force_matching())),
-                    Err(err) => TransactionOutcome::Rollback(Err(err)),
-                }).unwrap_or_else(|err|{
-                    log::error!(target: "liquidStaking::do_matching_before_store_solution", "Could not do_matching! error: {:?}", &err);
-                    Default::default()
-                });
-            }
-            weight
-        }
-
         #[require_transactional]
         pub(crate) fn do_matching() -> DispatchResult {
             let total_unbonding = Self::get_total_unbonding();
@@ -1566,7 +1554,7 @@ pub mod pallet {
                 &unbond_amount
             );
 
-            IsMatching::<T>::put(true);
+            IsMatched::<T>::put(true);
 
             Self::do_multi_bond(bond_amount, RewardDestination::Staked)?;
             Self::do_multi_rebond(rebond_amount)?;
@@ -1603,8 +1591,8 @@ pub mod pallet {
             if let Err(e) = Self::do_update_exchange_rate() {
                 log::error!(target: "liquidStaking::do_advance_era", "advance era error caught: {:?}", &e);
             }
-            IsMatching::<T>::put(false);
 
+            IsMatched::<T>::put(false);
             Self::deposit_event(Event::<T>::NewEra(Self::current_era()));
             Ok(())
         }
