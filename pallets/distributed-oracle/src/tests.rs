@@ -298,44 +298,44 @@ fn test_slashing_for_no_response() {
         // //
         // round 2
         // alice, bob
-        let round_id = 2;
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(ALICE),                 // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(BOB),                   // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        // round 3 (charlie is slashed for being offline)
-        // alice, bob, charlie
-        let round_id = 3;
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(ALICE),                 // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(BOB),                   // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(CHARLIE),               // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
+        // let round_id = 2;
+        // assert_ok!(Doracle::set_price_for_round(
+        //     Origin::signed(ALICE),                 // origin
+        //     HKO,                                   // asset_id
+        //     Price::from_inner(10_000_000_000 * 1), // price
+        //     round_id                               // round_id
+        // ));
+        //
+        // assert_ok!(Doracle::set_price_for_round(
+        //     Origin::signed(BOB),                   // origin
+        //     HKO,                                   // asset_id
+        //     Price::from_inner(10_000_000_000 * 1), // price
+        //     round_id                               // round_id
+        // ));
+        //
+        // // round 3 (charlie is slashed for being offline)
+        // // alice, bob, charlie
+        // let round_id = 3;
+        // assert_ok!(Doracle::set_price_for_round(
+        //     Origin::signed(ALICE),                 // origin
+        //     HKO,                                   // asset_id
+        //     Price::from_inner(10_000_000_000 * 1), // price
+        //     round_id                               // round_id
+        // ));
+        //
+        // assert_ok!(Doracle::set_price_for_round(
+        //     Origin::signed(BOB),                   // origin
+        //     HKO,                                   // asset_id
+        //     Price::from_inner(10_000_000_000 * 1), // price
+        //     round_id                               // round_id
+        // ));
+        //
+        // assert_ok!(Doracle::set_price_for_round(
+        //     Origin::signed(CHARLIE),               // origin
+        //     HKO,                                   // asset_id
+        //     Price::from_inner(10_000_000_000 * 1), // price
+        //     round_id                               // round_id
+        // ));
         //
         // assert_eq!(0, 1);
     })

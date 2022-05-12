@@ -2,9 +2,9 @@ use crate::{AccountOf, Timestamp};
 use codec::{Decode, Encode};
 use frame_support::pallet_prelude::*;
 use frame_system::Config;
-// use primitives::{AccountId, Balance, Price, RoundNumber};
-use primitives::{AccountId, Balance, Price};
+use primitives::{Balance, Price};
 use scale_info::TypeInfo;
+use std::collections::BTreeMap;
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
 #[scale_info(skip_type_params(T))]
@@ -21,15 +21,6 @@ pub struct OracleDeposit {
     pub blocks_in_round: u128,
 }
 
-// // Struct for Relayer
-// #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-// #[scale_info(skip_type_params(T))]
-// #[codec(mel_bound())]
-// pub struct Relayer<T: Config> {
-//     // Owner
-//     owner: AccountOf<T>,
-// }
-
 // Struct for Repeater
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
 #[scale_info(skip_type_params(T))]
@@ -39,15 +30,7 @@ pub struct Repeater {
     pub reward: Balance,
 }
 
-/// global state that collects and distributes funds to repeaters
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
-#[scale_info(skip_type_params(T))]
-pub struct Coffer {
-    pub balance: Balance,
-    pub blocks_in_round: u128,
-}
-
-type Participated<T> = (AccountOf<T>, Timestamp);
+// type Participated<T> = (AccountOf<T>, Timestamp);
 
 // we want to know who has participated in this round
 // and we we want to know who is slashed and rewarded when round is done
@@ -55,17 +38,20 @@ type Participated<T> = (AccountOf<T>, Timestamp);
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct RoundManager<T: Config> {
-    pub participated: Vec<Participated<T>>,
-    pub people_to_slash: Vec<AccountOf<T>>,
-    pub people_to_reward: Vec<AccountOf<T>>,
+    pub participated: BTreeMap<AccountOf<T>, Timestamp>,
+    pub people_to_slash: BTreeMap<AccountOf<T>, Timestamp>,
+    pub people_to_reward: BTreeMap<AccountOf<T>, Timestamp>,
+    // pub participated: Vec<Participated<T>>,
+    // pub people_to_slash: Vec<AccountOf<T>>,
+    // pub people_to_reward: Vec<AccountOf<T>>,
 }
 
 impl<T: Config> Default for RoundManager<T> {
     fn default() -> Self {
         Self {
-            participated: Vec::new(),
-            people_to_slash: Vec::new(),
-            people_to_reward: Vec::new(),
+            participated: BTreeMap::new(),
+            people_to_slash: BTreeMap::new(),
+            people_to_reward: BTreeMap::new(),
         }
     }
 }
@@ -79,29 +65,47 @@ impl<T: Config> Default for RoundManager<T> {
 //     };
 // }
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-#[scale_info(skip_type_params(T))]
-pub struct Submitter<T: Config> {
-    pub submitter: AccountOf<T>,
-    pub price: Price,
-}
+// #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+// #[scale_info(skip_type_params(T))]
+// pub struct RoundInfo {
+//     pub price: Price,
+//     pub timestamp: Timestamp,
+// }
 
 /// Holds Price Per Round
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
-pub struct PriceHolder<T: Config> {
-    pub price: Price,
-    pub submitters: Vec<Submitter<T>>,
+pub struct RoundHolder<T: Config> {
+    pub avg_price: Price,
+    pub submitters: BTreeMap<AccountOf<T>, (Price, Timestamp)>,
 }
 
-impl<T: Config> Default for PriceHolder<T> {
+impl<T: Config> Default for RoundHolder<T> {
     fn default() -> Self {
         Self {
-            price: Price::default(),
-            submitters: Vec::new(),
+            avg_price: Price::default(),
+            submitters: BTreeMap::new(),
         }
     }
 }
+
+// impl Default for RoundInfo {
+//     fn default() -> Self {
+//         Self {
+//             price: Price::default(),
+//             timestamp: 0
+//         }
+//     }
+// }
+
+// impl<T: Config> Default for RoundInfo {
+//     fn default() -> Self {
+//         Self {
+//             price: Price::default(),
+//             timestamp: 0
+//         }
+//     }
+// }
 
 // round starts
 // people add prices

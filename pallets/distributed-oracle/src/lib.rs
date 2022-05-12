@@ -68,9 +68,10 @@ pub use weights::WeightInfo;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use crate::helpers::{OracleDeposit, PriceHolder, Repeater, RoundManager, Submitter};
+    use crate::helpers::{OracleDeposit, Repeater, RoundHolder, RoundManager};
     use sp_runtime::traits::Zero;
     use sp_runtime::ArithmeticError;
+    use std::collections::BTreeMap;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -149,16 +150,14 @@ pub mod pallet {
         InvalidUnstaker,
         /// Account Grounded for bad behavior unable to unstake
         UnableToStakeOnPunishment,
-        /// Coffer balance low :cry:
-        InsufficientCofferBalance,
-        /// No Coffer found for the repeater
-        CofferMissing,
         /// No rounds yet, but someone called the manager ?
         NoRoundsStartedYet,
         /// Staked Amount Is Less than Min Stake Amount
         StakedAmountIsLessThanMinStakeAmount,
         /// PriceSubmittedAlready
-        PriceSubmittedAlready,
+        AccountAlreadySubmittedPrice,
+        /// Current Price nort found
+        CurrentRoundNotFound,
     }
 
     #[pallet::event]
@@ -205,29 +204,19 @@ pub mod pallet {
     #[pallet::getter(fn get_rounds)]
     pub type Round<T: Config> = StorageValue<_, u128>;
 
-    // #[pallet::storage]
-    // #[pallet::getter(fn get_manager)]
-    // pub type Manager<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Coffer>;
-
     #[pallet::storage]
     #[pallet::getter(fn get_round_manager)]
     pub type Manager<T: Config> = StorageValue<_, RoundManager<T>>;
 
-    /// Sets price with round Id PriceHolder
-    // #[pallet::storage]
-    // #[pallet::getter(fn emergency_price)]
-    // pub type EmergencyPrice<T: Config> =
-    //     StorageMap<_, Twox64Concat, CurrencyId, Price, u128, OptionQuery>;
-
     #[pallet::storage]
-    #[pallet::getter(fn get_currency_price)]
-    pub type CurrencyPrice<T: Config> = StorageDoubleMap<
+    #[pallet::getter(fn get_current_round)]
+    pub type CurrentRound<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
         CurrencyId,
         Blake2_128Concat,
         RoundNumber,
-        PriceHolder<T>,
+        RoundHolder<T>,
         OptionQuery,
     >;
 
@@ -253,17 +242,6 @@ pub mod pallet {
                 Repeaters::<T>::contains_key(who.clone()),
                 Error::<T>::InvalidStaker
             );
-
-            // For the given round fetch
-
-            let mut round_manager = Manager::<T>::get().unwrap_or_default();
-
-            // **********************************************************************
-            // ensure!(
-            //     Manager::<T>::contains_key(&Self::account_id()),
-            //     Error::<T>::NoRoundsStartedYet
-            // );
-            // **********************************************************************
 
             StakingPool::<T>::mutate(
                 who.clone(),
@@ -417,24 +395,6 @@ pub mod pallet {
 
             StakingPool::<T>::insert(&who, &asset, oracle_stake_deposit);
 
-            // **************************************************************************************
-            // manager has a coffer which stores balances and rounds
-            // TODO: We might need to use mutate rather than inserting here
-            // let mut coffer = Self::get_manager(&Self::account_id()).unwrap_or_default();
-            //
-            // coffer.balance = coffer
-            //     .balance
-            //     .checked_add(amount)
-            //     .ok_or(ArithmeticError::Underflow)?;
-            //
-            // coffer.blocks_in_round = coffer
-            //     .blocks_in_round
-            //     .checked_add(1u128)
-            //     .ok_or(ArithmeticError::Underflow)?;
-            //
-            // Manager::<T>::insert(Self::account_id(), coffer);
-            // **************************************************************************************
-
             Self::deposit_event(Event::<T>::Staked(who, asset, amount));
 
             log::trace!(
@@ -503,28 +463,6 @@ pub mod pallet {
 
                     oracle_stake_deposit.timestamp = T::UnixTime::now().as_secs();
 
-                    // TODO: Replace this
-                    // Update the balances -> remove unstake amount from balances
-                    // Manager::<T>::mutate(Self::account_id(), |coffer| -> DispatchResult {
-                    //     let coffer = coffer.as_mut().ok_or(Error::<T>::CofferMissing)?;
-                    //
-                    //     ensure!(
-                    //         coffer.balance >= amount,
-                    //         Error::<T>::InsufficientCofferBalance
-                    //     );
-                    //
-                    //     // Deduct balance from unstaked amount
-                    //     coffer.balance = coffer
-                    //         .balance
-                    //         .checked_sub(amount)
-                    //         .ok_or(ArithmeticError::Underflow)?;
-                    //
-                    //     Ok(())
-                    // })?;
-
-                    // *****************************************************************************
-                    // *****************************************************************************
-
                     Self::deposit_event(Event::<T>::Unstaked(who.clone(), asset, amount));
 
                     log::trace!(
@@ -551,6 +489,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let current_time_stamp = T::UnixTime::now().as_secs();
+
             ensure!(
                 Self::staking_pool(who.clone(), T::StakingCurrency::get())
                     .unwrap_or_default()
@@ -559,71 +498,83 @@ pub mod pallet {
                 Error::<T>::StakedAmountIsLessThanMinStakeAmount
             );
 
-            // For a given round get current price by asset_id and round number
-            // Check if the account already submitted a price -> if yes throws an error
-            // If not if its a new account -> (add its price  + previous price)  / unique price submitters
-            // Update the `price`
-            // Add the account to submitters list
-            // This has to be done per round
-            // gets price holder
-            let mut price_holder = Self::get_currency_price(asset_id, round).unwrap_or_default();
+            let mut recent_round = Self::get_current_round(asset_id, round).unwrap_or_default();
 
-            let submitters = price_holder.submitters.clone();
-            let sub_len = submitters.len() as u128;
+            ensure!(
+                !recent_round.submitters.contains_key(&who),
+                Error::<T>::AccountAlreadySubmittedPrice
+            );
 
-            // TODO: Not Required!
-            // An Account can submit  Price only once per round or ele throw an error
-            // ensure!(
-            //     submitters.iter().any(|&s| s.submitter != who),
-            //     Error::<T>::PriceSubmittedAlready
-            // );
-
-            // ***********************************************************************************
-            // Checks for prices
-
-            // Gets Manager
             let mut round_manager = Manager::<T>::get().unwrap_or_default();
 
-            // Adds the participant
             round_manager
                 .participated
-                .push((who.clone(), current_time_stamp));
+                .insert(who.clone(), current_time_stamp);
 
-            let current_price = price_holder.price;
+            // New round , no one has submitted any thing
+            if recent_round.avg_price == Zero::zero() {
+                round_manager
+                    .people_to_reward
+                    .insert(who.clone(), current_time_stamp);
 
-            let threshhold_price = current_price
-                .checked_mul(&FixedU128::from_inner(50u128))
-                .and_then(|r| r.checked_div(&FixedU128::from_inner(100u128)))
-                .ok_or(ArithmeticError::Underflow)?;
+                // submitters.insert(who.clone(), (price, current_time_stamp));
+                recent_round
+                    .submitters
+                    .insert(who.clone(), (price, current_time_stamp));
+                let round_holder = RoundHolder {
+                    // The average price
+                    avg_price: price,
+                    // list of submitters -> <key: account_id, value: (submitted_price, timestamp)>
+                    submitters: recent_round.submitters,
+                };
 
-            if price > threshhold_price {
-                // who's prices were 50% greater then median price for round
-                round_manager.people_to_slash.push(who.clone());
+                // first round first time
+                CurrentRound::<T>::insert(asset_id, round, round_holder);
             } else {
-                // accounts to reward
-                round_manager.people_to_reward.push(who.clone());
+                // Threshold price is +/- 50 of the current price
+                let price_lower_limit = recent_round
+                    .avg_price
+                    .checked_div(&FixedU128::from_inner(2u128))
+                    .ok_or(ArithmeticError::Underflow)?;
+
+                let price_upper_limit = recent_round
+                    .avg_price
+                    .checked_div(&FixedU128::from_inner(2u128))
+                    .and_then(|r| r.checked_mul(&FixedU128::from_inner(3u128)))
+                    .ok_or(ArithmeticError::Underflow)?;
+
+                if price >= price_lower_limit && price <= price_upper_limit {
+                    round_manager
+                        .people_to_reward
+                        .insert(who.clone(), current_time_stamp);
+                    recent_round
+                        .submitters
+                        .insert(who.clone(), (price, current_time_stamp));
+
+                    let avg_price = recent_round
+                        .avg_price
+                        .checked_add(&price)
+                        .and_then(|r| {
+                            r.checked_div(&FixedU128::from_inner(
+                                recent_round.submitters.len() as u128
+                            ))
+                        })
+                        .ok_or(ArithmeticError::Underflow)?;
+
+                    CurrentRound::<T>::mutate(asset_id, round, |rec| -> DispatchResult {
+                        let mut rec = rec.as_mut().ok_or(Error::<T>::CurrentRoundNotFound)?;
+
+                        rec.avg_price = avg_price;
+                        rec.submitters = recent_round.submitters;
+                        Ok(())
+                    })?;
+                } else {
+                    round_manager
+                        .people_to_slash
+                        .insert(who.clone(), current_time_stamp);
+                }
             }
             Manager::<T>::put(round_manager);
-            // ***********************************************************************************
-            // Adds the specified round's account as a submitter along side with the submitted price
-            let submission = Submitter {
-                submitter: who.clone(),
-                price,
-            };
-            price_holder.submitters.push(submission);
-
-            let sub_len = submitters.len() as u128;
-            // Update the current rounds average price
-            price_holder.price = price_holder
-                .price
-                .checked_add(&price)
-                .and_then(|r| r.checked_div(&FixedU128::from_inner(sub_len)))
-                .ok_or(ArithmeticError::Underflow)?;
-
-            // Updates the price per round
-            CurrencyPrice::<T>::remove(asset_id, round);
-            CurrencyPrice::<T>::insert(asset_id, round, price_holder);
-
             Self::deposit_event(Event::SetPrice(asset_id, price, round));
 
             Ok(().into())
@@ -635,25 +586,4 @@ impl<T: Config> Pallet<T> {
     pub fn account_id() -> AccountOf<T> {
         T::PalletId::get().into_account()
     }
-
-    // TODO: We do not need the followings Remove before the final PR!
-    // get emergency price, the timestamp is zero
-    // fn get_emergency_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
-    //     Self::set_price_for_round(asset_id).and_then(|p| {
-    //         let mantissa = Self::get_asset_mantissa(asset_id)?;
-    //         log::trace!(
-    //             target: "price::get_emergency_price",
-    //             "mantissa: {:?}",
-    //             mantissa
-    //         );
-    //         p.price
-    //             .checked_div(&FixedU128::from_inner(mantissa))
-    //             .map(|price| (price, 0))
-    //     })
-    // }
-    //
-    // fn get_asset_mantissa(asset_id: &CurrencyId) -> Option<u128> {
-    //     let decimal = T::Decimal::get_decimal(asset_id)?;
-    //     10u128.checked_pow(decimal as u32)
-    // }
 }
