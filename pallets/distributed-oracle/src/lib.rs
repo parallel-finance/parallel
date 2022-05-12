@@ -71,7 +71,6 @@ pub mod pallet {
     use crate::helpers::{OracleDeposit, Repeater, RoundHolder, RoundManager};
     use sp_runtime::traits::Zero;
     use sp_runtime::ArithmeticError;
-    use std::collections::BTreeMap;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -203,6 +202,11 @@ pub mod pallet {
     #[pallet::getter(fn repeaters)]
     pub type Repeaters<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Repeater>;
 
+    ///  Treasury Balance, pre-populate from pallet runtime constant
+    #[pallet::storage]
+    #[pallet::getter(fn get_treasury)]
+    pub type OracleTreasury<T: Config> = StorageValue<_, BalanceOf<T>>;
+
     /// Rounds
     #[pallet::storage]
     #[pallet::getter(fn get_rounds)]
@@ -230,7 +234,19 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Punish Slash !
+        // ****************************************************************************************
+        /// Populates the Oracle's Treasury from Pallet's Treasury Constant
+        #[pallet::weight(T::WeightInfo::stake())]
+        #[transactional]
+        pub fn populate_treasury(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            ensure_signed(origin)?;
+
+            OracleTreasury::<T>::put(T::Treasury::get());
+
+            Ok(().into())
+        }
+        // ****************************************************************************************
+
         #[pallet::weight(T::WeightInfo::stake())]
         #[transactional]
         pub fn slash_staking_pool(
@@ -381,19 +397,6 @@ pub mod pallet {
 
                 repeater.staked_balance = oracle_stake_deposit.total;
 
-                // Should calculate in 30 mins time frame
-
-                let reward = repeater
-                    .staked_balance
-                    .checked_div(current_time_stamp as u128)
-                    .and_then(|r| r.checked_div(100_000_000u128))
-                    .ok_or(ArithmeticError::Underflow)?;
-
-                repeater.reward = repeater
-                    .reward
-                    .checked_add(reward)
-                    .ok_or(ArithmeticError::Underflow)?;
-
                 Ok(().into())
             })?;
 
@@ -542,6 +545,26 @@ pub mod pallet {
 
                 // first round first time
                 CurrentRound::<T>::insert(asset_id, round, round_holder);
+
+                // ********************************************************************************
+                Repeaters::<T>::mutate(who.clone(), |repeater| -> DispatchResultWithPostInfo {
+                    let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidStaker)?;
+
+                    // Adds reward `1 units` to the total balance
+                    repeater.staked_balance = repeater
+                        .staked_balance
+                        .checked_add(1u128)
+                        .ok_or(ArithmeticError::Underflow)?;
+
+                    // amount collected as rewards
+                    repeater.reward = repeater
+                        .reward
+                        .checked_add(1u128)
+                        .ok_or(ArithmeticError::Underflow)?;
+
+                    Ok(().into())
+                })?;
+                // ********************************************************************************
             } else {
                 // Threshold price is +/- 50 of the current price
                 let price_lower_limit = recent_round
@@ -576,11 +599,32 @@ pub mod pallet {
                         rec.avg_price = avg_price;
                         rec.submitters = recent_round.submitters;
 
-                        //
                         if current_time_stamp - rec.round_started_time <= T::RoundDuration::get() {
                             round_manager
                                 .people_to_reward
                                 .insert(who.clone(), current_time_stamp);
+
+                            // Adds reward
+                            // ********************************************************************************
+                            Repeaters::<T>::mutate(who.clone(), |repeater| -> DispatchResult {
+                                let repeater =
+                                    repeater.as_mut().ok_or(Error::<T>::InvalidStaker)?;
+
+                                // Adds reward `1 units` to the total balance
+                                repeater.staked_balance = repeater
+                                    .staked_balance
+                                    .checked_add(1u128)
+                                    .ok_or(ArithmeticError::Underflow)?;
+
+                                // amount collected as rewards
+                                repeater.reward = repeater
+                                    .reward
+                                    .checked_add(1u128)
+                                    .ok_or(ArithmeticError::Underflow)?;
+
+                                Ok(())
+                            })?;
+                            // ********************************************************************************
 
                             //
                         } else {
@@ -588,6 +632,27 @@ pub mod pallet {
                             round_manager
                                 .people_to_slash
                                 .insert(who.clone(), current_time_stamp);
+
+                            // ********************************************************************************
+                            Repeaters::<T>::mutate(who.clone(), |repeater| -> DispatchResult {
+                                let repeater =
+                                    repeater.as_mut().ok_or(Error::<T>::InvalidStaker)?;
+
+                                // Adds reward `1 units` to the total balance
+                                repeater.staked_balance = repeater
+                                    .staked_balance
+                                    .checked_sub(1u128)
+                                    .ok_or(ArithmeticError::Underflow)?;
+
+                                // amount collected as rewards
+                                repeater.reward = repeater
+                                    .reward
+                                    .checked_sub(1u128)
+                                    .ok_or(ArithmeticError::Underflow)?;
+
+                                Ok(())
+                            })?;
+                            // ********************************************************************************
 
                             // Add rewards for repeaters from the treasury
 
@@ -602,6 +667,7 @@ pub mod pallet {
                         .insert(who.clone(), current_time_stamp);
                 }
             }
+
             Manager::<T>::put(round_manager);
             Self::deposit_event(Event::SetPrice(asset_id, price, round));
 

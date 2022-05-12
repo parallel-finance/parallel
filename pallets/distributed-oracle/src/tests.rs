@@ -200,28 +200,8 @@ fn test_manager() {
     });
 }
 
-// NOTE - reward should be based on actions
 #[test]
 fn test_rewards() {
-    /*
-    Test Rewards
-    Current formula
-
-    reward = (repeater.staked_balance / current_timestamp_in_seconds as unix time) / 100_000_000
-
-    Within the time if a repeater has more staked balance it can get a higher reward
-    TODO: We may need to change the final divisor
-    -------------------------------------------------------------------------
-    | staked_balance                        | reward amount 10 to the pow   |
-    -------------------------------------------------------------------------
-    | Under 100_000_000_0                   | No                            |
-    | 100_000_000_0 -  100_000_000_00       | 1                             |
-    | 100_000_000_00 - 100_000_000_000      | 2                             |
-    | 100_000_000_000 - above               | 3                             |
-    -------------------------------------------------------------------------
-    * Please note that the time is also increasing
-    * More the stake balance more the reward with time
-    */
     new_test_ext().execute_with(|| {
         assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
 
