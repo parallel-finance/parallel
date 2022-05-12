@@ -119,8 +119,10 @@ pub mod pallet {
         InsufficientStreamBalance,
         /// Excess max streams count
         ExcessMaxStreamsCount,
+        /// Stream not started
+        NotStarted,
         /// Stream was cancelled or completed
-        StreamHasFinished,
+        HasFinished,
     }
 
     #[pallet::event]
@@ -253,11 +255,11 @@ pub mod pallet {
             );
             Streams::<T>::insert(stream_id, stream);
 
-            // Remove the outdated and finished streams
-            Self::update_finished_stream_library(&sender, &recipient)?;
             // Add the stream_id to stream_library for both the sender and receiver.
             Self::try_push_stream_library(&sender, stream_id, StreamKind::Send)?;
             Self::try_push_stream_library(&recipient, stream_id, StreamKind::Receive)?;
+            // Remove the outdated and finished streams, should do update after push
+            Self::update_finished_stream_library(&sender, &recipient)?;
 
             Self::deposit_event(Event::<T>::StreamCreated(
                 stream_id, sender, recipient, deposit, asset_id, start_time, end_time, true,
@@ -304,6 +306,7 @@ pub mod pallet {
 
             Self::try_push_stream_library(&stream.sender, stream_id, StreamKind::Finish)?;
             Self::try_push_stream_library(&stream.recipient, stream_id, StreamKind::Finish)?;
+            Self::update_finished_stream_library(&stream.sender, &stream.recipient)?;
 
             Self::deposit_event(Event::<T>::StreamCancelled(
                 stream_id,
@@ -333,8 +336,9 @@ pub mod pallet {
             let recipient = ensure_signed(origin)?;
 
             let mut stream = Streams::<T>::get(stream_id).ok_or(Error::<T>::InvalidStreamId)?;
-            ensure!(!stream.has_finished(), Error::<T>::StreamHasFinished);
             ensure!(stream.is_recipient(&recipient), Error::<T>::NotTheRecipient);
+            ensure!(!stream.has_finished(), Error::<T>::HasFinished);
+            ensure!(stream.has_started()?, Error::<T>::NotStarted);
             let recipient_balance = stream.recipient_balance()?;
             ensure!(
                 recipient_balance >= amount,
@@ -346,6 +350,7 @@ pub mod pallet {
             if stream.has_finished() {
                 Self::try_push_stream_library(&stream.sender, stream_id, StreamKind::Finish)?;
                 Self::try_push_stream_library(&recipient, stream_id, StreamKind::Finish)?;
+                Self::update_finished_stream_library(&stream.sender, &recipient)?;
             }
             Streams::<T>::insert(stream_id, stream.clone());
 
@@ -418,17 +423,21 @@ impl<T: Config> Pallet<T> {
         let checked_pop =
             |registry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
                 let mut r = registry.take().unwrap_or_default();
-                r.as_mut().sort_unstable_by(|a, b| b.cmp(a));
-
                 let len = r.len() as u32;
                 match len {
-                    _x if len >= T::MaxFinishedStreamsCount::get() => {
+                    _x if len > T::MaxFinishedStreamsCount::get() => {
                         if let Some(stream_id) = r.pop() {
                             if Streams::<T>::get(stream_id).is_some() {
                                 // Remove all related storage
+                                let stream = Streams::<T>::get(stream_id).unwrap();
+
+                                Self::try_remove_stream_library(&stream.sender, stream_id, None)?;
+                                Self::try_remove_stream_library(
+                                    &stream.recipient,
+                                    stream_id,
+                                    None,
+                                )?;
                                 Streams::<T>::remove(stream_id);
-                                Self::try_remove_stream_library(sender, stream_id, None)?;
-                                Self::try_remove_stream_library(recipient, stream_id, None)?;
                             }
                         }
                     }
@@ -455,6 +464,8 @@ impl<T: Config> Pallet<T> {
                 let mut r = registry.take().unwrap_or_default();
                 r.try_push(stream_id)
                     .map_err(|_| Error::<T>::ExcessMaxStreamsCount)?;
+
+                r.as_mut().sort_unstable_by(|a, b| b.cmp(a));
                 *registry = Some(r);
                 Ok(())
             };
@@ -471,9 +482,11 @@ impl<T: Config> Pallet<T> {
         let checked_remove =
             |registry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
                 let mut r = registry.take().unwrap_or_default();
-                if let Ok(index) = r.binary_search(&stream_id) {
+                if let Some(index) = r.to_vec().iter().position(|&x| x == stream_id) {
                     r.remove(index);
                 }
+
+                r.as_mut().sort_unstable_by(|a, b| b.cmp(a));
                 *registry = Some(r);
                 Ok(())
             };

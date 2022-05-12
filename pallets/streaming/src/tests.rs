@@ -87,7 +87,7 @@ fn cancel_works_without_withdrawal() {
         // Bob cannot access to previous stream
         assert_err!(
             Streaming::withdraw(Origin::signed(BOB), stream_id_0, 1),
-            Error::<Test>::StreamHasFinished
+            Error::<Test>::HasFinished
         );
 
         // If steam is as collateral, it cannot be cancelled
@@ -137,6 +137,11 @@ fn withdraw_works() {
             Error::<Test>::NotTheRecipient
         );
 
+        // Stream not started
+        assert_err!(
+            Streaming::withdraw(Origin::signed(BOB), 0, 1),
+            Error::<Test>::NotStarted
+        );
         // Time passes for 1 second
         assert_eq!(TimestampPallet::now(), 6000);
         // 6000(init) + 2000(ms)
@@ -251,7 +256,7 @@ fn cancel_works_with_withdrawal() {
         // Bob cannot access to previous stream
         assert_err!(
             Streaming::withdraw(Origin::signed(BOB), 0, 1),
-            Error::<Test>::StreamHasFinished,
+            Error::<Test>::HasFinished,
         );
     });
 }
@@ -331,11 +336,6 @@ fn max_finished_streams_count_should_work() {
             dollar(10)
         ));
 
-        // StreamLibrary should contains stream_id_0
-        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
-            .unwrap()
-            .binary_search(&stream_id_0));
-
         let stream_id_1 = NextStreamId::<Test>::get();
         assert_ok!(Streaming::create(
             Origin::signed(ALICE),
@@ -354,11 +354,7 @@ fn max_finished_streams_count_should_work() {
         ));
         assert_ok!(Streaming::cancel(Origin::signed(ALICE), stream_id_1));
 
-        // StreamLibrary should contains stream_id_1
-        assert_ok!(StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
-            .unwrap()
-            .binary_search(&stream_id_1));
-
+        // StreamLibrary should contains stream_id_1, stream_id_0
         assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
@@ -370,70 +366,190 @@ fn max_finished_streams_count_should_work() {
         ));
 
         // storage should be removed due to MaxFinishedStreamsCount = 2
-        // Alice: [1, 0], pop 0, push 2 => vec![2, 1]
-        // Bob: [2, 0], pop 0 => vec![2]
-        // DAVE: [1] => vec![1]
         assert_eq!(
             StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
                 .unwrap()
-                .contains(&stream_id_0),
-            false
+                .to_vec(),
+            vec![1, 0]
         );
         assert_eq!(
             StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
                 .unwrap()
-                .contains(&stream_id_0),
-            false
+                .to_vec(),
+            vec![2, 1, 0]
         );
         assert_eq!(
             StreamLibrary::<Test>::get(ALICE, StreamKind::Receive)
-                .unwrap()
-                .contains(&stream_id_0),
-            false
-        );
-        assert_eq!(
-            StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
-                .unwrap()
-                .contains(&stream_id_1),
-            true
-        );
-        assert_eq!(
-            StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
-                .unwrap()
-                .contains(&stream_id_1),
-            true
+                .unwrap_or_default()
+                .to_vec(),
+            vec![]
         );
 
         assert_eq!(
             StreamLibrary::<Test>::get(BOB, StreamKind::Finish)
-                .unwrap()
-                .contains(&stream_id_0),
-            false
+                .unwrap_or_default()
+                .to_vec(),
+            vec![0]
         );
         assert_eq!(
             StreamLibrary::<Test>::get(BOB, StreamKind::Send)
-                .unwrap()
-                .contains(&stream_id_0),
-            false
+                .unwrap_or_default()
+                .to_vec(),
+            vec![]
         );
         assert_eq!(
             StreamLibrary::<Test>::get(BOB, StreamKind::Receive)
                 .unwrap()
-                .contains(&stream_id_0),
-            false
+                .to_vec(),
+            vec![2, 0]
         );
 
         assert_eq!(
             StreamLibrary::<Test>::get(DAVE, StreamKind::Finish)
                 .unwrap()
-                .contains(&stream_id_1),
-            true
+                .to_vec(),
+            vec![1]
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(DAVE, StreamKind::Send)
+                .unwrap_or_default()
+                .to_vec(),
+            vec![]
         );
         assert_eq!(
             StreamLibrary::<Test>::get(DAVE, StreamKind::Receive)
                 .unwrap()
-                .contains(&stream_id_1),
-            true
+                .to_vec(),
+            vec![1]
+        );
+
+        // Alice create many streams
+        let stream_id_3 = NextStreamId::<Test>::get();
+        assert_ok!(Streaming::create(
+            Origin::signed(ALICE),
+            BOB,
+            dollar(10),
+            DOT,
+            16,
+            30,
+            true,
+        ));
+        let stream_id_4 = NextStreamId::<Test>::get();
+        assert_ok!(Streaming::create(
+            Origin::signed(ALICE),
+            BOB,
+            dollar(10),
+            DOT,
+            16,
+            30,
+            true,
+        ));
+        assert_ok!(Streaming::cancel(Origin::signed(ALICE), stream_id_3));
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+                .unwrap()
+                .to_vec(),
+            vec![3, 1]
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
+                .unwrap()
+                .to_vec(),
+            vec![4, 3, 2, 1]
+        );
+        assert_ok!(Streaming::cancel(Origin::signed(ALICE), stream_id_4));
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+                .unwrap()
+                .to_vec(),
+            vec![4, 3]
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
+                .unwrap()
+                .to_vec(),
+            vec![4, 3, 2]
+        );
+        // BOB create some streams
+        let stream_id_5 = NextStreamId::<Test>::get();
+        assert_ok!(Streaming::create(
+            Origin::signed(BOB),
+            DAVE,
+            dollar(3),
+            DOT,
+            16,
+            30,
+            true,
+        ));
+        // let stream_id_6= NextStreamId::<Test>::get();
+        assert_ok!(Streaming::create(
+            Origin::signed(BOB),
+            ALICE,
+            dollar(3),
+            DOT,
+            16,
+            30,
+            true,
+        ));
+        assert_ok!(Streaming::cancel(Origin::signed(BOB), stream_id_5));
+        // assert_ok!(Streaming::cancel(Origin::signed(BOB), stream_id_6));
+
+        // storage should be removed due to MaxFinishedStreamsCount = 2
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+                .unwrap()
+                .to_vec(),
+            vec![4]
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Send)
+                .unwrap()
+                .to_vec(),
+            vec![4, 2]
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(ALICE, StreamKind::Receive)
+                .unwrap()
+                .to_vec(),
+            vec![6]
+        );
+
+        assert_eq!(
+            StreamLibrary::<Test>::get(BOB, StreamKind::Finish)
+                .unwrap()
+                .to_vec(),
+            vec![5, 4]
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(BOB, StreamKind::Send)
+                .unwrap()
+                .to_vec(),
+            vec![6, 5]
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(BOB, StreamKind::Receive)
+                .unwrap()
+                .to_vec(),
+            vec![4, 2]
+        );
+
+        assert_eq!(
+            StreamLibrary::<Test>::get(DAVE, StreamKind::Finish)
+                .unwrap()
+                .to_vec(),
+            vec![5]
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(DAVE, StreamKind::Send)
+                .unwrap_or_default()
+                .to_vec(),
+            vec![]
+        );
+        assert_eq!(
+            StreamLibrary::<Test>::get(DAVE, StreamKind::Receive)
+                .unwrap()
+                .to_vec(),
+            vec![5]
         );
     })
 }
