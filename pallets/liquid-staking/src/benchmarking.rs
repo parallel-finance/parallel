@@ -283,6 +283,7 @@ benchmarks! {
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
         assert_ok!(with_transaction(|| -> TransactionOutcome<DispatchResult>{
             LiquidStaking::<T>::do_advance_era(T::BondingDuration::get() + 1).unwrap();
+            LiquidStaking::<T>::do_matching().unwrap();
             TransactionOutcome::Commit(Ok(()))
         }));
         LiquidStaking::<T>::notification_received(
@@ -330,6 +331,7 @@ benchmarks! {
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
     }: {
         assert_ok!(with_transaction(|| -> TransactionOutcome<DispatchResult> {
+            LiquidStaking::<T>::do_matching().unwrap();
             LiquidStaking::<T>::do_advance_era(1).unwrap();
             TransactionOutcome::Commit(Ok(()))
         }));
