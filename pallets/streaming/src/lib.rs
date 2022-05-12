@@ -423,25 +423,19 @@ impl<T: Config> Pallet<T> {
         let checked_pop =
             |registry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
                 let mut r = registry.take().unwrap_or_default();
-                let len = r.len() as u32;
-                match len {
-                    _x if len > T::MaxFinishedStreamsCount::get() => {
-                        if let Some(stream_id) = r.pop() {
-                            if Streams::<T>::get(stream_id).is_some() {
-                                // Remove all related storage
-                                let stream = Streams::<T>::get(stream_id).unwrap();
 
-                                Self::try_remove_stream_library(&stream.sender, stream_id, None)?;
-                                Self::try_remove_stream_library(
-                                    &stream.recipient,
-                                    stream_id,
-                                    None,
-                                )?;
-                                Streams::<T>::remove(stream_id);
-                            }
-                        }
-                    }
-                    _ => {}
+                if r.len() as u32 <= T::MaxFinishedStreamsCount::get() {
+                    *registry = Some(r);
+                    return Ok(());
+                }
+
+                // This is safe because we have ensured that the length is greater than the limit(at least 0)
+                if let Some(stream_id) = r.pop() {
+                    let stream = Streams::<T>::get(stream_id).ok_or(Error::<T>::InvalidStreamId)?;
+                    // Remove all related storage
+                    Self::try_remove_stream_library(&stream.sender, stream_id, None)?;
+                    Self::try_remove_stream_library(&stream.recipient, stream_id, None)?;
+                    Streams::<T>::remove(stream_id);
                 }
 
                 *registry = Some(r);
