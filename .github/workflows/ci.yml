@@ -31,7 +31,7 @@ jobs:
           df -h
           echo "Removing large packages"
           sudo apt-get remove -y php.*
-          sudo apt-get remove -y azure-cli google-cloud-sdk hhvm google-chrome-stable firefox powershell mono-devel
+          sudo apt-get remove -y azure-cli google-cloud-sdk hhvm google-chrome-stable firefox powershell mono-devel dotnet-* adoptopenjdk-* temurin-11-jdk google-chrome-stable dotnet-sdk-* firefox mongodb* mysql-* postgresql* moby-cli 
           sudo apt-get autoremove -y
           sudo apt-get autoclean -y
           sudo apt-get clean -y
