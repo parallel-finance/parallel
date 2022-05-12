@@ -122,6 +122,10 @@ pub mod pallet {
         // Balance that parallel finance funds to pay repeaters , prep populated value
         #[pallet::constant]
         type Treasury: Get<BalanceOf<Self>>;
+
+        // Unix time gap between round
+        #[pallet::constant]
+        type RoundDuration: Get<u64>;
     }
 
     #[pallet::error]
@@ -532,6 +536,7 @@ pub mod pallet {
                     // The average price
                     avg_price: price,
                     // list of submitters -> <key: account_id, value: (submitted_price, timestamp)>
+                    round_started_time: current_time_stamp,
                     submitters: recent_round.submitters,
                 };
 
@@ -551,9 +556,6 @@ pub mod pallet {
                     .ok_or(ArithmeticError::Underflow)?;
 
                 if price >= price_lower_limit && price <= price_upper_limit {
-                    round_manager
-                        .people_to_reward
-                        .insert(who.clone(), current_time_stamp);
                     recent_round
                         .submitters
                         .insert(who.clone(), (price, current_time_stamp));
@@ -573,6 +575,25 @@ pub mod pallet {
 
                         rec.avg_price = avg_price;
                         rec.submitters = recent_round.submitters;
+
+                        //
+                        if current_time_stamp - rec.round_started_time <= T::RoundDuration::get() {
+                            round_manager
+                                .people_to_reward
+                                .insert(who.clone(), current_time_stamp);
+
+                            //
+                        } else {
+                            // Reward
+                            round_manager
+                                .people_to_slash
+                                .insert(who.clone(), current_time_stamp);
+
+                            // Add rewards for repeaters from the treasury
+
+                            // If the repeater does not have enough balance remove the Repeater
+                        }
+
                         Ok(())
                     })?;
                 } else {
