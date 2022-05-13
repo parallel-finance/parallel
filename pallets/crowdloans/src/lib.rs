@@ -60,8 +60,7 @@ pub mod pallet {
     };
     use sp_runtime::{
         traits::{
-            AccountIdConversion, BlockNumberProvider, CheckedDiv, Hash, One, Saturating,
-            StaticLookup, Zero,
+            AccountIdConversion, BlockNumberProvider, Hash, One, Saturating, StaticLookup, Zero,
         },
         ArithmeticError, DispatchError, FixedPointNumber, SaturatedConversion,
     };
@@ -78,7 +77,8 @@ pub mod pallet {
     pub type BalanceOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
-    pub const BLOCKS_PER_YEAR: u32 = 365 * 24 * 60 * 60 as u32 / 12;
+    // from relay chain
+    pub const BLOCKS_PER_YEAR: u32 = 365 * 24 * 60 * 60 as u32 / 6;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -1591,11 +1591,9 @@ pub mod pallet {
             let start_block = lease_period.saturating_mul(start_lease.into());
             let end_block = lease_period.saturating_mul((end_lease + 1).into());
             let lease_length = lease_period.saturating_mul((end_lease - start_lease + 1).into());
-            let total_term_by_year = Rate::from_inner(
-                lease_length
-                    .checked_div(&T::BlockNumber::from(BLOCKS_PER_YEAR))
-                    .unwrap()
-                    .saturated_into(),
+            let total_term_by_year = Rate::saturating_from_rational(
+                lease_length.saturated_into::<u32>(),
+                T::BlockNumber::from(BLOCKS_PER_YEAR).saturated_into::<u32>(),
             );
             let term_rate: Rate;
             if current_block < start_block {
@@ -1631,17 +1629,12 @@ pub mod pallet {
         fn get_exchange_rate(asset_id: &AssetIdOf<T>, start_exchange_rate: Rate) -> Option<Rate> {
             Self::find_vault_by_asset_id(asset_id).and_then(|vault| {
                 Self::get_vault_term_rate(vault).and_then(|(term_rate, total_term_by_year)| {
-                    let remaining_year = total_term_by_year
-                        .saturating_mul(Rate::one().saturating_sub(term_rate))
-                        .into_inner()
-                        .try_into()
-                        .unwrap_or_default();
-                    let current_rate: Rate = Rate::one()
-                        .saturating_add(start_exchange_rate)
-                        .saturating_pow(remaining_year)
-                        .reciprocal()
-                        .unwrap_or_default();
-                    Some(current_rate)
+                    let total_term_by_year: f64 = total_term_by_year.to_float();
+                    let remaining_year = total_term_by_year * (1_f64 - term_rate.to_float());
+                    let current_rate =
+                        (1_f64 + start_exchange_rate.to_float() as f64).powf(remaining_year);
+                    let current_rate = Rate::from_float(current_rate).reciprocal();
+                    current_rate
                 })
             })
         }

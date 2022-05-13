@@ -1794,7 +1794,7 @@ parameter_types! {
     pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
-    pub LeasePeriod: BlockNumber = 3 * 7 * DAYS;
+    pub LeasePeriod: BlockNumber = 6 * 7 * DAYS;
 }
 
 pub struct RelayChainValidationDataProvider<T>(sp_std::marker::PhantomData<T>);

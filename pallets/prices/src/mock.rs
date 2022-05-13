@@ -281,9 +281,34 @@ construct_runtime!(
 );
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let t = frame_system::GenesisConfig::default()
+    let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
 
-    t.into()
+    pallet_balances::GenesisConfig::<Test> {
+        balances: vec![(ALICE, 100_000_000), (CHARLIE, 100_000_000)],
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
+
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| {
+        Assets::force_create(Origin::root(), tokens::DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::SDOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::CDOT_7_14, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::LP_DOT_CDOT_7_14, ALICE, true, 1).unwrap();
+
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 10_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::SDOT, ALICE, 10_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::CDOT_7_14, ALICE, 10_000).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            tokens::LP_DOT_CDOT_7_14,
+            ALICE,
+            10_000,
+        )
+        .unwrap();
+    });
+
+    ext
 }
