@@ -651,26 +651,3 @@ fn create_with_minimum_deposit_works() {
         );
     })
 }
-
-#[test]
-fn boundary_test_works() {
-    new_test_ext().execute_with(|| {
-        // Set minimum deposit for DOT
-        assert_ok!(Streaming::set_minimum_deposit(
-            Origin::root(),
-            DOT,
-            dollar(100)
-        ));
-        assert_ok!(Streaming::create(
-            Origin::signed(BOB),
-            DAVE,
-            dollar(500),
-            DOT,
-            6,
-            12,
-            true,
-        ));
-
-        // Set minimum deposit for DOT
-    });
-}

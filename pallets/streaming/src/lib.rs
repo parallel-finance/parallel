@@ -456,8 +456,10 @@ impl<T: Config> Pallet<T> {
         let checked_push =
             |registry: &mut Option<BoundedVec<StreamId, T::MaxStreamsCount>>| -> DispatchResult {
                 let mut r = registry.take().unwrap_or_default();
-                r.try_push(stream_id)
-                    .map_err(|_| Error::<T>::ExcessMaxStreamsCount)?;
+                if r.to_vec().iter().position(|&x| x == stream_id).is_none() {
+                    r.try_push(stream_id)
+                        .map_err(|_| Error::<T>::ExcessMaxStreamsCount)?;
+                }
 
                 r.as_mut().sort_unstable_by(|a, b| b.cmp(a));
                 *registry = Some(r);
