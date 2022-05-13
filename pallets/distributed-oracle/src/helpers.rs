@@ -30,8 +30,6 @@ pub struct Repeater {
     pub reward: Balance,
 }
 
-// type Participated<T> = (AccountOf<T>, Timestamp);
-
 // we want to know who has participated in this round
 // and we we want to know who is slashed and rewarded when round is done
 
@@ -52,15 +50,6 @@ impl<T: Config> Default for RoundManager<T> {
         }
     }
 }
-
-// impl RoundManager {
-//     fn reward_at_round_end(&mut self) {
-
-//     };
-//     fn slash_at_round_end(&mut self) {
-
-//     };
-// }
 
 /// Holds Price Per Round
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -90,7 +79,6 @@ impl<T: Config> Default for RoundHolder<T> {
 // who did respond
 // Round Manager
 // updates slashes
-// updates rewards (`pendings_rewards`)
 // round ends
 
 // laterrrr
