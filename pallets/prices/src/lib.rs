@@ -262,10 +262,13 @@ impl<T: Config> Pallet<T> {
                     .and_then(|quote_amount| quote_amount.checked_mul(2u128))?;
                 let lp_asset_amount = lp_asset_total_supply.checked_div(mantissa)?;
                 let rate = FixedU128::checked_from_rational(quote_asset_amount, lp_asset_amount)?;
-                base_price
+                return base_price
                     .value
                     .checked_mul(&rate)
-                    .map(|price| (price, base_price));
+                    .map(|price| TimeStampedPrice {
+                        value: price,
+                        timestamp: base_price.timestamp,
+                    });
             }
         }
         None

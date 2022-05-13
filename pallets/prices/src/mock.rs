@@ -23,12 +23,14 @@ use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, FixedPointNumber};
 
-pub use primitives::tokens::{CKSM_20_27, DOT, KSM, SDOT, SKSM};
+pub use primitives::tokens::{CDOT_7_14, CKSM_20_27, DOT, KSM, LP_DOT_CDOT_7_14, SDOT, SKSM};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
 pub const ALICE: AccountId = 1;
 pub const CHARLIE: AccountId = 2;
+
+pub const PRICE_ONE: u128 = 1_000_000_000_000_000_000;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -80,8 +82,18 @@ impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
 }
 
 impl DataProviderExtended<CurrencyId, TimeStampedPrice> for MockDataProvider {
-    fn get_no_op(_key: &CurrencyId) -> Option<TimeStampedPrice> {
-        None
+    fn get_no_op(asset_id: &CurrencyId) -> Option<TimeStampedPrice> {
+        match *asset_id {
+            DOT => Some(TimeStampedPrice {
+                value: Price::saturating_from_integer(100),
+                timestamp: 0,
+            }),
+            KSM => Some(TimeStampedPrice {
+                value: Price::saturating_from_integer(500),
+                timestamp: 0,
+            }),
+            _ => None,
+        }
     }
 
     fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
@@ -125,6 +137,8 @@ impl DecimalProvider<CurrencyId> for Decimal {
             DOT | SDOT => Some(10),
             KSM | SKSM => Some(12),
             CKSM_20_27 => Some(12),
+            CDOT_7_14 => Some(10),
+            LP_DOT_CDOT_7_14 => Some(12),
             _ => None,
         }
     }
@@ -133,17 +147,17 @@ impl DecimalProvider<CurrencyId> for Decimal {
 pub struct LiquidStaking;
 impl LiquidStakingCurrenciesProvider<CurrencyId> for LiquidStaking {
     fn get_staking_currency() -> Option<CurrencyId> {
-        Some(KSM)
+        Some(DOT)
     }
     fn get_liquid_currency() -> Option<CurrencyId> {
-        Some(SKSM)
+        Some(SDOT)
     }
 }
 
 pub struct TokenCurrenciesFilter;
 impl VaultTokenCurrenciesFilter<CurrencyId> for TokenCurrenciesFilter {
     fn contains(asset_id: &CurrencyId) -> bool {
-        asset_id == &CKSM_20_27
+        asset_id == &CDOT_7_14
     }
 }
 
@@ -155,8 +169,8 @@ impl LoansRateProvider<CurrencyId> for VaultLoansRateProvider {
 }
 
 parameter_types! {
-    pub const RelayCurrency: CurrencyId = KSM;
-    pub const NativeCurrencyId: CurrencyId = 0;
+    pub const RelayCurrency: CurrencyId = DOT;
+    pub const NativeCurrencyId: CurrencyId = 1;
 }
 
 impl pallet_currency_adapter::Config for Test {
@@ -298,14 +312,21 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), tokens::CDOT_7_14, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), tokens::LP_DOT_CDOT_7_14, ALICE, true, 1).unwrap();
 
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 10_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::SDOT, ALICE, 10_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::CDOT_7_14, ALICE, 10_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 1000 * PRICE_ONE).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::SDOT, ALICE, 1000 * PRICE_ONE).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
-            tokens::LP_DOT_CDOT_7_14,
+            tokens::CDOT_7_14,
             ALICE,
-            10_000,
+            1000 * PRICE_ONE,
+        )
+        .unwrap();
+        DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, CDOT_7_14),
+            (100 * PRICE_ONE, 100 * PRICE_ONE),
+            ALICE,
+            LP_DOT_CDOT_7_14,
         )
         .unwrap();
     });

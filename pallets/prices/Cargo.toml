@@ -39,6 +39,8 @@ std         = [
   'primitives/std',
   'scale-info/std',
   'pallet-traits/std',
+  'pallet-amm/std',
+  'pallet-assets/std',
 ]
 try-runtime = ['frame-support/try-runtime']
 
