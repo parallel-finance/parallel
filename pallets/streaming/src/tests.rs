@@ -313,6 +313,11 @@ fn cancel_works_with_withdrawal() {
         assert_eq!(stream.recipient_balance().unwrap(), 73230769230760);
 
         assert_ok!(Streaming::cancel(Origin::signed(ALICE), stream_id_0));
+        // Cannot cancel multiple times
+        assert_err!(
+            Streaming::cancel(Origin::signed(ALICE), stream_id_0),
+            Error::<Test>::HasFinished
+        );
         stream = Streams::<Test>::get(stream_id_0).unwrap();
         assert_eq!(stream.remaining_balance, 7769230769240);
         assert_eq!(stream.has_finished(), true);
