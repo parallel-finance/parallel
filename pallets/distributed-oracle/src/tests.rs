@@ -437,3 +437,18 @@ fn test_that_repeater_are_rewarded_after_n_rounds() {
         // assert_eq!(bal_diff, reward_amount_for_n_rounds);
     })
 }
+
+#[test]
+fn test_slashes() {
+    new_test_ext().execute_with(|| assert_eq!(1, 2));
+}
+
+#[test]
+fn test_rewards_after_n_minutes() {
+    new_test_ext().execute_with(|| assert_eq!(1, 2));
+}
+
+#[test]
+fn treasury_increment_decrement() {
+    new_test_ext().execute_with(|| assert_eq!(1, 2));
+}
