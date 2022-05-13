@@ -62,27 +62,32 @@ fn cancel_works_without_withdrawal() {
         assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
-            dollar(100),
+            dollar(101),
             DOT,
             6,
-            18,
+            19,
             true,
         ));
+        // rate_per_secs: 101 / (19-6) = 7769230769230
+        let stream = <Streams<Test>>::get(stream_id_0).unwrap();
+        assert_eq!(
+            stream,
+            Stream::new(dollar(101), DOT, 7769230769230, ALICE, BOB, 6, 19, true,)
+        );
         // Get before bob and alice balance
         let before_alice = <Test as Config>::Assets::balance(DOT, &ALICE);
         let before_bob = <Test as Config>::Assets::balance(DOT, &BOB);
-        // Time passes for 10 seconds
-        TimestampPallet::set_timestamp(6010); // 6000(init) + 10
-                                              // Alice cancels existing stream sent to bob
+        // Time passes for 1 seconds
+        TimestampPallet::set_timestamp(7000);
         assert_ok!(Streaming::cancel(Origin::signed(ALICE), stream_id_0));
         // Alice and Bob is received with 100 DOT and 0 DOT respectively as deposit == remaining_balance
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &ALICE) - before_alice,
-            dollar(100)
+            93230769230770
         );
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &BOB) - before_bob,
-            dollar(0)
+            7769230769230
         );
         // Bob cannot access to previous stream
         assert_err!(
@@ -176,36 +181,83 @@ fn withdraw_works() {
 fn withdraw_with_slower_rate_works() {
     new_test_ext().execute_with(|| {
         let before_bob = <Test as Config>::Assets::balance(DOT, &BOB);
-        // Alice creates stream 100 DOT to Bob
         assert_eq!(TimestampPallet::now(), 6000);
+        // Alice creates stream 101 dollars to Bob
+        let stream_id_0 = NextStreamId::<Test>::get();
         assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
-            dollar(100),
+            dollar(101),
             DOT,
             6,
-            18,
+            19,
             true,
         ));
+        // rate_per_secs: 101 / (19-6) = 7769230769230
+        let stream = <Streams<Test>>::get(stream_id_0).unwrap();
+        assert_eq!(
+            stream,
+            Stream::new(dollar(101), DOT, 7769230769230, ALICE, BOB, 6, 19, true,)
+        );
+
         // Dave cannot access
         assert_err!(
             Streaming::withdraw(Origin::signed(DAVE), 0, 1),
             Error::<Test>::NotTheRecipient
         );
 
+        // passed 11 seconds
+        TimestampPallet::set_timestamp(17000);
+        assert_eq!(stream.delta_of(), Ok(11));
+        // Should be 15538461538460, but add 10(amount) dut to accuracy loss
+        assert_eq!(stream.sender_balance().unwrap(), 15538461538470);
+        // per_rate_secs * 11 = 85461538461530
+        assert_eq!(stream.recipient_balance().unwrap(), 85461538461530);
+
         // passed 12 seconds
         TimestampPallet::set_timestamp(18000);
-
-        let stream = Streams::<Test>::get(0).unwrap();
+        let mut stream = Streams::<Test>::get(stream_id_0).unwrap();
         // delta of should only increase until end_time
         assert_eq!(stream.delta_of(), Ok(12));
-        // Bob withdraws some
-        assert_ok!(Streaming::withdraw(Origin::signed(BOB), 0, dollar(100)));
-        // Bob is received with 100 DOT as stream end time has passed
+        // Should be 7769230769230, but add 10(amount) dut to accuracy loss
+        assert_eq!(stream.sender_balance().unwrap(), 7769230769240);
+        assert_eq!(stream.recipient_balance().unwrap(), 93230769230760);
+
+        // Bob withdraw all available balance (93230769230759 + 1 = 93230769230760)
+        assert_ok!(Streaming::withdraw(
+            Origin::signed(BOB),
+            stream_id_0,
+            93230769230759
+        ));
+        // withdraw a small value should be ok
+        assert_ok!(Streaming::withdraw(Origin::signed(BOB), stream_id_0, 1));
+
+        stream = Streams::<Test>::get(stream_id_0).unwrap();
+        assert_eq!(stream.sender_balance().unwrap(), 7769230769240);
+        assert_eq!(stream.recipient_balance().unwrap(), 0);
+
+        // passed 14 seconds
+        TimestampPallet::set_timestamp(20000);
+        stream = Streams::<Test>::get(stream_id_0).unwrap();
+        assert_eq!(stream.delta_of(), Ok(13));
+        assert_eq!(stream.sender_balance().unwrap(), 0);
+        // Reaches the end_time, returned amount should contains the accuracy loss(10)
+        // recipient_balance = 7769230769230 + 10
+        assert_eq!(stream.recipient_balance().unwrap(), 7769230769240);
+
+        // Bob withdraw remaining_balance
+        assert_ok!(Streaming::withdraw(
+            Origin::signed(BOB),
+            stream_id_0,
+            7769230769239
+        ));
+
+        assert_ok!(Streaming::withdraw(Origin::signed(BOB), stream_id_0, 1));
+
         // Stream is removed as balance goes zero
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &BOB) - before_bob,
-            dollar(100)
+            dollar(101)
         );
     });
 }
@@ -213,25 +265,32 @@ fn withdraw_with_slower_rate_works() {
 #[test]
 fn cancel_works_with_withdrawal() {
     new_test_ext().execute_with(|| {
-        // Alice creates stream 100 DOT to Bob
+        // Alice creates stream 101 dollars to Bob
         let stream_id_0 = NextStreamId::<Test>::get();
         assert_ok!(Streaming::create(
             Origin::signed(ALICE),
             BOB,
-            dollar(100),
+            dollar(101),
             DOT,
             6,
-            11,
+            19,
             true,
         ));
+        // rate_per_secs: 101 / (19-6) = 7769230769230
+        let stream = <Streams<Test>>::get(stream_id_0).unwrap();
+        assert_eq!(
+            stream,
+            Stream::new(dollar(101), DOT, 7769230769230, ALICE, BOB, 6, 19, true,)
+        );
+
         // Get before bob and alice balance
         let before_alice = <Test as Config>::Assets::balance(DOT, &ALICE);
         let before_bob = <Test as Config>::Assets::balance(DOT, &BOB);
 
-        // Time passes for 1 second
-        TimestampPallet::set_timestamp(7000);
+        // Time passes for 11 second
+        TimestampPallet::set_timestamp(17000);
         let mut stream = Streams::<Test>::get(stream_id_0).unwrap();
-        assert_eq!(stream.delta_of(), Ok(1));
+        assert_eq!(stream.delta_of(), Ok(11));
         // Bob withdraws some
         assert_ok!(Streaming::withdraw(
             Origin::signed(BOB),
@@ -239,19 +298,34 @@ fn cancel_works_with_withdrawal() {
             dollar(20)
         ));
         stream = Streams::<Test>::get(stream_id_0).unwrap();
-        assert_eq!(stream.balance_of(&BOB).unwrap(), dollar(0));
+
+        // Should be 15538461538460, but lost 10(amount) dut to accuracy loss
+        assert_eq!(stream.sender_balance().unwrap(), 15538461538470);
+        // per_rate_secs * 11 - dollar(20) = 65461538461530
+        assert_eq!(stream.recipient_balance().unwrap(), 65461538461530);
 
         // Time passes for 1 second
-        TimestampPallet::set_timestamp(8000);
+        TimestampPallet::set_timestamp(18000);
+
+        // seconds * per_rate_sec + Accuracy loss
+        // 1 * 7769230769230 + 10 = 7769230769240
+        assert_eq!(stream.sender_balance().unwrap(), 7769230769240);
+        assert_eq!(stream.recipient_balance().unwrap(), 73230769230760);
+
         assert_ok!(Streaming::cancel(Origin::signed(ALICE), stream_id_0));
-        // Alice and Bob is received with 60 DOT and 40 DOT respectively as deposit == remaining_balance
+        stream = Streams::<Test>::get(stream_id_0).unwrap();
+        assert_eq!(stream.remaining_balance, 7769230769240);
+        assert_eq!(stream.has_finished(), true);
+        assert_eq!(stream.recipient_balance().unwrap(), 0);
+
+        // Alice and Bob is received DOT respectively
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &ALICE) - before_alice,
-            dollar(60)
+            7769230769240
         );
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &BOB) - before_bob,
-            dollar(40)
+            73230769230760 + dollar(20)
         );
         // Bob cannot access to previous stream
         assert_err!(
