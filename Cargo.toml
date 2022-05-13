@@ -3,4 +3,4 @@ overflow-checks = true
 panic           = 'unwind'
 
 [workspace]
-members = ['node/*', 'pallets/*', 'runtime/*', 'integration-tests']
+members = ['node/*', 'pallets/*', 'runtime/*']
