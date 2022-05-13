@@ -244,6 +244,9 @@ pub mod pallet {
         /// Event emitted when the reserves are reduced
         /// [receiver, reduced_amount]
         ReservesReduced(T::AccountId, BalanceOf<T>),
+        /// Unstake cancelled
+        /// [account_id, amount, liquid_amount]
+        UnstakeCancelled(T::AccountId, BalanceOf<T>, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -285,6 +288,8 @@ pub mod pallet {
         InsufficientBond,
         /// The merkle proof is invalid
         InvalidProof,
+        /// No unlocking items
+        NoUnlockings,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -674,7 +679,7 @@ pub mod pallet {
 
             Unlockings::<T>::try_mutate_exists(&who, |b| -> DispatchResult {
                 let mut amount: BalanceOf<T> = Zero::zero();
-                let chunks = b.as_mut().ok_or(Error::<T>::NothingToClaim)?;
+                let chunks = b.as_mut().ok_or(Error::<T>::NoUnlockings)?;
                 chunks.retain(|chunk| {
                     if chunk.era > current_era {
                         true
@@ -888,6 +893,56 @@ pub mod pallet {
             Self::deposit_event(Event::<T>::ReservesReduced(receiver, reduce_amount));
 
             Ok(().into())
+        }
+
+        /// Cancel unstake
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn cancel_unstake(
+            origin: OriginFor<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+
+            Unlockings::<T>::try_mutate(&who, |b| -> DispatchResultWithPostInfo {
+                let chunks = b.as_mut().ok_or(Error::<T>::NoUnlockings)?;
+                let mut cancelled: Balance = Zero::zero();
+
+                while let Some(last) = chunks.last_mut() {
+                    if last.era != Self::current_era() + T::BondingDuration::get() + 1
+                        || cancelled >= amount
+                    {
+                        break;
+                    }
+
+                    if cancelled + last.value <= amount {
+                        cancelled += last.value;
+                        chunks.pop();
+                    } else {
+                        let diff = amount - cancelled;
+
+                        cancelled += diff;
+                        last.value -= diff;
+                    }
+                }
+
+                MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                    p.sub_unstake_amount(cancelled)
+                })?;
+
+                let liquid_amount =
+                    Self::staking_to_liquid(cancelled).ok_or(Error::<T>::InvalidExchangeRate)?;
+
+                T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
+
+                Self::deposit_event(Event::<T>::UnstakeCancelled(
+                    who.clone(),
+                    cancelled,
+                    liquid_amount,
+                ));
+
+                Ok(().into())
+            })
         }
     }
 
