@@ -279,6 +279,7 @@ pub mod pallet {
 
             let mut stream = Streams::<T>::get(stream_id).ok_or(Error::<T>::InvalidStreamId)?;
             ensure!(stream.is_sender(&sender), Error::<T>::NotTheSender);
+            ensure!(!stream.has_finished(), Error::<T>::HasFinished);
             ensure!(stream.cancellable, Error::<T>::CannotBeCancelled);
 
             // calculate the balance to return
