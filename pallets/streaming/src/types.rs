@@ -112,11 +112,21 @@ impl<T: Config> Stream<T> {
         Ok(!delta.is_zero())
     }
 
+    pub fn has_withdrawn(&self) -> bool {
+        self.deposit > self.remaining_balance
+    }
+
     fn claimed_balance(&self) -> Result<BalanceOf<T>, DispatchError> {
         Ok(self
             .deposit
             .checked_sub(self.remaining_balance)
             .ok_or(ArithmeticError::Underflow)?)
+    }
+
+    fn duration(&self) -> Result<u64, DispatchError> {
+        self.end_time
+            .checked_sub(self.start_time)
+            .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow))
     }
 
     pub fn try_deduct(&mut self, amount: BalanceOf<T>) -> Result<BalanceOf<T>, DispatchError> {
@@ -175,13 +185,17 @@ impl<T: Config> Stream<T> {
          * We have to subtract the total amount withdrawn from the amount of money that has been
          * streamed until now.
          */
-        let recipient_balance = if self.deposit > self.remaining_balance {
-            let claimed_amount = self.claimed_balance()?;
-            let recipient_balance = delta
+        let recipient_balance = if delta == self.duration()?.into() {
+            // When stream reaches the end_time, it should return remaining_balance
+            // otherwise some amount will be lost
+            self.remaining_balance
+        } else if self.has_withdrawn() {
+            let available_balance = delta
                 .checked_mul(self.rate_per_sec)
                 .ok_or(ArithmeticError::Overflow)?;
-            recipient_balance
-                .checked_sub(claimed_amount)
+
+            available_balance
+                .checked_sub(self.claimed_balance()?)
                 .ok_or(ArithmeticError::Underflow)?
         } else {
             delta
@@ -190,14 +204,14 @@ impl<T: Config> Stream<T> {
         };
 
         match *who {
-            ref _recipient if *who == self.recipient => {
-                if delta == (self.end_time - self.start_time).into() {
+            ref _recipient if self.is_recipient(who) => {
+                if delta == self.duration()?.into() {
                     Ok(self.remaining_balance)
                 } else {
                     Ok(recipient_balance)
                 }
             }
-            ref _sender if *who == self.sender => {
+            ref _sender if self.is_sender(who) => {
                 let sender_balance = self
                     .remaining_balance
                     .checked_sub(recipient_balance)

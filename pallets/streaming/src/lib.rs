@@ -144,7 +144,7 @@ pub mod pallet {
         /// \[stream_id, recipient, asset_id, amount\]
         StreamWithdrawn(StreamId, AccountOf<T>, AssetIdOf<T>, BalanceOf<T>),
         /// Cancel an existing stream.
-        /// \[stream_id, sender, recipient, sender_balance, recipient_balance]
+        /// \[stream_id, sender, recipient, asset_id, sender_balance, recipient_balance]
         StreamCancelled(
             StreamId,
             AccountOf<T>,
