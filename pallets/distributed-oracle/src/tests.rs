@@ -228,6 +228,9 @@ fn test_slashing_for_no_response() {
     new_test_ext().execute_with(|| {
         // Checks the functionality Set Price for Rounds
         // we want to setup a couple of repeater
+
+        assert_ok!(Doracle::populate_treasury(Origin::signed(ALICE)));
+
         assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_00));
 

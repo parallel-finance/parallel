@@ -125,6 +125,12 @@ pub mod pallet {
         // Unix time gap between round
         #[pallet::constant]
         type RoundDuration: Get<u64>;
+
+        #[pallet::constant]
+        type RewardAmount: Get<u128>;
+
+        #[pallet::constant]
+        type SlashAmount: Get<u128>;
     }
 
     #[pallet::error]
@@ -234,8 +240,8 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        // ****************************************************************************************
         /// Populates the Oracle's Treasury from Pallet's Treasury Constant
+        /// Should execute once
         #[pallet::weight(T::WeightInfo::stake())]
         #[transactional]
         pub fn populate_treasury(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -244,84 +250,6 @@ pub mod pallet {
             OracleTreasury::<T>::put(T::Treasury::get());
 
             Ok(().into())
-        }
-        // ****************************************************************************************
-
-        #[pallet::weight(T::WeightInfo::stake())]
-        #[transactional]
-        pub fn slash_staking_pool(
-            origin: OriginFor<T>,
-            asset: AssetIdOf<T>,
-        ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-
-            let now = T::UnixTime::now().as_secs();
-
-            // Cannot slash a non repeater
-            ensure!(
-                Repeaters::<T>::contains_key(who.clone()),
-                Error::<T>::InvalidStaker
-            );
-
-            StakingPool::<T>::mutate(
-                who.clone(),
-                asset,
-                |oracle_stake_deposit| -> DispatchResultWithPostInfo {
-                    let oracle_stake_deposit = oracle_stake_deposit
-                        .as_mut()
-                        .ok_or(Error::<T>::StakingAccountNotFound)?;
-
-                    // Calculates time delta
-                    let time_delta = now
-                        .checked_sub(oracle_stake_deposit.timestamp)
-                        .ok_or(Error::<T>::StakingAccountNotFound)?;
-
-                    // Slash if the time diff is more than half an hour
-                    // slash_amount = (OracleDeposit.total / minimum_staking_amount) * missed_unix_time_stamp) / 100
-                    // If slash_amount >= OracleDeposit.total
-                    //    Then -> OracleDeposit.total - slash_amount
-                    // Else
-                    //    OracleDeposit.total -> 0
-                    //    Remove Repeater
-                    if time_delta > T::MinSlashedTime::get() {
-                        let slash_amount = oracle_stake_deposit
-                            .total
-                            .checked_div(T::MinStake::get())
-                            .and_then(|r| r.checked_mul(time_delta as u128))
-                            .and_then(|r| r.checked_sub(100u128))
-                            .ok_or(ArithmeticError::Underflow)?;
-
-                        if slash_amount >= oracle_stake_deposit.total {
-                            oracle_stake_deposit.total = oracle_stake_deposit
-                                .total
-                                .checked_sub(slash_amount)
-                                .ok_or(ArithmeticError::Underflow)?;
-
-                            Self::deposit_event(Event::<T>::Slashed(who.clone()));
-
-                            log::trace!(
-                                target: "distributed-oracle::slash",
-                                "Slashed Account {:?} slashed_amount {:?}",
-                                &who.clone(),
-                                &slash_amount,
-                            );
-                        } else {
-                            oracle_stake_deposit.total = Zero::zero();
-                            Repeaters::<T>::remove(who.clone());
-                            Self::deposit_event(Event::<T>::SlashedandsRemoved(who.clone()));
-
-                            log::trace!(
-                                target: "distributed-oracle::slash",
-                                "Account {:?} got slashed and removed due to unavailability of \
-                                funds slashed_amount {:?}",
-                                &who.clone(),
-                                &slash_amount,
-                            );
-                        }
-                    }
-                    Ok(().into())
-                },
-            )
         }
 
         /// Register Repeaters
@@ -390,8 +318,6 @@ pub mod pallet {
                 .checked_add(1u128)
                 .ok_or(ArithmeticError::Underflow)?;
 
-            // Rewards
-            // repeater.balance / staker_time_stamp * 100
             Repeaters::<T>::mutate(who.clone(), |repeater| -> DispatchResultWithPostInfo {
                 let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidStaker)?;
 
@@ -559,8 +485,16 @@ pub mod pallet {
                     // amount collected as rewards
                     repeater.reward = repeater
                         .reward
-                        .checked_add(1u128)
+                        .checked_add(T::RewardAmount::get())
                         .ok_or(ArithmeticError::Underflow)?;
+
+                    // Decrement Treasury Balance
+                    let new_treasury_balance = OracleTreasury::<T>::get()
+                        .unwrap_or_default()
+                        .checked_sub(T::SlashAmount::get())
+                        .ok_or(ArithmeticError::Underflow)?;
+
+                    OracleTreasury::<T>::put(new_treasury_balance);
 
                     Ok(().into())
                 })?;
@@ -622,6 +556,14 @@ pub mod pallet {
                                     .checked_add(1u128)
                                     .ok_or(ArithmeticError::Underflow)?;
 
+                                // Decrement Treasury to give rewards
+                                let new_treasury_balance = OracleTreasury::<T>::get()
+                                    .unwrap_or_default()
+                                    .checked_sub(1u128)
+                                    .ok_or(ArithmeticError::Underflow)?;
+
+                                OracleTreasury::<T>::put(new_treasury_balance);
+
                                 Ok(())
                             })?;
                             // ********************************************************************************
@@ -650,13 +592,16 @@ pub mod pallet {
                                     .checked_sub(1u128)
                                     .ok_or(ArithmeticError::Underflow)?;
 
+                                // Increment Treasury to give rewards
+                                let new_treasury_balance = OracleTreasury::<T>::get()
+                                    .unwrap_or_default()
+                                    .checked_add(1u128)
+                                    .ok_or(ArithmeticError::Underflow)?;
+
+                                OracleTreasury::<T>::put(new_treasury_balance);
+
                                 Ok(())
                             })?;
-                            // ********************************************************************************
-
-                            // Add rewards for repeaters from the treasury
-
-                            // If the repeater does not have enough balance remove the Repeater
                         }
 
                         Ok(())
