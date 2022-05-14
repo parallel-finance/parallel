@@ -1,4 +1,4 @@
-name: CI
+name: Benchmark
 
 # Controls when the action will run.
 on:
@@ -13,7 +13,7 @@ on:
 jobs:
   check:
     if: github.repository == 'parallel-finance/parallel'
-    name: Auto Build CI
+    name: Auto Benchmark
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -46,12 +46,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: true
-
-      - name: Install Node@14
-        uses: actions/setup-node@v2
-        with:
-          node-version: 16
-          registry-url: https://registry.npmjs.org
 
       - name: Install Rust toolchain ${{ matrix.rust }}
         uses: actions-rs/toolchain@v1
@@ -94,20 +88,6 @@ jobs:
           path: target
           key: ${{ matrix.os }}-${{ matrix.rust }}-cargo-build-target-${{ hashFiles('**/Cargo.toml') }}-${{ secrets.CACHE_VERSION }}
 
-      - name: Check Build
+      - name: Check Benchmarks With Real Runtimes
         run: |
-          make check
-          make check-wasm
-          make check-helper
-
-      - name: Check Clippy Warnings
-        run: |
-          make lint
-
-      - name: Check Test
-        run: |
-          make test
-
-      - name: Check Integration Test
-        run: |
-          make integration-test
+          make bench
