@@ -18,13 +18,13 @@ jobs:
       - name: cleaning up
         run: |
           echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Srtool build
         id: srtool_build
         uses: chevdor/srtool-actions@v0.3.0
         with:
           chain: ${{ matrix.chain }}
-          tag: 1.57.0
+          tag: 1.60.0
           runtime_dir: runtime/${{ matrix.chain }}
       - name: Summary
         run: |
