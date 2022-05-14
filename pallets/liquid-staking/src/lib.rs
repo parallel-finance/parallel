@@ -896,7 +896,7 @@ pub mod pallet {
         }
 
         /// Cancel unstake
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::cancel_unstake())]
         #[transactional]
         pub fn cancel_unstake(
             origin: OriginFor<T>,
