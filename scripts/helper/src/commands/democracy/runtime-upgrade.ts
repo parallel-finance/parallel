@@ -38,11 +38,17 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         httpsAgent: new https.Agent({ keepAlive: true })
       })
       const code = new Uint8Array(res.data)
-      if (blake2AsHex(code) !== blake256Hash.toString()) {
+      const codeHash = blake2AsHex(code, 256)
+      if (codeHash !== blake256Hash.toString()) {
         return logger.error("Runtime code doesn't match blake256Hash")
       }
 
-      const encoded = api.tx.parachainSystem.authorizeUpgrade(code).method.toHex()
+      const encoded = api.tx.utility
+        .batchAll([
+          api.tx.parachainSystem.authorizeUpgrade(codeHash),
+          api.tx.parachainSystem.enactAuthorizedUpgrade(code)
+        ])
+        .method.toHex()
       const encodedHash = blake2AsHex(encoded)
 
       const external = api.tx.democracy.externalProposeMajority(encodedHash)
