@@ -43,12 +43,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         return logger.error("Runtime code doesn't match blake256Hash")
       }
 
-      const encoded = api.tx.utility
-        .batchAll([
-          api.tx.parachainSystem.authorizeUpgrade(codeHash),
-          api.tx.parachainSystem.enactAuthorizedUpgrade(code)
-        ])
-        .method.toHex()
+      const encoded = api.tx.parachainSystem.authorizeUpgrade(codeHash).method.toHex()
       const encodedHash = blake2AsHex(encoded)
 
       const external = api.tx.democracy.externalProposeMajority(encodedHash)

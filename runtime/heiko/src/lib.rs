@@ -222,7 +222,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
             Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
             // Governance
-            Call::Sudo(_) |
+            // Call::Sudo(_) |
             Call::Democracy(_) |
             Call::GeneralCouncil(_) |
             Call::TechnicalCommittee(_) |
@@ -849,10 +849,10 @@ impl pallet_transaction_payment::Config for Runtime {
     type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 }
 
-impl pallet_sudo::Config for Runtime {
-    type Event = Event;
-    type Call = Call;
-}
+// impl pallet_sudo::Config for Runtime {
+//     type Event = Event;
+//     type Call = Call;
+// }
 
 #[derive(
     Copy,
@@ -1951,7 +1951,7 @@ construct_runtime!(
         Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 8,
 
         // Governance
-        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
+        // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>} = 11,
         GeneralCouncil: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 12,
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 13,
