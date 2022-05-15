@@ -873,6 +873,7 @@ pub enum ProxyType {
     Staking,
     Crowdloans,
     Farming,
+    Streaming,
 }
 impl Default for ProxyType {
     fn default() -> Self {
@@ -895,6 +896,8 @@ impl InstanceFilter<Call> for ProxyType {
                         | Call::Loans(pallet_loans::Call::repay_borrow_all { .. })
                         | Call::Loans(pallet_loans::Call::collateral_asset { .. })
                         | Call::Loans(pallet_loans::Call::liquidate_borrow { .. })
+                        | Call::Loans(pallet_loans::Call::claim_reward { .. })
+                        | Call::Loans(pallet_loans::Call::claim_reward_for_market { .. })
                 )
             }
             ProxyType::Staking => {
@@ -922,6 +925,14 @@ impl InstanceFilter<Call> for ProxyType {
                         | Call::Farming(pallet_farming::Call::claim { .. })
                         | Call::Farming(pallet_farming::Call::withdraw { .. })
                         | Call::Farming(pallet_farming::Call::redeem { .. })
+                )
+            }
+            ProxyType::Streaming => {
+                matches!(
+                    c,
+                    Call::Streaming(pallet_streaming::Call::create { .. })
+                        | Call::Streaming(pallet_streaming::Call::cancel { .. })
+                        | Call::Streaming(pallet_streaming::Call::withdraw { .. })
                 )
             }
         }
