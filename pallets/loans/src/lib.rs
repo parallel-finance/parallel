@@ -135,6 +135,8 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
+        /// Collateral is reserved and cannot be liquidated
+        CollateralReserved,
         /// Insufficient liquidity to borrow more or disable collateral
         InsufficientLiquidity,
         /// Insufficient deposit to redeem
@@ -1044,6 +1046,10 @@ pub mod pallet {
             collateral_asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+            ensure!(
+                !Self::liquidation_free_collaterals().contains(&collateral_asset_id),
+                Error::<T>::CollateralReserved
+            );
             Self::accrue_interest(liquidation_asset_id)?;
             Self::accrue_interest(collateral_asset_id)?;
             Self::do_liquidate_borrow(
@@ -1173,21 +1179,22 @@ impl<T: Config> Pallet<T> {
         T::PalletId::get().into_account()
     }
 
-    pub fn get_account_lf_liquidity(account: &T::AccountId) -> Result<Liquidity, DispatchError> {
+    fn get_dot_base_position(account: &T::AccountId) -> Result<FixedU128, DispatchError> {
+        let mut total_asset_value: FixedU128 = FixedU128::zero();
+        for (asset_id, _market) in Self::active_markets()
+            .filter(|(asset_id, _)| Self::liquidation_free_collaterals().contains(asset_id))
+        {
+            total_asset_value = total_asset_value
+                .checked_add(&Self::collateral_asset_value(account, asset_id)?)
+                .ok_or(ArithmeticError::Overflow)?;
+        }
+        Ok(total_asset_value)
+    }
+
+    fn get_account_lf_liquidity(account: &T::AccountId) -> Result<Liquidity, DispatchError> {
         let dot_borrowed_amount = Self::current_borrow_balance(account, DOT)?;
         let dot_borrowed_value = Self::get_asset_value(DOT, dot_borrowed_amount)?;
-
-        let dot_base_position = {
-            let mut total_asset_value: FixedU128 = FixedU128::zero();
-            for (asset_id, _market) in Self::active_markets()
-                .filter(|(asset_id, _)| Self::liquidation_free_collaterals().contains(asset_id))
-            {
-                total_asset_value = total_asset_value
-                    .checked_add(&Self::collateral_asset_value(account, asset_id)?)
-                    .ok_or(ArithmeticError::Overflow)?;
-            }
-            total_asset_value
-        };
+        let dot_base_position = Self::get_dot_base_position(account)?;
 
         let liquidity = if dot_base_position > dot_borrowed_value {
             dot_base_position - dot_borrowed_value
