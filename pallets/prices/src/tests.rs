@@ -17,7 +17,11 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
-use sp_runtime::{traits::BadOrigin, FixedPointNumber};
+use primitives::TimeStampedPrice;
+use sp_runtime::{
+    traits::{BadOrigin, Saturating},
+    FixedPointNumber,
+};
 
 #[test]
 fn get_price_from_oracle() {
@@ -208,15 +212,17 @@ fn get_lp_ctoken_price_work() {
         )
         .unwrap();
 
+        //2*cdot_price
         assert_eq!(
             Prices::get_price(&LP_DOT_CDOT_7_14),
-            Some((Price::from_inner(23094010767_585030803573000000), 0)) //23094010767
+            Prices::get_price(&CDOT_7_14)
+                .map(|price_detail| (price_detail.0.saturating_mul(2_u128.into()), price_detail.1))
         );
     });
 }
 
 #[test]
-fn get_lp_ctoken_price_with_another_exchange_rate_work() {
+fn get_lp_ctoken_price_with_different_exchange_rate_will_not_change() {
     new_test_ext().execute_with(|| {
         DefaultAMM::create_pool(
             Origin::signed(ALICE),
@@ -227,9 +233,11 @@ fn get_lp_ctoken_price_with_another_exchange_rate_work() {
         )
         .unwrap();
 
+        //still 2*cdot_price
         assert_eq!(
             Prices::get_price(&LP_DOT_CDOT_7_14),
-            Some((Price::from_inner(18856180831_641268887810000000), 0)) //18856180831
+            Prices::get_price(&CDOT_7_14)
+                .map(|price_detail| (price_detail.0.saturating_mul(2_u128.into()), price_detail.1))
         );
     });
 }
@@ -254,11 +262,12 @@ fn get_lp_ctoken_no_op_price_work() {
         )
         .unwrap();
 
+        //2*cdot_price*(10^2) since decimal of lp_cdot is 12
         assert_eq!(
             Prices::get_no_op(&LP_DOT_CDOT_7_14),
-            Some(primitives::TimeStampedPrice {
-                value: Price::from_inner(23094_010767585030803573), //230.94*(2^(12-10) since lp decimal is 12
-                timestamp: 0
+            Prices::get_no_op(&CDOT_7_14).map(|price| TimeStampedPrice {
+                value: price.value.saturating_mul((2 * 100).into()),
+                timestamp: price.timestamp,
             })
         );
     });

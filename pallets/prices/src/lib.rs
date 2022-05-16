@@ -22,7 +22,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{log, pallet_prelude::*, transactional, weights::DispatchClass};
+use frame_support::{
+    log, pallet_prelude::*, traits::fungibles::Inspect, transactional, weights::DispatchClass,
+};
 use frame_system::pallet_prelude::*;
 use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
 use primitives::*;
@@ -32,9 +34,9 @@ use sp_runtime::{
 };
 use sp_std::vec::Vec;
 
+use num_traits::cast::ToPrimitive;
 pub use pallet::*;
 pub use pallet_traits::*;
-use sp_runtime::traits::Saturating;
 
 #[cfg(test)]
 mod mock;
@@ -255,12 +257,20 @@ impl<T: Config> Pallet<T> {
             {
                 let base_asset_mantissa = Self::get_asset_mantissa(&base_asset)?;
                 let diff_mantissa = mantissa.checked_div(base_asset_mantissa)?;
-                let base_quote_rate =
-                    ((pool.base_amount.checked_div(pool.quote_amount)?) as f64).sqrt() * 2_f64;
-                let lp_asset_mature_rate = Rate::from_float(base_quote_rate)
-                    .saturating_mul(Rate::saturating_from_integer(diff_mantissa));
+                let lp_asset_total_supply = T::Assets::total_issuance(asset_id.clone());
+                let lp_asset_liquidity = pool
+                    .base_amount
+                    .get_big_uint()
+                    .checked_mul(&pool.quote_amount.get_big_uint())
+                    .map(|r| r.sqrt())?
+                    .to_u128()?;
+                let lp_asset_rate =
+                    Price::saturating_from_rational(lp_asset_liquidity * 2, lp_asset_total_supply);
                 let vault_asset_price = Self::get_vault_asset_price(&base_asset, base_price)?;
-                let lp_asset_price = vault_asset_price.value.checked_mul(&lp_asset_mature_rate)?;
+                let lp_asset_price = vault_asset_price
+                    .value
+                    .checked_mul(&lp_asset_rate)?
+                    .checked_mul(&diff_mantissa.into())?;
                 return Some(TimeStampedPrice {
                     value: lp_asset_price,
                     timestamp: vault_asset_price.timestamp,
