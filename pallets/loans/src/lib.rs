@@ -1177,7 +1177,7 @@ impl<T: Config> Pallet<T> {
         let dot_borrowed_amount = Self::current_borrow_balance(account, DOT)?;
         let dot_borrowed_value = Self::get_asset_value(DOT, dot_borrowed_amount)?;
 
-        let lf_collateral_value = {
+        let dot_base_position = {
             let mut total_asset_value: FixedU128 = FixedU128::zero();
             for (asset_id, _market) in Self::active_markets()
                 .filter(|(asset_id, _)| Self::liquidation_free_collaterals().contains(asset_id))
@@ -1189,8 +1189,8 @@ impl<T: Config> Pallet<T> {
             total_asset_value
         };
 
-        let liquidity = if lf_collateral_value > dot_borrowed_value {
-            lf_collateral_value - dot_borrowed_value
+        let liquidity = if dot_base_position > dot_borrowed_value {
+            dot_base_position - dot_borrowed_value
         } else {
             FixedU128::zero()
         };
@@ -1368,7 +1368,11 @@ impl<T: Config> Pallet<T> {
             redeem_effects_value.into_inner(),
         );
 
-        Self::ensure_liquidity(redeemer, redeem_effects_value, false)?;
+        Self::ensure_liquidity(
+            redeemer,
+            redeem_effects_value,
+            Self::liquidation_free_collaterals().contains(&asset_id),
+        )?;
 
         Ok(())
     }
@@ -1817,16 +1821,17 @@ impl<T: Config> Pallet<T> {
     // Returns `Err` If InsufficientLiquidity
     // `account`: account that need a liquidity check
     // `reduce_amount`: values that will have an impact on liquidity
-    // `is_dot`: if borrowing dot
+    // `dot_lf`: check in liquidation free mode which means borrowing dot or redeeming assets in
+    // `LiquidationFreeCollaterals`.
     fn ensure_liquidity(
         account: &T::AccountId,
         reduce_amount: FixedU128,
-        is_dot: bool,
+        dot_lf: bool,
     ) -> DispatchResult {
         let (total_liquidity, _) = Self::get_account_liquidity(account)?;
         let lf_liquidity = Self::get_account_lf_liquidity(account)?;
 
-        if is_dot && max(total_liquidity, lf_liquidity) > reduce_amount {
+        if dot_lf && max(total_liquidity, lf_liquidity) > reduce_amount {
             return Ok(());
         }
 
