@@ -14,6 +14,7 @@
 
 use super::*;
 use mock::*;
+use std::collections::BTreeMap;
 
 use frame_support::{assert_noop, assert_ok};
 
@@ -190,13 +191,8 @@ fn test_unstake_as_non_repeater() {
 }
 
 #[test]
-fn test_rewards() {
+fn test_first_round() {
     new_test_ext().execute_with(|| {
-        /*
-        Stake, Register repeaters
-
-        */
-
         assert_ok!(Doracle::populate_treasury(Origin::signed(ALICE)));
 
         assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
@@ -208,7 +204,36 @@ fn test_rewards() {
         assert_ok!(Doracle::register_repeater(Origin::signed(CHARLIE), HKO));
         assert_ok!(Doracle::stake(Origin::signed(CHARLIE), HKO, 100_000));
 
-        assert_eq!(1, 2)
+        let round_id = 1u128;
+
+        assert_ok!(Doracle::set_price_for_round(
+            Origin::signed(ALICE),          // origin
+            HKO,                            // asset_id
+            Price::from_inner(100_000 * 1), // price
+            round_id                        // round_id
+        ));
+
+        // assert_ok!(Doracle::set_price_for_round(
+        //     Origin::signed(BOB),
+        //     HKO,
+        //     Price::from_inner(100_000 * 1),
+        //     round_id
+        // ));
+        //
+        // assert_ok!(Doracle::set_price_for_round(
+        //     Origin::signed(CHARLIE),
+        //     HKO,
+        //     Price::from_inner(100_000 * 1),
+        //     round_id
+        // ));
+
+        let expected_participated = BTreeMap::new().insert(ALICE, 6);
+
+        let manager = Doracle::get_round_manager().unwrap();
+        // let p = manager.participated;
+        assert_eq!(manager.participated, BTreeMap::new());
+        assert_eq!(manager.people_to_slash, BTreeMap::new());
+        assert_eq!(manager.people_to_reward, BTreeMap::new());
     });
 }
 

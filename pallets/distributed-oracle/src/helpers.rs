@@ -40,7 +40,8 @@ impl<T: Config> Default for RoundManager<T> {
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct RoundHolder<T: Config> {
-    pub avg_price: Price,
+    pub agg_price: Price,
+    pub mean_price: Price,
     pub round_started_time: Timestamp,
     pub submitters: BTreeMap<AccountOf<T>, (Price, Timestamp)>,
 }
@@ -48,7 +49,8 @@ pub struct RoundHolder<T: Config> {
 impl<T: Config> Default for RoundHolder<T> {
     fn default() -> Self {
         Self {
-            avg_price: Price::default(),
+            agg_price: Price::default(),
+            mean_price: Price::default(),
             round_started_time: Timestamp::default(),
             submitters: BTreeMap::new(),
         }

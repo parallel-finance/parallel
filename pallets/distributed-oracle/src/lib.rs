@@ -123,7 +123,7 @@ pub mod pallet {
         #[pallet::constant]
         type Treasury: Get<BalanceOf<Self>>;
 
-        // Unix time gap between round
+        // Unix time gap between round this has to be twice the value of a round
         #[pallet::constant]
         type RoundDuration: Get<u64>;
 
@@ -248,6 +248,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Reset price per round for a give asset
         #[pallet::weight(T::WeightInfo::stake())]
         pub fn reset_prices(
             origin: OriginFor<T>,
@@ -259,7 +260,8 @@ pub mod pallet {
             CurrentRound::<T>::mutate(asset_id, round, |rec| -> DispatchResultWithPostInfo {
                 let mut rec = rec.as_mut().ok_or(Error::<T>::CurrentRoundNotFound)?;
 
-                rec.avg_price = FixedU128::from_inner(0u128);
+                rec.mean_price = FixedU128::from_inner(0u128);
+                rec.agg_price = FixedU128::from_inner(0u128);
                 rec.submitters = BTreeMap::new();
 
                 Self::deposit_event(Event::<T>::ResetPrice(asset_id, round));
@@ -298,7 +300,6 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(who)?;
-            let current_time_stamp = T::UnixTime::now().as_secs();
 
             if !Repeaters::<T>::contains_key(who.clone(), asset.clone()) {
                 Repeaters::<T>::insert(
@@ -346,7 +347,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Unstake amounts
+        /// Unstake
         #[pallet::weight(T::WeightInfo::unstake())]
         pub fn unstake(
             origin: OriginFor<T>,
@@ -365,7 +366,6 @@ pub mod pallet {
                 Error::<T>::InvalidStakingCurrency
             );
 
-            // TODO: Not Required? Only support full unstake?
             ensure!(
                 amount > T::MinUnstake::get(),
                 Error::<T>::InsufficientUnStakeAmount
@@ -423,7 +423,7 @@ pub mod pallet {
                     .unwrap_or_default()
                     .staked_balance
                     > T::MinUnstake::get(),
-                Error::<T>::StakedAmountIsLessThanMinStakeAmount
+                Error::<T>::InvalidRepeater
             );
 
             let mut recent_round = Self::get_current_round(asset_id, round).unwrap_or_default();
@@ -440,7 +440,7 @@ pub mod pallet {
                 .insert(who.clone(), current_time_stamp);
 
             // New round , no one has submitted any thing
-            if recent_round.avg_price == Zero::zero() {
+            if recent_round.agg_price == Zero::zero() {
                 round_manager
                     .people_to_reward
                     .insert(who.clone(), current_time_stamp);
@@ -453,23 +453,21 @@ pub mod pallet {
                     asset_id,
                     round,
                     RoundHolder {
-                        avg_price: price,
+                        agg_price: price,
+                        mean_price: price,
                         round_started_time: current_time_stamp,
                         submitters: recent_round.submitters,
                     },
                 );
-
-                // TODO: we are not rewarding from the first round
-                // Self::do_reward(who.clone(), T::RewardAmount::get()).unwrap();
             } else {
                 // Threshold price is +/- 50 of the current price
                 let price_lower_limit = recent_round
-                    .avg_price
+                    .mean_price
                     .checked_div(&FixedU128::from_inner(2u128))
                     .ok_or(ArithmeticError::Underflow)?;
 
                 let price_upper_limit = recent_round
-                    .avg_price
+                    .mean_price
                     .checked_div(&FixedU128::from_inner(2u128))
                     .and_then(|r| r.checked_mul(&FixedU128::from_inner(3u128)))
                     .ok_or(ArithmeticError::Underflow)?;
@@ -479,20 +477,21 @@ pub mod pallet {
                         .submitters
                         .insert(who.clone(), (price, current_time_stamp));
 
-                    let avg_price = recent_round
-                        .avg_price
+                    let agg_price = recent_round
+                        .agg_price
                         .checked_add(&price)
-                        .and_then(|r| {
-                            r.checked_div(&FixedU128::from_inner(
-                                recent_round.submitters.len() as u128
-                            ))
-                        })
+                        .ok_or(ArithmeticError::Underflow)?;
+
+                    let mean_price = agg_price
+                        .clone()
+                        .checked_div(&FixedU128::from_inner(recent_round.submitters.len() as u128))
                         .ok_or(ArithmeticError::Underflow)?;
 
                     CurrentRound::<T>::mutate(asset_id, round, |rec| -> DispatchResult {
                         let mut rec = rec.as_mut().ok_or(Error::<T>::CurrentRoundNotFound)?;
 
-                        rec.avg_price = avg_price;
+                        rec.agg_price = agg_price;
+                        rec.mean_price = mean_price;
                         rec.submitters = recent_round.submitters;
 
                         // Check if it submitted value in the previous round
@@ -502,8 +501,7 @@ pub mod pallet {
 
                         if prev_round.submitters.contains_key(&who) {
                             let prev = prev_round.submitters.get(&who).unwrap();
-                            within_duration =
-                                current_time_stamp - prev.1 <= T::RoundDuration::get();
+                            within_duration = current_time_stamp - prev.1 < T::RoundDuration::get();
                         }
 
                         if within_duration {
