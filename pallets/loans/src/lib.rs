@@ -22,6 +22,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use core::cmp::max;
+
 pub use crate::rate_model::*;
 
 use frame_support::{
@@ -48,7 +50,7 @@ use sp_runtime::{
     },
     ArithmeticError, FixedPointNumber, FixedU128,
 };
-use sp_std::result::Result;
+use sp_std::{result::Result, vec::Vec};
 
 use sp_io::hashing::blake2_256;
 pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState, RewardMarketState};
@@ -1178,10 +1180,10 @@ impl<T: Config> Pallet<T> {
         let lf_collateral_value = {
             let mut total_asset_value: FixedU128 = FixedU128::zero();
             for (asset_id, _market) in Self::active_markets()
-                .filter(|(asset_id, _)| LiquidationFreeCollaterals::<T>::contains_key(asset_id))
+                .filter(|(asset_id, _)| Self::liquidation_free_collaterals().contains(asset_id))
             {
                 total_asset_value = total_asset_value
-                    .checked_add(&Self::collateral_asset_value(borrower, asset_id)?)
+                    .checked_add(&Self::collateral_asset_value(account, asset_id)?)
                     .ok_or(ArithmeticError::Overflow)?;
             }
             total_asset_value
@@ -1366,7 +1368,7 @@ impl<T: Config> Pallet<T> {
             redeem_effects_value.into_inner(),
         );
 
-        Self::ensure_liquidity(redeemer, redeem_effects_value)?;
+        Self::ensure_liquidity(redeemer, redeem_effects_value, false)?;
 
         Ok(())
     }
@@ -1420,7 +1422,7 @@ impl<T: Config> Pallet<T> {
         Self::ensure_under_borrow_cap(asset_id, borrow_amount)?;
         Self::ensure_enough_cash(asset_id, borrow_amount)?;
         let borrow_value = Self::get_asset_value(asset_id, borrow_amount)?;
-        Self::ensure_liquidity(borrower, borrow_value)?;
+        Self::ensure_liquidity(borrower, borrow_value, asset_id == DOT)?;
 
         Ok(())
     }
@@ -1815,13 +1817,24 @@ impl<T: Config> Pallet<T> {
     // Returns `Err` If InsufficientLiquidity
     // `account`: account that need a liquidity check
     // `reduce_amount`: values that will have an impact on liquidity
-    fn ensure_liquidity(account: &T::AccountId, reduce_amount: FixedU128) -> DispatchResult {
-        let (liquidity, _) = Self::get_account_liquidity(account)?;
-        if liquidity < reduce_amount {
-            Err(Error::<T>::InsufficientLiquidity.into())
-        } else {
-            Ok(())
+    // `is_dot`: if borrowing dot
+    fn ensure_liquidity(
+        account: &T::AccountId,
+        reduce_amount: FixedU128,
+        is_dot: bool,
+    ) -> DispatchResult {
+        let (total_liquidity, _) = Self::get_account_liquidity(account)?;
+        let lf_liquidity = Self::get_account_lf_liquidity(account)?;
+
+        if is_dot && max(total_liquidity, lf_liquidity) > reduce_amount {
+            return Ok(());
         }
+
+        if total_liquidity < lf_liquidity + reduce_amount {
+            return Err(Error::<T>::InsufficientLiquidity.into());
+        }
+
+        Ok(())
     }
 
     pub fn calc_underlying_amount(
