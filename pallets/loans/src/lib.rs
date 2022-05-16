@@ -38,7 +38,9 @@ use frame_system::pallet_prelude::*;
 use num_traits::cast::ToPrimitive;
 pub use pallet::*;
 use pallet_traits::{ConvertToBigUint, PriceFeeder};
-use primitives::{Balance, CurrencyId, Liquidity, Price, Rate, Ratio, Shortfall, Timestamp};
+use primitives::{
+    tokens::DOT, Balance, CurrencyId, Liquidity, Price, Rate, Ratio, Shortfall, Timestamp,
+};
 use sp_runtime::{
     traits::{
         AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One,
@@ -259,6 +261,11 @@ pub mod pallet {
     #[pallet::getter(fn last_accrued_interest_time)]
     pub type LastAccruedInterestTime<T: Config> =
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Timestamp, ValueQuery>;
+
+    /// Liquidation free collateral.
+    #[pallet::storage]
+    #[pallet::getter(fn liquidation_free_collaterals)]
+    pub type LiquidationFreeCollaterals<T: Config> = StorageValue<_, Vec<AssetIdOf<T>>, ValueQuery>;
 
     /// Total number of collateral tokens in circulation
     /// CollateralType -> Balance
@@ -1162,6 +1169,30 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
+    }
+
+    pub fn get_account_lf_liquidity(account: &T::AccountId) -> Result<Liquidity, DispatchError> {
+        let dot_borrowed_amount = Self::current_borrow_balance(account, DOT)?;
+        let dot_borrowed_value = Self::get_asset_value(DOT, dot_borrowed_amount)?;
+
+        let lf_collateral_value = {
+            let mut total_asset_value: FixedU128 = FixedU128::zero();
+            for (asset_id, _market) in Self::active_markets()
+                .filter(|(asset_id, _)| LiquidationFreeCollaterals::<T>::contains_key(asset_id))
+            {
+                total_asset_value = total_asset_value
+                    .checked_add(&Self::collateral_asset_value(borrower, asset_id)?)
+                    .ok_or(ArithmeticError::Overflow)?;
+            }
+            total_asset_value
+        };
+
+        let liquidity = if lf_collateral_value > dot_borrowed_value {
+            lf_collateral_value - dot_borrowed_value
+        } else {
+            FixedU128::zero()
+        };
+        Ok(liquidity)
     }
 
     pub fn get_account_liquidity(
