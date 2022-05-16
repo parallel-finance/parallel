@@ -17,10 +17,7 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
-use sp_runtime::{
-    traits::{BadOrigin, One},
-    FixedPointNumber,
-};
+use sp_runtime::{traits::BadOrigin, FixedPointNumber};
 
 #[test]
 fn get_price_from_oracle() {
@@ -194,10 +191,7 @@ fn get_ctoken_price_work() {
 
         assert_eq!(
             Prices::get_price(&CDOT_7_14),
-            TokenExchangeRateProvider::get_exchange_rate(&CDOT_7_14, primitives::Rate::one())
-                .unwrap()
-                .checked_mul_int(10_000_000_000 * PRICE_ONE)
-                .map(|i| (Price::from_inner(i), 0))
+            Some((Price::from_inner(6666666666_666666660000000000), 0))
         );
     });
 }
@@ -205,14 +199,37 @@ fn get_ctoken_price_work() {
 #[test]
 fn get_lp_ctoken_price_work() {
     new_test_ext().execute_with(|| {
-        assert_eq!(
-            Prices::get_price(&DOT),
-            Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
-        );
+        DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (CDOT_7_14, DOT),
+            (300 * PRICE_ONE, 100 * PRICE_ONE), //3:1
+            ALICE,
+            LP_DOT_CDOT_7_14,
+        )
+        .unwrap();
 
         assert_eq!(
             Prices::get_price(&LP_DOT_CDOT_7_14),
-            Some((Price::from_inner(20_000_000_000 * PRICE_ONE), 0))
+            Some((Price::from_inner(23094010767_585030803573000000), 0)) //23094010767
+        );
+    });
+}
+
+#[test]
+fn get_lp_ctoken_price_with_another_exchange_rate_work() {
+    new_test_ext().execute_with(|| {
+        DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (CDOT_7_14, DOT),
+            (200 * PRICE_ONE, 100 * PRICE_ONE), //2:1
+            ALICE,
+            LP_DOT_CDOT_7_14,
+        )
+        .unwrap();
+
+        assert_eq!(
+            Prices::get_price(&LP_DOT_CDOT_7_14),
+            Some((Price::from_inner(18856180831_641268887810000000), 0)) //18856180831
         );
     });
 }
@@ -228,10 +245,19 @@ fn get_lp_ctoken_no_op_price_work() {
             })
         );
 
+        DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (CDOT_7_14, DOT),
+            (300 * PRICE_ONE, 100 * PRICE_ONE),
+            ALICE,
+            LP_DOT_CDOT_7_14,
+        )
+        .unwrap();
+
         assert_eq!(
             Prices::get_no_op(&LP_DOT_CDOT_7_14),
             Some(primitives::TimeStampedPrice {
-                value: Price::saturating_from_integer(200),
+                value: Price::from_inner(23094_010767585030803573), //230.94*(2^(12-10) since lp decimal is 12
                 timestamp: 0
             })
         );

@@ -22,9 +22,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{
-    log, pallet_prelude::*, traits::fungibles::Inspect, transactional, weights::DispatchClass,
-};
+use frame_support::{log, pallet_prelude::*, transactional, weights::DispatchClass};
 use frame_system::pallet_prelude::*;
 use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
 use primitives::*;
@@ -36,6 +34,7 @@ use sp_std::vec::Vec;
 
 pub use pallet::*;
 pub use pallet_traits::*;
+use sp_runtime::traits::Saturating;
 
 #[cfg(test)]
 mod mock;
@@ -254,21 +253,18 @@ impl<T: Config> Pallet<T> {
             if T::VaultTokenCurrenciesFilter::contains(&base_asset)
                 && quote_asset == T::RelayCurrency::get()
             {
-                let quote_asset_mantissa = Self::get_asset_mantissa(&quote_asset)?;
-                let lp_asset_total_supply = T::Assets::total_issuance(asset_id.clone());
-                let quote_asset_amount = pool
-                    .quote_amount
-                    .checked_div(quote_asset_mantissa)
-                    .and_then(|quote_amount| quote_amount.checked_mul(2u128))?;
-                let lp_asset_amount = lp_asset_total_supply.checked_div(mantissa)?;
-                let rate = FixedU128::checked_from_rational(quote_asset_amount, lp_asset_amount)?;
-                return base_price
-                    .value
-                    .checked_mul(&rate)
-                    .map(|price| TimeStampedPrice {
-                        value: price,
-                        timestamp: base_price.timestamp,
-                    });
+                let base_asset_mantissa = Self::get_asset_mantissa(&base_asset)?;
+                let diff_mantissa = mantissa.checked_div(base_asset_mantissa)?;
+                let base_quote_rate =
+                    ((pool.base_amount.checked_div(pool.quote_amount)?) as f64).sqrt() * 2_f64;
+                let lp_asset_mature_rate = Rate::from_float(base_quote_rate)
+                    .saturating_mul(Rate::saturating_from_integer(diff_mantissa));
+                let vault_asset_price = Self::get_vault_asset_price(&base_asset, base_price)?;
+                let lp_asset_price = vault_asset_price.value.checked_mul(&lp_asset_mature_rate)?;
+                return Some(TimeStampedPrice {
+                    value: lp_asset_price,
+                    timestamp: vault_asset_price.timestamp,
+                });
             }
         }
         None

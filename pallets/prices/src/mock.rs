@@ -321,14 +321,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             1000 * PRICE_ONE,
         )
         .unwrap();
-        DefaultAMM::create_pool(
-            Origin::signed(ALICE),
-            (DOT, CDOT_7_14),
-            (100 * PRICE_ONE, 100 * PRICE_ONE),
-            ALICE,
-            LP_DOT_CDOT_7_14,
-        )
-        .unwrap();
     });
 
     ext
