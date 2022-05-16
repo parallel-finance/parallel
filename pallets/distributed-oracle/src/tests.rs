@@ -20,20 +20,22 @@ use frame_support::{assert_noop, assert_ok};
 #[test]
 fn test_add_stake() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
-        let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
-        assert_eq!(oracle_stake_deposit.total, 100_000);
+
+        let rep = Doracle::repeaters(ALICE, HKO).unwrap();
+
+        assert_eq!(rep.staked_balance, 100_000);
 
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 200_000));
-        let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
-        assert_eq!(oracle_stake_deposit.total, 300_000);
+        let rep = Doracle::repeaters(ALICE, HKO).unwrap();
+        assert_eq!(rep.staked_balance, 300_000);
 
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 200_000));
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 200_000));
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 200_000));
-        let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
-        assert_eq!(oracle_stake_deposit.total, 900_000);
+        let rep = Doracle::repeaters(ALICE, HKO).unwrap();
+        assert_eq!(rep.staked_balance, 900_000);
     });
 }
 
@@ -41,7 +43,7 @@ fn test_add_stake() {
 fn test_stake_with_invalid_asset() {
     // Tries to stake with non a native token
     new_test_ext().execute_with(|| {
-        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
         assert_noop!(
             Doracle::stake(Origin::signed(ALICE), 10, 100_000),
             Error::<Test>::InvalidStakingCurrency
@@ -52,7 +54,7 @@ fn test_stake_with_invalid_asset() {
 #[test]
 fn test_stake_with_amount_less_than_minimum_amount() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
         assert_noop!(
             Doracle::stake(Origin::signed(ALICE), HKO, 10),
             Error::<Test>::InsufficientStakeAmount
@@ -65,7 +67,7 @@ fn test_stake_with_amount_less_than_minimum_amount() {
 // TODO: Check this scenario
 fn test_unstake_stake_amount() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
         // Alice nicely staked 100_000
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
 
@@ -79,36 +81,41 @@ fn test_unstake_stake_amount() {
 // TODO: Check this scenario
 fn test_unstake() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
         // Alice nicely staked 100_000
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
 
         // Unstake 99_999
         // Remains 100_000 - 90_000 = 10_000
         assert_ok!(Doracle::unstake(Origin::signed(ALICE), HKO, 90_000));
-        let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
-        assert_eq!(oracle_stake_deposit.total, 10_000);
+
+        let rep = Doracle::repeaters(ALICE, HKO).unwrap();
+
+        assert_eq!(rep.staked_balance, 10_000);
 
         // Stakes again
         // balance -> 10_000 + 500 = 10_500
         // balance after unstake -> 10_500 - 6_000 = 4500
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 500));
         assert_ok!(Doracle::unstake(Origin::signed(ALICE), HKO, 6_000));
-        let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
-        assert_eq!(oracle_stake_deposit.total, 4_500);
+
+        let rep = Doracle::repeaters(ALICE, HKO).unwrap();
+
+        assert_eq!(rep.staked_balance, 4_500);
 
         assert_ok!(Doracle::unstake(Origin::signed(ALICE), HKO, 11));
         assert_ok!(Doracle::unstake(Origin::signed(ALICE), HKO, 11));
 
-        let oracle_stake_deposit = Doracle::staking_pool(ALICE, HKO).unwrap();
-        assert_eq!(oracle_stake_deposit.total, 4478);
+        let rep = Doracle::repeaters(ALICE, HKO).unwrap();
+
+        assert_eq!(rep.staked_balance, 4478);
     });
 }
 
 #[test]
 fn test_unstake_stake_erroneous_scenarios() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
         // Alice nicely staked 100_000
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
 
@@ -131,7 +138,7 @@ fn test_unstake_stake_erroneous_scenarios() {
         );
 
         // Unstake from an account without a stake though a repeater
-        assert_ok!(Doracle::register_repeater(Origin::signed(BOB)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(BOB), HKO));
         assert_noop!(
             Doracle::unstake(Origin::signed(BOB), HKO, 11),
             Error::<Test>::StakingAccountNotFound
@@ -152,11 +159,11 @@ fn test_register_repeater() {
         // NOTE: we might want to flip this? stake then register
 
         // Register a staking account as a repeater
-        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
 
         // Tries to register the same account as the repeater
         assert_noop!(
-            Doracle::register_repeater(Origin::signed(ALICE)),
+            Doracle::register_repeater(Origin::signed(ALICE), HKO),
             Error::<Test>::RepeaterExists
         );
     });
@@ -192,13 +199,13 @@ fn test_rewards() {
 
         assert_ok!(Doracle::populate_treasury(Origin::signed(ALICE)));
 
-        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_00));
 
-        assert_ok!(Doracle::register_repeater(Origin::signed(BOB)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(BOB), HKO));
         assert_ok!(Doracle::stake(Origin::signed(BOB), HKO, 100_000));
 
-        assert_ok!(Doracle::register_repeater(Origin::signed(CHARLIE)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(CHARLIE), HKO));
         assert_ok!(Doracle::stake(Origin::signed(CHARLIE), HKO, 100_000));
 
         assert_eq!(1, 2)
@@ -213,13 +220,13 @@ fn test_slashing_for_no_response() {
 
         assert_ok!(Doracle::populate_treasury(Origin::signed(ALICE)));
 
-        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_00));
 
-        assert_ok!(Doracle::register_repeater(Origin::signed(BOB)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(BOB), HKO));
         assert_ok!(Doracle::stake(Origin::signed(BOB), HKO, 100_000));
 
-        assert_ok!(Doracle::register_repeater(Origin::signed(CHARLIE)));
+        assert_ok!(Doracle::register_repeater(Origin::signed(CHARLIE), HKO));
         assert_ok!(Doracle::stake(Origin::signed(CHARLIE), HKO, 100_000));
 
         // notes
@@ -317,13 +324,12 @@ fn test_that_repeater_are_rewarded_after_n_rounds() {
         // ));
 
         // we want to setup a couple of repeater
-        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE)));
+        // assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
+        // assert_ok!(Doracle::register_repeater(Origin::signed(BOB), HKO));
+        // assert_ok!(Doracle::register_repeater(Origin::signed(CHARLIE), HKO));
+
         assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_00));
-
-        assert_ok!(Doracle::register_repeater(Origin::signed(BOB)));
         assert_ok!(Doracle::stake(Origin::signed(BOB), HKO, 100_000));
-
-        assert_ok!(Doracle::register_repeater(Origin::signed(CHARLIE)));
         assert_ok!(Doracle::stake(Origin::signed(CHARLIE), HKO, 100_000));
 
         // round 1

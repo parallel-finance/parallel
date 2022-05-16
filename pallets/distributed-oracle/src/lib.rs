@@ -68,7 +68,7 @@ pub use weights::WeightInfo;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use crate::helpers::{OracleDeposit, Repeater, RoundHolder, RoundManager};
+    use crate::helpers::{Repeater, RoundHolder, RoundManager};
     use sp_runtime::traits::Zero;
     use sp_runtime::ArithmeticError;
     use std::collections::BTreeMap;
@@ -191,23 +191,17 @@ pub mod pallet {
         ResetPrice(CurrencyId, u128),
     }
 
-    /// Platform's staking pool
-    /// An Account can stake multiple assets
+    /// Repeaters
     #[pallet::storage]
-    #[pallet::getter(fn staking_pool)]
-    pub type StakingPool<T: Config> = StorageDoubleMap<
+    #[pallet::getter(fn repeaters)]
+    pub type Repeaters<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
         T::AccountId,
         Blake2_128Concat,
         AssetIdOf<T>,
-        OracleDeposit,
+        Repeater,
     >;
-
-    /// Repeaters
-    #[pallet::storage]
-    #[pallet::getter(fn repeaters)]
-    pub type Repeaters<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Repeater>;
 
     ///  Treasury Balance, pre-populate from pallet runtime constant
     #[pallet::storage]
@@ -276,19 +270,19 @@ pub mod pallet {
         /// Register Repeaters
         #[pallet::weight(T::WeightInfo::stake())]
         #[transactional]
-        pub fn register_repeater(who: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn register_repeater(
+            who: OriginFor<T>,
+            asset_id: AssetIdOf<T>,
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(who)?;
 
             ensure!(
-                !Repeaters::<T>::contains_key(who.clone()),
+                !Repeaters::<T>::contains_key(who.clone(), asset_id.clone()),
                 Error::<T>::RepeaterExists
             );
 
             // Initialize a repeater structure
-            Repeaters::<T>::insert(
-                who.clone(),
-                Self::repeaters(who.clone()).unwrap_or_default(),
-            );
+            Repeaters::<T>::insert(who.clone(), asset_id.clone(), Repeater::default());
 
             Self::deposit_event(Event::<T>::RepeaterRegistered(who));
 
@@ -306,18 +300,13 @@ pub mod pallet {
             let who = ensure_signed(who)?;
             let current_time_stamp = T::UnixTime::now().as_secs();
 
-            if !Repeaters::<T>::contains_key(who.clone()) {
+            if !Repeaters::<T>::contains_key(who.clone(), asset.clone()) {
                 Repeaters::<T>::insert(
                     who.clone(),
-                    Self::repeaters(who.clone()).unwrap_or_default(),
+                    asset.clone(),
+                    Self::repeaters(who.clone(), asset.clone()).unwrap_or_default(),
                 );
             }
-
-            // Only repeaters can stake
-            // ensure!(
-            //     Repeaters::<T>::contains_key(who.clone()),
-            //     Error::<T>::InvalidRepeater
-            // );
 
             // Checks for the Asset type to stake
             ensure!(
@@ -331,31 +320,20 @@ pub mod pallet {
                 Error::<T>::InsufficientStakeAmount
             );
 
-            let mut oracle_stake_deposit =
-                Self::staking_pool(who.clone(), asset).unwrap_or_default();
+            Repeaters::<T>::mutate(
+                who.clone(),
+                asset.clone(),
+                |repeater| -> DispatchResultWithPostInfo {
+                    let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
 
-            // Accumulate
-            oracle_stake_deposit.total = oracle_stake_deposit
-                .total
-                .checked_add(amount)
-                .ok_or(ArithmeticError::Underflow)?;
+                    repeater.staked_balance = repeater
+                        .staked_balance
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Underflow)?;
 
-            oracle_stake_deposit.timestamp = current_time_stamp;
-
-            oracle_stake_deposit.blocks_in_round = oracle_stake_deposit
-                .blocks_in_round
-                .checked_add(1u128)
-                .ok_or(ArithmeticError::Underflow)?;
-
-            Repeaters::<T>::mutate(who.clone(), |repeater| -> DispatchResultWithPostInfo {
-                let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
-
-                repeater.staked_balance = oracle_stake_deposit.total;
-
-                Ok(().into())
-            })?;
-
-            StakingPool::<T>::insert(&who, &asset, oracle_stake_deposit);
+                    Ok(().into())
+                },
+            )?;
 
             Self::deposit_event(Event::<T>::Staked(who, asset, amount));
 
@@ -378,7 +356,7 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             // InvalidUnstaker
             ensure!(
-                Repeaters::<T>::contains_key(who.clone()),
+                Repeaters::<T>::contains_key(who.clone(), asset.clone()),
                 Error::<T>::InvalidUnstaker
             );
 
@@ -393,47 +371,35 @@ pub mod pallet {
                 Error::<T>::InsufficientUnStakeAmount
             );
 
-            StakingPool::<T>::mutate(
+            Repeaters::<T>::mutate(
                 who.clone(),
-                asset,
-                |oracle_stake_deposit| -> DispatchResultWithPostInfo {
-                    let oracle_stake_deposit = oracle_stake_deposit
-                        .as_mut()
-                        .ok_or(Error::<T>::StakingAccountNotFound)?;
+                asset.clone(),
+                |repeater| -> DispatchResultWithPostInfo {
+                    let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
 
                     ensure!(
-                        oracle_stake_deposit.total >= amount,
+                        repeater.staked_balance >= amount,
                         Error::<T>::UnstakeAmoutExceedsStakedBalance
                     );
 
-                    if oracle_stake_deposit.total == amount {
-                        StakingPool::<T>::remove(&who, &asset);
+                    if repeater.staked_balance == amount {
+                        Repeaters::<T>::remove(&who, &asset);
 
                         log::trace!(
                             target: "distributed-oracle::unstake",
-                            "Account: {:?}, removed with 0 balance",
+                            "Repeater with Account: {:?}, removed with 0 balance",
                             &who,
                         );
 
                         Self::deposit_event(Event::<T>::StakeAccountRemoved(who.clone(), asset));
+                    } else {
+                        repeater.staked_balance = repeater
+                            .staked_balance
+                            .checked_sub(amount)
+                            .ok_or(ArithmeticError::Underflow)?;
                     }
 
-                    oracle_stake_deposit.total = oracle_stake_deposit
-                        .total
-                        .checked_sub(amount)
-                        .ok_or(ArithmeticError::Underflow)?;
-
-                    oracle_stake_deposit.timestamp = T::UnixTime::now().as_secs();
-
                     Self::deposit_event(Event::<T>::Unstaked(who.clone(), asset, amount));
-
-                    log::trace!(
-                        target: "distributed-oracle::unstake",
-                        "unstake_amount: {:?}, remaining balance: {:?}, time_stamp {:?}",
-                        &amount,
-                        &oracle_stake_deposit.total,
-                        oracle_stake_deposit.timestamp,
-                    );
 
                     Ok(().into())
                 },
@@ -445,7 +411,7 @@ pub mod pallet {
         #[transactional]
         pub fn set_price_for_round(
             origin: OriginFor<T>,
-            asset_id: CurrencyId,
+            asset_id: AssetIdOf<T>,
             price: Price,
             round: u128,
         ) -> DispatchResultWithPostInfo {
@@ -453,9 +419,9 @@ pub mod pallet {
             let current_time_stamp = T::UnixTime::now().as_secs();
 
             ensure!(
-                Self::staking_pool(who.clone(), T::StakingCurrency::get())
+                Self::repeaters(who.clone(), T::StakingCurrency::get())
                     .unwrap_or_default()
-                    .total
+                    .staked_balance
                     > T::MinUnstake::get(),
                 Error::<T>::StakedAmountIsLessThanMinStakeAmount
             );
@@ -546,13 +512,15 @@ pub mod pallet {
                                 .insert(who.clone(), current_time_stamp);
 
                             // Adds reward
-                            Self::do_reward(who.clone(), T::RewardAmount::get()).unwrap();
+                            Self::do_reward(who.clone(), asset_id.clone(), T::RewardAmount::get())
+                                .unwrap();
                         } else {
                             round_manager
                                 .people_to_slash
                                 .insert(who.clone(), current_time_stamp);
 
-                            Self::do_slash(who.clone(), T::RewardAmount::get()).unwrap();
+                            Self::do_slash(who.clone(), asset_id.clone(), T::RewardAmount::get())
+                                .unwrap();
                         }
                         Ok(())
                     })?;
@@ -560,7 +528,7 @@ pub mod pallet {
                     round_manager
                         .people_to_slash
                         .insert(who.clone(), current_time_stamp);
-                    Self::do_slash(who.clone(), T::RewardAmount::get()).unwrap();
+                    Self::do_slash(who.clone(), asset_id.clone(), T::RewardAmount::get()).unwrap();
                 }
             }
 
@@ -579,59 +547,69 @@ impl<T: Config> Pallet<T> {
 
     pub fn do_reward(
         who: AccountOf<T>,
+        asset_id: AssetIdOf<T>,
         reward_amount: BalanceOf<T>,
     ) -> Result<(), sp_runtime::DispatchError> {
-        Repeaters::<T>::mutate(who.clone(), |repeater| -> DispatchResult {
-            let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
+        Repeaters::<T>::mutate(
+            who.clone(),
+            asset_id.clone(),
+            |repeater| -> DispatchResult {
+                let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
 
-            // Adds rewards to the staked amount, accumulating
-            repeater.staked_balance = repeater
-                .staked_balance
-                .checked_add(reward_amount)
-                .ok_or(ArithmeticError::Underflow)?;
+                // Adds rewards to the staked amount, accumulating
+                repeater.staked_balance = repeater
+                    .staked_balance
+                    .checked_add(reward_amount)
+                    .ok_or(ArithmeticError::Underflow)?;
 
-            // accumulate reward balance
-            repeater.reward = repeater
-                .reward
-                .checked_add(reward_amount)
-                .ok_or(ArithmeticError::Underflow)?;
+                // accumulate reward balance
+                repeater.reward = repeater
+                    .reward
+                    .checked_add(reward_amount)
+                    .ok_or(ArithmeticError::Underflow)?;
 
-            let new_treasury_balance = OracleTreasury::<T>::get()
-                .unwrap_or_default()
-                .checked_sub(reward_amount)
-                .ok_or(ArithmeticError::Underflow)?;
+                let new_treasury_balance = OracleTreasury::<T>::get()
+                    .unwrap_or_default()
+                    .checked_sub(reward_amount)
+                    .ok_or(ArithmeticError::Underflow)?;
 
-            OracleTreasury::<T>::put(new_treasury_balance);
+                OracleTreasury::<T>::put(new_treasury_balance);
 
-            Ok(().into())
-        })
+                Ok(().into())
+            },
+        )
     }
 
     pub fn do_slash(
         who: AccountOf<T>,
+        asset_id: AssetIdOf<T>,
         slash_amount: BalanceOf<T>,
     ) -> Result<(), sp_runtime::DispatchError> {
-        Repeaters::<T>::mutate(who.clone(), |repeater| -> DispatchResult {
-            let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
+        Repeaters::<T>::mutate(
+            who.clone(),
+            asset_id.clone(),
+            |repeater| -> DispatchResult {
+                let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
 
-            repeater.staked_balance = repeater
-                .staked_balance
-                .checked_sub(slash_amount)
-                .ok_or(ArithmeticError::Underflow)?;
+                repeater.staked_balance = repeater
+                    .staked_balance
+                    .checked_sub(slash_amount)
+                    .ok_or(ArithmeticError::Underflow)?;
 
-            repeater.reward = repeater
-                .reward
-                .checked_sub(slash_amount)
-                .ok_or(ArithmeticError::Underflow)?;
+                repeater.reward = repeater
+                    .reward
+                    .checked_sub(slash_amount)
+                    .ok_or(ArithmeticError::Underflow)?;
 
-            let new_treasury_balance = OracleTreasury::<T>::get()
-                .unwrap_or_default()
-                .checked_add(slash_amount)
-                .ok_or(ArithmeticError::Underflow)?;
+                let new_treasury_balance = OracleTreasury::<T>::get()
+                    .unwrap_or_default()
+                    .checked_add(slash_amount)
+                    .ok_or(ArithmeticError::Underflow)?;
 
-            OracleTreasury::<T>::put(new_treasury_balance);
+                OracleTreasury::<T>::put(new_treasury_balance);
 
-            Ok(().into())
-        })
+                Ok(().into())
+            },
+        )
     }
 }

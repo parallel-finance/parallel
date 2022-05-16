@@ -6,21 +6,6 @@ use primitives::{Balance, Price};
 use scale_info::TypeInfo;
 use std::collections::BTreeMap;
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
-#[scale_info(skip_type_params(T))]
-pub struct OracleDeposit {
-    /// The total amount of the stash's balance that we are currently accounting for.
-    /// It's just `active` plus all the `unlocking` balances.
-    #[codec(compact)]
-    pub total: Balance,
-
-    /// Stake Added Unix Time
-    pub timestamp: Timestamp,
-
-    /// Participated rounds
-    pub blocks_in_round: u128,
-}
-
 // Struct for Repeater
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
 #[scale_info(skip_type_params(T))]
@@ -69,18 +54,3 @@ impl<T: Config> Default for RoundHolder<T> {
         }
     }
 }
-
-// round starts
-// people add prices
-// round price acceptance ends
-// RoundManager
-// checks who didnt respond
-// who's prices were 50% greater then median price for round
-// who did respond
-// Round Manager
-// updates slashes
-// round ends
-
-// laterrrr
-// a repeater comes by and claims_rewards
-// moves pendings_rewards into account?
