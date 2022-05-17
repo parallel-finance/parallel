@@ -102,7 +102,7 @@ benchmarks! {
         let minimum_deposit_amount: u128 = dollar(1);
     }: _(SystemOrigin::Root, KSM, minimum_deposit_amount)
     verify {
-        assert_last_event::<T>(Event::MinimumDepositUpdated(KSM, minimum_deposit_amount).into())
+        assert_last_event::<T>(Event::MinimumDepositSet(KSM, minimum_deposit_amount).into())
     }
 }
 
