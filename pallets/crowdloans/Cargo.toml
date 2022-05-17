@@ -21,6 +21,7 @@ scale-info         = { version = '2.1', default-features = false, features = ['d
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false }
 sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false }
 xcm                = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.19', default-features = false }
+substrate-fixed    = { git = "https://github.com/encointer/substrate-fixed", default-features = false }
 
 [dev-dependencies]
 cumulus-pallet-dmp-queue        = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.19' }

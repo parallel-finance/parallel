@@ -10,6 +10,7 @@ use sp_std::prelude::*;
 
 use primitives::{CurrencyId, DerivativeIndex, PersistedValidationData, PriceDetail, Rate};
 
+pub mod math;
 pub mod ump;
 pub mod xcm;
 
@@ -45,10 +46,6 @@ pub trait LiquidStakingCurrenciesProvider<CurrencyId> {
 }
 
 pub trait VaultTokenExchangeRateProvider<CurrencyId> {
-    /// init_rate + (current_relay_block_num-lease_start_block)/total_lease_length*(1-init_rate)
-    fn get_linear_exchange_rate(asset_id: &CurrencyId, init_rate: Rate) -> Option<Rate>;
-    /// 1/(1+r)^T
-    /// T is the remaining term-to-maturity with year as unit and r is the implied yield rate
     fn get_exchange_rate(asset_id: &CurrencyId, init_rate: Rate) -> Option<Rate>;
 }
 

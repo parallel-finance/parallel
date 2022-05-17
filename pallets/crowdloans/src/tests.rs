@@ -1439,7 +1439,7 @@ fn get_ctoken_exchange_rate_should_work() {
             true,
             One::one(),
         ));
-        //from 0 to 7
+        //lease from 0 to 7
         let start_lease = LEASE_START;
         let end_lease = LEASE_END;
 
@@ -1463,9 +1463,10 @@ fn get_ctoken_exchange_rate_should_work() {
             &RELAY_BLOCK_KEY,
             &(start_lease * LeasePeriod::get() + 100).encode(),
         );
+        // exchange_rate ~=0.4756
         assert_eq!(
             Crowdloans::get_exchange_rate(&ctoken, start_rate),
-            Some(Rate::from_inner(475627619189934670))
+            Some(Rate::from_inner(475627614522123975))
         );
 
         //set relay_block_num as (lease_start + 1)*LeasePeriod
@@ -1473,9 +1474,10 @@ fn get_ctoken_exchange_rate_should_work() {
             &RELAY_BLOCK_KEY,
             &((start_lease + 1) * LeasePeriod::get()).encode(),
         );
+        // exchange_rate ~=0.5219
         assert_eq!(
             Crowdloans::get_exchange_rate(&ctoken, start_rate),
-            Some(Rate::from_inner(521922471710748828))
+            Some(Rate::from_inner(521922467209534934))
         );
 
         //set relay_block_num as (lease_start + 2)*LeasePeriod
@@ -1483,9 +1485,10 @@ fn get_ctoken_exchange_rate_should_work() {
             &RELAY_BLOCK_KEY,
             &((start_lease + 2) * LeasePeriod::get()).encode(),
         );
+        // exchange_rate ~=0.5727
         assert_eq!(
             Crowdloans::get_exchange_rate(&ctoken, start_rate),
-            Some(Rate::from_inner(572727447267172250))
+            Some(Rate::from_inner(572727443033425576))
         );
 
         //set relay_block_num as (lease_start + 4)*LeasePeriod
@@ -1493,9 +1496,10 @@ fn get_ctoken_exchange_rate_should_work() {
             &RELAY_BLOCK_KEY,
             &((start_lease + 4) * LeasePeriod::get()).encode(),
         );
+        // exchange_rate ~=0.6896
         assert_eq!(
             Crowdloans::get_exchange_rate(&ctoken, start_rate),
-            Some(Rate::from_inner(689655172413793103))
+            Some(Rate::from_inner(689655172435941091))
         );
 
         //set relay_block_num as lease_finished_block=(lease_end + 1) * LeasePeriod will get rate as 1
@@ -1557,9 +1561,10 @@ fn get_ctoken_exchange_rate_with_partial_lease_should_work() {
             &RELAY_BLOCK_KEY,
             &(start_lease * LeasePeriod::get() + 100).encode(),
         );
+        // exchange_rate ~=0.6896
         assert_eq!(
             Crowdloans::get_exchange_rate(&ctoken, start_rate),
-            Some(Rate::from_inner(689660047825405356))
+            Some(Rate::from_inner(689660044455841167))
         );
 
         //set relay_block_num as (lease_start + 1)*LeasePeriod
@@ -1567,9 +1572,10 @@ fn get_ctoken_exchange_rate_with_partial_lease_should_work() {
             &RELAY_BLOCK_KEY,
             &((start_lease + 1) * LeasePeriod::get()).encode(),
         );
+        // exchange_rate ~=0.7567
         assert_eq!(
             Crowdloans::get_exchange_rate(&ctoken, start_rate),
-            Some(Rate::from_inner(756787583980585832))
+            Some(Rate::from_inner(756787581183402877))
         );
 
         //set relay_block_num as (lease_start + 2)*LeasePeriod
@@ -1577,12 +1583,13 @@ fn get_ctoken_exchange_rate_with_partial_lease_should_work() {
             &RELAY_BLOCK_KEY,
             &((start_lease + 2) * LeasePeriod::get()).encode(),
         );
+        // exchange_rate ~=0.8304
         assert_eq!(
             Crowdloans::get_exchange_rate(&ctoken, start_rate),
-            Some(Rate::from_inner(830454798537399586))
+            Some(Rate::from_inner(830454796491088838))
         );
 
-        //set relay_block_num as (lease_end + 1)
+        //set relay_block_num as (lease_end + 1) and exchange_rate=1
         sp_io::storage::set(
             &RELAY_BLOCK_KEY,
             &((end_lease + 1) * LeasePeriod::get()).encode(),
@@ -1592,7 +1599,7 @@ fn get_ctoken_exchange_rate_with_partial_lease_should_work() {
             Some(Rate::one())
         );
 
-        //set relay_block_num as (lease_end + 10)
+        //set relay_block_num as (lease_end + 10) and still exchange_rate=1
         sp_io::storage::set(
             &RELAY_BLOCK_KEY,
             &((end_lease + 10) * LeasePeriod::get()).encode(),

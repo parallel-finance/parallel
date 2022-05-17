@@ -67,7 +67,10 @@ pub mod pallet {
     use sp_std::{boxed::Box, vec::Vec};
     use xcm::latest::prelude::*;
 
-    use pallet_traits::{VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider};
+    use pallet_traits::{
+        math::{fixed_u128_from_float, fixed_u128_to_float},
+        VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider,
+    };
 
     use pallet_xcm_helper::XcmHelper;
 
@@ -1613,28 +1616,29 @@ pub mod pallet {
     }
 
     impl<T: Config> VaultTokenExchangeRateProvider<AssetIdOf<T>> for Pallet<T> {
-        fn get_linear_exchange_rate(
-            asset_id: &AssetIdOf<T>,
-            start_exchange_rate: Rate,
-        ) -> Option<Rate> {
-            Self::find_vault_by_asset_id(asset_id).and_then(|vault| {
-                Self::get_vault_term_rate(vault).and_then(|(term_rate, _)| {
-                    let current_rate: Rate = start_exchange_rate.saturating_add(
-                        term_rate.saturating_mul(Rate::one().saturating_sub(start_exchange_rate)),
-                    );
-                    Some(current_rate)
-                })
-            })
-        }
+        /// 1/(1+r)^T
+        /// T is the remaining term-to-maturity with year as unit
+        /// r is the implied yield rate
         fn get_exchange_rate(asset_id: &AssetIdOf<T>, start_exchange_rate: Rate) -> Option<Rate> {
             Self::find_vault_by_asset_id(asset_id).and_then(|vault| {
                 Self::get_vault_term_rate(vault).and_then(|(term_rate, total_term_by_year)| {
-                    let total_term_by_year: f64 = total_term_by_year.to_float();
-                    let remaining_year = total_term_by_year * (1_f64 - term_rate.to_float());
-                    let current_rate =
-                        (1_f64 + start_exchange_rate.to_float() as f64).powf(remaining_year);
-                    let current_rate = Rate::from_float(current_rate).reciprocal();
-                    current_rate
+                    use substrate_fixed::traits::LossyInto;
+                    use substrate_fixed::transcendental::pow as fpow;
+                    use substrate_fixed::types::{I32F32, I64F64};
+                    let power_float = |rate: f64, exp: f64| -> Result<f64, &'static str> {
+                        let result: I64F64 = fpow(I32F32::from_num(rate), I32F32::from_num(exp))
+                            .expect("Arithmetic power float overflow");
+                        Ok(result.lossy_into())
+                    };
+                    let remaining_year = fixed_u128_to_float(total_term_by_year)
+                        * (1_f64 - fixed_u128_to_float(term_rate));
+                    let current_rate = power_float(
+                        1_f64 + fixed_u128_to_float(start_exchange_rate),
+                        remaining_year,
+                    )
+                    .ok()?;
+                    let current_rate = fixed_u128_from_float(current_rate as f64).reciprocal()?;
+                    Some(current_rate)
                 })
             })
         }

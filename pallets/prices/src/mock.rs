@@ -119,10 +119,6 @@ impl VaultTokenExchangeRateProvider<CurrencyId> for TokenExchangeRateProvider {
     fn get_exchange_rate(_: &CurrencyId, _: Rate) -> Option<Rate> {
         Some(Rate::saturating_from_rational(100, 150))
     }
-
-    fn get_linear_exchange_rate(_: &CurrencyId, _: Rate) -> Option<Rate> {
-        Some(Rate::saturating_from_rational(100, 150))
-    }
 }
 
 ord_parameter_types! {
