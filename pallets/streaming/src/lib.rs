@@ -353,12 +353,12 @@ pub mod pallet {
 
             stream.try_deduct(amount)?;
             stream.try_complete()?;
+            Streams::<T>::insert(stream_id, stream.clone());
             if stream.has_finished() {
                 Self::try_push_stream_library(&stream.sender, stream_id, StreamKind::Finish)?;
                 Self::try_push_stream_library(&recipient, stream_id, StreamKind::Finish)?;
                 Self::update_finished_stream_library(&stream.sender, &recipient)?;
             }
-            Streams::<T>::insert(stream_id, stream.clone());
 
             // Withdraw deposit from stream
             T::Assets::transfer(
