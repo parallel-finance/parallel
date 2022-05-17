@@ -171,16 +171,6 @@ fn test_register_repeater() {
 }
 
 #[test]
-fn test_stake_as_non_repeater() {
-    new_test_ext().execute_with(|| {
-        assert_noop!(
-            Doracle::stake(Origin::signed(ALICE), HKO, 100_000),
-            Error::<Test>::InvalidRepeater
-        );
-    });
-}
-
-#[test]
 fn test_unstake_as_non_repeater() {
     new_test_ext().execute_with(|| {
         assert_noop!(
@@ -213,27 +203,34 @@ fn test_first_round() {
             round_id                        // round_id
         ));
 
-        // assert_ok!(Doracle::set_price_for_round(
-        //     Origin::signed(BOB),
-        //     HKO,
-        //     Price::from_inner(100_000 * 1),
-        //     round_id
-        // ));
-        //
-        // assert_ok!(Doracle::set_price_for_round(
-        //     Origin::signed(CHARLIE),
-        //     HKO,
-        //     Price::from_inner(100_000 * 1),
-        //     round_id
-        // ));
+        assert_ok!(Doracle::set_price_for_round(
+            Origin::signed(BOB),
+            HKO,
+            Price::from_inner(100_000 * 1),
+            round_id
+        ));
 
-        let expected_participated = BTreeMap::new().insert(ALICE, 6);
+        assert_ok!(Doracle::set_price_for_round(
+            Origin::signed(CHARLIE),
+            HKO,
+            Price::from_inner(100_000 * 1),
+            round_id
+        ));
+
+        let mut expected_participated = BTreeMap::new();
+        expected_participated.insert(ALICE, 6);
+        expected_participated.insert(BOB, 6);
+        expected_participated.insert(CHARLIE, 6);
+
+        let mut expected_people_to_reward = BTreeMap::new();
+        expected_people_to_reward.insert(ALICE, 6);
+        expected_people_to_reward.insert(BOB, 6);
+        expected_people_to_reward.insert(CHARLIE, 6);
 
         let manager = Doracle::get_round_manager().unwrap();
-        // let p = manager.participated;
-        assert_eq!(manager.participated, BTreeMap::new());
+        assert_eq!(manager.participated, expected_participated);
         assert_eq!(manager.people_to_slash, BTreeMap::new());
-        assert_eq!(manager.people_to_reward, BTreeMap::new());
+        assert_eq!(manager.people_to_reward, expected_people_to_reward);
     });
 }
 

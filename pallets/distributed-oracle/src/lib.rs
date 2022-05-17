@@ -69,6 +69,7 @@ pub use weights::WeightInfo;
 pub mod pallet {
     use super::*;
     use crate::helpers::{Repeater, RoundHolder, RoundManager};
+    use crate::mock::One;
     use sp_runtime::traits::Zero;
     use sp_runtime::ArithmeticError;
     use std::collections::BTreeMap;
@@ -457,25 +458,31 @@ pub mod pallet {
                         mean_price: price,
                         round_started_time: current_time_stamp,
                         submitters: recent_round.submitters,
+                        submitter_count: 1u32,
                     },
                 );
             } else {
                 // Threshold price is +/- 50 of the current price
                 let price_lower_limit = recent_round
                     .mean_price
-                    .checked_div(&FixedU128::from_inner(2u128))
+                    .checked_div(&FixedU128::from(2u128))
                     .ok_or(ArithmeticError::Underflow)?;
 
                 let price_upper_limit = recent_round
                     .mean_price
-                    .checked_div(&FixedU128::from_inner(2u128))
-                    .and_then(|r| r.checked_mul(&FixedU128::from_inner(3u128)))
+                    .checked_div(&FixedU128::from(2u128))
+                    .and_then(|r| r.checked_mul(&FixedU128::from(3u128)))
                     .ok_or(ArithmeticError::Underflow)?;
 
                 if price >= price_lower_limit && price <= price_upper_limit {
                     recent_round
                         .submitters
                         .insert(who.clone(), (price, current_time_stamp));
+
+                    recent_round.submitter_count = recent_round
+                        .submitter_count
+                        .checked_add(1u32)
+                        .ok_or(ArithmeticError::Underflow)?;
 
                     let agg_price = recent_round
                         .agg_price
@@ -484,7 +491,7 @@ pub mod pallet {
 
                     let mean_price = agg_price
                         .clone()
-                        .checked_div(&FixedU128::from_inner(recent_round.submitters.len() as u128))
+                        .checked_div(&FixedU128::from(recent_round.submitter_count as u128))
                         .ok_or(ArithmeticError::Underflow)?;
 
                     CurrentRound::<T>::mutate(asset_id, round, |rec| -> DispatchResult {
@@ -493,6 +500,7 @@ pub mod pallet {
                         rec.agg_price = agg_price;
                         rec.mean_price = mean_price;
                         rec.submitters = recent_round.submitters;
+                        rec.submitter_count = recent_round.submitter_count;
 
                         // Check if it submitted value in the previous round
                         let prev_round =

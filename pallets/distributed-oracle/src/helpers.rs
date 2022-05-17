@@ -44,6 +44,7 @@ pub struct RoundHolder<T: Config> {
     pub mean_price: Price,
     pub round_started_time: Timestamp,
     pub submitters: BTreeMap<AccountOf<T>, (Price, Timestamp)>,
+    pub submitter_count: u32,
 }
 
 impl<T: Config> Default for RoundHolder<T> {
@@ -53,6 +54,7 @@ impl<T: Config> Default for RoundHolder<T> {
             mean_price: Price::default(),
             round_started_time: Timestamp::default(),
             submitters: BTreeMap::new(),
+            submitter_count: u32::default(),
         }
     }
 }
