@@ -69,7 +69,7 @@ fn cancel_works_without_withdrawal() {
             true,
         ));
         // rate_per_secs: 101 / (19-6) = 7769230769230
-        let stream = <Streams<Test>>::get(stream_id_0).unwrap();
+        let stream = Streams::<Test>::get(stream_id_0).unwrap();
         assert_eq!(
             stream,
             Stream::new(dollar(101), DOT, 7769230769230, ALICE, BOB, 6, 19, true,)
@@ -194,7 +194,7 @@ fn withdraw_with_slower_rate_works() {
             true,
         ));
         // rate_per_secs: 101 / (19-6) = 7769230769230
-        let stream = <Streams<Test>>::get(stream_id_0).unwrap();
+        let stream = Streams::<Test>::get(stream_id_0).unwrap();
         assert_eq!(
             stream,
             Stream::new(dollar(101), DOT, 7769230769230, ALICE, BOB, 6, 19, true,)
@@ -277,7 +277,7 @@ fn cancel_works_with_withdrawal() {
             true,
         ));
         // rate_per_secs: 101 / (19-6) = 7769230769230
-        let stream = <Streams<Test>>::get(stream_id_0).unwrap();
+        let stream = Streams::<Test>::get(stream_id_0).unwrap();
         assert_eq!(
             stream,
             Stream::new(dollar(101), DOT, 7769230769230, ALICE, BOB, 6, 19, true,)
@@ -649,10 +649,12 @@ fn create_with_minimum_deposit_works() {
             Error::<Test>::DepositLowerThanMinimum
         );
 
-        // Check with default option
+        // Asset is not supported to create stream
+        Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
+        Assets::mint(Origin::signed(ALICE), USDT, ALICE, dollar(10000)).unwrap();
         assert_err!(
-            Streaming::create(Origin::signed(ALICE), BOB, 0, KSM, 6, 10, true),
-            Error::<Test>::DepositLowerThanMinimum
+            Streaming::create(Origin::signed(ALICE), BOB, dollar(99), USDT, 6, 10, true),
+            Error::<Test>::InvalidAssetId
         );
     })
 }
