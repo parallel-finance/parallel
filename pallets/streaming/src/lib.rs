@@ -51,8 +51,6 @@ pub use pallet::*;
 pub mod weights;
 pub use weights::WeightInfo;
 
-pub const MINIMUM_DEPOSIT_AMOUNT: u128 = 10_000_000_000_000_000_000_000;
-
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 type BalanceOf<T> =
