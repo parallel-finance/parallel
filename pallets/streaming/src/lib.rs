@@ -51,6 +51,8 @@ pub use pallet::*;
 pub mod weights;
 pub use weights::WeightInfo;
 
+pub const MINIMUM_DEPOSIT_AMOUNT: u128 = 10_000_000_000_000_000_000_000;
+
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 type BalanceOf<T> =
@@ -153,9 +155,9 @@ pub mod pallet {
             BalanceOf<T>,
             BalanceOf<T>,
         ),
-        /// Set minimum deposit for creating a stream
+        /// Update minimum deposit for creating a stream
         /// \[asset_id, minimum_deposit\]
-        MinimumDepositSet(AssetIdOf<T>, BalanceOf<T>),
+        MinimumDepositUpdated(AssetIdOf<T>, BalanceOf<T>),
     }
 
     /// Next Stream Id
@@ -221,7 +223,7 @@ pub mod pallet {
 
             let minimum_deposit = MinimumDeposits::<T>::get(asset_id);
             ensure!(
-                deposit >= minimum_deposit.unwrap_or(1u128),
+                deposit >= minimum_deposit.unwrap_or(MINIMUM_DEPOSIT_AMOUNT),
                 Error::<T>::DepositLowerThanMinimum
             );
 
@@ -389,7 +391,7 @@ pub mod pallet {
             T::UpdateOrigin::ensure_origin(origin)?;
             MinimumDeposits::<T>::insert(asset_id, minimum_deposit);
 
-            Self::deposit_event(Event::<T>::MinimumDepositSet(asset_id, minimum_deposit));
+            Self::deposit_event(Event::<T>::MinimumDepositUpdated(asset_id, minimum_deposit));
             Ok(().into())
         }
     }

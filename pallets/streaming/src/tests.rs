@@ -654,5 +654,12 @@ fn create_with_minimum_deposit_works() {
             Streaming::create(Origin::signed(ALICE), BOB, 0, KSM, 6, 10, true),
             Error::<Test>::DepositLowerThanMinimum
         );
+
+        Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
+        Assets::mint(Origin::signed(ALICE), USDT, ALICE, dollar(10000)).unwrap();
+        assert_err!(
+            Streaming::create(Origin::signed(ALICE), BOB, dollar(99), USDT, 6, 10, true),
+            Error::<Test>::DepositLowerThanMinimum
+        );
     })
 }
