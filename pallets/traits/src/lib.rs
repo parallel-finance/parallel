@@ -10,7 +10,6 @@ use sp_std::prelude::*;
 
 use primitives::{CurrencyId, DerivativeIndex, PersistedValidationData, PriceDetail, Rate};
 
-pub mod math;
 pub mod ump;
 pub mod xcm;
 

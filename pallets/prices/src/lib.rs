@@ -188,8 +188,8 @@ impl<T: Config> Pallet<T> {
         asset_id: &CurrencyId,
         base_price: TimeStampedPrice,
     ) -> Option<TimeStampedPrice> {
-        if Some(asset_id.clone()) == T::LiquidStakingCurrenciesProvider::get_liquid_currency() {
-            return T::LiquidStakingExchangeRateProvider::get_exchange_rate(&asset_id).and_then(
+        if Some(*asset_id) == T::LiquidStakingCurrenciesProvider::get_liquid_currency() {
+            return T::LiquidStakingExchangeRateProvider::get_exchange_rate(asset_id).and_then(
                 |rate| {
                     base_price
                         .value
@@ -249,15 +249,13 @@ impl<T: Config> Pallet<T> {
         mantissa: u128,
         base_price: TimeStampedPrice,
     ) -> Option<TimeStampedPrice> {
-        if let Some((base_asset, quote_asset, pool)) =
-            T::AMM::get_pool_by_lp_asset(asset_id.clone())
-        {
+        if let Some((base_asset, quote_asset, pool)) = T::AMM::get_pool_by_lp_asset(*asset_id) {
             if T::VaultTokenCurrenciesFilter::contains(&base_asset)
                 && quote_asset == T::RelayCurrency::get()
             {
                 let base_asset_mantissa = Self::get_asset_mantissa(&base_asset)?;
                 let diff_mantissa = mantissa.checked_div(base_asset_mantissa)?;
-                let lp_asset_total_supply = T::Assets::total_issuance(asset_id.clone());
+                let lp_asset_total_supply = T::Assets::total_issuance(*asset_id);
                 let lp_asset_liquidity = pool
                     .base_amount
                     .get_big_uint()
@@ -323,8 +321,7 @@ impl<T: Config> PriceFeeder for Pallet<T> {
                         )
                     });
             }
-            return T::Source::get(asset_id)
-                .and_then(|price| Self::normalize_detail_price(price, mantissa));
+            T::Source::get(asset_id).and_then(|price| Self::normalize_detail_price(price, mantissa))
         })
     }
 }
@@ -360,7 +357,7 @@ impl<T: Config> DataProviderExtended<CurrencyId, TimeStampedPrice> for Pallet<T>
                 })
             });
         }
-        return T::Source::get_no_op(asset_id);
+        T::Source::get_no_op(asset_id)
     }
 
     fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {

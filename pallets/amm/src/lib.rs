@@ -1140,9 +1140,7 @@ impl<T: Config<I>, I: 'static>
     fn get_pool_by_asset_pair(
         (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Option<Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>> {
-        if let Some((_, base_asset, quote_asset)) =
-            Self::sort_assets((base_asset, quote_asset)).ok()
-        {
+        if let Ok((_, base_asset, quote_asset)) = Self::sort_assets((base_asset, quote_asset)) {
             return Pools::<T, I>::get(base_asset, quote_asset);
         }
         None

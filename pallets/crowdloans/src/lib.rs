@@ -67,10 +67,9 @@ pub mod pallet {
     use sp_std::{boxed::Box, vec::Vec};
     use xcm::latest::prelude::*;
 
-    use pallet_traits::{
-        math::{fixed_u128_from_float, fixed_u128_to_float},
-        VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider,
-    };
+    use pallet_traits::{VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider};
+
+    use pallet_math_helper::f64::{fixed_u128_from_float, fixed_u128_to_float, power_float};
 
     use pallet_xcm_helper::XcmHelper;
 
@@ -1622,14 +1621,6 @@ pub mod pallet {
         fn get_exchange_rate(asset_id: &AssetIdOf<T>, start_exchange_rate: Rate) -> Option<Rate> {
             Self::find_vault_by_asset_id(asset_id).and_then(|vault| {
                 Self::get_vault_term_rate(vault).and_then(|(term_rate, total_term_by_year)| {
-                    use substrate_fixed::traits::LossyInto;
-                    use substrate_fixed::transcendental::pow as fpow;
-                    use substrate_fixed::types::{I32F32, I64F64};
-                    let power_float = |rate: f64, exp: f64| -> Result<f64, &'static str> {
-                        let result: I64F64 = fpow(I32F32::from_num(rate), I32F32::from_num(exp))
-                            .expect("Arithmetic power float overflow");
-                        Ok(result.lossy_into())
-                    };
                     let remaining_year = fixed_u128_to_float(total_term_by_year)
                         * (1_f64 - fixed_u128_to_float(term_rate));
                     let current_rate = power_float(
