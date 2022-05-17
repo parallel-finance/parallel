@@ -217,20 +217,28 @@ fn test_first_round() {
             round_id
         ));
 
-        let mut expected_participated = BTreeMap::new();
-        expected_participated.insert(ALICE, 6);
-        expected_participated.insert(BOB, 6);
-        expected_participated.insert(CHARLIE, 6);
+        let mut expected_participated = BTreeMap::from([(ALICE, 6), (BOB, 6), (CHARLIE, 6)]);
 
-        let mut expected_people_to_reward = BTreeMap::new();
-        expected_people_to_reward.insert(ALICE, 6);
-        expected_people_to_reward.insert(BOB, 6);
-        expected_people_to_reward.insert(CHARLIE, 6);
+        let mut expected_submitters = BTreeMap::from([
+            (ALICE, (FixedU128::from_inner(100_000), 6)),
+            (BOB, (FixedU128::from_inner(100_000), 6)),
+            (CHARLIE, (FixedU128::from_inner(100_000), 6)),
+        ]);
+
+        let mut expected_people_to_reward = BTreeMap::from([(ALICE, 6), (BOB, 6), (CHARLIE, 6)]);
 
         let manager = Doracle::get_round_manager().unwrap();
+
         assert_eq!(manager.participated, expected_participated);
         assert_eq!(manager.people_to_slash, BTreeMap::new());
         assert_eq!(manager.people_to_reward, expected_people_to_reward);
+
+        let current_round = Doracle::get_current_round(HKO, round_id).unwrap();
+
+        assert_eq!(current_round.agg_price, FixedU128::from_inner(300_000));
+        assert_eq!(current_round.mean_price, FixedU128::from_inner(100_000));
+        assert_eq!(current_round.submitters, expected_submitters);
+        assert_eq!(current_round.submitter_count, 3);
     });
 }
 
