@@ -155,9 +155,9 @@ pub mod pallet {
             BalanceOf<T>,
             BalanceOf<T>,
         ),
-        /// Update minimum deposit for creating a stream
+        /// Set minimum deposit for creating a stream
         /// \[asset_id, minimum_deposit\]
-        MinimumDepositUpdated(AssetIdOf<T>, BalanceOf<T>),
+        MinimumDepositSet(AssetIdOf<T>, BalanceOf<T>),
     }
 
     /// Next Stream Id
@@ -392,7 +392,7 @@ pub mod pallet {
             T::UpdateOrigin::ensure_origin(origin)?;
             MinimumDeposits::<T>::insert(asset_id, minimum_deposit);
 
-            Self::deposit_event(Event::<T>::MinimumDepositUpdated(asset_id, minimum_deposit));
+            Self::deposit_event(Event::<T>::MinimumDepositSet(asset_id, minimum_deposit));
             Ok(().into())
         }
     }
