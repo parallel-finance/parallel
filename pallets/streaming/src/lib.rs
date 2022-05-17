@@ -99,6 +99,8 @@ pub mod pallet {
     pub enum Error<T> {
         /// Sender as specified themselves as the recipient
         RecipientIsAlsoSender,
+        /// Asset is not supported to create stream
+        InvalidAssetId,
         /// Insufficient deposit size
         DepositLowerThanMinimum,
         /// Start time is before current block time
@@ -221,9 +223,10 @@ pub mod pallet {
             let sender = ensure_signed(origin)?;
             ensure!(sender != recipient, Error::<T>::RecipientIsAlsoSender);
 
-            let minimum_deposit = MinimumDeposits::<T>::get(asset_id);
+            let minimum_deposit =
+                Self::minimum_deposit(asset_id).ok_or(Error::<T>::InvalidAssetId)?;
             ensure!(
-                deposit >= minimum_deposit.unwrap_or(MINIMUM_DEPOSIT_AMOUNT),
+                deposit >= minimum_deposit,
                 Error::<T>::DepositLowerThanMinimum
             );
 
