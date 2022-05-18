@@ -185,6 +185,9 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         // Set block number and time
         System::set_block_number(0);
         TimestampPallet::set_timestamp(6000);
+
+        // Set minimum deposit for DOT
+        Streaming::set_minimum_deposit(Origin::root(), DOT, dollar(0)).unwrap();
     });
     ext
 }

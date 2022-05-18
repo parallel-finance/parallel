@@ -52,6 +52,8 @@ benchmarks! {
     create {
         let caller: T::AccountId = whitelisted_caller();
         transfer_initial_balance::<T>(caller.clone());
+        assert_ok!(Streaming::<T>::set_minimum_deposit(SystemOrigin::Root.into(), KSM, 0));
+
         let recipient: T::AccountId = account("Streaming", 101, SEED);
         let deposit_amount: u128 = dollar(5);
         let start_time: u64 = 6;
@@ -64,6 +66,7 @@ benchmarks! {
     cancel {
         let caller: T::AccountId = whitelisted_caller();
         transfer_initial_balance::<T>(caller.clone());
+        assert_ok!(Streaming::<T>::set_minimum_deposit(SystemOrigin::Root.into(), KSM, 0));
         let recipient: T::AccountId = account("Streaming", 101, SEED);
         let deposit_amount: u128 = dollar(5);
         let start_time: u64 = 6;
@@ -78,6 +81,8 @@ benchmarks! {
     withdraw {
         let caller: T::AccountId = whitelisted_caller();
         transfer_initial_balance::<T>(caller.clone());
+        assert_ok!(Streaming::<T>::set_minimum_deposit(SystemOrigin::Root.into(), KSM, 0));
+
         let recipient: T::AccountId = account("Streaming", 101, SEED);
 
         let deposit_amount: u128 = dollar(5);

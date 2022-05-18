@@ -97,6 +97,8 @@ pub mod pallet {
     pub enum Error<T> {
         /// Sender as specified themselves as the recipient
         RecipientIsAlsoSender,
+        /// Asset is not supported to create stream
+        InvalidAssetId,
         /// Insufficient deposit size
         DepositLowerThanMinimum,
         /// Start time is before current block time
@@ -219,9 +221,10 @@ pub mod pallet {
             let sender = ensure_signed(origin)?;
             ensure!(sender != recipient, Error::<T>::RecipientIsAlsoSender);
 
-            let minimum_deposit = MinimumDeposits::<T>::get(asset_id);
+            let minimum_deposit =
+                Self::minimum_deposit(asset_id).ok_or(Error::<T>::InvalidAssetId)?;
             ensure!(
-                deposit >= minimum_deposit.unwrap_or(1u128),
+                deposit >= minimum_deposit,
                 Error::<T>::DepositLowerThanMinimum
             );
 
@@ -348,12 +351,12 @@ pub mod pallet {
 
             stream.try_deduct(amount)?;
             stream.try_complete()?;
+            Streams::<T>::insert(stream_id, stream.clone());
             if stream.has_finished() {
                 Self::try_push_stream_library(&stream.sender, stream_id, StreamKind::Finish)?;
                 Self::try_push_stream_library(&recipient, stream_id, StreamKind::Finish)?;
                 Self::update_finished_stream_library(&stream.sender, &recipient)?;
             }
-            Streams::<T>::insert(stream_id, stream.clone());
 
             // Withdraw deposit from stream
             T::Assets::transfer(
