@@ -58,6 +58,10 @@ check-helper:
 test:
 	SKIP_WASM_BUILD= cargo test --workspace --features runtime-benchmarks --exclude runtime-integration-tests --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude kerria-runtime --exclude heiko-runtime --exclude pallet-loans-rpc --exclude pallet-loans-rpc-runtime-api --exclude parallel-primitives -- --nocapture
 
+.PHONY: fast-test-crowdloan
+fast-test-crowdloan:
+	SKIP_WASM_BUILD= cargo test -p pallet-crowdloans --lib --no-fail-fast -- --nocapture
+
 .PHONY: integration-test
 integration-test:
 	SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- --nocapture

@@ -454,7 +454,8 @@ parameter_types! {
     pub const RemoveKeysLimit: u32 = 1000;
     pub SelfParaId: ParaId = para_a_id();
     pub RefundLocation: AccountId = para_a_id().into_account();
-    pub const LeasePeriod: BlockNumber = BLOCKS_PER_YEAR/4;
+    pub const LeasePeriod: BlockNumber = BLOCKS_PER_YEAR/4;//3 months same as polkadot
+    pub const LeaseOffset: BlockNumber = 64*24*3600/6;//64 days same as polkadot
 }
 
 pub type CreateVaultOrigin =
@@ -504,6 +505,7 @@ impl crate::Config for Test {
     type RelayChainBlockNumberProvider = MockBlockNumberProvider;
     type Members = CharlieOrigin;
     type LeasePeriod = LeasePeriod;
+    type LeaseOffset = LeaseOffset;
 }
 
 parameter_types! {

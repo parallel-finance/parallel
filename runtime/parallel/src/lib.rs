@@ -1728,7 +1728,9 @@ parameter_types! {
     pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
-    pub LeasePeriod: BlockNumber = 12 * 7 * DAYS; //from relaychain
+    //const params from relay chain: https://github.com/paritytech/polkadot/blob/1a445d96bdaf3fe781ce642368d0e9d1b2ad3b39/runtime/polkadot/src/lib.rs#L1320-L1328
+    pub LeasePeriod: BlockNumber = 84 * DAYS;
+    pub LeaseOffset: BlockNumber = 64 * DAYS;
 }
 
 pub struct RelayChainValidationDataProvider<T>(sp_std::marker::PhantomData<T>);
@@ -1778,6 +1780,7 @@ impl pallet_crowdloans::Config for Runtime {
     type RelayChainBlockNumberProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = CrowdloansAutomatorsMembership;
     type LeasePeriod = LeasePeriod;
+    type LeaseOffset = LeaseOffset;
 }
 
 parameter_types! {
