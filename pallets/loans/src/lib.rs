@@ -40,9 +40,7 @@ use frame_system::pallet_prelude::*;
 use num_traits::cast::ToPrimitive;
 pub use pallet::*;
 use pallet_traits::{ConvertToBigUint, PriceFeeder};
-use primitives::{
-    tokens::DOT, Balance, CurrencyId, Liquidity, Price, Rate, Ratio, Shortfall, Timestamp,
-};
+use primitives::{Balance, CurrencyId, Liquidity, Price, Rate, Ratio, Shortfall, Timestamp};
 use sp_runtime::{
     traits::{
         AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One,
@@ -131,6 +129,9 @@ pub mod pallet {
         /// Reward asset id.
         #[pallet::constant]
         type RewardAssetId: Get<AssetIdOf<Self>>;
+
+        #[pallet::constant]
+        type LiquidationFreeAssetId: Get<AssetIdOf<Self>>;
     }
 
     #[pallet::error]
@@ -1179,7 +1180,7 @@ impl<T: Config> Pallet<T> {
         T::PalletId::get().into_account()
     }
 
-    fn get_dot_base_position(account: &T::AccountId) -> Result<FixedU128, DispatchError> {
+    fn get_base_position(account: &T::AccountId) -> Result<FixedU128, DispatchError> {
         let mut total_asset_value: FixedU128 = FixedU128::zero();
         for (asset_id, _market) in Self::active_markets()
             .filter(|(asset_id, _)| Self::liquidation_free_collaterals().contains(asset_id))
@@ -1192,9 +1193,11 @@ impl<T: Config> Pallet<T> {
     }
 
     fn get_account_lf_liquidity(account: &T::AccountId) -> Result<Liquidity, DispatchError> {
-        let dot_borrowed_amount = Self::current_borrow_balance(account, DOT)?;
-        let dot_borrowed_value = Self::get_asset_value(DOT, dot_borrowed_amount)?;
-        let dot_base_position = Self::get_dot_base_position(account)?;
+        let dot_borrowed_amount =
+            Self::current_borrow_balance(account, T::LiquidationFreeAssetId::get())?;
+        let dot_borrowed_value =
+            Self::get_asset_value(T::LiquidationFreeAssetId::get(), dot_borrowed_amount)?;
+        let dot_base_position = Self::get_base_position(account)?;
 
         let liquidity = if dot_base_position > dot_borrowed_value {
             dot_base_position - dot_borrowed_value
@@ -1231,9 +1234,10 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_account_liquidation_threshold_liquidity(
         account: &T::AccountId,
-    ) -> Result<(Liquidity, Shortfall), DispatchError> {
+    ) -> Result<(Liquidity, Shortfall, Liquidity), DispatchError> {
         let total_borrow_value = Self::total_borrowed_value(account)?;
         let total_collateral_value = Self::total_liquidation_threshold_value(account)?;
+        let base_position = Self::get_base_position(account)?;
         log::trace!(
             target: "loans::get_account_liquidation_threshold_liquidity",
             "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}",
@@ -1245,11 +1249,13 @@ impl<T: Config> Pallet<T> {
             Ok((
                 total_collateral_value - total_borrow_value,
                 FixedU128::zero(),
+                base_position,
             ))
         } else {
             Ok((
                 FixedU128::zero(),
                 total_borrow_value - total_collateral_value,
+                base_position,
             ))
         }
     }
@@ -1433,7 +1439,11 @@ impl<T: Config> Pallet<T> {
         Self::ensure_under_borrow_cap(asset_id, borrow_amount)?;
         Self::ensure_enough_cash(asset_id, borrow_amount)?;
         let borrow_value = Self::get_asset_value(asset_id, borrow_amount)?;
-        Self::ensure_liquidity(borrower, borrow_value, asset_id == DOT)?;
+        Self::ensure_liquidity(
+            borrower,
+            borrow_value,
+            asset_id == T::LiquidationFreeAssetId::get(),
+        )?;
 
         Ok(())
     }
@@ -1545,14 +1555,31 @@ impl<T: Config> Pallet<T> {
             repay_amount,
             market
         );
-        let (_, shortfall) = Self::get_account_liquidation_threshold_liquidity(borrower)?;
+        let (_, shortfall, base_postion) =
+            Self::get_account_liquidation_threshold_liquidity(borrower)?;
         if shortfall.is_zero() {
             return Err(Error::<T>::InsufficientShortfall.into());
         }
 
         // The liquidator may not repay more than 50%(close_factor) of the borrower's borrow balance.
         let account_borrows = Self::current_borrow_balance(borrower, liquidation_asset_id)?;
-        if market.close_factor.mul_ceil(account_borrows) < repay_amount {
+        let account_borrows_value = Self::get_asset_value(liquidation_asset_id, account_borrows)?;
+        let repay_value = Self::get_asset_value(liquidation_asset_id, repay_amount)?;
+        let effects_borrows_value = if liquidation_asset_id == T::LiquidationFreeAssetId::get() {
+            if account_borrows_value > base_postion {
+                account_borrows_value - base_postion
+            } else {
+                FixedU128::zero()
+            }
+        } else {
+            account_borrows_value
+        };
+
+        if market
+            .close_factor
+            .mul_ceil(effects_borrows_value.into_inner())
+            < repay_value.into_inner()
+        {
             return Err(Error::<T>::TooMuchRepay.into());
         }
 
