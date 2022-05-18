@@ -123,7 +123,7 @@ fn test_unstake_stake_erroneous_scenarios() {
         // Trying to unstake non native currency
         assert_noop!(
             Doracle::unstake(Origin::signed(ALICE), 10, 100_000),
-            Error::<Test>::InvalidStakingCurrency
+            Error::<Test>::InvalidUnstaker
         );
 
         // Unstake an insufficient amount
@@ -142,7 +142,7 @@ fn test_unstake_stake_erroneous_scenarios() {
         assert_ok!(Doracle::register_repeater(Origin::signed(BOB), HKO));
         assert_noop!(
             Doracle::unstake(Origin::signed(BOB), HKO, 11),
-            Error::<Test>::StakingAccountNotFound
+            Error::<Test>::UnstakeAmoutExceedsStakedBalance
         );
 
         // Unstake amount isn larger than staked amount
@@ -360,11 +360,6 @@ fn test_slashes() {
 }
 
 #[test]
-fn test_rewards_after_n_minutes() {
-    new_test_ext().execute_with(|| assert_eq!(1, 2));
-}
-
-#[test]
 fn test_treasury_and_rewards_good_submitters() {
     new_test_ext().execute_with(|| {
         assert_ok!(Doracle::populate_treasury(Origin::signed(ALICE)));
@@ -394,6 +389,7 @@ fn test_treasury_and_rewards_good_submitters() {
         // Check repeater's before the second round
         let rep_alice = Doracle::repeaters(ALICE, HKO).unwrap();
         let rep_bob = Doracle::repeaters(BOB, HKO).unwrap();
+        let treasury = Doracle::get_treasury().unwrap();
 
         // At the end of round one repeaters didn't get any rewards
         assert_eq!(rep_alice.staked_balance, 10_000);
@@ -403,6 +399,8 @@ fn test_treasury_and_rewards_good_submitters() {
         assert_eq!(rep_bob.staked_balance, 100_000);
         assert_eq!(rep_bob.reward, 0);
         assert_eq!(rep_bob.last_submission, 0);
+
+        assert_eq!(treasury, 100_000_000_000);
 
         // Second round starts
         // Participants form the first round submits in the 2nd round
@@ -455,6 +453,8 @@ fn test_treasury_and_rewards_good_submitters() {
         assert_eq!(rep_bob.staked_balance, 100_001);
         assert_eq!(rep_bob.reward, 1);
 
-        // At the end of second round treasury value
+        // At the end of second round treasury value must decreased by 2 HKO since rewarded for 2 accounts
+        let treasury = Doracle::get_treasury().unwrap();
+        assert_eq!(treasury, 99_999_999_998);
     });
 }

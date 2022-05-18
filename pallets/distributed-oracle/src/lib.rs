@@ -362,11 +362,6 @@ pub mod pallet {
             );
 
             ensure!(
-                T::StakingCurrency::get() == asset,
-                Error::<T>::InvalidStakingCurrency
-            );
-
-            ensure!(
                 amount > T::MinUnstake::get(),
                 Error::<T>::InsufficientUnStakeAmount
             );
@@ -566,6 +561,7 @@ pub mod pallet {
                             rec.submitters = recent_round.submitters;
                             rec.submitter_count = recent_round.submitter_count;
 
+                            // ********************************************************************************
                             // Check if it submitted value in the previous round
                             let prev_round =
                                 Self::get_current_round(asset_id, round - 1).unwrap_or_default();
@@ -583,7 +579,6 @@ pub mod pallet {
                                     .people_to_reward
                                     .insert(who.clone(), current_time_stamp);
 
-                                // **********************************************
                                 // Rewards every round
                                 if round > 1 {
                                     Self::do_reward(
@@ -593,6 +588,7 @@ pub mod pallet {
                                     )
                                     .unwrap();
                                 }
+                            // ********************************************************************************
                             } else {
                                 round_manager
                                     .people_to_slash
