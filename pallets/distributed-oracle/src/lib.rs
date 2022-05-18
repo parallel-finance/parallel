@@ -35,6 +35,7 @@ use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul},
     ArithmeticError, FixedU128,
 };
+use std::num::FpCategory::Zero;
 
 pub use pallet::*;
 use pallet_traits::*;
@@ -447,7 +448,8 @@ pub mod pallet {
                 .participated
                 .insert(who.clone(), current_time_stamp);
 
-            // New round , no one has submitted any thing
+            // Begins a  new round
+            // if its Zero, its the beginnig
             if round_agg_price == Zero::zero() {
                 round_manager
                     .people_to_reward
@@ -471,6 +473,16 @@ pub mod pallet {
                 // ********************************************************************************
 
                 let mut within_duration = true;
+
+                // if round > 1 {
+                //     if prev_round.submitters.contains_key(&who) {
+                //         let prev = prev_round.submitters.get(&who).unwrap();
+                //         within_duration = current_time_stamp - prev.1 < T::RoundDuration::get();
+                //     } else {
+                //         within_duration = false;
+                //     }
+                // }
+
                 if prev_round.submitters.contains_key(&who) {
                     let prev = prev_round.submitters.get(&who).unwrap();
                     within_duration = current_time_stamp - prev.1 < T::RoundDuration::get();
@@ -562,6 +574,7 @@ pub mod pallet {
                             rec.submitter_count = recent_round.submitter_count;
 
                             // ********************************************************************************
+                            // TODO : Refactor redundant
                             // Check if it submitted value in the previous round
                             let prev_round =
                                 Self::get_current_round(asset_id, round - 1).unwrap_or_default();
@@ -671,15 +684,21 @@ impl<T: Config> Pallet<T> {
             |repeater| -> DispatchResult {
                 let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
 
-                repeater.staked_balance = repeater
-                    .staked_balance
-                    .checked_sub(slash_amount)
-                    .ok_or(ArithmeticError::Underflow)?;
+                if repeater.staked_balance != 0 {
+                    repeater.staked_balance = repeater
+                        .staked_balance
+                        .checked_sub(slash_amount)
+                        .ok_or(ArithmeticError::Underflow)?;
 
-                repeater.reward = repeater
-                    .reward
-                    .checked_sub(slash_amount)
-                    .ok_or(ArithmeticError::Underflow)?;
+                    if repeater.reward > 0 {
+                        repeater.reward = repeater
+                            .reward
+                            .checked_sub(slash_amount)
+                            .ok_or(ArithmeticError::Underflow)?;
+                    }
+                } else {
+                    Repeaters::<T>::remove(who.clone(), asset_id.clone());
+                }
 
                 let new_treasury_balance = OracleTreasury::<T>::get()
                     .unwrap_or_default()
