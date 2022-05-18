@@ -17,9 +17,9 @@ use parallel_runtime::{
     CrowdloansAutomatorsMembershipConfig, DemocracyConfig, GeneralCouncilConfig,
     GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingAgentsMembershipConfig,
     LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig, PolkadotXcmConfig,
-    SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, VestingConfig,
-    WASM_BINARY,
+    SessionConfig, SystemConfig, TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
 };
+// use parallel_runtime::SudoConfig;
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
@@ -127,7 +127,7 @@ pub fn parallel_config(_id: ParaId) -> Result<ChainSpec, String> {
 }
 
 fn parallel_genesis(
-    root_key: AccountId,
+    _root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     initial_allocation: Vec<(AccountId, Balance)>,
     vesting_list: Vec<(AccountId, BlockNumber, BlockNumber, u32, Balance)>,
@@ -169,9 +169,9 @@ fn parallel_genesis(
         aura: Default::default(),
         aura_ext: Default::default(),
         parachain_system: Default::default(),
-        sudo: SudoConfig {
-            key: Some(root_key),
-        },
+        // sudo: SudoConfig {
+        //     key: Some(root_key),
+        // },
         parachain_info: ParachainInfoConfig { parachain_id: id },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100_u32, 100_u32), // 1
