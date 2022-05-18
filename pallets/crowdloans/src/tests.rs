@@ -1610,3 +1610,118 @@ fn get_ctoken_exchange_rate_with_partial_lease_should_work() {
         );
     });
 }
+
+#[test]
+fn get_ctoken_exchange_rate_with_minor_input_change_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            Id(Crowdloans::account_id()),
+            true,
+            One::one(),
+        ));
+        //lease from 0 to 7
+        let start_lease = LEASE_START;
+        let end_lease = LEASE_END;
+
+        assert_ok!(Crowdloans::create_vault(
+            Origin::signed(ALICE), // origin
+            crowdloan,             // crowdloan
+            ctoken,                // ctoken
+            start_lease,           // lease_start
+            end_lease,             // lease_end
+            contribution_strategy, // contribution_strategy
+            cap,                   // cap
+            end_block              // end_block
+        ));
+
+        let start_rate = Rate::from_inner(450_000_000_000_000_000);
+
+        // set relay_block_num as lease_start_block + 100
+        sp_io::storage::set(
+            &RELAY_BLOCK_KEY,
+            &(start_lease * LeasePeriod::get() + 100).encode(),
+        );
+        // exchange_rate ~=0.4756
+        let expected_rate = Rate::from_inner(475627614522123975);
+        assert_eq!(
+            Crowdloans::get_exchange_rate(&ctoken, start_rate),
+            Some(expected_rate)
+        );
+
+        // if change full_rate from 0.45 to 0.4499999999=1e-10,
+        // because of the f64 precision loss, the result will not change
+        let start_rate = Rate::from_inner(449_999_999_900_000_000);
+
+        // set relay_block_num as lease_start_block + 100
+        sp_io::storage::set(
+            &RELAY_BLOCK_KEY,
+            &(start_lease * LeasePeriod::get() + 100).encode(),
+        );
+        // exchange_rate not change
+        assert_eq!(
+            Crowdloans::get_exchange_rate(&ctoken, start_rate),
+            Some(expected_rate)
+        );
+
+        // if change a little more from 0.45 to 0.449999999=1e-9 the result will change
+        // and from test in multiple hardware platform result always same
+        // so it is platform-agnostics and deterministic
+        // and we can just stick on current f64 and exp based formula
+        let start_rate = Rate::from_inner(449_999_999_000_000_000);
+
+        // set relay_block_num as lease_start_block + 100
+        sp_io::storage::set(
+            &RELAY_BLOCK_KEY,
+            &(start_lease * LeasePeriod::get() + 100).encode(),
+        );
+        // exchange_rate ~=0.4756
+        assert_eq!(
+            Crowdloans::get_exchange_rate(&ctoken, start_rate),
+            Some(Rate::from_inner(475627615133101263))
+        );
+        assert_ne!(
+            Crowdloans::get_exchange_rate(&ctoken, start_rate),
+            Some(expected_rate)
+        );
+
+        let start_rate = Rate::from_inner(450_000_000_000_000_000);
+        // set relay_block_num as lease_start_block + 101
+        sp_io::storage::set(
+            &RELAY_BLOCK_KEY,
+            &(start_lease * LeasePeriod::get() + 101).encode(),
+        );
+        // exchange_rate ~=0.4756
+        assert_eq!(
+            Crowdloans::get_exchange_rate(&ctoken, start_rate),
+            Some(Rate::from_inner(475627648139389870))
+        );
+        assert_ne!(
+            Crowdloans::get_exchange_rate(&ctoken, start_rate),
+            Some(expected_rate)
+        );
+
+        // set relay_block_num as lease_start_block + 110
+        sp_io::storage::set(
+            &RELAY_BLOCK_KEY,
+            &(start_lease * LeasePeriod::get() + 110).encode(),
+        );
+        // exchange_rate ~=0.4756
+        assert_eq!(
+            Crowdloans::get_exchange_rate(&ctoken, start_rate),
+            Some(Rate::from_inner(475627950736036856))
+        );
+        assert_ne!(
+            Crowdloans::get_exchange_rate(&ctoken, start_rate),
+            Some(expected_rate)
+        );
+    });
+}
