@@ -69,7 +69,6 @@ pub use weights::WeightInfo;
 pub mod pallet {
     use super::*;
     use crate::helpers::{Repeater, RoundHolder, RoundManager};
-    use crate::mock::One;
     use sp_runtime::traits::Zero;
     use sp_runtime::ArithmeticError;
     use std::collections::BTreeMap;
@@ -417,7 +416,17 @@ pub mod pallet {
             round: u128,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
             let current_time_stamp = T::UnixTime::now().as_secs();
+            let mut round_agg_price: Price = Zero::zero();
+            let mut round_mean_price: Price = Zero::zero();
+
+            let mut recent_round = Self::get_current_round(asset_id, round).unwrap_or_default();
+
+            ensure!(
+                !recent_round.submitters.contains_key(&who),
+                Error::<T>::AccountAlreadySubmittedPrice
+            );
 
             ensure!(
                 Self::repeaters(who.clone(), T::StakingCurrency::get())
@@ -427,12 +436,15 @@ pub mod pallet {
                 Error::<T>::InvalidRepeater
             );
 
-            let mut recent_round = Self::get_current_round(asset_id, round).unwrap_or_default();
+            let prev_round = Self::get_current_round(asset_id, round - 1).unwrap_or_default();
 
-            ensure!(
-                !recent_round.submitters.contains_key(&who),
-                Error::<T>::AccountAlreadySubmittedPrice
-            );
+            round_agg_price = recent_round.agg_price;
+            round_mean_price = recent_round.mean_price;
+            // New round, brings the values from previous round
+            if recent_round.agg_price == Zero::zero() {
+                round_agg_price = prev_round.agg_price;
+                round_mean_price = prev_round.mean_price;
+            }
 
             let mut round_manager = Manager::<T>::get().unwrap_or_default();
 
@@ -441,7 +453,7 @@ pub mod pallet {
                 .insert(who.clone(), current_time_stamp);
 
             // New round , no one has submitted any thing
-            if recent_round.agg_price == Zero::zero() {
+            if round_agg_price == Zero::zero() {
                 round_manager
                     .people_to_reward
                     .insert(who.clone(), current_time_stamp);
@@ -461,15 +473,32 @@ pub mod pallet {
                         submitter_count: 1u32,
                     },
                 );
+                // ********************************************************************************
+
+                let mut within_duration = true;
+                if prev_round.submitters.contains_key(&who) {
+                    let prev = prev_round.submitters.get(&who).unwrap();
+                    within_duration = current_time_stamp - prev.1 < T::RoundDuration::get();
+                }
+                if within_duration {
+                    round_manager
+                        .people_to_reward
+                        .insert(who.clone(), current_time_stamp);
+
+                    // Rewards every round
+                    if round > 1 {
+                        Self::do_reward(who.clone(), asset_id.clone(), T::RewardAmount::get())
+                            .unwrap();
+                    }
+                    // ********************************************************************************
+                }
             } else {
                 // Threshold price is +/- 50 of the current price
-                let price_lower_limit = recent_round
-                    .mean_price
+                let price_lower_limit = round_mean_price
                     .checked_div(&FixedU128::from(2u128))
                     .ok_or(ArithmeticError::Underflow)?;
 
-                let price_upper_limit = recent_round
-                    .mean_price
+                let price_upper_limit = round_mean_price
                     .checked_div(&FixedU128::from(2u128))
                     .and_then(|r| r.checked_mul(&FixedU128::from(3u128)))
                     .ok_or(ArithmeticError::Underflow)?;
@@ -494,42 +523,91 @@ pub mod pallet {
                         .checked_div(&FixedU128::from(recent_round.submitter_count as u128))
                         .ok_or(ArithmeticError::Underflow)?;
 
-                    CurrentRound::<T>::mutate(asset_id, round, |rec| -> DispatchResult {
-                        let mut rec = rec.as_mut().ok_or(Error::<T>::CurrentRoundNotFound)?;
+                    if !CurrentRound::<T>::contains_key(asset_id, round) {
+                        CurrentRound::<T>::insert(
+                            asset_id,
+                            round,
+                            RoundHolder {
+                                agg_price: agg_price,
+                                mean_price: mean_price,
+                                round_started_time: current_time_stamp,
+                                submitters: recent_round.submitters,
+                                submitter_count: recent_round.submitter_count,
+                            },
+                        );
+                        // ********************************************************************************
 
-                        rec.agg_price = agg_price;
-                        rec.mean_price = mean_price;
-                        rec.submitters = recent_round.submitters;
-                        rec.submitter_count = recent_round.submitter_count;
-
-                        // Check if it submitted value in the previous round
-                        let prev_round =
-                            Self::get_current_round(asset_id, round - 1).unwrap_or_default();
                         let mut within_duration = true;
-
                         if prev_round.submitters.contains_key(&who) {
                             let prev = prev_round.submitters.get(&who).unwrap();
                             within_duration = current_time_stamp - prev.1 < T::RoundDuration::get();
                         }
-
                         if within_duration {
                             round_manager
                                 .people_to_reward
                                 .insert(who.clone(), current_time_stamp);
-
-                            // Adds reward
-                            Self::do_reward(who.clone(), asset_id.clone(), T::RewardAmount::get())
+                            // Rewards every round
+                            if round > 1 {
+                                Self::do_reward(
+                                    who.clone(),
+                                    asset_id.clone(),
+                                    T::RewardAmount::get(),
+                                )
                                 .unwrap();
-                        } else {
-                            round_manager
-                                .people_to_slash
-                                .insert(who.clone(), current_time_stamp);
-
-                            Self::do_slash(who.clone(), asset_id.clone(), T::RewardAmount::get())
-                                .unwrap();
+                            }
                         }
-                        Ok(())
-                    })?;
+                        // ********************************************************************************
+                    } else {
+                        CurrentRound::<T>::mutate(asset_id, round, |rec| -> DispatchResult {
+                            let mut rec = rec.as_mut().ok_or(Error::<T>::CurrentRoundNotFound)?;
+
+                            rec.agg_price = agg_price;
+                            rec.mean_price = mean_price;
+                            rec.submitters = recent_round.submitters;
+                            rec.submitter_count = recent_round.submitter_count;
+
+                            // Check if it submitted value in the previous round
+                            let prev_round =
+                                Self::get_current_round(asset_id, round - 1).unwrap_or_default();
+                            let mut within_duration = true;
+
+                            // round > 1 check if its within duration
+                            if prev_round.submitters.contains_key(&who) {
+                                let prev = prev_round.submitters.get(&who).unwrap();
+                                within_duration =
+                                    current_time_stamp - prev.1 < T::RoundDuration::get();
+                            }
+
+                            if within_duration {
+                                round_manager
+                                    .people_to_reward
+                                    .insert(who.clone(), current_time_stamp);
+
+                                // **********************************************
+                                // Rewards every round
+                                if round > 1 {
+                                    Self::do_reward(
+                                        who.clone(),
+                                        asset_id.clone(),
+                                        T::RewardAmount::get(),
+                                    )
+                                    .unwrap();
+                                }
+                            } else {
+                                round_manager
+                                    .people_to_slash
+                                    .insert(who.clone(), current_time_stamp);
+
+                                Self::do_slash(
+                                    who.clone(),
+                                    asset_id.clone(),
+                                    T::RewardAmount::get(),
+                                )
+                                .unwrap();
+                            }
+                            Ok(())
+                        })?;
+                    }
                 } else {
                     round_manager
                         .people_to_slash
@@ -555,7 +633,7 @@ impl<T: Config> Pallet<T> {
         who: AccountOf<T>,
         asset_id: AssetIdOf<T>,
         reward_amount: BalanceOf<T>,
-    ) -> Result<(), sp_runtime::DispatchError> {
+    ) -> Result<(), DispatchError> {
         Repeaters::<T>::mutate(
             who.clone(),
             asset_id.clone(),
@@ -590,7 +668,7 @@ impl<T: Config> Pallet<T> {
         who: AccountOf<T>,
         asset_id: AssetIdOf<T>,
         slash_amount: BalanceOf<T>,
-    ) -> Result<(), sp_runtime::DispatchError> {
+    ) -> Result<(), DispatchError> {
         Repeaters::<T>::mutate(
             who.clone(),
             asset_id.clone(),

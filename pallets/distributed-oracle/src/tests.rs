@@ -239,6 +239,17 @@ fn test_first_round() {
         assert_eq!(current_round.mean_price, FixedU128::from_inner(100_000));
         assert_eq!(current_round.submitters, expected_submitters);
         assert_eq!(current_round.submitter_count, 3);
+
+        // Alice tries to submit again in the same round should throw an error
+        assert_noop!(
+            Doracle::set_price_for_round(
+                Origin::signed(ALICE),
+                HKO,
+                Price::from_inner(100_000 * 1),
+                round_id
+            ),
+            Error::<Test>::AccountAlreadySubmittedPrice
+        );
     });
 }
 
@@ -344,137 +355,6 @@ fn test_slashing_for_no_response() {
 }
 
 #[test]
-fn test_that_repeater_are_rewarded_after_n_rounds() {
-    new_test_ext().execute_with(|| {
-        // // in this case we want to pay repeaters X amount at the end
-        // // of 3 (n) rounds
-        // assert_ok!(Doracle::set_rounds_before_rewards(
-        //     Origin::signed(ALICE), // should should update
-        //     3 // number of rounds
-        // ));
-
-        // we want to setup a couple of repeater
-        // assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
-        // assert_ok!(Doracle::register_repeater(Origin::signed(BOB), HKO));
-        // assert_ok!(Doracle::register_repeater(Origin::signed(CHARLIE), HKO));
-
-        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_00));
-        assert_ok!(Doracle::stake(Origin::signed(BOB), HKO, 100_000));
-        assert_ok!(Doracle::stake(Origin::signed(CHARLIE), HKO, 100_000));
-
-        // round 1
-        // alice, bob, charlie
-        let round_id = 1;
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(ALICE),                 // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(BOB),                   // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(CHARLIE),               // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        // round 2
-        // alice, bob, charlie
-        let round_id = 2;
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(ALICE),                 // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(BOB),                   // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(CHARLIE),               // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        // round 3
-        // alice, bob, charlie
-        let round_id = 3;
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(ALICE),                 // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(BOB),                   // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(CHARLIE),               // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        // round 4
-        // alice, bob, charlie
-        let round_id = 3;
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(ALICE),                 // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(BOB),                   // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        assert_ok!(Doracle::set_price_for_round(
-            Origin::signed(CHARLIE),               // origin
-            HKO,                                   // asset_id
-            Price::from_inner(10_000_000_000 * 1), // price
-            round_id                               // round_id
-        ));
-
-        // check the balances (internal balance [rewards])
-        // of A, B and C
-        // > the starting balance (because of rewards)
-
-        // let current_balance = Assets::balance(ALICE, HKO);
-        // let current_balance = Doracle::pending_reward_balance(ALICE, HKO);
-        // let current_balance = Doracle::pending_reward_balance(BOB, HKO);
-        // let current_balance = Doracle::pending_reward_balance(CHARLIE, HKO);
-
-        // let bal_diff = current_balance - older_balance;
-        // let reward_amount_for_n_rounds = 1000; // <--- some number
-        //
-        // assert_eq!(bal_diff, reward_amount_for_n_rounds);
-    })
-}
-
-#[test]
 fn test_slashes() {
     new_test_ext().execute_with(|| assert_eq!(1, 2));
 }
@@ -485,6 +365,96 @@ fn test_rewards_after_n_minutes() {
 }
 
 #[test]
-fn treasury_increment_decrement() {
-    new_test_ext().execute_with(|| assert_eq!(1, 2));
+fn test_treasury_and_rewards_good_submitters() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Doracle::populate_treasury(Origin::signed(ALICE)));
+
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 10_000));
+
+        assert_ok!(Doracle::register_repeater(Origin::signed(BOB), HKO));
+        assert_ok!(Doracle::stake(Origin::signed(BOB), HKO, 100_000));
+
+        let round_id = 1u128;
+
+        assert_ok!(Doracle::set_price_for_round(
+            Origin::signed(ALICE),
+            HKO,
+            Price::from_inner(100_000 * 1),
+            round_id
+        ));
+
+        assert_ok!(Doracle::set_price_for_round(
+            Origin::signed(BOB),
+            HKO,
+            Price::from_inner(100_000 * 1),
+            round_id
+        ));
+
+        // Check repeater's before the second round
+        let rep_alice = Doracle::repeaters(ALICE, HKO).unwrap();
+        let rep_bob = Doracle::repeaters(BOB, HKO).unwrap();
+
+        // At the end of round one repeaters didn't get any rewards
+        assert_eq!(rep_alice.staked_balance, 10_000);
+        assert_eq!(rep_alice.reward, 0);
+        assert_eq!(rep_alice.last_submission, 0);
+
+        assert_eq!(rep_bob.staked_balance, 100_000);
+        assert_eq!(rep_bob.reward, 0);
+        assert_eq!(rep_bob.last_submission, 0);
+
+        // Second round starts
+        // Participants form the first round submits in the 2nd round
+        let round_id = 2u128;
+
+        assert_ok!(Doracle::set_price_for_round(
+            Origin::signed(ALICE),
+            HKO,
+            Price::from_inner(60_000 * 1),
+            round_id
+        ));
+
+        assert_ok!(Doracle::set_price_for_round(
+            Origin::signed(BOB),
+            HKO,
+            Price::from_inner(70_000 * 1),
+            round_id
+        ));
+
+        let mut expected_participated = BTreeMap::from([(ALICE, 6), (BOB, 6)]);
+
+        let mut expected_submitters = BTreeMap::from([
+            (ALICE, (FixedU128::from_inner(60_000), 6)),
+            (BOB, (FixedU128::from_inner(70_000), 6)),
+        ]);
+
+        let mut expected_people_to_reward = BTreeMap::from([(ALICE, 6), (BOB, 6)]);
+
+        let manager = Doracle::get_round_manager().unwrap();
+
+        assert_eq!(manager.participated, expected_participated);
+        assert_eq!(manager.people_to_slash, BTreeMap::new());
+        assert_eq!(manager.people_to_reward, expected_people_to_reward);
+
+        let current_round = Doracle::get_current_round(HKO, round_id).unwrap();
+
+        assert_eq!(current_round.agg_price, FixedU128::from_inner(130_000));
+        assert_eq!(current_round.mean_price, FixedU128::from_inner(65_000));
+        assert_eq!(current_round.submitters, expected_submitters);
+        assert_eq!(current_round.submitter_count, 2);
+
+        // Check repeater's balances after round 1
+        let rep_alice = Doracle::repeaters(ALICE, HKO).unwrap();
+        let rep_bob = Doracle::repeaters(BOB, HKO).unwrap();
+
+        // At the end of second round Alice and Bob gets rewards
+        assert_eq!(rep_alice.staked_balance, 10_001);
+        assert_eq!(rep_alice.reward, 1);
+
+        assert_eq!(rep_bob.staked_balance, 100_001);
+        assert_eq!(rep_bob.reward, 1);
+
+        // At the end of second round treasury value
+    });
 }
