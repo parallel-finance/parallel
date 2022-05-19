@@ -251,6 +251,7 @@ impl pallet_assets::Config for Test {
 parameter_types! {
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
     pub const RewardAssetId: CurrencyId = HKO;
+    pub const LiquidationFreeAssetId: CurrencyId = KSM;
 }
 
 impl Config for Test {
@@ -263,6 +264,7 @@ impl Config for Test {
     type UnixTime = TimestampPallet;
     type Assets = CurrencyAdapter;
     type RewardAssetId = RewardAssetId;
+    type LiquidationFreeAssetId = LiquidationFreeAssetId;
 }
 
 parameter_types! {
