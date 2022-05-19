@@ -1706,7 +1706,8 @@ parameter_types! {
     pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
-    pub LeasePeriod: BlockNumber = 2 * MINUTES;
+    //assume LeasePeriod in relaychain is set to 2 * MINUTES in fast mode
+    pub LeasePeriod: BlockNumber = 2 * 2 * MINUTES;
     pub LeaseOffset: BlockNumber = 0;
     pub LeasePerYear: BlockNumber = 4;
 }

@@ -1606,7 +1606,7 @@ pub mod pallet {
             let blocks_per_year = T::LeasePerYear::get().saturating_mul(lease_period);
             let total_term_by_year = Rate::saturating_from_rational(
                 lease_length.saturated_into::<u32>(),
-                T::BlockNumber::from(blocks_per_year).saturated_into::<u32>(),
+                blocks_per_year.saturated_into::<u32>(),
             );
             let term_rate: Rate;
             if current_block < start_block {

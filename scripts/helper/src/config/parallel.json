@@ -3,8 +3,8 @@
   "leaseIndex": 0,
   "paraId": 2012,
   "relayAsset": 101,
-  "gift": "10000000000000000",
-  "stakingLedgerCap": "10000000000000000",
+  "gift": "1000000000000000",
+  "stakingLedgerCap": "1000000000000000",
   "paraDeposit": "0",
   "crowdloanDeposit": "10000000000000",
   "assets": [
@@ -75,6 +75,16 @@
       "balances": []
     },
     {
+      "name": "Parallel Crowdloans Polkadot - (7 ~ 14)",
+      "symbol": "cDOT-7/14",
+      "assetId": 200070014,
+      "decimal": 10,
+      "balances": [
+        ["5EYCAe5iie3JmgLB4rm1NHQtyYGiaYYBEB1jt7p35dXjQWJ8", "1000000000000000"],
+        ["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000"]
+      ]
+    },
+    {
       "name": "Parallel LP-USDT/PARA",
       "symbol": "LP-USDT/PARA",
       "assetId": 6000,
@@ -92,6 +102,13 @@
       "name": "Parallel LP-DOT/PARA",
       "symbol": "LP-DOT/PARA",
       "assetId": 6002,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Parallel LP-DOT/CDOT-7-14",
+      "symbol": "LP-DOT/CDOT-7-14",
+      "assetId": 6005,
       "decimal": 12,
       "balances": []
     },
@@ -179,6 +196,52 @@
         "state": "Pending",
         "ptokenId": 3001
       }
+    },
+    {
+      "assetId": 200070014,
+      "marketConfig": {
+        "closeFactor": 50e4,
+        "collateralFactor": 50e4,
+        "liquidationThreshold":55e4,
+        "reserveFactor": 15e4,
+        "supplyCap": "100000000000000000",
+        "borrowCap": "100000000000000000",
+        "liquidateIncentive": "1100000000000000000",
+        "liquidateIncentiveReservedFactor":3e4,
+        "rateModel": {
+          "jump": {
+            "baseRate": "20000000000000000",
+            "jumpRate": "100000000000000000",
+            "fullRate": "320000000000000000",
+            "jumpUtilization": 8e5
+          }
+        },
+        "state": "Pending",
+        "ptokenId": 200072014
+      }
+    },
+    {
+      "assetId": 6005,
+      "marketConfig": {
+        "closeFactor": 50e4,
+        "collateralFactor": 50e4,
+        "liquidationThreshold":55e4,
+        "reserveFactor": 15e4,
+        "supplyCap": "100000000000000000",
+        "borrowCap": "100000000000000000",
+        "liquidateIncentive": "1100000000000000000",
+        "liquidateIncentiveReservedFactor":3e4,
+        "rateModel": {
+          "jump": {
+            "baseRate": "20000000000000000",
+            "jumpRate": "100000000000000000",
+            "fullRate": "320000000000000000",
+            "jumpUtilization": 8e5
+          }
+        },
+        "state": "Pending",
+        "ptokenId": 8005
+      }
     }
   ],
   "pools": [
@@ -199,6 +262,12 @@
       "liquidityAmounts": ["10000000000000000", "30000000000000000000"],
       "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
       "liquidityProviderToken": 6002
+    },
+    {
+      "pool": [200070014, 101],
+      "liquidityAmounts": ["10000000000000000", "10000000000000000"],
+      "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
+      "liquidityProviderToken": 6005
     }
   ],
   "crowdloans": [
@@ -232,6 +301,18 @@
       "image": "parallelfinance/polkadot-collator:v0.9.19",
       "chain": "shell",
       "ctokenId": 4000,
+      "cap": "10000000000000000",
+      "endBlock": 202800,
+      "leaseStart": 0,
+      "leaseEnd": 7,
+      "pending": false
+    },
+    {
+      "paraId": 2032,
+      "derivativeIndex": 3,
+      "image": "parallelfinance/polkadot-collator:v0.9.19",
+      "chain": "shell",
+      "ctokenId": 200070014,
       "cap": "10000000000000000",
       "endBlock": 202800,
       "leaseStart": 0,
