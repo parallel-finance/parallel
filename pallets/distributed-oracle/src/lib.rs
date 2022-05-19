@@ -215,7 +215,7 @@ pub mod pallet {
     pub type Round<T: Config> = StorageValue<_, u128>;
 
     #[pallet::storage]
-    #[pallet::getter(fn get_round_manager)]
+    #[pallet::getter(fn manager)]
     pub type Manager<T: Config> = StorageValue<_, RoundManager<T>>;
 
     /// Holds the average price per round
@@ -444,12 +444,14 @@ pub mod pallet {
 
             let mut round_manager = Manager::<T>::get().unwrap_or_default();
 
-            round_manager
-                .participated
-                .insert(who.clone(), current_time_stamp);
+            if !round_manager.participated.contains_key(&who) {
+                round_manager
+                    .participated
+                    .insert(who.clone(), current_time_stamp);
+            }
 
             // Begins a  new round
-            // if its Zero, its the beginnig
+            // if its Zero, its the beginning
             if round_agg_price == Zero::zero() {
                 round_manager
                     .people_to_reward
@@ -471,34 +473,11 @@ pub mod pallet {
                     },
                 );
                 // ********************************************************************************
-
-                let mut within_duration = true;
-
-                // if round > 1 {
-                //     if prev_round.submitters.contains_key(&who) {
-                //         let prev = prev_round.submitters.get(&who).unwrap();
-                //         within_duration = current_time_stamp - prev.1 < T::RoundDuration::get();
-                //     } else {
-                //         within_duration = false;
-                //     }
-                // }
-
-                if prev_round.submitters.contains_key(&who) {
-                    let prev = prev_round.submitters.get(&who).unwrap();
-                    within_duration = current_time_stamp - prev.1 < T::RoundDuration::get();
+                // Rewarding happens after 1st round
+                if round > 1 || prev_round.submitters.contains_key(&who) {
+                    Self::do_reward(who.clone(), asset_id.clone(), T::RewardAmount::get()).unwrap();
                 }
-                if within_duration {
-                    round_manager
-                        .people_to_reward
-                        .insert(who.clone(), current_time_stamp);
-
-                    // Rewards every round
-                    if round > 1 {
-                        Self::do_reward(who.clone(), asset_id.clone(), T::RewardAmount::get())
-                            .unwrap();
-                    }
-                    // ********************************************************************************
-                }
+                // ********************************************************************************
             } else {
                 // Threshold price is +/- 50 of the current price
                 let price_lower_limit = round_mean_price
@@ -535,35 +514,25 @@ pub mod pallet {
                             asset_id,
                             round,
                             RoundHolder {
-                                agg_price: agg_price,
-                                mean_price: mean_price,
+                                agg_price,
+                                mean_price,
                                 round_started_time: current_time_stamp,
                                 submitters: recent_round.submitters,
                                 submitter_count: recent_round.submitter_count,
                             },
                         );
-                        // ********************************************************************************
-
-                        let mut within_duration = true;
-                        if prev_round.submitters.contains_key(&who) {
-                            let prev = prev_round.submitters.get(&who).unwrap();
-                            within_duration = current_time_stamp - prev.1 < T::RoundDuration::get();
-                        }
-                        if within_duration {
+                        // *************************************************************************
+                        if round == 1 || prev_round.submitters.contains_key(&who) {
                             round_manager
                                 .people_to_reward
                                 .insert(who.clone(), current_time_stamp);
-                            // Rewards every round
-                            if round > 1 {
-                                Self::do_reward(
-                                    who.clone(),
-                                    asset_id.clone(),
-                                    T::RewardAmount::get(),
-                                )
-                                .unwrap();
-                            }
                         }
-                        // ********************************************************************************
+
+                        if round > 1 || prev_round.submitters.contains_key(&who) {
+                            Self::do_reward(who.clone(), asset_id.clone(), T::RewardAmount::get())
+                                .unwrap();
+                        }
+                        // *************************************************************************
                     } else {
                         CurrentRound::<T>::mutate(asset_id, round, |rec| -> DispatchResult {
                             let mut rec = rec.as_mut().ok_or(Error::<T>::CurrentRoundNotFound)?;
@@ -573,47 +542,30 @@ pub mod pallet {
                             rec.submitters = recent_round.submitters;
                             rec.submitter_count = recent_round.submitter_count;
 
-                            // ********************************************************************************
-                            // TODO : Refactor redundant
-                            // Check if it submitted value in the previous round
-                            let prev_round =
-                                Self::get_current_round(asset_id, round - 1).unwrap_or_default();
-                            let mut within_duration = true;
-
-                            // round > 1 check if its within duration
-                            if prev_round.submitters.contains_key(&who) {
-                                let prev = prev_round.submitters.get(&who).unwrap();
-                                within_duration =
-                                    current_time_stamp - prev.1 < T::RoundDuration::get();
-                            }
-
-                            if within_duration {
+                            if round == 1 || prev_round.submitters.contains_key(&who) {
                                 round_manager
                                     .people_to_reward
                                     .insert(who.clone(), current_time_stamp);
+                            }
 
-                                // Rewards every round
-                                if round > 1 {
+                            if round > 1 {
+                                if prev_round.submitters.contains_key(&who) {
                                     Self::do_reward(
                                         who.clone(),
                                         asset_id.clone(),
                                         T::RewardAmount::get(),
                                     )
                                     .unwrap();
+                                } else {
+                                    Self::do_slash(
+                                        who.clone(),
+                                        asset_id.clone(),
+                                        T::RewardAmount::get(),
+                                    )
+                                    .unwrap();
                                 }
-                            // ********************************************************************************
-                            } else {
-                                round_manager
-                                    .people_to_slash
-                                    .insert(who.clone(), current_time_stamp);
-
-                                Self::do_slash(
-                                    who.clone(),
-                                    asset_id.clone(),
-                                    T::RewardAmount::get(),
-                                )
-                                .unwrap();
                             }
+
                             Ok(())
                         })?;
                     }

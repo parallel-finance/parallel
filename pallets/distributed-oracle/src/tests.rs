@@ -227,7 +227,7 @@ fn test_initial_round() {
 
         let mut expected_people_to_reward = BTreeMap::from([(ALICE, 6), (BOB, 6), (CHARLIE, 6)]);
 
-        let manager = Doracle::get_round_manager().unwrap();
+        let manager = Doracle::manager().unwrap();
 
         assert_eq!(manager.participated, expected_participated);
         assert_eq!(manager.people_to_slash, BTreeMap::new());
@@ -254,7 +254,7 @@ fn test_initial_round() {
 }
 
 #[test]
-fn test_slashing_for_no_response() {
+fn test_flow_slashing_after_round_one() {
     new_test_ext().execute_with(|| {
         assert_ok!(Doracle::populate_treasury(Origin::signed(ALICE)));
 
@@ -290,6 +290,23 @@ fn test_slashing_for_no_response() {
             Price::from_inner(100_000),
             round_id
         ));
+
+        // Check who has participated, needs to slash and rewarded after round 1
+        let round_manager = Doracle::manager().unwrap();
+
+        // ALICE, BOB and CHARLIE participated
+        assert_eq!(
+            round_manager.participated,
+            BTreeMap::from([(ALICE, 6), (BOB, 6), (CHARLIE, 6)])
+        );
+        // No one to slash
+        assert_eq!(round_manager.people_to_slash, BTreeMap::from([]));
+
+        // All participants should get rewards
+        assert_eq!(
+            round_manager.people_to_reward,
+            BTreeMap::from([(ALICE, 6), (BOB, 6), (CHARLIE, 6)])
+        );
 
         // Send round stars BOB didn't submit a price
         let round_id = 2u128;
@@ -352,7 +369,6 @@ fn test_slashing_for_no_response() {
             Price::from_inner(70_000),
             round_id
         ));
-        // ******************************************************************
 
         // Only ALICE and CHARLIE should get rewards
         // Check repeater's balances after round 2
@@ -368,86 +384,20 @@ fn test_slashing_for_no_response() {
         assert_eq!(rep_charlie.staked_balance, 100_002);
         assert_eq!(rep_charlie.reward, 2);
 
-        // repeater BOB's staked balance should not changed and should not get any rewards
-        assert_eq!(rep_bob.staked_balance, 100_000);
+        // repeater BOB should get slashed by 1
+        assert_eq!(rep_bob.staked_balance, 99_999);
         assert_eq!(rep_bob.reward, 0);
 
-        // *****************************************************************************************
-        // Check repeater's before the second round
-        // let rep_alice = Doracle::repeaters(ALICE, HKO).unwrap();
-        // let rep_bob = Doracle::repeaters(BOB, HKO).unwrap();
-        // let treasury = Doracle::get_treasury().unwrap();
-        //
-        // // At the end of round one repeaters didn't get any rewards
-        // assert_eq!(rep_alice.staked_balance, 10_000);
-        // assert_eq!(rep_alice.reward, 0);
-        // assert_eq!(rep_alice.last_submission, 0);
-        //
-        // assert_eq!(rep_bob.staked_balance, 100_000);
-        // assert_eq!(rep_bob.reward, 0);
-        // assert_eq!(rep_bob.last_submission, 0);
-        //
-        // assert_eq!(treasury, 100_000_000_000);
-        //
-        // // Second round starts
-        // // Participants form the first round submits in the 2nd round
-        // let round_id = 2u128;
-        //
-        // assert_ok!(Doracle::set_price_for_round(
-        //     Origin::signed(ALICE),
-        //     HKO,
-        //     Price::from_inner(60_000),
-        //     round_id
-        // ));
-        //
-        // assert_ok!(Doracle::set_price_for_round(
-        //     Origin::signed(BOB),
-        //     HKO,
-        //     Price::from_inner(70_000),
-        //     round_id
-        // ));
-        //
-        // let mut expected_participated = BTreeMap::from([(ALICE, 6), (BOB, 6)]);
-        //
-        // let mut expected_submitters = BTreeMap::from([
-        //     (ALICE, (FixedU128::from_inner(60_000), 6)),
-        //     (BOB, (FixedU128::from_inner(70_000), 6)),
-        // ]);
-        //
-        // let mut expected_people_to_reward = BTreeMap::from([(ALICE, 6), (BOB, 6)]);
-        //
-        // let manager = Doracle::get_round_manager().unwrap();
-        //
-        // assert_eq!(manager.participated, expected_participated);
-        // assert_eq!(manager.people_to_slash, BTreeMap::new());
-        // assert_eq!(manager.people_to_reward, expected_people_to_reward);
-        //
-        // let current_round = Doracle::get_current_round(HKO, round_id).unwrap();
-        //
-        // assert_eq!(current_round.agg_price, FixedU128::from_inner(130_000));
-        // assert_eq!(current_round.mean_price, FixedU128::from_inner(65_000));
-        // assert_eq!(current_round.submitters, expected_submitters);
-        // assert_eq!(current_round.submitter_count, 2);
-        //
-        // // Check repeater's balances after round 1
-        // let rep_alice = Doracle::repeaters(ALICE, HKO).unwrap();
-        // let rep_bob = Doracle::repeaters(BOB, HKO).unwrap();
-        //
-        // // At the end of second round Alice and Bob gets rewards
-        // assert_eq!(rep_alice.staked_balance, 10_001);
-        // assert_eq!(rep_alice.reward, 1);
-        //
-        // assert_eq!(rep_bob.staked_balance, 100_001);
-        // assert_eq!(rep_bob.reward, 1);
-        //
-        // // At the end of second round treasury value must decreased by 2 HKO since rewarded for 2 accounts
-        // let treasury = Doracle::get_treasury().unwrap();
-        // assert_eq!(treasury, 99_999_999_998);
+        let treasury = Doracle::get_treasury().unwrap();
+
+        // Treasury at the end of round 2 = 99_999_999_998
+        // After round 3 gave rewards 1 each (Alice and Charlie), Treasury =  99_999_999_996
+        assert_eq!(treasury, 99_999_999_997);
     });
 }
 
 #[test]
-fn test_treasury_and_rewards_good_submitters() {
+fn test_flow_treasury_and_rewards_good_submitters() {
     new_test_ext().execute_with(|| {
         assert_ok!(Doracle::populate_treasury(Origin::signed(ALICE)));
 
@@ -517,7 +467,7 @@ fn test_treasury_and_rewards_good_submitters() {
 
         let mut expected_people_to_reward = BTreeMap::from([(ALICE, 6), (BOB, 6)]);
 
-        let manager = Doracle::get_round_manager().unwrap();
+        let manager = Doracle::manager().unwrap();
 
         assert_eq!(manager.participated, expected_participated);
         assert_eq!(manager.people_to_slash, BTreeMap::new());
