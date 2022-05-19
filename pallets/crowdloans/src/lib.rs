@@ -79,9 +79,6 @@ pub mod pallet {
     pub type BalanceOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
-    // from relay chain
-    pub const BLOCKS_PER_YEAR: u32 = 365 * 24 * 60 * 60 as u32 / 6;
-
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
@@ -143,6 +140,10 @@ pub mod pallet {
         /// LeaseOffset from relaychain
         #[pallet::constant]
         type LeaseOffset: Get<Self::BlockNumber>;
+
+        /// LeaseOffset from relaychain
+        #[pallet::constant]
+        type LeasePerYear: Get<Self::BlockNumber>;
 
         /// The origin which can migrate pending contribution
         type MigrateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
@@ -1602,9 +1603,10 @@ pub mod pallet {
                 .saturating_mul((end_lease + 1).into())
                 .saturating_add(T::LeaseOffset::get());
             let lease_length = lease_period.saturating_mul((end_lease - start_lease + 1).into());
+            let blocks_per_year = T::LeasePerYear::get().saturating_mul(lease_period);
             let total_term_by_year = Rate::saturating_from_rational(
                 lease_length.saturated_into::<u32>(),
-                T::BlockNumber::from(BLOCKS_PER_YEAR).saturated_into::<u32>(),
+                T::BlockNumber::from(blocks_per_year).saturated_into::<u32>(),
             );
             let term_rate: Rate;
             if current_block < start_block {

@@ -1731,6 +1731,7 @@ parameter_types! {
     //const params from relay chain: https://github.com/paritytech/polkadot/blob/1a445d96bdaf3fe781ce642368d0e9d1b2ad3b39/runtime/polkadot/src/lib.rs#L1320-L1328
     pub LeasePeriod: BlockNumber = 84 * DAYS;
     pub LeaseOffset: BlockNumber = 64 * DAYS;
+    pub LeasePerYear: BlockNumber = 4;
 }
 
 pub struct RelayChainValidationDataProvider<T>(sp_std::marker::PhantomData<T>);
@@ -1781,6 +1782,7 @@ impl pallet_crowdloans::Config for Runtime {
     type Members = CrowdloansAutomatorsMembership;
     type LeasePeriod = LeasePeriod;
     type LeaseOffset = LeaseOffset;
+    type LeasePerYear = LeasePerYear;
 }
 
 parameter_types! {

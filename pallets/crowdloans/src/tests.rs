@@ -1466,7 +1466,7 @@ fn get_ctoken_exchange_rate_should_work() {
         // exchange_rate ~=0.4756
         assert_eq!(
             Crowdloans::get_exchange_rate(&ctoken, start_rate),
-            Some(Rate::from_inner(475627614522123975))
+            Some(Rate::from_inner(475627904692286561))
         );
 
         //set relay_block_num as (lease_start + 1)*LeasePeriod
@@ -1510,7 +1510,7 @@ fn get_ctoken_exchange_rate_should_work() {
         );
         assert_eq!(
             Crowdloans::get_exchange_rate(&ctoken, start_rate),
-            Some(Rate::from_inner(936926097706267454))
+            Some(Rate::from_inner(931672415396340175))
         );
 
         //set relay_block_num as lease_finished_block=(lease_end + 1) * LeasePeriod + LeaseOffset will get rate as 1
@@ -1575,7 +1575,7 @@ fn get_ctoken_exchange_rate_with_partial_lease_should_work() {
         // since partial lease(1 year) exchange_rate ~=0.6896>previous 0.4756
         assert_eq!(
             Crowdloans::get_exchange_rate(&ctoken, start_rate),
-            Some(Rate::from_inner(689660044455841167))
+            Some(Rate::from_inner(689660465202579014))
         );
 
         sp_io::storage::set(
@@ -1623,7 +1623,7 @@ fn get_ctoken_exchange_rate_with_minor_input_change_should_work() {
 
         let start_rate = Rate::from_inner(450_000_000_000_000_000);
         // exchange_rate ~=0.4756
-        let expected_rate = Rate::from_inner(475627614522123975);
+        let expected_rate = Rate::from_inner(475627904692286561);
 
         // set relay_block_num as lease_start_block + 100
         sp_io::storage::set(
@@ -1643,7 +1643,7 @@ fn get_ctoken_exchange_rate_with_minor_input_change_should_work() {
         // exchange_rate ~=0.4756
         assert_eq!(
             Crowdloans::get_exchange_rate(&ctoken, start_rate),
-            Some(Rate::from_inner(475627648139389870))
+            Some(Rate::from_inner(475627941231026378))
         );
 
         // but if change full_rate from 0.45 to 0.4499999999=1e-10,
@@ -1675,7 +1675,7 @@ fn get_ctoken_exchange_rate_with_minor_input_change_should_work() {
         // exchange_rate ~=0.4756
         assert_eq!(
             Crowdloans::get_exchange_rate(&ctoken, start_rate),
-            Some(Rate::from_inner(475627615133101263))
+            Some(Rate::from_inner(475627905303263783))
         );
         assert_ne!(
             Crowdloans::get_exchange_rate(&ctoken, start_rate),
