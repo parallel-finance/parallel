@@ -130,4 +130,8 @@ pub mod paras {
     pub mod genshiro {
         pub const ID: u32 = 2024;
     }
+
+    pub mod turing {
+        pub const ID: u32 = 2114;
+    }
 }

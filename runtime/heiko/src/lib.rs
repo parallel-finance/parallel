@@ -107,7 +107,7 @@ use pallet_traits::{
 };
 use primitives::{
     network::HEIKO_PREFIX,
-    tokens::{EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KSM, KUSD, LKSM, MOVR, PHA, SKSM},
+    tokens::{EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KSM, KUSD, LKSM, MOVR, PHA, SKSM, TUR},
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
     Signature,
@@ -146,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_version: 187,
     impl_version: 32,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 16,
+    transaction_version: 15,
     state_version: 0,
 };
 
@@ -428,6 +428,8 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
             )),
             // Genshiro
             GENS => Some(MultiLocation::new(1, X1(Parachain(paras::genshiro::ID)))),
+            // Turing
+            TUR => Some(MultiLocation::new(1, X1(Parachain(paras::turing::ID)))),
             _ => None,
         }
     }
@@ -501,6 +503,11 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 1,
                 interior: X1(Parachain(id)),
             } if id == paras::genshiro::ID => Some(GENS),
+            // Turing
+            MultiLocation {
+                parents: 1,
+                interior: X1(Parachain(id)),
+            } if id == paras::turing::ID => Some(TUR),
             _ => None,
         }
     }
@@ -1235,6 +1242,14 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 5000
     );
+    // Turing
+    pub TurPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X1(Parachain(paras::turing::ID)),
+        ).into(),
+        ksm_per_second() * 260
+    );
 }
 
 match_types! {
@@ -1285,6 +1300,8 @@ pub type Trader = (
     FixedRateOfFungible<KbtcPerSecond, ToTreasury>,
     // Genshiro
     FixedRateOfFungible<GensPerSecond, ToTreasury>,
+    // Turing
+    FixedRateOfFungible<TurPerSecond, ToTreasury>,
     // Foreign Assets registered in AssetRegistry
     // TODO: replace all above except local reserved asset later
     FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
