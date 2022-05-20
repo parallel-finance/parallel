@@ -59,9 +59,6 @@ type BalanceOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 type AccountOf<T> = <T as frame_system::Config>::AccountId;
 
-pub type RelayerId = u128;
-
-use crate::helpers::RoundManager;
 pub use weights::WeightInfo;
 
 #[frame_support::pallet]
@@ -245,11 +242,16 @@ pub mod pallet {
             ensure_signed(origin)?;
 
             OracleTreasury::<T>::put(T::Treasury::get());
+            log::trace!(
+                target: "distributed-oracle::populate_treasury",
+                "Treasury Populated with the amount :- {:?}",
+                T::Treasury::get(),
+            );
 
             Ok(().into())
         }
 
-        /// Reset price per round for a give asset
+        /// Reset price per round for a give asset_id
         #[pallet::weight(T::WeightInfo::stake())]
         pub fn reset_prices(
             origin: OriginFor<T>,
@@ -264,8 +266,17 @@ pub mod pallet {
                 rec.mean_price = FixedU128::from_inner(0u128);
                 rec.agg_price = FixedU128::from_inner(0u128);
                 rec.submitters = BTreeMap::new();
+                rec.submitter_count = Zero::zero();
 
                 Self::deposit_event(Event::<T>::ResetPrice(asset_id, round));
+
+                log::trace!(
+                    target: "distributed-oracle::reset_prices",
+                    "Price reset for the round :- {:?} \n asset_id {:?}",
+                    round,
+                    asset_id
+                );
+
                 Ok(().into())
             })
         }
@@ -280,12 +291,12 @@ pub mod pallet {
             let who = ensure_signed(who)?;
 
             ensure!(
-                !Repeaters::<T>::contains_key(who.clone(), asset_id.clone()),
+                !Repeaters::<T>::contains_key(who.clone(), asset_id),
                 Error::<T>::RepeaterExists
             );
 
             // Initialize a repeater structure
-            Repeaters::<T>::insert(who.clone(), asset_id.clone(), Repeater::default());
+            Repeaters::<T>::insert(who.clone(), asset_id, Repeater::default());
 
             Self::deposit_event(Event::<T>::RepeaterRegistered(who));
 
@@ -297,22 +308,22 @@ pub mod pallet {
         #[transactional]
         pub fn stake(
             who: OriginFor<T>,
-            asset: AssetIdOf<T>,
+            asset_id: AssetIdOf<T>,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(who)?;
 
-            if !Repeaters::<T>::contains_key(who.clone(), asset.clone()) {
+            if !Repeaters::<T>::contains_key(who.clone(), asset_id) {
                 Repeaters::<T>::insert(
                     who.clone(),
-                    asset.clone(),
-                    Self::repeaters(who.clone(), asset.clone()).unwrap_or_default(),
+                    asset_id,
+                    Self::repeaters(who.clone(), asset_id).unwrap_or_default(),
                 );
             }
 
             // Checks for the Asset type to stake
             ensure!(
-                T::StakingCurrency::get() == asset,
+                T::StakingCurrency::get() == asset_id,
                 Error::<T>::InvalidStakingCurrency
             );
 
@@ -324,7 +335,7 @@ pub mod pallet {
 
             Repeaters::<T>::mutate(
                 who.clone(),
-                asset.clone(),
+                asset_id,
                 |repeater| -> DispatchResultWithPostInfo {
                     let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
 
@@ -337,7 +348,7 @@ pub mod pallet {
                 },
             )?;
 
-            Self::deposit_event(Event::<T>::Staked(who, asset, amount));
+            Self::deposit_event(Event::<T>::Staked(who, asset_id, amount));
 
             log::trace!(
                 target: "distributed-oracle::stake",
@@ -352,13 +363,13 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::unstake())]
         pub fn unstake(
             origin: OriginFor<T>,
-            asset: AssetIdOf<T>,
+            asset_id: AssetIdOf<T>,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             // InvalidUnstaker
             ensure!(
-                Repeaters::<T>::contains_key(who.clone(), asset.clone()),
+                Repeaters::<T>::contains_key(who.clone(), asset_id),
                 Error::<T>::InvalidUnstaker
             );
 
@@ -369,7 +380,7 @@ pub mod pallet {
 
             Repeaters::<T>::mutate(
                 who.clone(),
-                asset.clone(),
+                asset_id,
                 |repeater| -> DispatchResultWithPostInfo {
                     let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
 
@@ -379,7 +390,7 @@ pub mod pallet {
                     );
 
                     if repeater.staked_balance == amount {
-                        Repeaters::<T>::remove(&who, &asset);
+                        Repeaters::<T>::remove(&who, &asset_id);
 
                         log::trace!(
                             target: "distributed-oracle::unstake",
@@ -387,7 +398,7 @@ pub mod pallet {
                             &who,
                         );
 
-                        Self::deposit_event(Event::<T>::StakeAccountRemoved(who.clone(), asset));
+                        Self::deposit_event(Event::<T>::StakeAccountRemoved(who.clone(), asset_id));
                     } else {
                         repeater.staked_balance = repeater
                             .staked_balance
@@ -395,7 +406,7 @@ pub mod pallet {
                             .ok_or(ArithmeticError::Underflow)?;
                     }
 
-                    Self::deposit_event(Event::<T>::Unstaked(who.clone(), asset, amount));
+                    Self::deposit_event(Event::<T>::Unstaked(who.clone(), asset_id, amount));
 
                     Ok(().into())
                 },
@@ -414,8 +425,6 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             let current_time_stamp = T::UnixTime::now().as_secs();
-            let mut round_agg_price: Price = Zero::zero();
-            let mut round_mean_price: Price = Zero::zero();
 
             let mut recent_round = Self::get_current_round(asset_id, round).unwrap_or_default();
 
@@ -434,8 +443,8 @@ pub mod pallet {
 
             let prev_round = Self::get_current_round(asset_id, round - 1).unwrap_or_default();
 
-            round_agg_price = recent_round.agg_price;
-            round_mean_price = recent_round.mean_price;
+            let mut round_agg_price = recent_round.agg_price;
+            let mut round_mean_price = recent_round.mean_price;
             // New round, brings the values from previous round
             if recent_round.agg_price == Zero::zero() {
                 round_agg_price = prev_round.agg_price;
@@ -475,8 +484,8 @@ pub mod pallet {
                 if round > 1 {
                     if prev_round.submitters.contains_key(&who) {
                         Self::do_reward(
-                            who.clone(),
-                            asset_id.clone(),
+                            who,
+                            asset_id,
                             T::RewardAmount::get(),
                             round_manager.people_to_reward.clone(),
                         )
@@ -484,17 +493,13 @@ pub mod pallet {
                     } else {
                         let participated_round = round_manager.participated.get(&who).unwrap();
                         let round_gap = round - *participated_round;
-                        //  if round_gap == 0 && !prev_round.submitters.contains_key(&who) {
                         if round_gap > 0 {
                             round_manager.people_to_slash.insert(who.clone(), round);
-                            Self::do_slash(who.clone(), asset_id.clone(), T::RewardAmount::get())
-                                .unwrap();
+                            Self::do_slash(who.clone(), asset_id, T::RewardAmount::get()).unwrap();
                         }
                     }
                     Manager::<T>::put(round_manager.clone());
                 }
-
-                // ********************************************************************************
             } else {
                 // Threshold price is +/- 50 of the current price
                 let price_lower_limit = round_mean_price
@@ -538,16 +543,12 @@ pub mod pallet {
                                 submitter_count: recent_round.submitter_count,
                             },
                         );
-                        // *************************************************************************
 
                         if round > 1 {
                             if prev_round.submitters.contains_key(&who) {
-                                // let p = round_manager.people_to_reward.clone();
-                                // round_manager.people_to_reward.insert(who.clone(), round);
-
                                 Self::do_reward(
-                                    who.clone(),
-                                    asset_id.clone(),
+                                    who,
+                                    asset_id,
                                     T::RewardAmount::get(),
                                     round_manager.people_to_reward.clone(),
                                 )
@@ -556,20 +557,14 @@ pub mod pallet {
                                 let participant_round =
                                     round_manager.participated.get(&who).unwrap();
                                 let round_gap = round - *participant_round;
-                                //&& !prev_round.submitters.contains_key(&who)
+
                                 if round_gap > 0 {
-                                    Self::do_slash(
-                                        who.clone(),
-                                        asset_id.clone(),
-                                        T::RewardAmount::get(),
-                                    )
-                                    .unwrap();
+                                    Self::do_slash(who.clone(), asset_id, T::RewardAmount::get())
+                                        .unwrap();
                                 }
                             }
                             Manager::<T>::put(round_manager.clone());
                         }
-
-                        // *************************************************************************
                     } else {
                         CurrentRound::<T>::mutate(asset_id, round, |rec| -> DispatchResult {
                             let mut rec = rec.as_mut().ok_or(Error::<T>::CurrentRoundNotFound)?;
@@ -579,15 +574,11 @@ pub mod pallet {
                             rec.submitters = recent_round.submitters;
                             rec.submitter_count = recent_round.submitter_count;
 
-                            // ********************************************************************
                             if round > 1 {
                                 if prev_round.submitters.contains_key(&who) {
-                                    // let p = round_manager.people_to_reward.clone();
-                                    // round_manager.people_to_reward.insert(who.clone(), round);
-
                                     Self::do_reward(
                                         who.clone(),
-                                        asset_id.clone(),
+                                        asset_id,
                                         T::RewardAmount::get(),
                                         round_manager.people_to_reward.clone(),
                                     )
@@ -596,11 +587,10 @@ pub mod pallet {
                                     let participant_round =
                                         round_manager.participated.get(&who).unwrap();
                                     let round_gap = round - *participant_round;
-                                    // if round_gap == 0 && !prev_round.submitters.contains_key(&who) {
                                     if round_gap > 0 && !prev_round.submitters.contains_key(&who) {
                                         Self::do_slash(
                                             who.clone(),
-                                            asset_id.clone(),
+                                            asset_id,
                                             T::RewardAmount::get(),
                                         )
                                         .unwrap();
@@ -613,7 +603,7 @@ pub mod pallet {
                     }
                 } else {
                     round_manager.people_to_slash.insert(who.clone(), round);
-                    Self::do_slash(who.clone(), asset_id.clone(), T::RewardAmount::get()).unwrap();
+                    Self::do_slash(who, asset_id, T::RewardAmount::get()).unwrap();
                 }
             }
 
@@ -640,36 +630,30 @@ impl<T: Config> Pallet<T> {
         people_to_reward.remove(&who);
         round_manager.people_to_reward = people_to_reward;
         Manager::<T>::put(round_manager);
+        Repeaters::<T>::mutate(who.clone(), asset_id, |repeater| -> DispatchResult {
+            let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
 
-        let k = Manager::<T>::get().unwrap_or_default();
-        Repeaters::<T>::mutate(
-            who.clone(),
-            asset_id.clone(),
-            |repeater| -> DispatchResult {
-                let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
+            // Adds rewards to the staked amount, accumulating
+            repeater.staked_balance = repeater
+                .staked_balance
+                .checked_add(reward_amount)
+                .ok_or(ArithmeticError::Underflow)?;
 
-                // Adds rewards to the staked amount, accumulating
-                repeater.staked_balance = repeater
-                    .staked_balance
-                    .checked_add(reward_amount)
-                    .ok_or(ArithmeticError::Underflow)?;
+            // accumulate reward balance
+            repeater.reward = repeater
+                .reward
+                .checked_add(reward_amount)
+                .ok_or(ArithmeticError::Underflow)?;
 
-                // accumulate reward balance
-                repeater.reward = repeater
-                    .reward
-                    .checked_add(reward_amount)
-                    .ok_or(ArithmeticError::Underflow)?;
+            let new_treasury_balance = OracleTreasury::<T>::get()
+                .unwrap_or_default()
+                .checked_sub(reward_amount)
+                .ok_or(ArithmeticError::Underflow)?;
 
-                let new_treasury_balance = OracleTreasury::<T>::get()
-                    .unwrap_or_default()
-                    .checked_sub(reward_amount)
-                    .ok_or(ArithmeticError::Underflow)?;
+            OracleTreasury::<T>::put(new_treasury_balance);
 
-                OracleTreasury::<T>::put(new_treasury_balance);
-
-                Ok(().into())
-            },
-        )
+            Ok(())
+        })
     }
 
     pub fn do_slash(
@@ -685,42 +669,39 @@ impl<T: Config> Pallet<T> {
                 asset_id,
                 slash_amount,
                 round_manager.people_to_reward.clone(),
-            );
+            )
+            .unwrap();
         }
         round_manager.people_to_slash.remove(&who);
         Manager::<T>::put(round_manager);
 
-        Repeaters::<T>::mutate(
-            who.clone(),
-            asset_id.clone(),
-            |repeater| -> DispatchResult {
-                let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
+        Repeaters::<T>::mutate(who.clone(), asset_id, |repeater| -> DispatchResult {
+            let repeater = repeater.as_mut().ok_or(Error::<T>::InvalidRepeater)?;
 
-                if repeater.staked_balance != 0 {
-                    repeater.staked_balance = repeater
-                        .staked_balance
-                        .checked_sub(slash_amount)
-                        .ok_or(ArithmeticError::Underflow)?;
-
-                    if repeater.reward > 0 {
-                        repeater.reward = repeater
-                            .reward
-                            .checked_sub(slash_amount)
-                            .ok_or(ArithmeticError::Underflow)?;
-                    }
-                } else {
-                    Repeaters::<T>::remove(who.clone(), asset_id.clone());
-                }
-
-                let new_treasury_balance = OracleTreasury::<T>::get()
-                    .unwrap_or_default()
-                    .checked_add(slash_amount)
+            if repeater.staked_balance != 0 {
+                repeater.staked_balance = repeater
+                    .staked_balance
+                    .checked_sub(slash_amount)
                     .ok_or(ArithmeticError::Underflow)?;
 
-                OracleTreasury::<T>::put(new_treasury_balance);
+                if repeater.reward > 0 {
+                    repeater.reward = repeater
+                        .reward
+                        .checked_sub(slash_amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+                }
+            } else {
+                Repeaters::<T>::remove(who.clone(), asset_id);
+            }
 
-                Ok(().into())
-            },
-        )
+            let new_treasury_balance = OracleTreasury::<T>::get()
+                .unwrap_or_default()
+                .checked_add(slash_amount)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            OracleTreasury::<T>::put(new_treasury_balance);
+
+            Ok(())
+        })
     }
 }

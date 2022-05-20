@@ -17,6 +17,7 @@ use mock::*;
 use std::collections::BTreeMap;
 
 use frame_support::{assert_noop, assert_ok};
+use sp_runtime::traits::Zero;
 
 #[test]
 fn test_add_stake() {
@@ -60,21 +61,6 @@ fn test_stake_with_amount_less_than_minimum_amount() {
             Doracle::stake(Origin::signed(ALICE), HKO, 10),
             Error::<Test>::InsufficientStakeAmount
         );
-    });
-}
-
-#[test]
-#[ignore]
-// TODO: Check this scenario
-fn test_unstake_stake_amount() {
-    new_test_ext().execute_with(|| {
-        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
-        // Alice nicely staked 100_000
-        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 100_000));
-
-        // NOTE: we should have a cool down period
-        // this should be invaild
-        assert_ok!(Doracle::unstake(Origin::signed(ALICE), HKO, 100_000));
     });
 }
 
@@ -217,9 +203,9 @@ fn test_initial_round() {
             round_id
         ));
 
-        let mut expected_participated = BTreeMap::from([(ALICE, 1), (BOB, 1), (CHARLIE, 1)]);
+        let expected_participated = BTreeMap::from([(ALICE, 1), (BOB, 1), (CHARLIE, 1)]);
 
-        let mut expected_submitters = BTreeMap::from([
+        let expected_submitters = BTreeMap::from([
             (ALICE, (FixedU128::from_inner(100_000), 6)),
             (BOB, (FixedU128::from_inner(100_000), 6)),
             (CHARLIE, (FixedU128::from_inner(100_000), 6)),
@@ -456,20 +442,21 @@ fn test_flow_treasury_and_rewards_good_submitters() {
             round_id
         ));
 
-        let mut expected_participated = BTreeMap::from([(ALICE, 1), (BOB, 1)]);
+        let expected_participated = BTreeMap::from([(ALICE, 1), (BOB, 1)]);
 
-        let mut expected_submitters = BTreeMap::from([
+        let expected_submitters = BTreeMap::from([
             (ALICE, (FixedU128::from_inner(60_000), 6)),
             (BOB, (FixedU128::from_inner(70_000), 6)),
         ]);
-
-        let mut expected_people_to_reward = BTreeMap::from([(ALICE, 2), (BOB, 2)]);
 
         let manager = Doracle::manager().unwrap();
 
         assert_eq!(manager.participated, expected_participated);
         assert_eq!(manager.people_to_slash, BTreeMap::new());
-        assert_eq!(manager.people_to_reward, BTreeMap::new());
+        assert_eq!(
+            manager.people_to_reward,
+            BTreeMap::from([(ALICE, 1), (BOB, 1)])
+        );
 
         let current_round = Doracle::get_current_round(HKO, round_id).unwrap();
 
@@ -633,5 +620,52 @@ fn test_new_price_submitter_after_n_rounds() {
         // Treasury Balance should be deducted by 1
         let treasury = Doracle::get_treasury().unwrap();
         assert_eq!(treasury, 99_999_999_987);
+    });
+}
+
+#[test]
+fn test_reset_prices() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Doracle::populate_treasury(Origin::signed(ALICE)));
+
+        assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
+        assert_ok!(Doracle::stake(Origin::signed(ALICE), HKO, 10_000));
+
+        assert_ok!(Doracle::register_repeater(Origin::signed(BOB), HKO));
+        assert_ok!(Doracle::stake(Origin::signed(BOB), HKO, 100_000));
+
+        // First Round
+        let round_id = 1u128;
+
+        assert_ok!(Doracle::set_price_for_round(
+            Origin::signed(ALICE),
+            HKO,
+            Price::from_inner(100_000),
+            round_id
+        ));
+
+        assert_ok!(Doracle::set_price_for_round(
+            Origin::signed(BOB),
+            HKO,
+            Price::from_inner(100_000),
+            round_id
+        ));
+
+        assert_ok!(Doracle::reset_prices(Origin::signed(ALICE), HKO, 1));
+        let current_round = Doracle::get_current_round(HKO, 1).unwrap();
+
+        assert_eq!(current_round.agg_price, FixedU128::from_inner(0u128));
+        assert_eq!(current_round.mean_price, FixedU128::from_inner(0u128));
+        assert_eq!(current_round.submitters, BTreeMap::new());
+        assert_eq!(current_round.agg_price, Zero::zero());
+    });
+}
+
+#[test]
+fn test_populate_treasury() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Doracle::populate_treasury(Origin::signed(ALICE)));
+        let treasury = Doracle::get_treasury().unwrap();
+        assert_eq!(treasury, 100_000_000_000);
     });
 }
