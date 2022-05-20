@@ -181,8 +181,6 @@ pub mod pallet {
         RepeaterRegistered(T::AccountId),
         /// Slashed
         Slashed(T::AccountId),
-        /// Slashed and Removed
-        SlashedandsRemoved(T::AccountId),
         /// Set emergency price Asset Price, Round number
         SetPrice(CurrencyId, Price, RoundNumber),
         /// Reset Price
