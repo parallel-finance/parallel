@@ -33,7 +33,15 @@ build:
 
 .PHONY: build-release
 build-release:
-	cargo build --workspace --exclude runtime-integration-tests --bin parallel --release
+	cargo build --locked --workspace --exclude runtime-integration-tests --bin parallel --release --features runtime-benchmarks --features try-runtime
+
+.PHONY: build-compact-release
+build-compact-release:
+	cargo build --locked --workspace --exclude runtime-integration-tests --bin parallel --release
+
+.PHONY: build-production
+build-production:
+	cargo build --locked --workspace --exclude runtime-integration-tests --bin parallel --profile production
 
 .PHONY: clean
 clean:
