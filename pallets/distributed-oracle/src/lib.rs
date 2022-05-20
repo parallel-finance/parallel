@@ -480,7 +480,7 @@ pub mod pallet {
                         submitter_count: 1u32,
                     },
                 );
-                // ********************************************************************************
+
                 if round > 1 {
                     if prev_round.submitters.contains_key(&who) {
                         Self::do_reward(
