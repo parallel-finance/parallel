@@ -61,6 +61,7 @@ type AccountOf<T> = <T as frame_system::Config>::AccountId;
 
 pub type RelayerId = u128;
 
+use crate::helpers::RoundManager;
 pub use weights::WeightInfo;
 
 #[frame_support::pallet]
@@ -445,9 +446,12 @@ pub mod pallet {
 
             if !round_manager.participated.contains_key(&who) {
                 round_manager.participated.insert(who.clone(), round);
-                round_manager.people_to_reward.insert(who.clone(), round);
-                Manager::<T>::put(round_manager.clone());
             }
+
+            if !round_manager.people_to_reward.contains_key(&who) {
+                round_manager.people_to_reward.insert(who.clone(), round);
+            }
+            Manager::<T>::put(round_manager.clone());
 
             // Begins a  new round
             // if its Zero, its the beginning
@@ -485,19 +489,9 @@ pub mod pallet {
                             round_manager.people_to_slash.insert(who.clone(), round);
                             Self::do_slash(who.clone(), asset_id.clone(), T::RewardAmount::get())
                                 .unwrap();
-                            // Self::do_reward(
-                            //     who.clone(),
-                            //     asset_id.clone(),
-                            //     T::RewardAmount::get(),
-                            //     round_manager.people_to_reward.clone()
-                            // ).unwrap();
                         }
-                        // else  {
-                        //     round_manager.people_to_slash.insert(who.clone(), round);
-                        //     Self::do_slash(who.clone(), asset_id.clone(), T::RewardAmount::get())
-                        //         .unwrap();
-                        // }
                     }
+                    Manager::<T>::put(round_manager.clone());
                 }
 
                 // ********************************************************************************
@@ -548,6 +542,9 @@ pub mod pallet {
 
                         if round > 1 {
                             if prev_round.submitters.contains_key(&who) {
+                                // let p = round_manager.people_to_reward.clone();
+                                // round_manager.people_to_reward.insert(who.clone(), round);
+
                                 Self::do_reward(
                                     who.clone(),
                                     asset_id.clone(),
@@ -567,23 +564,9 @@ pub mod pallet {
                                         T::RewardAmount::get(),
                                     )
                                     .unwrap();
-                                    // Self::do_reward(
-                                    //     who.clone(),
-                                    //     asset_id.clone(),
-                                    //     T::RewardAmount::get(),
-                                    //     round_manager.people_to_reward.clone()
-                                    // )
-                                    // .unwrap();
                                 }
-                                // else  {
-                                // Self::do_slash(
-                                //     who.clone(),
-                                //     asset_id.clone(),
-                                //     T::RewardAmount::get(),
-                                // )
-                                // .unwrap();
-                                // }
                             }
+                            Manager::<T>::put(round_manager.clone());
                         }
 
                         // *************************************************************************
@@ -599,6 +582,9 @@ pub mod pallet {
                             // ********************************************************************
                             if round > 1 {
                                 if prev_round.submitters.contains_key(&who) {
+                                    // let p = round_manager.people_to_reward.clone();
+                                    // round_manager.people_to_reward.insert(who.clone(), round);
+
                                     Self::do_reward(
                                         who.clone(),
                                         asset_id.clone(),
@@ -618,25 +604,10 @@ pub mod pallet {
                                             T::RewardAmount::get(),
                                         )
                                         .unwrap();
-                                        // Self::do_reward(
-                                        //     who.clone(),
-                                        //     asset_id.clone(),
-                                        //     T::RewardAmount::get(),
-                                        //     round_manager.people_to_reward.clone()
-                                        // )
-                                        //     .unwrap();
                                     }
-                                    // else {
-                                    //     Self::do_slash(
-                                    //         who.clone(),
-                                    //         asset_id.clone(),
-                                    //         T::RewardAmount::get(),
-                                    //     )
-                                    //         .unwrap();
-                                    // }
                                 }
+                                Manager::<T>::put(round_manager.clone());
                             }
-
                             Ok(())
                         })?;
                     }
@@ -646,7 +617,6 @@ pub mod pallet {
                 }
             }
 
-            // Manager::<T>::put(round_manager);
             Self::deposit_event(Event::SetPrice(asset_id, price, round));
 
             Ok(().into())
@@ -671,6 +641,7 @@ impl<T: Config> Pallet<T> {
         round_manager.people_to_reward = people_to_reward;
         Manager::<T>::put(round_manager);
 
+        let k = Manager::<T>::get().unwrap_or_default();
         Repeaters::<T>::mutate(
             who.clone(),
             asset_id.clone(),
