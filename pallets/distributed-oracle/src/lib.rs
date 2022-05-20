@@ -35,7 +35,6 @@ use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul},
     ArithmeticError, FixedU128,
 };
-use std::num::FpCategory::Zero;
 
 pub use pallet::*;
 use pallet_traits::*;
@@ -45,9 +44,6 @@ use sp_std::prelude::*;
 
 #[cfg(test)]
 mod mock;
-
-// #[cfg(test)]
-// mod orml_tests;
 
 #[cfg(test)]
 mod tests;
@@ -169,6 +165,8 @@ pub mod pallet {
         AccountAlreadySubmittedPrice,
         /// Current Price nort found
         CurrentRoundNotFound,
+        /// Rewarding Account not found
+        RewardingAccountNotFound,
     }
 
     #[pallet::event]
@@ -445,17 +443,13 @@ pub mod pallet {
             let mut round_manager = Manager::<T>::get().unwrap_or_default();
 
             if !round_manager.participated.contains_key(&who) {
-                round_manager
-                    .participated
-                    .insert(who.clone(), current_time_stamp);
+                round_manager.participated.insert(who.clone(), round);
             }
 
             // Begins a  new round
             // if its Zero, its the beginning
             if round_agg_price == Zero::zero() {
-                round_manager
-                    .people_to_reward
-                    .insert(who.clone(), current_time_stamp);
+                round_manager.people_to_reward.insert(who.clone(), round);
 
                 recent_round
                     .submitters
@@ -473,10 +467,27 @@ pub mod pallet {
                     },
                 );
                 // ********************************************************************************
-                // Rewarding happens after 1st round
-                if round > 1 || prev_round.submitters.contains_key(&who) {
-                    Self::do_reward(who.clone(), asset_id.clone(), T::RewardAmount::get()).unwrap();
+                if round > 1 {
+                    if prev_round.submitters.contains_key(&who) {
+                        Self::do_reward(who.clone(), asset_id.clone(), T::RewardAmount::get())
+                            .unwrap();
+                    } else {
+                        let participated_round = round_manager.participated.get(&who).unwrap();
+                        if *participated_round == round {
+                            Self::do_reward(who.clone(), asset_id.clone(), T::RewardAmount::get())
+                                .unwrap();
+                        } else {
+                            round_manager.people_to_slash.insert(who.clone(), round);
+                            Self::do_slash(who.clone(), asset_id.clone(), T::RewardAmount::get())
+                                .unwrap();
+                        }
+                    }
                 }
+
+                // Rewarding happens after 1st round
+                // if round > 1 || prev_round.submitters.contains_key(&who) {
+                //     Self::do_reward(who.clone(), asset_id.clone(), T::RewardAmount::get()).unwrap();
+                // }
                 // ********************************************************************************
             } else {
                 // Threshold price is +/- 50 of the current price
@@ -522,16 +533,44 @@ pub mod pallet {
                             },
                         );
                         // *************************************************************************
+
                         if round == 1 || prev_round.submitters.contains_key(&who) {
-                            round_manager
-                                .people_to_reward
-                                .insert(who.clone(), current_time_stamp);
+                            round_manager.people_to_reward.insert(who.clone(), round);
                         }
 
-                        if round > 1 || prev_round.submitters.contains_key(&who) {
-                            Self::do_reward(who.clone(), asset_id.clone(), T::RewardAmount::get())
+                        if round > 1 {
+                            if prev_round.submitters.contains_key(&who) {
+                                Self::do_reward(
+                                    who.clone(),
+                                    asset_id.clone(),
+                                    T::RewardAmount::get(),
+                                )
                                 .unwrap();
+                            } else {
+                                let participant_round =
+                                    round_manager.participated.get(&who).unwrap();
+                                if *participant_round == round {
+                                    Self::do_reward(
+                                        who.clone(),
+                                        asset_id.clone(),
+                                        T::RewardAmount::get(),
+                                    )
+                                    .unwrap();
+                                } else {
+                                    Self::do_slash(
+                                        who.clone(),
+                                        asset_id.clone(),
+                                        T::RewardAmount::get(),
+                                    )
+                                    .unwrap();
+                                }
+                            }
                         }
+
+                        // if round > 1 || prev_round.submitters.contains_key(&who) {
+                        //     Self::do_reward(who.clone(), asset_id.clone(), T::RewardAmount::get())
+                        //         .unwrap();
+                        // }
                         // *************************************************************************
                     } else {
                         CurrentRound::<T>::mutate(asset_id, round, |rec| -> DispatchResult {
@@ -543,9 +582,7 @@ pub mod pallet {
                             rec.submitter_count = recent_round.submitter_count;
 
                             if round == 1 || prev_round.submitters.contains_key(&who) {
-                                round_manager
-                                    .people_to_reward
-                                    .insert(who.clone(), current_time_stamp);
+                                round_manager.people_to_reward.insert(who.clone(), round);
                             }
 
                             if round > 1 {
@@ -570,9 +607,7 @@ pub mod pallet {
                         })?;
                     }
                 } else {
-                    round_manager
-                        .people_to_slash
-                        .insert(who.clone(), current_time_stamp);
+                    round_manager.people_to_slash.insert(who.clone(), round);
                     Self::do_slash(who.clone(), asset_id.clone(), T::RewardAmount::get()).unwrap();
                 }
             }
@@ -595,6 +630,11 @@ impl<T: Config> Pallet<T> {
         asset_id: AssetIdOf<T>,
         reward_amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
+        // Remove rewarded accounts
+        let mut round_manager = Manager::<T>::get().ok_or(Error::<T>::RewardingAccountNotFound)?;
+        round_manager.people_to_reward.remove(&who);
+        Manager::<T>::put(round_manager);
+
         Repeaters::<T>::mutate(
             who.clone(),
             asset_id.clone(),
@@ -630,6 +670,14 @@ impl<T: Config> Pallet<T> {
         asset_id: AssetIdOf<T>,
         slash_amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
+        // Check if it has to remove
+        let mut round_manager = Manager::<T>::get().ok_or(Error::<T>::RewardingAccountNotFound)?;
+        if round_manager.people_to_reward.contains_key(&who) {
+            Self::do_reward(who.clone(), asset_id, slash_amount);
+        }
+        round_manager.people_to_slash.remove(&who);
+        Manager::<T>::put(round_manager);
+
         Repeaters::<T>::mutate(
             who.clone(),
             asset_id.clone(),

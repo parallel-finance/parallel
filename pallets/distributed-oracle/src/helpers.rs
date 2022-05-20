@@ -21,9 +21,9 @@ pub struct Repeater {
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct RoundManager<T: Config> {
-    pub participated: BTreeMap<AccountOf<T>, Timestamp>,
-    pub people_to_slash: BTreeMap<AccountOf<T>, Timestamp>,
-    pub people_to_reward: BTreeMap<AccountOf<T>, Timestamp>,
+    pub participated: BTreeMap<AccountOf<T>, u128>,
+    pub people_to_slash: BTreeMap<AccountOf<T>, u128>,
+    pub people_to_reward: BTreeMap<AccountOf<T>, u128>,
 }
 
 impl<T: Config> Default for RoundManager<T> {
