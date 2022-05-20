@@ -142,9 +142,6 @@ fn test_unstake_stake_erroneous_scenarios() {
 #[test]
 fn test_register_repeater() {
     new_test_ext().execute_with(|| {
-        // TODO: Flip This -> Stake and register~
-        // NOTE: we might want to flip this? stake then register
-
         // Register a staking account as a repeater
         assert_ok!(Doracle::register_repeater(Origin::signed(ALICE), HKO));
 
