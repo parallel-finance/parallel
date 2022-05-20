@@ -91,6 +91,7 @@ pub use pallet_amm;
 pub use pallet_asset_registry;
 pub use pallet_bridge;
 pub use pallet_crowdloans;
+pub use pallet_distributed_oracle;
 pub use pallet_farming;
 pub use pallet_liquid_staking;
 pub use pallet_loans;
@@ -1392,6 +1393,29 @@ impl pallet_stableswap::Config for Runtime {
     type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
+parameter_types! {
+    pub const DistributedOraclePalletId: PalletId = PalletId(*b"par/drcl");
+    pub const OracleMinStake: u128 = 100_u128;
+    pub const OracleMinUnStake: u128 = 10_u128;
+    pub const TreasuryAmount: Balance = 10_000_000_000_000;
+    pub const RewardAmount: u128 = 1u128;
+    pub const SlashAmount: u128 = 1u128;
+}
+
+impl pallet_distributed_oracle::Config for Runtime {
+    type Event = Event;
+    type Assets = CurrencyAdapter;
+    type PalletId = DistributedOraclePalletId;
+    type UnixTime = Timestamp;
+    type WeightInfo = pallet_distributed_oracle::weights::SubstrateWeight<Runtime>;
+    type MinStake = OracleMinStake;
+    type MinUnstake = OracleMinUnStake;
+    type StakingCurrency = NativeCurrencyId;
+    type Treasury = TreasuryAmount;
+    type RewardAmount = RewardAmount;
+    type SlashAmount = SlashAmount;
+}
+
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct AggregatedDataProvider;
 impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
@@ -2020,6 +2044,7 @@ construct_runtime!(
         Streaming: pallet_streaming::{Pallet, Call, Storage, Event<T>} = 94,
         AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>} = 95,
         StableSwap: pallet_stableswap::{Pallet, Call, Storage, Event<T>} = 96,
+        DistributedOracle: pallet_distributed_oracle::{Pallet, Call, Storage, Event<T>} = 97,
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
     }

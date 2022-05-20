@@ -14,13 +14,10 @@
 
 use super::*;
 
-use frame_support::{
-    construct_runtime, ord_parameter_types, parameter_types, traits::Everything, PalletId,
-};
+use frame_support::{construct_runtime, parameter_types, traits::Everything, PalletId};
 use frame_system::EnsureRoot;
-use frame_system::EnsureSignedBy;
 
-use sp_runtime::{testing::Header, traits::IdentityLookup, FixedPointNumber};
+use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
 
 use sp_core::H256;
@@ -152,99 +149,24 @@ impl pallet_currency_adapter::Config for Test {
 
 parameter_types! {
     pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
-    pub const MinHoldTime: u128 = 10000_u128;
     pub const MinStake: u128 = 100_u128;
     pub const MinUnStake: u128 = 10_u128;
-    pub const MinSlashedTime: u64 = 1800_u64;
     pub const TreasuryAmount: Balance = 100_000_000_000;
-    pub const RoundDuration: u64 = 3600;
     pub const RewardAmount: u128 = 1u128;
     pub const SlashAmount: u128 = 1u128;
-}
-
-pub struct MockDataProvider;
-impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
-    fn get(asset_id: &CurrencyId) -> Option<TimeStampedPrice> {
-        match *asset_id {
-            DOT => Some(TimeStampedPrice {
-                value: Price::saturating_from_integer(100),
-                timestamp: 0,
-            }),
-            KSM => Some(TimeStampedPrice {
-                value: Price::saturating_from_integer(500),
-                timestamp: 0,
-            }),
-            _ => None,
-        }
-    }
-}
-
-impl DataProviderExtended<CurrencyId, TimeStampedPrice> for MockDataProvider {
-    fn get_no_op(_key: &CurrencyId) -> Option<TimeStampedPrice> {
-        None
-    }
-
-    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
-        vec![]
-    }
-}
-
-impl DataFeeder<CurrencyId, TimeStampedPrice, AccountId> for MockDataProvider {
-    fn feed_value(_: AccountId, _: CurrencyId, _: TimeStampedPrice) -> sp_runtime::DispatchResult {
-        Ok(())
-    }
-}
-
-pub struct LiquidStakingExchangeRateProvider;
-impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
-    fn get_exchange_rate() -> Rate {
-        Rate::saturating_from_rational(150, 100)
-    }
-}
-
-ord_parameter_types! {
-    pub const One: AccountId = 1;
-}
-
-pub struct Decimal;
-#[allow(non_upper_case_globals)]
-impl DecimalProvider<CurrencyId> for Decimal {
-    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
-        match *asset_id {
-            DOT | SDOT => Some(10),
-            KSM | SKSM => Some(12),
-            _ => None,
-        }
-    }
-}
-
-pub struct LiquidStaking;
-impl LiquidStakingCurrenciesProvider<CurrencyId> for LiquidStaking {
-    fn get_staking_currency() -> Option<CurrencyId> {
-        Some(KSM)
-    }
-    fn get_liquid_currency() -> Option<CurrencyId> {
-        Some(SKSM)
-    }
 }
 
 // Config implementation for distributed oracle pallet
 impl Config for Test {
     type Event = Event;
-    type Source = MockDataProvider;
-    type FeederOrigin = EnsureSignedBy<One, AccountId>;
-    type Decimal = Decimal;
     type Assets = CurrencyAdapter;
     type PalletId = StreamPalletId;
     type UnixTime = TimestampPallet;
     type WeightInfo = ();
     type MinStake = MinStake;
     type MinUnstake = MinUnStake;
-    type MinHoldTime = MinHoldTime;
     type StakingCurrency = NativeCurrencyId;
-    type MinSlashedTime = MinSlashedTime;
     type Treasury = TreasuryAmount;
-    type RoundDuration = RoundDuration;
     type RewardAmount = RewardAmount;
     type SlashAmount = SlashAmount;
 }

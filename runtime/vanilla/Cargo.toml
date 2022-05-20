@@ -106,6 +106,7 @@ pallet-streaming              = { path = '../../pallets/streaming', default-feat
 pallet-traits                 = { path = '../../pallets/traits', default-features = false }
 pallet-xcm-helper             = { path = '../../pallets/xcm-helper', default-features = false }
 pallet-stableswap             = { path = '../../pallets/stableswap', default-features = false }
+pallet-distributed-oracle     = { path = '../../pallets/distributed-oracle', default-features = false }
 primitives                    = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 
 [build-dependencies.substrate-wasm-builder]
@@ -140,6 +141,7 @@ runtime-benchmarks = [
   'pallet-crowdloans/runtime-benchmarks',
   'pallet-xcm-helper/runtime-benchmarks',
   'pallet-stableswap/runtime-benchmarks',
+  'pallet-distributed-oracle/runtime-benchmarks',
 ]
 std                = [
   'codec/std',
@@ -220,6 +222,7 @@ std                = [
   'pallet-emergency-shutdown/std',
   'pallet-xcm-helper/std',
   'pallet-stableswap/std',
+  'pallet-distributed-oracle/std',
   'pallet-asset-registry/std',
   'pallet-traits/std',
 ]

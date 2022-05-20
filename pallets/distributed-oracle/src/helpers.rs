@@ -4,7 +4,7 @@ use frame_support::pallet_prelude::*;
 use frame_system::Config;
 use primitives::{Balance, Price};
 use scale_info::TypeInfo;
-use std::collections::BTreeMap;
+use sp_std::collections::btree_map::BTreeMap;
 
 // Struct for Repeater
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]

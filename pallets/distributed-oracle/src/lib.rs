@@ -35,12 +35,7 @@ use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul},
     ArithmeticError, FixedU128,
 };
-use std::collections::BTreeMap;
-
-pub use pallet::*;
-use pallet_traits::*;
-
-use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
+use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
 
 #[cfg(test)]
@@ -67,23 +62,10 @@ pub mod pallet {
     use crate::helpers::{Repeater, RoundHolder, RoundManager};
     use sp_runtime::traits::Zero;
     use sp_runtime::ArithmeticError;
-    use std::collections::BTreeMap;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
-        /// The data source, such as Oracle.
-        type Source: DataProvider<CurrencyId, TimeStampedPrice>
-            + DataProviderExtended<CurrencyId, TimeStampedPrice>
-            + DataFeeder<CurrencyId, TimeStampedPrice, Self::AccountId>;
-
-        /// The origin which may set prices feed to system.
-        type FeederOrigin: EnsureOrigin<Self::Origin>;
-
-        /// Decimal provider.
-        type Decimal: DecimalProvider<CurrencyId>;
-
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
@@ -105,23 +87,13 @@ pub mod pallet {
         #[pallet::constant]
         type MinUnstake: Get<BalanceOf<Self>>;
 
-        #[pallet::constant]
-        type MinHoldTime: Get<BalanceOf<Self>>;
-
         /// Allowed staking currency
         #[pallet::constant]
         type StakingCurrency: Get<AssetIdOf<Self>>;
 
-        #[pallet::constant]
-        type MinSlashedTime: Get<u64>;
-
         // Balance that parallel finance funds to pay repeaters , prep populated value
         #[pallet::constant]
         type Treasury: Get<BalanceOf<Self>>;
-
-        // Unix time gap between round this has to be twice the value of a round
-        #[pallet::constant]
-        type RoundDuration: Get<u64>;
 
         #[pallet::constant]
         type RewardAmount: Get<u128>;
@@ -162,7 +134,7 @@ pub mod pallet {
         StakedAmountIsLessThanMinStakeAmount,
         /// PriceSubmittedAlready
         AccountAlreadySubmittedPrice,
-        /// Current Price nort found
+        /// Current Price not found
         CurrentRoundNotFound,
         /// Rewarding Account not found
         RewardingAccountNotFound,

@@ -14,7 +14,7 @@
 
 use super::*;
 use mock::*;
-use std::collections::BTreeMap;
+use sp_std::collections::btree_map::BTreeMap;
 
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::traits::Zero;
