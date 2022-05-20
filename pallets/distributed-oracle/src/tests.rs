@@ -225,13 +225,14 @@ fn test_initial_round() {
             (CHARLIE, (FixedU128::from_inner(100_000), 6)),
         ]);
 
-        let mut expected_people_to_reward = BTreeMap::from([(ALICE, 1), (BOB, 1), (CHARLIE, 1)]);
-
         let manager = Doracle::manager().unwrap();
 
         assert_eq!(manager.participated, expected_participated);
         assert_eq!(manager.people_to_slash, BTreeMap::new());
-        assert_eq!(manager.people_to_reward, expected_people_to_reward);
+        assert_eq!(
+            manager.people_to_reward,
+            BTreeMap::from([(ALICE, 1), (BOB, 1), (CHARLIE, 1)])
+        );
 
         let current_round = Doracle::get_current_round(HKO, round_id).unwrap();
 
@@ -301,12 +302,6 @@ fn test_flow_slashing_after_round_one() {
         );
         // No one to slash
         assert_eq!(round_manager.people_to_slash, BTreeMap::from([]));
-
-        // All participants should get rewards
-        assert_eq!(
-            round_manager.people_to_reward,
-            BTreeMap::from([(ALICE, 1), (BOB, 1), (CHARLIE, 1)])
-        );
 
         // Send round stars BOB didn't submit a price
         let round_id = 2u128;
@@ -384,7 +379,7 @@ fn test_flow_slashing_after_round_one() {
         assert_eq!(rep_charlie.staked_balance, 100_002);
         assert_eq!(rep_charlie.reward, 2);
 
-        // repeater should get reward 1 since participated on round 1
+        // Bob participated in round 1 so should get the reward in next participated round
         // Since the absence in round 2 the reward should get added on the  next round ( round 3)
         // Since the absence in round 2 the slash should happen on the next round ( round 3)
         assert_eq!(rep_bob.staked_balance, 100_000);
@@ -474,7 +469,7 @@ fn test_flow_treasury_and_rewards_good_submitters() {
 
         assert_eq!(manager.participated, expected_participated);
         assert_eq!(manager.people_to_slash, BTreeMap::new());
-        assert_eq!(manager.people_to_reward, expected_people_to_reward);
+        assert_eq!(manager.people_to_reward, BTreeMap::new());
 
         let current_round = Doracle::get_current_round(HKO, round_id).unwrap();
 
@@ -565,7 +560,7 @@ fn test_new_price_submitter_after_n_rounds() {
         // Others ( Alice, Bob, Charlie skipped round 6
         let round = 6;
         assert_ok!(Doracle::register_repeater(Origin::signed(EVE), HKO));
-        assert_ok!(Doracle::stake(Origin::signed(EVE), HKO, 100_000_000));
+        assert_ok!(Doracle::stake(Origin::signed(EVE), HKO, 400_000_000));
 
         assert_ok!(Doracle::set_price_for_round(
             Origin::signed(EVE),
@@ -576,7 +571,7 @@ fn test_new_price_submitter_after_n_rounds() {
 
         let rep_eve = Doracle::repeaters(EVE, HKO).unwrap();
 
-        assert_eq!(rep_eve.staked_balance, 100_000_000);
+        assert_eq!(rep_eve.staked_balance, 400_000_000);
         assert_eq!(rep_eve.reward, 0);
 
         // Treasury should not change from the previous round
@@ -632,7 +627,7 @@ fn test_new_price_submitter_after_n_rounds() {
         let rep_eve = Doracle::repeaters(EVE, HKO).unwrap();
 
         // Eve should get rewards from round 7
-        assert_eq!(rep_eve.staked_balance, 100_000_001);
+        assert_eq!(rep_eve.staked_balance, 400_000_001);
         assert_eq!(rep_eve.reward, 1);
 
         // Treasury Balance should be deducted by 1
