@@ -259,6 +259,8 @@ pub mod pallet {
         /// Event emitted when the incentive reserves are redeemed and transfer to receiver's account
         /// [receive_account_id, asset_id, reduced_amount]
         IncentiveReservesReduced(T::AccountId, AssetIdOf<T>, BalanceOf<T>),
+        /// Liquidation free collaterals has been updated
+        LiquidationFreeCollateralsUpdated(Vec<AssetIdOf<T>>),
     }
 
     /// The timestamp of the last calculation of accrued interest
@@ -1172,6 +1174,23 @@ pub mod pallet {
             ));
             Ok(().into())
         }
+
+        /// Update liquidation free collateral.
+        ///
+        /// The `assets` won't be counted when do general
+        #[pallet::weight(0)]
+        #[transactional]
+        pub fn update_liquidation_free_collateral(
+            origin: OriginFor<T>,
+            collaterals: Vec<AssetIdOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            LiquidationFreeCollaterals::<T>::mutate(|liquidation_free_collaterals| {
+                *liquidation_free_collaterals = collaterals.clone()
+            });
+            Self::deposit_event(Event::<T>::LiquidationFreeCollateralsUpdated(collaterals));
+            Ok(().into())
+        }
     }
 }
 
@@ -1855,17 +1874,17 @@ impl<T: Config> Pallet<T> {
     // Returns `Err` If InsufficientLiquidity
     // `account`: account that need a liquidity check
     // `reduce_amount`: values that will have an impact on liquidity
-    // `dot_lf`: check in liquidation free mode which means borrowing dot or redeeming assets in
+    // `lf_enable`: check in liquidation free mode which means borrowing dot or redeeming assets in
     // `LiquidationFreeCollaterals`.
     fn ensure_liquidity(
         account: &T::AccountId,
         reduce_amount: FixedU128,
-        dot_lf: bool,
+        lf_enable: bool,
     ) -> DispatchResult {
         let (total_liquidity, _) = Self::get_account_liquidity(account)?;
         let lf_liquidity = Self::get_account_lf_liquidity(account)?;
 
-        if dot_lf && max(total_liquidity, lf_liquidity) > reduce_amount {
+        if lf_enable && max(total_liquidity, lf_liquidity) > reduce_amount {
             return Ok(());
         }
 

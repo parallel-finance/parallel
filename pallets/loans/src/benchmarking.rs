@@ -8,7 +8,7 @@ use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whiteli
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{
-    tokens::{KSM, PKSM, PSKSM, PUSDT, SKSM, USDT},
+    tokens::{CDOT_6_13, KSM, PKSM, PSKSM, PUSDT, SKSM, USDT},
     Balance, CurrencyId,
 };
 use rate_model::{InterestRateModel, JumpModel};
@@ -401,6 +401,13 @@ benchmarks! {
     }: _(SystemOrigin::Root, payer, USDT, reduce_amount.into())
     verify {
         assert_last_event::<T>(Event::<T>::ReservesReduced(caller, USDT, reduce_amount.into(), (add_amount-reduce_amount).into()).into());
+    }
+
+    update_liquidation_free_collateral {
+
+    }: _(SystemOrigin::Root, vec![CDOT_6_13])
+    verify {
+        assert_last_event::<T>(Event::<T>::LiquidationFreeCollateralsUpdated(vec![CDOT_6_13]).into());
     }
 }
 
