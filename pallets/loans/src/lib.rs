@@ -1178,7 +1178,7 @@ pub mod pallet {
         /// Update liquidation free collateral.
         ///
         /// The `assets` won't be counted when do general
-        #[pallet::weight(0)]
+        #[pallet::weight(T::WeightInfo::update_liquidation_free_collateral())]
         #[transactional]
         pub fn update_liquidation_free_collateral(
             origin: OriginFor<T>,
