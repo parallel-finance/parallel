@@ -1884,15 +1884,14 @@ impl<T: Config> Pallet<T> {
         let (total_liquidity, _) = Self::get_account_liquidity(account)?;
         let lf_liquidity = Self::get_account_lf_liquidity(account)?;
 
-        if lf_enable && max(total_liquidity, lf_liquidity) > reduce_amount {
+        if lf_enable && max(total_liquidity, lf_liquidity) >= reduce_amount {
             return Ok(());
         }
 
-        if total_liquidity < lf_liquidity + reduce_amount {
-            return Err(Error::<T>::InsufficientLiquidity.into());
+        if !lf_enable && total_liquidity >= lf_liquidity + reduce_amount {
+            return Ok(());
         }
-
-        Ok(())
+        Err(Error::<T>::InsufficientLiquidity.into())
     }
 
     pub fn calc_underlying_amount(

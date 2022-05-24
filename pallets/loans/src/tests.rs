@@ -19,8 +19,9 @@ mod market;
 mod ptokens;
 
 use super::*;
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_err, assert_noop, assert_ok};
 
+use primitives::tokens::CDOT_6_13;
 use sp_runtime::{
     traits::{CheckedDiv, One, Saturating},
     FixedU128, Permill,
@@ -208,6 +209,42 @@ fn redeem_allowed_works() {
 }
 
 #[test]
+fn lf_redeem_allowed_works() {
+    new_test_ext().execute_with(|| {
+        // Set CDOT as lf collateral
+        Loans::update_liquidation_free_collateral(Origin::root(), vec![CDOT_6_13]).unwrap();
+        Loans::mint(Origin::signed(ALICE), CDOT_6_13, dollar(200)).unwrap();
+
+        Loans::mint(Origin::signed(DAVE), USDT, dollar(200)).unwrap();
+        Loans::mint(Origin::signed(DAVE), DOT, dollar(200)).unwrap();
+        // Lend $200 CDOT
+        Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
+
+        Loans::borrow(Origin::signed(ALICE), DOT, dollar(50)).unwrap();
+
+        // (200 - 100) * 50% >= 50
+        assert_ok!(Loans::redeem_allowed(CDOT_6_13, &ALICE, dollar(100)));
+
+        // Set KSM as collateral, and borrow USDT
+        Loans::mint(Origin::signed(ALICE), KSM, dollar(200)).unwrap();
+        Loans::collateral_asset(Origin::signed(ALICE), KSM, true).unwrap();
+        Loans::borrow(Origin::signed(ALICE), USDT, dollar(100)).unwrap();
+
+        assert_err!(
+            Loans::redeem_allowed(KSM, &ALICE, dollar(100)),
+            Error::<Test>::InsufficientLiquidity
+        );
+        // But it'll success when redeem cdot
+        assert_ok!(Loans::redeem_allowed(CDOT_6_13, &ALICE, dollar(100)));
+
+        // Remove CDOT from lf collateral
+        Loans::update_liquidation_free_collateral(Origin::root(), vec![]).unwrap();
+        // Then it can be redeemed
+        assert_ok!(Loans::redeem_allowed(KSM, &ALICE, dollar(100)));
+    })
+}
+
+#[test]
 fn redeem_works() {
     new_test_ext().execute_with(|| {
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(100)));
@@ -326,6 +363,57 @@ fn borrow_allowed_works() {
 }
 
 #[test]
+fn update_liquidation_free_collateral_works() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Loans::update_liquidation_free_collateral(
+            Origin::root(),
+            vec![CDOT_6_13]
+        ));
+        assert_eq!(Loans::liquidation_free_collaterals(), vec![CDOT_6_13]);
+    })
+}
+
+#[test]
+fn get_account_liquidity_works() {
+    new_test_ext().execute_with(|| {
+        Loans::update_liquidation_free_collateral(Origin::root(), vec![CDOT_6_13]).unwrap();
+        Loans::mint(Origin::signed(ALICE), CDOT_6_13, dollar(200)).unwrap();
+        Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
+
+        let (liquidity, _) = Loans::get_account_liquidity(&ALICE).unwrap();
+        assert_eq!(liquidity, FixedU128::from_inner(dollar(100)));
+
+        assert_eq!(
+            Loans::get_account_lf_liquidity(&ALICE).unwrap(),
+            FixedU128::from_inner(dollar(100))
+        );
+    })
+}
+
+#[test]
+fn lf_borrow_allowed_works() {
+    new_test_ext().execute_with(|| {
+        Loans::update_liquidation_free_collateral(Origin::root(), vec![CDOT_6_13]).unwrap();
+        Loans::mint(Origin::signed(ALICE), CDOT_6_13, dollar(200)).unwrap();
+        Loans::mint(Origin::signed(DAVE), USDT, dollar(200)).unwrap();
+        Loans::mint(Origin::signed(DAVE), DOT, dollar(200)).unwrap();
+        // Lend $200 CDOT
+        Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
+
+        assert_eq!(
+            Loans::get_asset_value(DOT, dollar(100)).unwrap(),
+            Loans::get_asset_value(USDT, dollar(100)).unwrap()
+        );
+
+        assert_noop!(
+            Loans::borrow_allowed(USDT, &ALICE, dollar(100)),
+            Error::<Test>::InsufficientLiquidity
+        );
+        assert_ok!(Loans::borrow_allowed(DOT, &ALICE, dollar(100)));
+    })
+}
+
+#[test]
 fn borrow_works() {
     new_test_ext().execute_with(|| {
         // Deposit 200 DOT as collateral
@@ -346,6 +434,32 @@ fn borrow_works() {
         assert_eq!(borrow_snapshot.principal, dollar(100));
         assert_eq!(borrow_snapshot.borrow_index, Loans::borrow_index(DOT));
         assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dollar(900),);
+    })
+}
+
+#[test]
+fn lf_borrow_works() {
+    new_test_ext().execute_with(|| {
+        // Deposit 200 DOT as collateral
+        Loans::mint(Origin::signed(ALICE), CDOT_6_13, dollar(200)).unwrap();
+        Loans::mint(Origin::signed(DAVE), DOT, dollar(200)).unwrap();
+        Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
+
+        // Borrow 100 DOT
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
+
+        // CDOT collateral: deposit = 200
+        // DOT borrow balance: borrow = 100
+        // DOT: cash - deposit + borrow = 1000 + 100 = 1100
+        assert_eq!(
+            Loans::exchange_rate(CDOT_6_13)
+                .saturating_mul_int(Loans::account_deposits(CDOT_6_13, ALICE).voucher_balance),
+            dollar(200)
+        );
+        let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
+        assert_eq!(borrow_snapshot.principal, dollar(100));
+        assert_eq!(borrow_snapshot.borrow_index, Loans::borrow_index(DOT));
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dollar(1100),);
     })
 }
 
