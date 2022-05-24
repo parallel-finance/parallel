@@ -37,6 +37,18 @@ fn liquidate_borrow_allowed_works() {
 }
 
 #[test]
+fn lf_liquidate_borrow_fails_due_to_lf_collateral() {
+    new_test_ext().execute_with(|| {
+        Loans::update_liquidation_free_collateral(Origin::root(), vec![CDOT_6_13]).unwrap();
+
+        assert_err!(
+            Loans::liquidate_borrow(Origin::signed(ALICE), BOB, DOT, dollar(100), CDOT_6_13),
+            Error::<Test>::CollateralReserved
+        );
+    })
+}
+
+#[test]
 fn lf_liquidate_borrow_allowed_works() {
     new_test_ext().execute_with(|| {
         Loans::update_liquidation_free_collateral(Origin::root(), vec![CDOT_6_13]).unwrap();
