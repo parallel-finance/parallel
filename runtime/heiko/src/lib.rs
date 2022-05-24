@@ -107,7 +107,9 @@ use pallet_traits::{
 };
 use primitives::{
     network::HEIKO_PREFIX,
-    tokens::{EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KSM, KUSD, LKSM, MOVR, PHA, SKSM, TUR},
+    tokens::{
+        EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KMA, KSM, KUSD, LKSM, MOVR, PHA, SKSM, TUR,
+    },
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
     Signature,
@@ -430,6 +432,8 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
             GENS => Some(MultiLocation::new(1, X1(Parachain(paras::genshiro::ID)))),
             // Turing
             TUR => Some(MultiLocation::new(1, X1(Parachain(paras::turing::ID)))),
+            // Calamari
+            KMA => Some(MultiLocation::new(1, X1(Parachain(paras::calamari::ID)))),
             _ => None,
         }
     }
@@ -508,6 +512,11 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 1,
                 interior: X1(Parachain(id)),
             } if id == paras::turing::ID => Some(TUR),
+            // Calamari
+            MultiLocation {
+                parents: 1,
+                interior: X1(Parachain(id)),
+            } if id == paras::calamari::ID => Some(KMA),
             _ => None,
         }
     }
@@ -1250,6 +1259,14 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 260
     );
+    // Calamari
+    pub KmaPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X1(Parachain(paras::calamari::ID)),
+        ).into(),
+        ksm_per_second() * 5000
+    );
 }
 
 match_types! {
@@ -1302,6 +1319,8 @@ pub type Trader = (
     FixedRateOfFungible<GensPerSecond, ToTreasury>,
     // Turing
     FixedRateOfFungible<TurPerSecond, ToTreasury>,
+    // Calamari
+    FixedRateOfFungible<KmaPerSecond, ToTreasury>,
     // Foreign Assets registered in AssetRegistry
     // TODO: replace all above except local reserved asset later
     FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
