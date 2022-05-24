@@ -136,8 +136,6 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Collateral is reserved and cannot be liquidated
-        CollateralReserved,
         /// Insufficient liquidity to borrow more or disable collateral
         InsufficientLiquidity,
         /// Insufficient deposit to redeem
@@ -196,6 +194,8 @@ pub mod pallet {
         InsufficientMarketLiquidity,
         /// Codec error
         CodecError,
+        /// Collateral is reserved and cannot be liquidated
+        CollateralReserved,
     }
 
     #[pallet::event]
