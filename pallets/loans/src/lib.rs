@@ -22,6 +22,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use core::cmp::max;
+
 pub use crate::rate_model::*;
 
 use frame_support::{
@@ -46,7 +48,7 @@ use sp_runtime::{
     },
     ArithmeticError, FixedPointNumber, FixedU128,
 };
-use sp_std::result::Result;
+use sp_std::{result::Result, vec::Vec};
 
 use sp_io::hashing::blake2_256;
 pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState, RewardMarketState};
@@ -127,6 +129,9 @@ pub mod pallet {
         /// Reward asset id.
         #[pallet::constant]
         type RewardAssetId: Get<AssetIdOf<Self>>;
+
+        #[pallet::constant]
+        type LiquidationFreeAssetId: Get<AssetIdOf<Self>>;
     }
 
     #[pallet::error]
@@ -189,6 +194,8 @@ pub mod pallet {
         InsufficientMarketLiquidity,
         /// Codec error
         CodecError,
+        /// Collateral is reserved and cannot be liquidated
+        CollateralReserved,
     }
 
     #[pallet::event]
@@ -252,6 +259,8 @@ pub mod pallet {
         /// Event emitted when the incentive reserves are redeemed and transfer to receiver's account
         /// [receive_account_id, asset_id, reduced_amount]
         IncentiveReservesReduced(T::AccountId, AssetIdOf<T>, BalanceOf<T>),
+        /// Liquidation free collaterals has been updated
+        LiquidationFreeCollateralsUpdated(Vec<AssetIdOf<T>>),
     }
 
     /// The timestamp of the last calculation of accrued interest
@@ -259,6 +268,11 @@ pub mod pallet {
     #[pallet::getter(fn last_accrued_interest_time)]
     pub type LastAccruedInterestTime<T: Config> =
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Timestamp, ValueQuery>;
+
+    /// Liquidation free collateral.
+    #[pallet::storage]
+    #[pallet::getter(fn liquidation_free_collaterals)]
+    pub type LiquidationFreeCollaterals<T: Config> = StorageValue<_, Vec<AssetIdOf<T>>, ValueQuery>;
 
     /// Total number of collateral tokens in circulation
     /// CollateralType -> Balance
@@ -1035,6 +1049,10 @@ pub mod pallet {
             collateral_asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+            ensure!(
+                !Self::liquidation_free_collaterals().contains(&collateral_asset_id),
+                Error::<T>::CollateralReserved
+            );
             Self::accrue_interest(liquidation_asset_id)?;
             Self::accrue_interest(collateral_asset_id)?;
             Self::do_liquidate_borrow(
@@ -1156,12 +1174,56 @@ pub mod pallet {
             ));
             Ok(().into())
         }
+
+        /// Update liquidation free collateral.
+        ///
+        /// The `assets` won't be counted when do general
+        #[pallet::weight(T::WeightInfo::update_liquidation_free_collateral())]
+        #[transactional]
+        pub fn update_liquidation_free_collateral(
+            origin: OriginFor<T>,
+            collaterals: Vec<AssetIdOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            LiquidationFreeCollaterals::<T>::mutate(|liquidation_free_collaterals| {
+                *liquidation_free_collaterals = collaterals.clone()
+            });
+            Self::deposit_event(Event::<T>::LiquidationFreeCollateralsUpdated(collaterals));
+            Ok(().into())
+        }
     }
 }
 
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
+    }
+
+    fn get_base_position(account: &T::AccountId) -> Result<FixedU128, DispatchError> {
+        let mut total_asset_value: FixedU128 = FixedU128::zero();
+        for (asset_id, _market) in Self::active_markets()
+            .filter(|(asset_id, _)| Self::liquidation_free_collaterals().contains(asset_id))
+        {
+            total_asset_value = total_asset_value
+                .checked_add(&Self::collateral_asset_value(account, asset_id)?)
+                .ok_or(ArithmeticError::Overflow)?;
+        }
+        Ok(total_asset_value)
+    }
+
+    fn get_account_lf_liquidity(account: &T::AccountId) -> Result<Liquidity, DispatchError> {
+        let dot_borrowed_amount =
+            Self::current_borrow_balance(account, T::LiquidationFreeAssetId::get())?;
+        let dot_borrowed_value =
+            Self::get_asset_value(T::LiquidationFreeAssetId::get(), dot_borrowed_amount)?;
+        let dot_base_position = Self::get_base_position(account)?;
+
+        let liquidity = if dot_base_position > dot_borrowed_value {
+            dot_base_position - dot_borrowed_value
+        } else {
+            FixedU128::zero()
+        };
+        Ok(liquidity)
     }
 
     pub fn get_account_liquidity(
@@ -1191,9 +1253,10 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_account_liquidation_threshold_liquidity(
         account: &T::AccountId,
-    ) -> Result<(Liquidity, Shortfall), DispatchError> {
+    ) -> Result<(Liquidity, Shortfall, Liquidity), DispatchError> {
         let total_borrow_value = Self::total_borrowed_value(account)?;
         let total_collateral_value = Self::total_liquidation_threshold_value(account)?;
+        let base_position = Self::get_base_position(account)?;
         log::trace!(
             target: "loans::get_account_liquidation_threshold_liquidity",
             "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}",
@@ -1205,11 +1268,13 @@ impl<T: Config> Pallet<T> {
             Ok((
                 total_collateral_value - total_borrow_value,
                 FixedU128::zero(),
+                base_position,
             ))
         } else {
             Ok((
                 FixedU128::zero(),
                 total_borrow_value - total_collateral_value,
+                base_position,
             ))
         }
     }
@@ -1335,7 +1400,11 @@ impl<T: Config> Pallet<T> {
             redeem_effects_value.into_inner(),
         );
 
-        Self::ensure_liquidity(redeemer, redeem_effects_value)?;
+        Self::ensure_liquidity(
+            redeemer,
+            redeem_effects_value,
+            Self::liquidation_free_collaterals().contains(&asset_id),
+        )?;
 
         Ok(())
     }
@@ -1389,7 +1458,11 @@ impl<T: Config> Pallet<T> {
         Self::ensure_under_borrow_cap(asset_id, borrow_amount)?;
         Self::ensure_enough_cash(asset_id, borrow_amount)?;
         let borrow_value = Self::get_asset_value(asset_id, borrow_amount)?;
-        Self::ensure_liquidity(borrower, borrow_value)?;
+        Self::ensure_liquidity(
+            borrower,
+            borrow_value,
+            asset_id == T::LiquidationFreeAssetId::get(),
+        )?;
 
         Ok(())
     }
@@ -1501,14 +1574,31 @@ impl<T: Config> Pallet<T> {
             repay_amount,
             market
         );
-        let (_, shortfall) = Self::get_account_liquidation_threshold_liquidity(borrower)?;
+        let (_, shortfall, base_position) =
+            Self::get_account_liquidation_threshold_liquidity(borrower)?;
         if shortfall.is_zero() {
             return Err(Error::<T>::InsufficientShortfall.into());
         }
 
         // The liquidator may not repay more than 50%(close_factor) of the borrower's borrow balance.
         let account_borrows = Self::current_borrow_balance(borrower, liquidation_asset_id)?;
-        if market.close_factor.mul_ceil(account_borrows) < repay_amount {
+        let account_borrows_value = Self::get_asset_value(liquidation_asset_id, account_borrows)?;
+        let repay_value = Self::get_asset_value(liquidation_asset_id, repay_amount)?;
+        let effects_borrows_value = if liquidation_asset_id == T::LiquidationFreeAssetId::get() {
+            if account_borrows_value > base_position {
+                account_borrows_value - base_position
+            } else {
+                FixedU128::zero()
+            }
+        } else {
+            account_borrows_value
+        };
+
+        if market
+            .close_factor
+            .mul_ceil(effects_borrows_value.into_inner())
+            < repay_value.into_inner()
+        {
             return Err(Error::<T>::TooMuchRepay.into());
         }
 
@@ -1784,13 +1874,24 @@ impl<T: Config> Pallet<T> {
     // Returns `Err` If InsufficientLiquidity
     // `account`: account that need a liquidity check
     // `reduce_amount`: values that will have an impact on liquidity
-    fn ensure_liquidity(account: &T::AccountId, reduce_amount: FixedU128) -> DispatchResult {
-        let (liquidity, _) = Self::get_account_liquidity(account)?;
-        if liquidity < reduce_amount {
-            Err(Error::<T>::InsufficientLiquidity.into())
-        } else {
-            Ok(())
+    // `lf_enable`: check in liquidation free mode which means borrowing dot or redeeming assets in
+    // `LiquidationFreeCollaterals`.
+    fn ensure_liquidity(
+        account: &T::AccountId,
+        reduce_amount: FixedU128,
+        lf_enable: bool,
+    ) -> DispatchResult {
+        let (total_liquidity, _) = Self::get_account_liquidity(account)?;
+        let lf_liquidity = Self::get_account_lf_liquidity(account)?;
+
+        if lf_enable && max(total_liquidity, lf_liquidity) >= reduce_amount {
+            return Ok(());
         }
+
+        if !lf_enable && total_liquidity >= lf_liquidity + reduce_amount {
+            return Ok(());
+        }
+        Err(Error::<T>::InsufficientLiquidity.into())
     }
 
     pub fn calc_underlying_amount(
