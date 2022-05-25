@@ -8,6 +8,8 @@ set -xe
 
 # https://dot-rocksdb.polkashots.io
 # https://ksm-rocksdb.polkashots.io
+# https://snapshot-parallel.s3.us-east-2.amazonaws.com/db.7z
+# https://snapshot-heiko.s3.us-east-2.amazonaws.com/db.7z
 
 DB_PATH="polkadot/chains/ksmcc3"
 SNAPSHOT_PATH="db/full"

@@ -8,7 +8,7 @@ import { KeyringPair } from '@polkadot/keyring/types'
 import { Index } from '@polkadot/types/interfaces'
 
 const EMPTY_U8A_32 = new Uint8Array(32)
-const XCM_FEE = 50000000000
+const XCM_FEE = 2500000000
 
 export const exec = (cmd: string): shell.ShellString => {
   console.log(`$ ${cmd}`)
@@ -98,7 +98,7 @@ export const createXcm = (encoded: string, refundAccount: string) => {
       {
         Transact: {
           originType: 'Native',
-          requireWeightAtMost: '2000000000',
+          requireWeightAtMost: '3000000000',
           call: {
             encoded
           }

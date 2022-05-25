@@ -71,8 +71,8 @@ pub mod fee {
     impl WeightToFeePolynomial for WeightToFee {
         type Balance = Balance;
         fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-            // in heiko, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
-            let p = super::currency::CENTS / 10;
+            // in heiko, extrinsic base weight (smallest non-zero weight) is mapped to 5 CENTS
+            let p = super::currency::CENTS * 5;
             let q = Balance::from(ExtrinsicBaseWeight::get());
             smallvec![WeightToFeeCoefficient {
                 degree: 1,
@@ -129,5 +129,9 @@ pub mod paras {
 
     pub mod genshiro {
         pub const ID: u32 = 2024;
+    }
+
+    pub mod turing {
+        pub const ID: u32 = 2114;
     }
 }

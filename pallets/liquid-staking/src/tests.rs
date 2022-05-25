@@ -4,6 +4,7 @@ use frame_support::{
 };
 use sp_runtime::{
     traits::{BlakeTwo256, One, Zero},
+    ArithmeticError::Underflow,
     MultiAddress::Id,
     TransactionOutcome,
 };
@@ -54,6 +55,7 @@ fn stake_should_work() {
         assert_ok!(with_transaction(
             || -> TransactionOutcome<DispatchResult> {
                 LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::do_matching().unwrap();
                 LiquidStaking::notification_received(
                     pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                     0,
@@ -93,6 +95,7 @@ fn stake_should_work() {
         assert_ok!(with_transaction(
             || -> TransactionOutcome<DispatchResult> {
                 LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::do_matching().unwrap();
                 LiquidStaking::notification_received(
                     pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                     1,
@@ -154,6 +157,7 @@ fn unstake_should_work() {
         assert_ok!(with_transaction(
             || -> TransactionOutcome<DispatchResult> {
                 LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::do_matching().unwrap();
                 LiquidStaking::notification_received(
                     pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                     0,
@@ -204,6 +208,7 @@ fn unstake_should_work() {
         assert_ok!(with_transaction(
             || -> TransactionOutcome<DispatchResult> {
                 LiquidStaking::do_advance_era(1).unwrap();
+                LiquidStaking::do_matching().unwrap();
                 LiquidStaking::notification_received(
                     pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                     1,
@@ -276,6 +281,7 @@ fn test_matching_should_work() {
             assert_ok!(with_transaction(
                 || -> TransactionOutcome<DispatchResult> {
                     LiquidStaking::do_advance_era(1).unwrap();
+                    LiquidStaking::do_matching().unwrap();
                     LiquidStaking::notification_received(
                         pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                         i.try_into().unwrap(),
@@ -664,6 +670,7 @@ fn claim_for_should_work() {
         assert_ok!(with_transaction(
             || -> TransactionOutcome<DispatchResult> {
                 assert_ok!(LiquidStaking::do_advance_era(4));
+                assert_ok!(LiquidStaking::do_matching());
                 TransactionOutcome::Commit(Ok(()))
             }
         ));
@@ -910,5 +917,79 @@ fn test_verify_merkle_proof_work() {
             value,
             get_mock_proof_bytes()
         ));
+    })
+}
+
+#[test]
+fn reduce_reserves_works() {
+    new_test_ext().execute_with(|| {
+        // Stake 1000 KSM, 0.5% for reserves
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(100f64)));
+        assert_eq!(LiquidStaking::total_reserves(), ksm(0.5f64));
+        // Reduce 20 KSM reserves
+        assert_ok!(LiquidStaking::reduce_reserves(
+            Origin::root(),
+            Id(ALICE),
+            ksm(0.2f64)
+        ));
+        assert_eq!(LiquidStaking::total_reserves(), ksm(0.3f64));
+
+        // should failed if exceed the cap
+        assert_noop!(
+            LiquidStaking::reduce_reserves(Origin::root(), Id(ALICE), ksm(0.31f64)),
+            Underflow
+        );
+    })
+}
+
+#[test]
+fn cancel_unstake_works() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(6f64)));
+
+        // Check storage is correct
+        assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
+        assert_eq!(
+            MatchingPool::<Test>::get(),
+            MatchingLedger {
+                total_stake_amount: ReservableAmount {
+                    total: ksm(9.95f64),
+                    reserved: 0
+                },
+                total_unstake_amount: ReservableAmount {
+                    total: ksm(6f64),
+                    reserved: 0
+                }
+            }
+        );
+
+        assert_eq!(
+            Unlockings::<Test>::get(ALICE).unwrap(),
+            vec![UnlockChunk {
+                value: ksm(6f64),
+                era: 4
+            }]
+        );
+
+        assert_ok!(LiquidStaking::cancel_unstake(
+            Origin::signed(ALICE),
+            ksm(6f64)
+        ));
+        assert_eq!(
+            MatchingPool::<Test>::get(),
+            MatchingLedger {
+                total_stake_amount: ReservableAmount {
+                    total: ksm(9.95f64),
+                    reserved: 0
+                },
+                total_unstake_amount: ReservableAmount {
+                    total: 0,
+                    reserved: 0
+                }
+            }
+        );
+
+        assert_eq!(Unlockings::<Test>::get(ALICE).unwrap(), vec![]);
     })
 }

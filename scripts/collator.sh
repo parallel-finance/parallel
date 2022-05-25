@@ -20,7 +20,7 @@ VOLUME="chains"
 NODE_KEY="$1"
 KEYSTORE_PATH="$2"
 NODE_NAME="$3"
-DOCKER_IMAGE="parallelfinance/parallel:v1.8.0"
+DOCKER_IMAGE="parallelfinance/parallel:v1.8.5"
 BASE_PATH="/data"
 
 if [ $# -lt 3 ]; then
@@ -62,6 +62,7 @@ docker run --restart=always --name $PARA_CHAIN-collator \
     --state-cache-size 0 \
     --listen-addr=/ip4/0.0.0.0/tcp/$PARA_P2P_PORT \
     --name=$NODE_NAME \
+    --log='xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace,stableswap=trace,router=trace,bridge=trace' \
     --prometheus-external \
   -- \
     --chain=$RELAY_CHAIN \
@@ -74,6 +75,7 @@ docker run --restart=always --name $PARA_CHAIN-collator \
     --unsafe-pruning \
     --pruning=1000 \
     --listen-addr=/ip4/0.0.0.0/tcp/$RELAY_P2P_PORT \
+    --log='xcm=trace' \
     --name="${NODE_NAME}_Embedded_Relay"
 
 # docker logs -f $PARA_CHAIN-collator

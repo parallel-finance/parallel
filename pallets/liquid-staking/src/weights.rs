@@ -63,6 +63,8 @@ pub trait WeightInfo {
 	fn on_initialize() -> Weight;
 	fn force_advance_era() -> Weight;
 	fn force_matching() -> Weight;
+	fn reduce_reserves() -> Weight;
+	fn cancel_unstake() -> Weight;
 }
 
 /// Weights for pallet_liquid_staking using the Substrate node and recommended hardware.
@@ -338,6 +340,18 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(21 as Weight))
 			.saturating_add(T::DbWeight::get().writes(12 as Weight))
 	}
+
+	fn reduce_reserves() -> Weight {
+		(56_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(6 as Weight))
+			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+	}
+
+	fn cancel_unstake() -> Weight {
+		(109_589_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(8 as Weight))
+			.saturating_add(T::DbWeight::get().writes(5 as Weight))
+	}
 }
 
 // For backwards compatibility and tests
@@ -611,5 +625,17 @@ impl WeightInfo for () {
 		(153_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(21 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(12 as Weight))
+	}
+
+	fn reduce_reserves() -> Weight {
+		(56_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(6 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(5 as Weight))
+	}
+
+	fn cancel_unstake() -> Weight {
+		(109_589_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(8 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(5 as Weight))
 	}
 }

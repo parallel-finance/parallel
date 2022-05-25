@@ -108,7 +108,9 @@ use pallet_traits::{
 };
 use primitives::{
     network::HEIKO_PREFIX,
-    tokens::{EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KSM, KUSD, LKSM, MOVR, PHA, SKSM},
+    tokens::{
+        EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KMA, KSM, KUSD, LKSM, MOVR, PHA, SKSM, TUR,
+    },
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
     Signature,
@@ -144,10 +146,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 185,
-    impl_version: 30,
+    spec_version: 187,
+    impl_version: 32,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 14,
+    transaction_version: 15,
     state_version: 0,
 };
 
@@ -249,6 +251,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Proxy(_) |
             Call::Identity(_) |
             Call::EmergencyShutdown(_) |
+            Call::CurrencyAdapter(_) |
             Call::XcmHelper(_) |
             // 3rd Party
             Call::Oracle(_) |
@@ -428,6 +431,10 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
             )),
             // Genshiro
             GENS => Some(MultiLocation::new(1, X1(Parachain(paras::genshiro::ID)))),
+            // Turing
+            TUR => Some(MultiLocation::new(1, X1(Parachain(paras::turing::ID)))),
+            // Calamari
+            KMA => Some(MultiLocation::new(1, X1(Parachain(paras::calamari::ID)))),
             _ => None,
         }
     }
@@ -501,6 +508,16 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 1,
                 interior: X1(Parachain(id)),
             } if id == paras::genshiro::ID => Some(GENS),
+            // Turing
+            MultiLocation {
+                parents: 1,
+                interior: X1(Parachain(id)),
+            } if id == paras::turing::ID => Some(TUR),
+            // Calamari
+            MultiLocation {
+                parents: 1,
+                interior: X1(Parachain(id)),
+            } if id == paras::calamari::ID => Some(KMA),
             _ => None,
         }
     }
@@ -603,6 +620,7 @@ parameter_types! {
     pub const MinNominatorBond: Balance = 100_000_000_000; // 0.1KSM
     pub const NumSlashingSpans: u32 = 0;
     pub DerivativeIndexList: Vec<u16> = vec![0, 1];
+    pub const ElectionSolutionStoredOffset: BlockNumber = 18;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -629,6 +647,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelayChainValidationDataProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
+    type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;
 }
 
 parameter_types! {
@@ -859,6 +878,7 @@ pub enum ProxyType {
     Staking,
     Crowdloans,
     Farming,
+    Streaming,
 }
 impl Default for ProxyType {
     fn default() -> Self {
@@ -881,6 +901,8 @@ impl InstanceFilter<Call> for ProxyType {
                         | Call::Loans(pallet_loans::Call::repay_borrow_all { .. })
                         | Call::Loans(pallet_loans::Call::collateral_asset { .. })
                         | Call::Loans(pallet_loans::Call::liquidate_borrow { .. })
+                        | Call::Loans(pallet_loans::Call::claim_reward { .. })
+                        | Call::Loans(pallet_loans::Call::claim_reward_for_market { .. })
                 )
             }
             ProxyType::Staking => {
@@ -908,6 +930,14 @@ impl InstanceFilter<Call> for ProxyType {
                         | Call::Farming(pallet_farming::Call::claim { .. })
                         | Call::Farming(pallet_farming::Call::withdraw { .. })
                         | Call::Farming(pallet_farming::Call::redeem { .. })
+                )
+            }
+            ProxyType::Streaming => {
+                matches!(
+                    c,
+                    Call::Streaming(pallet_streaming::Call::create { .. })
+                        | Call::Streaming(pallet_streaming::Call::cancel { .. })
+                        | Call::Streaming(pallet_streaming::Call::withdraw { .. })
                 )
             }
         }
@@ -1062,9 +1092,15 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = DOLLARS / 4; // 0.25HKO
+        let default_gift_amount = 5 * DOLLARS / 2; // 2.5HKO
         Ok(match asset_id {
-            KSM if balance >= 10_u128.pow((decimal - 1).into()) => default_gift_amount,
+            KSM if balance
+                >= 10_u128
+                    .pow((decimal - 1).into())
+                    .saturating_sub(96_000_000u128) =>
+            {
+                default_gift_amount
+            }
             EUSDT | EUSDC if balance >= 300 * 10_u128.pow(decimal.into()) => default_gift_amount,
             _ => Zero::zero(),
         })
@@ -1204,6 +1240,22 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 5000
     );
+    // Turing
+    pub TurPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X1(Parachain(paras::turing::ID)),
+        ).into(),
+        ksm_per_second() * 260
+    );
+    // Calamari
+    pub KmaPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X1(Parachain(paras::calamari::ID)),
+        ).into(),
+        ksm_per_second() * 5000
+    );
 }
 
 match_types! {
@@ -1254,6 +1306,10 @@ pub type Trader = (
     FixedRateOfFungible<KbtcPerSecond, ToTreasury>,
     // Genshiro
     FixedRateOfFungible<GensPerSecond, ToTreasury>,
+    // Turing
+    FixedRateOfFungible<TurPerSecond, ToTreasury>,
+    // Calamari
+    FixedRateOfFungible<KmaPerSecond, ToTreasury>,
     // Foreign Assets registered in AssetRegistry
     // TODO: replace all above except local reserved asset later
     FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
@@ -1877,15 +1933,19 @@ impl pallet_crowdloans::Config for Runtime {
 
 parameter_types! {
     pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
+    pub const MaxStreamsCount: u32 = 128;
+    pub const MaxFinishedStreamsCount: u32 = 2;
 }
 
 impl pallet_streaming::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = StreamPalletId;
+    type MaxStreamsCount = MaxStreamsCount;
+    type MaxFinishedStreamsCount = MaxFinishedStreamsCount;
     type UnixTime = Timestamp;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type WeightInfo = pallet_streaming::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_streaming::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -2252,6 +2312,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_crowdloans, Crowdloans);
             list_benchmark!(list, extra, pallet_xcm_helper, XcmHelper);
             list_benchmark!(list, extra, pallet_asset_registry, AssetRegistry);
+            list_benchmark!(list, extra, pallet_streaming, Streaming);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -2299,6 +2360,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_crowdloans, Crowdloans);
             add_benchmark!(params, batches, pallet_xcm_helper, XcmHelper);
             add_benchmark!(params, batches, pallet_asset_registry, AssetRegistry);
+            add_benchmark!(params, batches, pallet_streaming, Streaming);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

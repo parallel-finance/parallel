@@ -472,6 +472,7 @@ parameter_types! {
     pub const NumSlashingSpans: u32 = 0;
     pub static DerivativeIndexList: Vec<u16> = vec![0];
     pub static RelayChainValidationDataProvider: BlockNumber = 0;
+    pub const ElectionSolutionStoredOffset: BlockNumber = 10;
 }
 
 impl crate::Config for Test {
@@ -498,6 +499,7 @@ impl crate::Config for Test {
     type Members = BobOrigin;
     type NumSlashingSpans = NumSlashingSpans;
     type DistributionStrategy = AverageDistribution;
+    type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;
 }
 
 parameter_types! {

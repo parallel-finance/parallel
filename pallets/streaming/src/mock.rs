@@ -145,11 +145,15 @@ impl pallet_currency_adapter::Config for Test {
 
 parameter_types! {
     pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
+    pub const MaxStreamsCount: u32 = 128;
+    pub const MaxFinishedStreamsCount: u32 = 2;
 }
 
 impl Config for Test {
     type Event = Event;
     type PalletId = StreamPalletId;
+    type MaxStreamsCount = MaxStreamsCount;
+    type MaxFinishedStreamsCount = MaxFinishedStreamsCount;
     type UnixTime = TimestampPallet;
     type Assets = CurrencyAdapter;
     type UpdateOrigin = EnsureRoot<AccountId>;
@@ -168,9 +172,9 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        // Init network tokens to execute extrinsics
-        Balances::set_balance(Origin::root(), BOB, dollar(1000), dollar(0)).unwrap();
+        // Init network tokens to execute extrinsic
         Balances::set_balance(Origin::root(), ALICE, dollar(1000), dollar(0)).unwrap();
+        Balances::set_balance(Origin::root(), BOB, dollar(1000), dollar(0)).unwrap();
         Balances::set_balance(Origin::root(), DAVE, dollar(1000), dollar(0)).unwrap();
         // Init DOT to alice with full access
         Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
@@ -178,10 +182,12 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(10000)).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(10000)).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, DAVE, dollar(10000)).unwrap();
-
         // Set block number and time
         System::set_block_number(0);
         TimestampPallet::set_timestamp(6000);
+
+        // Set minimum deposit for DOT
+        Streaming::set_minimum_deposit(Origin::root(), DOT, dollar(0)).unwrap();
     });
     ext
 }

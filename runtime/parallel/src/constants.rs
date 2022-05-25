@@ -71,8 +71,8 @@ pub mod fee {
     impl WeightToFeePolynomial for WeightToFee {
         type Balance = Balance;
         fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-            // in parallel, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
-            let p = super::currency::CENTS / 10;
+            // in parallel, extrinsic base weight (smallest non-zero weight) is mapped to 5 CENTS
+            let p = super::currency::CENTS * 5;
             let q = Balance::from(ExtrinsicBaseWeight::get());
             smallvec![WeightToFeeCoefficient {
                 degree: 1,
@@ -103,5 +103,24 @@ pub mod paras {
         pub const AUSD_KEY: &[u8] = &[0, 1];
         pub const LDOT_KEY: &[u8] = &[0, 3];
         pub const LCDOT_KEY: &[u8] = &[2, 13];
+    }
+
+    pub mod moonbeam {
+        pub const ID: u32 = 2004;
+        pub const GLMR_KEY: u8 = 10;
+    }
+
+    pub mod phala {
+        pub const ID: u32 = 2035;
+    }
+
+    pub mod interlay {
+        pub const ID: u32 = 2032;
+        pub const IBTC_KEY: &[u8] = &[0, 1];
+        pub const INTR_KEY: &[u8] = &[0, 2];
+    }
+
+    pub mod equilibrium {
+        pub const ID: u32 = 2011;
     }
 }

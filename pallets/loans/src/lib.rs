@@ -438,6 +438,7 @@ pub mod pallet {
     pub(super) fn DefaultVersion<T: Config>() -> Versions {
         Versions::V2
     }
+
     /// Storage version of the pallet.
     #[pallet::storage]
     pub(crate) type StorageVersion<T: Config> =

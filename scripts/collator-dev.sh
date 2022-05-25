@@ -19,7 +19,7 @@ RELAY_CHAIN="${4:-kusama-local.json}"
 VOLUME="chains"
 NODE_NAME="$1"
 COLLATOR_NAME="${2:-alice}"
-DOCKER_IMAGE="parallelfinance/parallel:v1.8.0"
+DOCKER_IMAGE="parallelfinance/parallel:v1.8.5"
 BASE_PATH="/data"
 RELAY_BOOTNODES="/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWDEyCAUKviazJuXdWcAAVEf7nSm9BvPXyK6odp5PetCfV"
 
@@ -62,6 +62,7 @@ docker run --restart=always --name $NODE_NAME \
     --state-cache-size 0 \
     --listen-addr=/ip4/0.0.0.0/tcp/$PARA_P2P_PORT \
     --name=$NODE_NAME \
+    --log='xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace,stableswap=trace,router=trace,bridge=trace' \
     --prometheus-external \
   -- \
     --chain=/app/$RELAY_CHAIN \
@@ -75,6 +76,7 @@ docker run --restart=always --name $NODE_NAME \
     --pruning=1000 \
     --listen-addr=/ip4/0.0.0.0/tcp/$RELAY_P2P_PORT \
     --name="${NODE_NAME}_Embedded_Relay" \
+    --log='xcm=trace' \
     --bootnodes $RELAY_BOOTNODES
 
 docker logs -f $NODE_NAME

@@ -108,7 +108,7 @@ use pallet_traits::{
 };
 use primitives::{
     network::PARALLEL_PREFIX,
-    tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, SDOT},
+    tokens::{ACA, AUSD, DOT, EQ, EUSDC, EUSDT, GLMR, IBTC, INTR, LC_DOT, LDOT, PARA, PHA, SDOT},
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
     Signature,
@@ -148,10 +148,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 185,
-    impl_version: 30,
+    spec_version: 187,
+    impl_version: 32,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 14,
+    transaction_version: 15,
     state_version: 0,
 };
 
@@ -227,7 +227,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
             Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
             // Governance
-            Call::Sudo(_) |
+            // Call::Sudo(_) |
             Call::Democracy(_) |
             Call::GeneralCouncil(_) |
             Call::TechnicalCommittee(_) |
@@ -253,6 +253,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Proxy(_) |
             Call::Identity(_) |
             Call::EmergencyShutdown(_) |
+            Call::CurrencyAdapter(_) |
             Call::XcmHelper(_) |
             // 3rd Party
             Call::Vesting(_) |
@@ -291,7 +292,7 @@ impl Contains<Call> for BaseCallFilter {
                 // Farming
                 Call::Farming(_) |
                 // Streaming
-                // Call::Streaming(_) |
+                Call::Streaming(_) |
                 // Asset Management
                 Call::AssetRegistry(_)
             ))
@@ -411,6 +412,33 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(paras::acala::LCDOT_KEY.to_vec()),
                 ),
             )),
+            // Moonbeam
+            GLMR => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::moonbeam::ID),
+                    PalletInstance(paras::moonbeam::GLMR_KEY),
+                ),
+            )),
+            // Phala
+            PHA => Some(MultiLocation::new(1, X1(Parachain(paras::phala::ID)))),
+            // Interlay
+            INTR => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::interlay::ID),
+                    GeneralKey(paras::interlay::INTR_KEY.to_vec()),
+                ),
+            )),
+            IBTC => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::interlay::ID),
+                    GeneralKey(paras::interlay::IBTC_KEY.to_vec()),
+                ),
+            )),
+            // Equilibrium
+            EQ => Some(MultiLocation::new(1, X1(Parachain(paras::equilibrium::ID)))),
             _ => None,
         }
     }
@@ -443,6 +471,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 0,
                 interior: X1(GeneralKey(key)),
             } if key == b"PARA".to_vec() => Some(PARA),
+            // Acala
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
@@ -475,6 +504,34 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             {
                 Some(LC_DOT)
             }
+            // Moonbeam
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), PalletInstance(key)),
+            } if id == paras::moonbeam::ID && key == paras::moonbeam::GLMR_KEY => Some(GLMR),
+            // Phala
+            MultiLocation {
+                parents: 1,
+                interior: X1(Parachain(id)),
+            } if id == paras::phala::ID => Some(PHA),
+            // Interlay
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::interlay::ID && key == paras::interlay::INTR_KEY.to_vec() => {
+                Some(INTR)
+            }
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::interlay::ID && key == paras::interlay::IBTC_KEY.to_vec() => {
+                Some(IBTC)
+            }
+            // Equilibrium
+            MultiLocation {
+                parents: 1,
+                interior: X1(Parachain(id)),
+            } if id == paras::equilibrium::ID => Some(EQ),
             _ => None,
         }
     }
@@ -589,6 +646,7 @@ parameter_types! {
     pub const MinNominatorBond: Balance = 100_000_000_000; // 10DOT
     pub const NumSlashingSpans: u32 = 0;
     pub DerivativeIndexList: Vec<u16> = vec![0, 1, 2, 3, 4, 5];
+    pub const ElectionSolutionStoredOffset: BlockNumber = 12600;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -615,6 +673,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelayChainValidationDataProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
+    type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;
 }
 
 parameter_types! {
@@ -821,10 +880,10 @@ impl pallet_transaction_payment::Config for Runtime {
     type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 }
 
-impl pallet_sudo::Config for Runtime {
-    type Event = Event;
-    type Call = Call;
-}
+// impl pallet_sudo::Config for Runtime {
+//     type Event = Event;
+//     type Call = Call;
+// }
 
 #[derive(
     Copy,
@@ -845,6 +904,7 @@ pub enum ProxyType {
     Staking,
     Crowdloans,
     Farming,
+    Streaming,
 }
 impl Default for ProxyType {
     fn default() -> Self {
@@ -867,6 +927,8 @@ impl InstanceFilter<Call> for ProxyType {
                         | Call::Loans(pallet_loans::Call::repay_borrow_all { .. })
                         | Call::Loans(pallet_loans::Call::collateral_asset { .. })
                         | Call::Loans(pallet_loans::Call::liquidate_borrow { .. })
+                        | Call::Loans(pallet_loans::Call::claim_reward { .. })
+                        | Call::Loans(pallet_loans::Call::claim_reward_for_market { .. })
                 )
             }
             ProxyType::Staking => {
@@ -894,6 +956,14 @@ impl InstanceFilter<Call> for ProxyType {
                         | Call::Farming(pallet_farming::Call::claim { .. })
                         | Call::Farming(pallet_farming::Call::withdraw { .. })
                         | Call::Farming(pallet_farming::Call::redeem { .. })
+                )
+            }
+            ProxyType::Streaming => {
+                matches!(
+                    c,
+                    Call::Streaming(pallet_streaming::Call::create { .. })
+                        | Call::Streaming(pallet_streaming::Call::cancel { .. })
+                        | Call::Streaming(pallet_streaming::Call::withdraw { .. })
                 )
             }
         }
@@ -1048,9 +1118,11 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = 125 * DOLLARS / 100; // 1.25PARA
+        let default_gift_amount = 5 * DOLLARS / 2; // 2.5PARA
         Ok(match asset_id {
-            DOT if balance >= 5 * 10_u128.pow(decimal.into()) => default_gift_amount,
+            DOT if balance >= 5 * 10_u128.pow(decimal.into()).saturating_sub(96_000_000u128) => {
+                default_gift_amount
+            }
             EUSDT | EUSDC if balance >= 300 * 10_u128.pow(decimal.into()) => default_gift_amount,
             _ => Zero::zero(),
         })
@@ -1157,6 +1229,45 @@ parameter_types! {
         ).into(),
         dot_per_second()
     );
+    // Moonbeam
+    pub GlmrPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::moonbeam::ID), PalletInstance(paras::moonbeam::GLMR_KEY)),
+        ).into(),
+        dot_per_second() * 50
+    );
+    // Phala
+    pub PhaPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X1(Parachain(paras::phala::ID)),
+        ).into(),
+        dot_per_second() * 400
+    );
+    // Interlay
+    pub IntrPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::interlay::ID), GeneralKey(paras::interlay::INTR_KEY.to_vec())),
+        ).into(),
+        dot_per_second() * 400
+    );
+    pub IbtcPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::interlay::ID), GeneralKey(paras::interlay::IBTC_KEY.to_vec())),
+        ).into(),
+        dot_per_second() / 1_500_000
+    );
+    // Equilibrium
+    pub EqPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X1(Parachain(paras::equilibrium::ID)),
+        ).into(),
+        dot_per_second() * 5000
+    );
 }
 
 match_types! {
@@ -1194,10 +1305,20 @@ pub type Trader = (
     FixedRateOfFungible<SDOTPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<ParaPerSecond, ToTreasury>,
     FixedRateOfFungible<ParaPerSecondOfCanonicalLocation, ToTreasury>,
+    // Acala
     FixedRateOfFungible<AusdPerSecond, ToTreasury>,
     FixedRateOfFungible<AcaPerSecond, ToTreasury>,
     FixedRateOfFungible<LDOTPerSecond, ToTreasury>,
     FixedRateOfFungible<LCDOTPerSecond, ToTreasury>,
+    // Moonbeam
+    FixedRateOfFungible<GlmrPerSecond, ToTreasury>,
+    // Phala
+    FixedRateOfFungible<PhaPerSecond, ToTreasury>,
+    // Interlay
+    FixedRateOfFungible<IntrPerSecond, ToTreasury>,
+    FixedRateOfFungible<IbtcPerSecond, ToTreasury>,
+    // Equilibrium
+    FixedRateOfFungible<EqPerSecond, ToTreasury>,
     // Foreign Assets registered in AssetRegistry
     // TODO: replace all above except local reserved asset later
     FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
@@ -1788,15 +1909,19 @@ impl pallet_crowdloans::Config for Runtime {
 
 parameter_types! {
     pub const StreamPalletId: PalletId = PalletId(*b"par/strm");
+    pub const MaxStreamsCount: u32 = 128;
+    pub const MaxFinishedStreamsCount: u32 = 10;
 }
 
 impl pallet_streaming::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = StreamPalletId;
+    type MaxStreamsCount = MaxStreamsCount;
+    type MaxFinishedStreamsCount = MaxFinishedStreamsCount;
     type UnixTime = Timestamp;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type WeightInfo = pallet_streaming::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_streaming::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1886,7 +2011,7 @@ construct_runtime!(
         Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 8,
 
         // Governance
-        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
+        // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>} = 11,
         GeneralCouncil: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 12,
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 13,
@@ -2163,6 +2288,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_xcm_helper, XcmHelper);
             list_benchmark!(list, extra, pallet_farming, Farming);
             list_benchmark!(list, extra, pallet_asset_registry, AssetRegistry);
+            list_benchmark!(list, extra, pallet_streaming, Streaming);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -2210,6 +2336,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_xcm_helper, XcmHelper);
             add_benchmark!(params, batches, pallet_farming, Farming);
             add_benchmark!(params, batches, pallet_asset_registry, AssetRegistry);
+            add_benchmark!(params, batches, pallet_streaming, Streaming);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

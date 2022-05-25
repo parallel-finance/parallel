@@ -31,12 +31,13 @@ pallets=(
   pallet_loans
   pallet_router
   pallet_xcm_helper
+  pallet_streaming
   pallet_liquid_staking
 )
 
 for p in ${pallets[@]}
 do
-	cargo run --release --features runtime-benchmarks -- benchmark \
+	./target/release/parallel benchmark \
     pallet \
 		--chain=$vanillaChain \
 		--execution=wasm \
@@ -47,7 +48,7 @@ do
 		--repeat=$repeat \
 		--output=$vanillaOutput/$p.rs
 
-	cargo run --release --features runtime-benchmarks -- benchmark \
+	./target/release/parallel benchmark \
     pallet \
 		--chain=$kerriaChain \
 		--execution=wasm \
@@ -58,7 +59,7 @@ do
 		--repeat=$repeat \
 		--output=$kerriaOutput/$p.rs
 
-	cargo run --release --features runtime-benchmarks -- benchmark \
+	./target/release/parallel benchmark \
     pallet \
 		--chain=$parallelChain \
 		--execution=wasm \
@@ -69,7 +70,7 @@ do
 		--repeat=$repeat \
 		--output=$parallelOutput/$p.rs
 
-	cargo run --release --features runtime-benchmarks -- benchmark \
+	./target/release/parallel benchmark \
     pallet \
 		--chain=$heikoChain \
 		--execution=wasm \
