@@ -69,7 +69,9 @@ pub mod pallet {
 
     use pallet_traits::{VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider};
 
-    use pallet_math_helper::f64::{fixed_u128_from_float, fixed_u128_to_float, power_float};
+    use parallel_support::math_helper::f64::{
+        fixed_u128_from_float, fixed_u128_to_float, power_float,
+    };
 
     use pallet_xcm_helper::XcmHelper;
 

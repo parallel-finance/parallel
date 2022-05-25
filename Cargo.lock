@@ -5891,7 +5891,6 @@ dependencies = [
  "pallet-assets",
  "pallet-babe",
  "pallet-balances",
- "pallet-math-helper",
  "pallet-session",
  "pallet-timestamp",
  "pallet-traits",
@@ -5900,6 +5899,7 @@ dependencies = [
  "pallet-xcm-helper",
  "parachain-info",
  "parallel-primitives",
+ "parallel-support",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain",
@@ -6213,26 +6213,6 @@ dependencies = [
  "parity-scale-codec",
  "sp-api",
  "sp-runtime",
-]
-
-[[package]]
-name = "pallet-math-helper"
-version = "1.8.5"
-dependencies = [
- "frame-support",
- "frame-system",
- "log",
- "num-bigint 0.4.3",
- "num-traits",
- "parallel-primitives",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "substrate-fixed",
 ]
 
 [[package]]
@@ -7128,6 +7108,26 @@ dependencies = [
  "xcm",
  "xcm-builder",
  "xcm-executor",
+]
+
+[[package]]
+name = "parallel-support"
+version = "1.8.5"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "log",
+ "num-bigint 0.4.3",
+ "num-traits",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "substrate-fixed",
 ]
 
 [[package]]

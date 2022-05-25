@@ -1,7 +1,7 @@
 [package]
 authors = ['Parallel Team']
 edition = '2021'
-name    = 'pallet-math-helper'
+name    = 'parallel-support'
 version = '1.8.5'
 
 [package.metadata.docs.rs]
@@ -15,7 +15,7 @@ frame-system        = { git = 'https://github.com/paritytech/substrate.git', bra
 log                 = { version = "0.4", default-features = false }
 num-bigint          = { default-features = false, version = '0.4' }
 num-traits          = { default-features = false, version = '0.2' }
-primitives          = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+primitives          = { package = 'parallel-primitives', path = '../primitives', default-features = false }
 scale-info          = { version = '2.1', default-features = false, features = ['derive'] }
 sp-core             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false }
 sp-io               = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false }
