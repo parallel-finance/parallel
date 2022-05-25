@@ -14,8 +14,10 @@
 
 pub use super::*;
 
-use frame_support::{construct_runtime, parameter_types, traits::Everything, PalletId};
-use frame_system::EnsureRoot;
+use frame_support::{
+    construct_runtime, parameter_types, traits::Everything, traits::SortedMembers, PalletId,
+};
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
 use pallet_traits::*;
 use primitives::{
@@ -44,6 +46,7 @@ construct_runtime!(
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
+        DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
     }
 );
@@ -146,9 +149,9 @@ impl DataFeeder<CurrencyId, TimeStampedPrice, AccountId> for MockDataProvider {
 }
 
 pub struct LiquidStakingExchangeRateProvider;
-impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
-    fn get_exchange_rate() -> Rate {
-        Rate::saturating_from_rational(150, 100)
+impl ExchangeRateProvider<CurrencyId> for LiquidStakingExchangeRateProvider {
+    fn get_exchange_rate(_: &CurrencyId) -> Option<Rate> {
+        Some(Rate::saturating_from_rational(150, 100))
     }
 }
 
@@ -174,10 +177,70 @@ impl LiquidStakingCurrenciesProvider<CurrencyId> for LiquidStaking {
     }
 }
 
-impl ExchangeRateProvider for LiquidStaking {
-    fn get_exchange_rate() -> Rate {
-        Rate::saturating_from_rational(150, 100)
+impl ExchangeRateProvider<CurrencyId> for LiquidStaking {
+    fn get_exchange_rate(_: &CurrencyId) -> Option<Rate> {
+        Some(Rate::saturating_from_rational(150, 100))
     }
+}
+
+pub struct TokenExchangeRateProvider;
+impl VaultTokenExchangeRateProvider<CurrencyId> for TokenExchangeRateProvider {
+    fn get_exchange_rate(_: &CurrencyId, _: Rate) -> Option<Rate> {
+        Some(Rate::saturating_from_rational(100, 150))
+    }
+}
+
+pub struct TokenCurrenciesFilter;
+impl VaultTokenCurrenciesFilter<CurrencyId> for TokenCurrenciesFilter {
+    fn contains(_asset_id: &CurrencyId) -> bool {
+        return false;
+    }
+}
+
+pub struct VaultLoansRateProvider;
+impl LoansRateProvider<CurrencyId> for VaultLoansRateProvider {
+    fn get_full_interest_rate(_asset_id: &CurrencyId) -> Option<Rate> {
+        Some(Rate::from_inner(450_000_000_000_000_000))
+    }
+}
+
+parameter_types! {
+    pub const RelayCurrency: CurrencyId = KSM;
+}
+
+// AMM instance initialization
+parameter_types! {
+    pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
+    // pub const DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
+    // pub const DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);
+    pub  DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);         // 0.3%
+    pub  DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.2%
+    pub const DefaultProtocolFeeReceiver: AccountId = CHARLIE;
+    pub const MinimumLiquidity: u128 = 1_000u128;
+    pub const LockAccountId: AccountId = ALICE;
+    pub const MaxLengthRoute: u8 = 10;
+}
+
+pub struct AliceCreatePoolOrigin;
+impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![ALICE]
+    }
+}
+
+impl pallet_amm::Config for Test {
+    type Event = Event;
+    type Assets = CurrencyAdapter;
+    type PalletId = AMMPalletId;
+    type LockAccountId = LockAccountId;
+    type AMMWeightInfo = ();
+    type CreatePoolOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
+    type LpFee = DefaultLpFee;
+    type ProtocolFee = DefaultProtocolFee;
+    type MinimumLiquidity = MinimumLiquidity;
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
+    type MaxLengthRoute = MaxLengthRoute;
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 impl pallet_prices::Config for Test {
@@ -186,7 +249,13 @@ impl pallet_prices::Config for Test {
     type FeederOrigin = EnsureRoot<AccountId>;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
+    type VaultTokenCurrenciesFilter = TokenCurrenciesFilter;
+    type VaultTokenExchangeRateProvider = TokenExchangeRateProvider;
+    type VaultLoansRateProvider = VaultLoansRateProvider;
+    type RelayCurrency = RelayCurrency;
     type Decimal = Decimal;
+    type AMM = DefaultAMM;
+    type Assets = CurrencyAdapter;
     type WeightInfo = ();
 }
 

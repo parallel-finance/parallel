@@ -33,7 +33,15 @@ build:
 
 .PHONY: build-release
 build-release:
-	cargo build --workspace --exclude runtime-integration-tests --bin parallel --release  --features runtime-benchmarks --features try-runtime
+	cargo build --locked --workspace --exclude runtime-integration-tests --bin parallel --release --features runtime-benchmarks --features try-runtime
+
+.PHONY: build-compact-release
+build-compact-release:
+	cargo build --locked --workspace --exclude runtime-integration-tests --bin parallel --release
+
+.PHONY: build-production
+build-production:
+	cargo build --locked --workspace --exclude runtime-integration-tests --bin parallel --profile production
 
 .PHONY: build-release-if-not-exists
 build-release-if-not-exists:
@@ -63,6 +71,10 @@ check-helper:
 .PHONY: test
 test:
 	SKIP_WASM_BUILD= cargo test --workspace --features runtime-benchmarks --exclude runtime-integration-tests --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude kerria-runtime --exclude heiko-runtime --exclude pallet-loans-rpc --exclude pallet-loans-rpc-runtime-api --exclude parallel-primitives -- --nocapture
+
+.PHONY: fast-test-crowdloan
+fast-test-crowdloan:
+	SKIP_WASM_BUILD= cargo test -p pallet-crowdloans --lib --no-fail-fast -- --nocapture
 
 .PHONY: integration-test
 integration-test:

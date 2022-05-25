@@ -1455,7 +1455,13 @@ impl pallet_prices::Config for Runtime {
     type FeederOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
+    type VaultTokenCurrenciesFilter = Crowdloans;
+    type VaultTokenExchangeRateProvider = Crowdloans;
+    type VaultLoansRateProvider = Loans;
+    type RelayCurrency = RelayCurrency;
     type Decimal = Decimal;
+    type AMM = AMM;
+    type Assets = CurrencyAdapter;
     type WeightInfo = pallet_prices::weights::SubstrateWeight<Runtime>;
 }
 
@@ -1827,6 +1833,10 @@ parameter_types! {
     pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
+    //assume LeasePeriod in relaychain is set to 2 * MINUTES in fast mode
+    pub LeasePeriod: BlockNumber = 2 * 2 * MINUTES;
+    pub LeaseOffset: BlockNumber = 0;
+    pub LeasePerYear: BlockNumber = 4;
 }
 
 pub struct RelayChainValidationDataProvider<T>(sp_std::marker::PhantomData<T>);
@@ -1875,6 +1885,9 @@ impl pallet_crowdloans::Config for Runtime {
     type XCM = XcmHelper;
     type RelayChainBlockNumberProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = CrowdloansAutomatorsMembership;
+    type LeasePeriod = LeasePeriod;
+    type LeaseOffset = LeaseOffset;
+    type LeasePerYear = LeasePerYear;
 }
 
 parameter_types! {

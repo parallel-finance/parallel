@@ -39,7 +39,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use num_traits::cast::ToPrimitive;
 pub use pallet::*;
-use pallet_traits::{ConvertToBigUint, PriceFeeder};
+use pallet_traits::{ConvertToBigUint, LoansRateProvider, PriceFeeder};
 use primitives::{Balance, CurrencyId, Liquidity, Price, Rate, Ratio, Shortfall, Timestamp};
 use sp_runtime::{
     traits::{
@@ -2011,5 +2011,18 @@ impl<T: Config> Pallet<T> {
         let account_id: T::AccountId = T::PalletId::get().into_account();
         let entropy = (b"loans/incentive", &[account_id]).using_encoded(blake2_256);
         Ok(T::AccountId::decode(&mut &entropy[..]).map_err(|_| Error::<T>::CodecError)?)
+    }
+}
+
+impl<T: Config> LoansRateProvider<AssetIdOf<T>> for Pallet<T> {
+    fn get_full_interest_rate(asset_id: &AssetIdOf<T>) -> Option<Rate> {
+        if let Ok(market) = Self::market(*asset_id) {
+            let rate = match market.rate_model {
+                InterestRateModel::Jump(jump) => Some(jump.full_rate),
+                _ => None,
+            };
+            return rate;
+        }
+        None
     }
 }

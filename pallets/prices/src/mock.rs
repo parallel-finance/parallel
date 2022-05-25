@@ -15,15 +15,22 @@
 //! Mocks for the prices module.
 
 use super::*;
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types, traits::Everything};
-use frame_system::EnsureSignedBy;
+use frame_support::{
+    construct_runtime, ord_parameter_types, parameter_types, traits::Everything,
+    traits::SortedMembers, PalletId,
+};
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, FixedPointNumber};
 
-pub use primitives::tokens::{DOT, KSM, SDOT, SKSM};
+pub use primitives::tokens::{CDOT_7_14, CKSM_20_27, DOT, KSM, LP_DOT_CDOT_7_14, SDOT, SKSM};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
+pub const ALICE: AccountId = 1;
+pub const CHARLIE: AccountId = 2;
+
+pub const PRICE_ONE: u128 = 1_000_000_000_000_000_000;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -45,7 +52,7 @@ impl frame_system::Config for Test {
     type BlockLength = ();
     type Version = ();
     type PalletInfo = PalletInfo;
-    type AccountData = ();
+    type AccountData = pallet_balances::AccountData<Balance>;
     type OnNewAccount = ();
     type OnKilledAccount = ();
     type DbWeight = ();
@@ -75,8 +82,18 @@ impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
 }
 
 impl DataProviderExtended<CurrencyId, TimeStampedPrice> for MockDataProvider {
-    fn get_no_op(_key: &CurrencyId) -> Option<TimeStampedPrice> {
-        None
+    fn get_no_op(asset_id: &CurrencyId) -> Option<TimeStampedPrice> {
+        match *asset_id {
+            DOT => Some(TimeStampedPrice {
+                value: Price::saturating_from_integer(100),
+                timestamp: 0,
+            }),
+            KSM => Some(TimeStampedPrice {
+                value: Price::saturating_from_integer(500),
+                timestamp: 0,
+            }),
+            _ => None,
+        }
     }
 
     fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
@@ -91,9 +108,16 @@ impl DataFeeder<CurrencyId, TimeStampedPrice, AccountId> for MockDataProvider {
 }
 
 pub struct LiquidStakingExchangeRateProvider;
-impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
-    fn get_exchange_rate() -> Rate {
-        Rate::saturating_from_rational(150, 100)
+impl ExchangeRateProvider<CurrencyId> for LiquidStakingExchangeRateProvider {
+    fn get_exchange_rate(_: &CurrencyId) -> Option<Rate> {
+        Some(Rate::saturating_from_rational(150, 100))
+    }
+}
+
+pub struct TokenExchangeRateProvider;
+impl VaultTokenExchangeRateProvider<CurrencyId> for TokenExchangeRateProvider {
+    fn get_exchange_rate(_: &CurrencyId, _: Rate) -> Option<Rate> {
+        Some(Rate::saturating_from_rational(100, 150))
     }
 }
 
@@ -108,6 +132,9 @@ impl DecimalProvider<CurrencyId> for Decimal {
         match *asset_id {
             DOT | SDOT => Some(10),
             KSM | SKSM => Some(12),
+            CKSM_20_27 => Some(12),
+            CDOT_7_14 => Some(10),
+            LP_DOT_CDOT_7_14 => Some(12),
             _ => None,
         }
     }
@@ -116,11 +143,117 @@ impl DecimalProvider<CurrencyId> for Decimal {
 pub struct LiquidStaking;
 impl LiquidStakingCurrenciesProvider<CurrencyId> for LiquidStaking {
     fn get_staking_currency() -> Option<CurrencyId> {
-        Some(KSM)
+        Some(DOT)
     }
     fn get_liquid_currency() -> Option<CurrencyId> {
-        Some(SKSM)
+        Some(SDOT)
     }
+}
+
+pub struct TokenCurrenciesFilter;
+impl VaultTokenCurrenciesFilter<CurrencyId> for TokenCurrenciesFilter {
+    fn contains(asset_id: &CurrencyId) -> bool {
+        asset_id == &CDOT_7_14
+    }
+}
+
+pub struct VaultLoansRateProvider;
+impl LoansRateProvider<CurrencyId> for VaultLoansRateProvider {
+    fn get_full_interest_rate(_asset_id: &CurrencyId) -> Option<Rate> {
+        Some(Rate::from_inner(450_000_000_000_000_000))
+    }
+}
+
+parameter_types! {
+    pub const RelayCurrency: CurrencyId = DOT;
+    pub const NativeCurrencyId: CurrencyId = 1;
+}
+
+impl pallet_currency_adapter::Config for Test {
+    type Assets = Assets;
+    type Balances = Balances;
+    type GetNativeCurrencyId = NativeCurrencyId;
+    type LockOrigin = EnsureRoot<AccountId>;
+}
+
+// pallet-balances configuration
+parameter_types! {
+    pub const ExistentialDeposit: Balance = 1;
+    pub const MaxLocks: u32 = 50;
+}
+
+impl pallet_balances::Config for Test {
+    type MaxLocks = MaxLocks;
+    type Balance = Balance;
+    type Event = Event;
+    type DustRemoval = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
+    type ExistentialDeposit = ExistentialDeposit;
+    type AccountStore = System;
+    type WeightInfo = ();
+}
+
+// pallet-assets configuration
+parameter_types! {
+    pub const AssetDeposit: u64 = 1;
+    pub const ApprovalDeposit: u64 = 1;
+    pub const AssetAccountDeposit: u64 = 1;
+    pub const StringLimit: u32 = 50;
+    pub const MetadataDepositBase: u64 = 1;
+    pub const MetadataDepositPerByte: u64 = 1;
+}
+
+impl pallet_assets::Config for Test {
+    type Event = Event;
+    type Balance = Balance;
+    type AssetId = CurrencyId;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = StringLimit;
+    type Freezer = ();
+    type Extra = ();
+    type WeightInfo = ();
+}
+
+// AMM instance initialization
+parameter_types! {
+    pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
+    // pub const DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
+    // pub const DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);
+    pub  DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);         // 0.3%
+    pub  DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.2%
+    pub const DefaultProtocolFeeReceiver: AccountId = CHARLIE;
+    pub const MinimumLiquidity: u128 = 1_000u128;
+    pub const LockAccountId: AccountId = ALICE;
+    pub const MaxLengthRoute: u8 = 10;
+}
+
+pub struct AliceCreatePoolOrigin;
+impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![ALICE]
+    }
+}
+
+impl pallet_amm::Config for Test {
+    type Event = Event;
+    type Assets = CurrencyAdapter;
+    type PalletId = AMMPalletId;
+    type LockAccountId = LockAccountId;
+    type AMMWeightInfo = ();
+    type CreatePoolOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
+    type LpFee = DefaultLpFee;
+    type ProtocolFee = DefaultProtocolFee;
+    type MinimumLiquidity = MinimumLiquidity;
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
+    type MaxLengthRoute = MaxLengthRoute;
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 impl crate::Config for Test {
@@ -129,7 +262,13 @@ impl crate::Config for Test {
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
+    type VaultTokenCurrenciesFilter = TokenCurrenciesFilter;
+    type VaultTokenExchangeRateProvider = TokenExchangeRateProvider;
+    type VaultLoansRateProvider = VaultLoansRateProvider;
+    type RelayCurrency = RelayCurrency;
     type Decimal = Decimal;
+    type AMM = DefaultAMM;
+    type Assets = CurrencyAdapter;
     type WeightInfo = ();
 }
 
@@ -143,14 +282,42 @@ construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+        Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
+        DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
+        CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
         Prices: crate::{Pallet, Storage, Call, Event<T>},
     }
 );
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let t = frame_system::GenesisConfig::default()
+    let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
 
-    t.into()
+    pallet_balances::GenesisConfig::<Test> {
+        balances: vec![(ALICE, 100_000_000), (CHARLIE, 100_000_000)],
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
+
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| {
+        Assets::force_create(Origin::root(), tokens::DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::SDOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::CDOT_7_14, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::LP_DOT_CDOT_7_14, ALICE, true, 1).unwrap();
+
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 1000 * PRICE_ONE).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::SDOT, ALICE, 1000 * PRICE_ONE).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            tokens::CDOT_7_14,
+            ALICE,
+            1000 * PRICE_ONE,
+        )
+        .unwrap();
+    });
+
+    ext
 }

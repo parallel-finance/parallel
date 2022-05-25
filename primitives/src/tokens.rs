@@ -114,6 +114,18 @@ pub const CDOT_6_13: CurrencyId = 200060013;
 pub const CDOT_7_14: CurrencyId = 200070014;
 pub const CDOT_8_15: CurrencyId = 200080015;
 
+pub fn is_vault_token(asset_id: CurrencyId) -> bool {
+    asset_id > 100000000 && asset_id < 300000000
+}
+
+pub fn is_lp_token(asset_id: CurrencyId) -> bool {
+    (5000..7000).contains(&asset_id)
+}
+
+pub fn is_ls_token(asset_id: CurrencyId) -> bool {
+    (1000..2000).contains(&asset_id)
+}
+
 // Token Registration Information
 // +───────────+──────────────+────────────────────+
 // | Network   | Token        | Register in block  |
