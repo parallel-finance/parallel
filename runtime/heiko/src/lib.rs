@@ -605,6 +605,7 @@ impl pallet_assets::Config for Runtime {
 
 parameter_types! {
     pub const RewardAssetId: CurrencyId = HKO;
+    pub const LiquidationFreeAssetId: CurrencyId = KSM;
 }
 
 impl pallet_loans::Config for Runtime {
@@ -617,6 +618,7 @@ impl pallet_loans::Config for Runtime {
     type UnixTime = Timestamp;
     type Assets = CurrencyAdapter;
     type RewardAssetId = RewardAssetId;
+    type LiquidationFreeAssetId = LiquidationFreeAssetId;
 }
 
 parameter_types! {
@@ -2232,7 +2234,7 @@ impl_runtime_apis! {
             Loans::get_market_status(asset_id)
         }
 
-        fn get_liquidation_threshold_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall), DispatchError> {
+        fn get_liquidation_threshold_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall, sp_runtime::FixedU128), DispatchError> {
             Loans::get_account_liquidation_threshold_liquidity(&account)
         }
     }

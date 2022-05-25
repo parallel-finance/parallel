@@ -74,6 +74,9 @@ pub const PEUSDC: CurrencyId = 2202;
 pub const PSKSM: CurrencyId = 3000;
 pub const PSDOT: CurrencyId = 3001;
 
+pub const PCDOT_6_13: CurrencyId = 200062013;
+pub const PCDOT_7_14: CurrencyId = 200072014;
+
 // AMM LP Token
 pub const LP_USDT_HKO: CurrencyId = 5000;
 pub const LP_KSM_USDT: CurrencyId = 5001;

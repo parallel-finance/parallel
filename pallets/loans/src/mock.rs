@@ -18,7 +18,10 @@ use frame_support::{construct_runtime, parameter_types, traits::Everything, Pall
 use frame_system::EnsureRoot;
 use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
 use pallet_traits::*;
-use primitives::*;
+use primitives::{
+    tokens::{CDOT_6_13, PCDOT_6_13},
+    *,
+};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, AccountId32};
 use sp_std::vec::Vec;
@@ -193,7 +196,7 @@ impl MockPriceFeeder {
     thread_local! {
         pub static PRICES: RefCell<HashMap<CurrencyId, Option<PriceDetail>>> = {
             RefCell::new(
-                vec![HKO, DOT, KSM, USDT, SKSM, SDOT]
+                vec![HKO, DOT, KSM, USDT, SKSM, SDOT, CDOT_6_13]
                     .iter()
                     .map(|&x| (x, Some((Price::saturating_from_integer(1), 1))))
                     .collect()
@@ -251,6 +254,7 @@ impl pallet_assets::Config for Test {
 parameter_types! {
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
     pub const RewardAssetId: CurrencyId = HKO;
+    pub const LiquidationFreeAssetId: CurrencyId = DOT;
 }
 
 impl Config for Test {
@@ -263,6 +267,7 @@ impl Config for Test {
     type UnixTime = TimestampPallet;
     type Assets = CurrencyAdapter;
     type RewardAssetId = RewardAssetId;
+    type LiquidationFreeAssetId = LiquidationFreeAssetId;
 }
 
 parameter_types! {
@@ -289,10 +294,12 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), SDOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), CDOT_6_13, ALICE, true, 1).unwrap();
 
         Assets::mint(Origin::signed(ALICE), KSM, ALICE, dollar(1000)).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(1000)).unwrap();
         Assets::mint(Origin::signed(ALICE), USDT, ALICE, dollar(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), CDOT_6_13, ALICE, dollar(1000)).unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, BOB, dollar(1000)).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(1000)).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, DAVE, dollar(1000)).unwrap();
@@ -307,6 +314,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Loans::activate_market(Origin::root(), DOT).unwrap();
         Loans::add_market(Origin::root(), USDT, market_mock(PUSDT)).unwrap();
         Loans::activate_market(Origin::root(), USDT).unwrap();
+        Loans::add_market(Origin::root(), CDOT_6_13, market_mock(PCDOT_6_13)).unwrap();
+        Loans::activate_market(Origin::root(), CDOT_6_13).unwrap();
 
         System::set_block_number(0);
         TimestampPallet::set_timestamp(6000);

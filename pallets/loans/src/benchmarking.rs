@@ -8,7 +8,7 @@ use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whiteli
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{
-    tokens::{KSM, PKSM, PSKSM, PUSDT, SKSM, USDT},
+    tokens::{CDOT_6_13, DOT, KSM, PKSM, PSKSM, PUSDT, SKSM, USDT},
     Balance, CurrencyId,
 };
 use rate_model::{InterestRateModel, JumpModel};
@@ -80,6 +80,22 @@ fn transfer_initial_balance<
     .ok();
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
+        DOT,
+        account_id.clone(),
+        true,
+        1,
+    )
+    .ok();
+    pallet_assets::Pallet::<T>::force_create(
+        SystemOrigin::Root.into(),
+        CDOT_6_13,
+        account_id.clone(),
+        true,
+        1,
+    )
+    .ok();
+    pallet_assets::Pallet::<T>::force_create(
+        SystemOrigin::Root.into(),
         USDT,
         account_id.clone(),
         true,
@@ -106,6 +122,24 @@ fn transfer_initial_balance<
     .ok();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
+        DOT,
+        b"polkadot".to_vec(),
+        b"DOT".to_vec(),
+        12,
+        true,
+    )
+    .ok();
+    pallet_assets::Pallet::<T>::force_set_metadata(
+        SystemOrigin::Root.into(),
+        CDOT_6_13,
+        b"cDot_6_13".to_vec(),
+        b"cDot_6_13".to_vec(),
+        12,
+        true,
+    )
+    .ok();
+    pallet_assets::Pallet::<T>::force_set_metadata(
+        SystemOrigin::Root.into(),
         USDT,
         b"tether".to_vec(),
         b"USDT".to_vec(),
@@ -123,9 +157,13 @@ fn transfer_initial_balance<
     T::Assets::mint_into(USDT, &caller, INITIAL_AMOUNT.into()).unwrap();
     T::Assets::mint_into(KSM, &caller, INITIAL_AMOUNT.into()).unwrap();
     T::Assets::mint_into(SKSM, &caller, INITIAL_AMOUNT.into()).unwrap();
+    T::Assets::mint_into(DOT, &caller, INITIAL_AMOUNT.into()).unwrap();
+    T::Assets::mint_into(CDOT_6_13, &caller, INITIAL_AMOUNT.into()).unwrap();
     pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), USDT, 1.into()).unwrap();
     pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), KSM, 1.into()).unwrap();
     pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), SKSM, 1.into()).unwrap();
+    pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), DOT, 1.into()).unwrap();
+    pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), CDOT_6_13, 1.into()).unwrap();
 }
 
 fn set_account_borrows<T: Config>(
@@ -401,6 +439,13 @@ benchmarks! {
     }: _(SystemOrigin::Root, payer, USDT, reduce_amount.into())
     verify {
         assert_last_event::<T>(Event::<T>::ReservesReduced(caller, USDT, reduce_amount.into(), (add_amount-reduce_amount).into()).into());
+    }
+
+    update_liquidation_free_collateral {
+
+    }: _(SystemOrigin::Root, vec![CDOT_6_13])
+    verify {
+        assert_last_event::<T>(Event::<T>::LiquidationFreeCollateralsUpdated(vec![CDOT_6_13]).into());
     }
 }
 
