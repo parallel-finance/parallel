@@ -48,6 +48,7 @@ pub const TUR: CurrencyId = 125;
 // Ethereum ecosystem
 pub const EUSDT: CurrencyId = 201;
 pub const EUSDC: CurrencyId = 202;
+pub const HBTC: CurrencyId = 203;
 
 // Liquid Staking Derivative
 pub const SKSM: CurrencyId = 1000;
