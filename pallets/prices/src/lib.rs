@@ -336,7 +336,7 @@ impl<T: Config> PriceFeeder for Pallet<T> {
                     true => Self::get_staking_asset_detail_price(asset_id, mantissa, base_price),
                     false => match is_vault_token(*asset_id) {
                         true => Self::get_vault_asset_detail_price(asset_id, mantissa, base_price),
-                        false => match is_lp_token(*asset_id) {
+                        false => match is_lf_lp_token(*asset_id) {
                             true => Self::get_lp_vault_asset_detail_price(
                                 asset_id, mantissa, base_price,
                             ),
@@ -374,7 +374,7 @@ impl<T: Config> DataProviderExtended<CurrencyId, TimeStampedPrice> for Pallet<T>
                 true => Self::get_staking_asset_price(asset_id, base_price),
                 false => match is_vault_token(*asset_id) {
                     true => Self::get_vault_asset_price(asset_id, base_price),
-                    false => match is_lp_token(*asset_id) {
+                    false => match is_lf_lp_token(*asset_id) {
                         true => Self::get_lp_vault_asset_price(asset_id, mantissa, base_price),
                         false => T::Source::get_no_op(asset_id),
                     },
