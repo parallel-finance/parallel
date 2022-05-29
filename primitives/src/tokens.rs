@@ -115,12 +115,15 @@ pub const CDOT_6_13: CurrencyId = 200060013;
 pub const CDOT_7_14: CurrencyId = 200070014;
 pub const CDOT_8_15: CurrencyId = 200080015;
 
+// assume all vault token are liquidation free and within range here
 pub fn is_vault_token(asset_id: CurrencyId) -> bool {
     asset_id > 100000000 && asset_id < 300000000
 }
 
-pub fn is_lp_token(asset_id: CurrencyId) -> bool {
-    (5000..7000).contains(&asset_id)
+// we only care about liquidation fee lp tokens here
+// which constructed with vault token and relay token
+pub fn is_lf_lp_token(asset_id: CurrencyId) -> bool {
+    (asset_id > 5003 && asset_id < 6000) || (asset_id > 6003 && asset_id < 7000)
 }
 
 pub fn is_ls_token(asset_id: CurrencyId) -> bool {
