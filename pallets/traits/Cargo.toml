@@ -8,6 +8,7 @@ version = '1.8.7'
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
+serde         = { version = '1.0.136', features = ['derive'], optional = true }
 codec         = { package = 'parity-scale-codec', version = '3.0.0', features = ['max-encoded-len'], default-features = false }
 frame-support = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false }
 frame-system  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19', default-features = false }
@@ -24,13 +25,13 @@ xcm           = { git = 'https://github.com/paritytech/polkadot.git', branch = '
 xcm-builder   = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.19', default-features = false }
 xcm-executor  = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.19', default-features = false }
 
-
 [dev-dependencies]
 sp-core = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.19' }
 
 [features]
 default = ['std']
 std     = [
+  'serde',
   'codec/std',
   'frame-support/std',
   'frame-system/std',

@@ -43,10 +43,12 @@ pub const KBTC: CurrencyId = 121;
 pub const IBTC: CurrencyId = 122;
 pub const GENS: CurrencyId = 123;
 pub const EQ: CurrencyId = 124;
+pub const TUR: CurrencyId = 125;
 
 // Ethereum ecosystem
 pub const EUSDT: CurrencyId = 201;
 pub const EUSDC: CurrencyId = 202;
+pub const HBTC: CurrencyId = 203;
 
 // Liquid Staking Derivative
 pub const SKSM: CurrencyId = 1000;
@@ -72,6 +74,9 @@ pub const PEUSDC: CurrencyId = 2202;
 
 pub const PSKSM: CurrencyId = 3000;
 pub const PSDOT: CurrencyId = 3001;
+
+pub const PCDOT_6_13: CurrencyId = 200062013;
+pub const PCDOT_7_14: CurrencyId = 200072014;
 
 // AMM LP Token
 pub const LP_USDT_HKO: CurrencyId = 5000;
@@ -109,6 +114,21 @@ pub const CKSM_21_28: CurrencyId = 100210028;
 pub const CDOT_6_13: CurrencyId = 200060013;
 pub const CDOT_7_14: CurrencyId = 200070014;
 pub const CDOT_8_15: CurrencyId = 200080015;
+
+// assume all vault token are liquidation free and within range here
+pub fn is_vault_token(asset_id: CurrencyId) -> bool {
+    asset_id > 100000000 && asset_id < 300000000
+}
+
+// we only care about liquidation fee lp tokens here
+// which constructed with vault token and relay token
+pub fn is_lf_lp_token(asset_id: CurrencyId) -> bool {
+    (asset_id > 5003 && asset_id < 6000) || (asset_id > 6003 && asset_id < 7000)
+}
+
+pub fn is_ls_token(asset_id: CurrencyId) -> bool {
+    (1000..2000).contains(&asset_id)
+}
 
 // Token Registration Information
 // +───────────+──────────────+────────────────────+

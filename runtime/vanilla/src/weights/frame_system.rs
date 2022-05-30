@@ -28,10 +28,8 @@ use sp_std::marker::PhantomData;
 /// Weight functions for `frame_system`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
-	fn remark(b: u32, ) -> Weight {
+	fn remark(_b: u32, ) -> Weight {
 		(0 as Weight)
-			// Standard Error: 0
-			.saturating_add((1_000 as Weight).saturating_mul(b as Weight))
 	}
 	fn remark_with_event(b: u32, ) -> Weight {
 		(17_860_000 as Weight)

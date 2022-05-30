@@ -5,8 +5,8 @@ use crate::{
     tests::dollar,
     Error, MarketState,
 };
-use frame_support::{assert_noop, assert_ok};
-use primitives::Rate;
+use frame_support::{assert_err, assert_noop, assert_ok};
+use primitives::{tokens::CDOT_6_13, Rate};
 use sp_runtime::FixedPointNumber;
 
 #[test]
@@ -32,6 +32,69 @@ fn liquidate_borrow_allowed_works() {
             KSM,
             dollar(50),
             &ksm_market
+        ));
+    })
+}
+
+#[test]
+fn lf_liquidate_borrow_fails_due_to_lf_collateral() {
+    new_test_ext().execute_with(|| {
+        Loans::update_liquidation_free_collateral(Origin::root(), vec![CDOT_6_13]).unwrap();
+
+        assert_err!(
+            Loans::liquidate_borrow(Origin::signed(ALICE), BOB, DOT, dollar(100), CDOT_6_13),
+            Error::<Test>::CollateralReserved
+        );
+    })
+}
+
+#[test]
+fn lf_liquidate_borrow_allowed_works() {
+    new_test_ext().execute_with(|| {
+        Loans::update_liquidation_free_collateral(Origin::root(), vec![CDOT_6_13]).unwrap();
+        // Bob deposits $200 DOT
+        Loans::mint(Origin::signed(BOB), DOT, dollar(200)).unwrap();
+        Loans::mint(Origin::signed(ALICE), USDT, dollar(200)).unwrap();
+        Loans::mint(Origin::signed(ALICE), CDOT_6_13, dollar(200)).unwrap();
+        Loans::collateral_asset(Origin::signed(ALICE), USDT, true).unwrap();
+        Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
+
+        // ALICE
+        // Collateral                 Borrowed
+        // USDT  $100                 DOT $200
+        // CDOT  $100
+        Loans::borrow(Origin::signed(ALICE), DOT, dollar(200)).unwrap();
+
+        // CDOT's price is highly relative to DOT's price in real runtime. Thus we must update them
+        // at the same time.
+        MockPriceFeeder::set_price(DOT, 2.into());
+        MockPriceFeeder::set_price(CDOT_6_13, 2.into());
+        // ALICE
+        // Collateral                 Borrowed
+        // USDT  $100                 DOT $400
+        // CDOT  $200
+
+        let dot_market = Loans::market(DOT).unwrap();
+        // The max repay amount = (400 - 200) * 50 = $100
+        assert_err!(
+            Loans::liquidate_borrow_allowed(&ALICE, DOT, dollar(51), &dot_market),
+            Error::<Test>::TooMuchRepay
+        );
+        assert_ok!(Loans::liquidate_borrow_allowed(
+            &ALICE,
+            DOT,
+            dollar(50),
+            &dot_market
+        ));
+
+        // Remove CDOT from lf collateral
+        Loans::update_liquidation_free_collateral(Origin::root(), vec![]).unwrap();
+        // The max repay amount = 400 * 50 = $200
+        assert_ok!(Loans::liquidate_borrow_allowed(
+            &ALICE,
+            DOT,
+            dollar(100),
+            &dot_market
         ));
     })
 }

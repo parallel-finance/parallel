@@ -1,3 +1,4 @@
+use codec::{Decode, Encode};
 use core::marker::PhantomData;
 use frame_support::{
     construct_runtime,
@@ -13,6 +14,7 @@ use frame_support::{
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::IsNativeConcrete;
+pub use pallet_traits::{VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::{IsSystem, Sibling};
 use polkadot_runtime_parachains::configuration::HostConfiguration;
@@ -58,6 +60,20 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
             .map(|d| d.relay_parent_number)
             .unwrap_or_default()
             .into()
+    }
+}
+
+pub const RELAY_BLOCK_KEY: [u8; 32] = [0; 32];
+
+pub struct MockBlockNumberProvider;
+
+impl BlockNumberProvider for MockBlockNumberProvider {
+    type BlockNumber = u32;
+
+    fn current_block_number() -> Self::BlockNumber {
+        // gets a local mock storage value
+        let value = sp_io::storage::get(&RELAY_BLOCK_KEY).unwrap_or(0_u32.encode());
+        u32::decode(&mut &value[..]).unwrap()
     }
 }
 
@@ -437,6 +453,9 @@ parameter_types! {
     pub const RemoveKeysLimit: u32 = 1000;
     pub SelfParaId: ParaId = para_a_id();
     pub RefundLocation: AccountId = para_a_id().into_account();
+    pub const LeasePeriod: BlockNumber = 84*24*3600/6;//84 days same as polkadot
+    pub const LeaseOffset: BlockNumber = 64*24*3600/6;//64 days same as polkadot
+    pub const LeasePerYear: BlockNumber = 4;
 }
 
 pub type CreateVaultOrigin =
@@ -483,8 +502,11 @@ impl crate::Config for Test {
     type SlotExpiredOrigin = SlotExpiredOrigin;
     type WeightInfo = ();
     type XCM = XcmHelper;
-    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
+    type RelayChainBlockNumberProvider = MockBlockNumberProvider;
     type Members = CharlieOrigin;
+    type LeasePeriod = LeasePeriod;
+    type LeaseOffset = LeaseOffset;
+    type LeasePerYear = LeasePerYear;
 }
 
 parameter_types! {

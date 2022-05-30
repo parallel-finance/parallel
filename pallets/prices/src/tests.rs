@@ -17,9 +17,11 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
-use sp_runtime::{traits::BadOrigin, FixedPointNumber};
-
-const PRICE_ONE: u128 = 1_000_000_000_000_000_000;
+use primitives::TimeStampedPrice;
+use sp_runtime::{
+    traits::{BadOrigin, Saturating},
+    FixedPointNumber,
+};
 
 #[test]
 fn get_price_from_oracle() {
@@ -31,7 +33,7 @@ fn get_price_from_oracle() {
         );
 
         // currency not exist
-        assert_eq!(Prices::get_price(&SDOT), None);
+        assert_eq!(Prices::get_price(&SKSM), None);
     });
 }
 
@@ -169,15 +171,104 @@ fn reset_price_call_work() {
 fn get_liquid_price_work() {
     new_test_ext().execute_with(|| {
         assert_eq!(
-            Prices::get_price(&KSM),
-            Some((Price::from_inner(500 * 1_000_000 * PRICE_ONE), 0))
+            Prices::get_price(&DOT),
+            Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
 
         assert_eq!(
-            Prices::get_price(&SKSM),
-            LiquidStakingExchangeRateProvider::get_exchange_rate()
-                .checked_mul_int(500 * 1_000_000 * PRICE_ONE)
+            Prices::get_price(&SDOT),
+            LiquidStakingExchangeRateProvider::get_exchange_rate(&SDOT)
+                .unwrap()
+                .checked_mul_int(10_000_000_000 * PRICE_ONE)
                 .map(|i| (Price::from_inner(i), 0))
+        );
+    });
+}
+
+#[test]
+fn get_ctoken_price_work() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(
+            Prices::get_price(&DOT),
+            Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
+        );
+
+        assert_eq!(
+            Prices::get_price(&CDOT_7_14),
+            Some((Price::from_inner(6666666666_666666660000000000), 0))
+        );
+    });
+}
+
+#[test]
+fn get_lp_ctoken_price_work() {
+    new_test_ext().execute_with(|| {
+        DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (CDOT_7_14, DOT),
+            (300 * PRICE_ONE, 100 * PRICE_ONE), //3:1
+            ALICE,
+            LP_DOT_CDOT_7_14,
+        )
+        .unwrap();
+
+        //2*cdot_price
+        assert_eq!(
+            Prices::get_price(&LP_DOT_CDOT_7_14),
+            Prices::get_price(&CDOT_7_14)
+                .map(|price_detail| (price_detail.0.saturating_mul(2_u128.into()), price_detail.1))
+        );
+    });
+}
+
+#[test]
+fn get_lp_ctoken_price_with_different_exchange_rate_will_not_change() {
+    new_test_ext().execute_with(|| {
+        DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (CDOT_7_14, DOT),
+            (200 * PRICE_ONE, 100 * PRICE_ONE), //2:1
+            ALICE,
+            LP_DOT_CDOT_7_14,
+        )
+        .unwrap();
+
+        //still 2*cdot_price
+        assert_eq!(
+            Prices::get_price(&LP_DOT_CDOT_7_14),
+            Prices::get_price(&CDOT_7_14)
+                .map(|price_detail| (price_detail.0.saturating_mul(2_u128.into()), price_detail.1))
+        );
+    });
+}
+
+#[test]
+fn get_lp_ctoken_no_op_price_work() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(
+            Prices::get_no_op(&DOT),
+            Some(primitives::TimeStampedPrice {
+                value: Price::saturating_from_integer(100),
+                timestamp: 0
+            })
+        );
+
+        DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (CDOT_7_14, DOT),
+            (300 * PRICE_ONE, 100 * PRICE_ONE),
+            ALICE,
+            LP_DOT_CDOT_7_14,
+        )
+        .unwrap();
+
+        //2*cdot_price*(10^2) since decimal of lp_cdot is 12
+        assert_eq!(
+            Prices::get_no_op(&LP_DOT_CDOT_7_14),
+            Prices::get_no_op(&CDOT_7_14).map(|price| TimeStampedPrice {
+                value: price.value.saturating_mul((2 * 100).into()),
+                timestamp: price.timestamp,
+            })
         );
     });
 }

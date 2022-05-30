@@ -47,7 +47,7 @@ where
         &self,
         account: AccountId,
         at: Option<BlockHash>,
-    ) -> Result<(Liquidity, Shortfall)>;
+    ) -> Result<(Liquidity, Shortfall, FixedU128)>;
 }
 
 /// A struct that implements the [`LoansApi`].
@@ -145,7 +145,7 @@ where
         &self,
         account: AccountId,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> Result<(Liquidity, Shortfall)> {
+    ) -> Result<(Liquidity, Shortfall, FixedU128)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(
             // If the block hash is not supplied assume the best block.

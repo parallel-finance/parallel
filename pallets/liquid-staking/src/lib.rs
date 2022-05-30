@@ -1740,9 +1740,9 @@ pub mod pallet {
     }
 }
 
-impl<T: Config> ExchangeRateProvider for Pallet<T> {
-    fn get_exchange_rate() -> Rate {
-        ExchangeRate::<T>::get()
+impl<T: Config> ExchangeRateProvider<AssetIdOf<T>> for Pallet<T> {
+    fn get_exchange_rate(_: &AssetIdOf<T>) -> Option<Rate> {
+        Some(ExchangeRate::<T>::get())
     }
 }
 

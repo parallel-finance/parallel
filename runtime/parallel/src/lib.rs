@@ -151,7 +151,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_version: 187,
     impl_version: 32,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 16,
+    transaction_version: 15,
     state_version: 0,
 };
 
@@ -620,6 +620,7 @@ impl pallet_assets::Config for Runtime {
 
 parameter_types! {
     pub const RewardAssetId: CurrencyId = PARA;
+    pub const LiquidationFreeAssetId: CurrencyId = DOT;
 }
 
 impl pallet_loans::Config for Runtime {
@@ -632,6 +633,7 @@ impl pallet_loans::Config for Runtime {
     type UnixTime = Timestamp;
     type Assets = CurrencyAdapter;
     type RewardAssetId = RewardAssetId;
+    type LiquidationFreeAssetId = LiquidationFreeAssetId;
 }
 
 parameter_types! {
@@ -1471,7 +1473,13 @@ impl pallet_prices::Config for Runtime {
     type FeederOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
+    type VaultTokenCurrenciesFilter = Crowdloans;
+    type VaultTokenExchangeRateProvider = Crowdloans;
+    type VaultLoansRateProvider = Loans;
+    type RelayCurrency = RelayCurrency;
     type Decimal = Decimal;
+    type AMM = AMM;
+    type Assets = CurrencyAdapter;
     type WeightInfo = pallet_prices::weights::SubstrateWeight<Runtime>;
 }
 
@@ -1843,6 +1851,11 @@ parameter_types! {
     pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
+    //const params from relay chain: https://github.com/paritytech/polkadot/blob/1a445d96bdaf3fe781ce642368d0e9d1b2ad3b39/runtime/polkadot/src/lib.rs#L1320-L1328
+    //and since block time in parachain is twice as much in relaychain,we multiply by 2 here
+    pub LeasePeriod: BlockNumber = 84 * 2 * DAYS;
+    pub LeaseOffset: BlockNumber = 64 * 2 * DAYS;
+    pub LeasePerYear: BlockNumber = 4;
 }
 
 pub struct RelayChainValidationDataProvider<T>(sp_std::marker::PhantomData<T>);
@@ -1891,6 +1904,9 @@ impl pallet_crowdloans::Config for Runtime {
     type XCM = XcmHelper;
     type RelayChainBlockNumberProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = CrowdloansAutomatorsMembership;
+    type LeasePeriod = LeasePeriod;
+    type LeaseOffset = LeaseOffset;
+    type LeasePerYear = LeasePerYear;
 }
 
 parameter_types! {
@@ -2231,7 +2247,7 @@ impl_runtime_apis! {
             Loans::get_market_status(asset_id)
         }
 
-        fn get_liquidation_threshold_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall), DispatchError> {
+        fn get_liquidation_threshold_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall, sp_runtime::FixedU128), DispatchError> {
             Loans::get_account_liquidation_threshold_liquidity(&account)
         }
     }

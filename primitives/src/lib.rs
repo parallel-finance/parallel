@@ -27,6 +27,7 @@ use sp_std::prelude::*;
 
 pub mod network;
 pub mod tokens;
+pub use tokens::*;
 
 /// An index to a block.
 pub type BlockNumber = u32;

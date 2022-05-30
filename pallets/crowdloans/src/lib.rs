@@ -56,14 +56,22 @@ pub mod pallet {
     };
     use pallet_xcm::ensure_response;
     use primitives::{
-        ArithmeticKind, Balance, CurrencyId, LeasePeriod, ParaId, TrieIndex, VaultId,
+        ArithmeticKind, Balance, CurrencyId, LeasePeriod, ParaId, Rate, TrieIndex, VaultId,
     };
     use sp_runtime::{
-        traits::{AccountIdConversion, BlockNumberProvider, Hash, StaticLookup, Zero},
-        ArithmeticError, DispatchError,
+        traits::{
+            AccountIdConversion, BlockNumberProvider, Hash, One, Saturating, StaticLookup, Zero,
+        },
+        ArithmeticError, DispatchError, FixedPointNumber, SaturatedConversion,
     };
     use sp_std::{boxed::Box, vec::Vec};
     use xcm::latest::prelude::*;
+
+    use pallet_traits::{VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider};
+
+    use parallel_support::math_helper::f64::{
+        fixed_u128_from_float, fixed_u128_to_float, power_float,
+    };
 
     use pallet_xcm_helper::XcmHelper;
 
@@ -126,6 +134,18 @@ pub mod pallet {
 
         #[pallet::constant]
         type RemoveKeysLimit: Get<u32>; // default it to 1000
+
+        /// LeasePeriod from relaychain
+        #[pallet::constant]
+        type LeasePeriod: Get<Self::BlockNumber>;
+
+        /// LeaseOffset from relaychain
+        #[pallet::constant]
+        type LeaseOffset: Get<Self::BlockNumber>;
+
+        /// LeaseOffset from relaychain
+        #[pallet::constant]
+        type LeasePerYear: Get<Self::BlockNumber>;
 
         /// The origin which can migrate pending contribution
         type MigrateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
@@ -1558,6 +1578,79 @@ pub mod pallet {
             ));
 
             Ok(())
+        }
+
+        //just iterate now and require improve later when CTokensRegistry increased
+        fn find_vault_by_asset_id(asset_id: &AssetIdOf<T>) -> Option<(AssetIdOf<T>, AssetIdOf<T>)> {
+            for (vault, ctoken_id) in CTokensRegistry::<T>::iter() {
+                if &ctoken_id == asset_id {
+                    return Some(vault);
+                }
+            }
+            None
+        }
+
+        fn get_vault_term_rate(
+            (start_lease, end_lease): (LeasePeriod, LeasePeriod),
+        ) -> Option<(Rate, Rate)> {
+            let current_block = T::RelayChainBlockNumberProvider::current_block_number();
+            if current_block == T::BlockNumber::zero() {
+                return None;
+            }
+            let lease_period = T::LeasePeriod::get();
+            let start_block = lease_period
+                .saturating_mul(start_lease.into())
+                .saturating_add(T::LeaseOffset::get());
+            let end_block = lease_period
+                .saturating_mul((end_lease + 1).into())
+                .saturating_add(T::LeaseOffset::get());
+            let lease_length = lease_period.saturating_mul((end_lease - start_lease + 1).into());
+            let blocks_per_year = T::LeasePerYear::get().saturating_mul(lease_period);
+            let total_term_by_year = Rate::saturating_from_rational(
+                lease_length.saturated_into::<u32>(),
+                blocks_per_year.saturated_into::<u32>(),
+            );
+            let term_rate: Rate;
+            if current_block < start_block {
+                term_rate = Rate::zero();
+            } else if current_block >= start_block && current_block < end_block {
+                term_rate = Rate::saturating_from_rational(
+                    current_block
+                        .saturating_sub(start_block)
+                        .saturated_into::<u32>(),
+                    lease_length.saturated_into::<u32>(),
+                );
+            } else {
+                term_rate = Rate::one();
+            }
+            Some((term_rate, total_term_by_year))
+        }
+    }
+
+    impl<T: Config> VaultTokenExchangeRateProvider<AssetIdOf<T>> for Pallet<T> {
+        /// 1/(1+r)^T
+        /// T is the remaining term-to-maturity with year as unit
+        /// r is the implied yield rate
+        fn get_exchange_rate(asset_id: &AssetIdOf<T>, start_exchange_rate: Rate) -> Option<Rate> {
+            Self::find_vault_by_asset_id(asset_id).and_then(|vault| {
+                Self::get_vault_term_rate(vault).and_then(|(term_rate, total_term_by_year)| {
+                    let remaining_year = fixed_u128_to_float(total_term_by_year)
+                        * (1_f64 - fixed_u128_to_float(term_rate));
+                    let current_rate = power_float(
+                        1_f64 + fixed_u128_to_float(start_exchange_rate),
+                        remaining_year,
+                    )
+                    .ok()?;
+                    let current_rate = fixed_u128_from_float(current_rate as f64).reciprocal()?;
+                    Some(current_rate)
+                })
+            })
+        }
+    }
+
+    impl<T: Config> VaultTokenCurrenciesFilter<AssetIdOf<T>> for Pallet<T> {
+        fn contains(asset_id: &AssetIdOf<T>) -> bool {
+            Self::find_vault_by_asset_id(asset_id).is_some()
         }
     }
 }
