@@ -13,17 +13,4 @@
 // limitations under the License.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-
-use codec::Codec;
-use primitives::{CurrencyId, Liquidity, Rate, Ratio, Shortfall};
-use sp_runtime::{DispatchError, FixedU128};
-
-sp_api::decl_runtime_apis! {
-    pub trait LoansApi<AccountId, Balance> where
-        AccountId: Codec,
-        Balance: Codec {
-        fn get_account_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall), DispatchError>;
-        fn get_market_status(asset_id: CurrencyId) -> Result<(Rate, Rate, Rate, Ratio, Balance, Balance, FixedU128), DispatchError>;
-        fn get_liquidation_threshold_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall, FixedU128), DispatchError>;
-    }
-}
+pub mod math_helper;

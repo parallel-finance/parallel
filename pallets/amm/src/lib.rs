@@ -26,7 +26,6 @@ mod mock;
 mod tests;
 
 mod benchmarking;
-mod types;
 pub mod weights;
 
 use frame_support::{
@@ -41,7 +40,7 @@ use frame_support::{
     transactional, Blake2_128Concat, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-use pallet_traits::ConvertToBigUint;
+use pallet_traits::{ConvertToBigUint, Pool};
 use primitives::{Balance, CurrencyId, Ratio};
 use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedSub, One, Saturating, Zero},
@@ -50,7 +49,6 @@ use sp_runtime::{
 use sp_std::{cmp::min, ops::Div, result::Result, vec::Vec};
 
 pub use pallet::*;
-use types::Pool;
 pub use weights::WeightInfo;
 
 use num_traits::cast::ToPrimitive;
@@ -1077,7 +1075,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 }
 
-impl<T: Config<I>, I: 'static> pallet_traits::AMM<AccountIdOf<T>, AssetIdOf<T, I>, BalanceOf<T, I>>
+impl<T: Config<I>, I: 'static>
+    pallet_traits::AMM<AccountIdOf<T>, AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>
     for Pallet<T, I>
 {
     /// Based on the path specified and the available pool balances
@@ -1118,5 +1117,32 @@ impl<T: Config<I>, I: 'static> pallet_traits::AMM<AccountIdOf<T>, AssetIdOf<T, I
     /// Returns a vector of all of the pools in storage
     fn get_pools() -> Result<Vec<(AssetIdOf<T, I>, AssetIdOf<T, I>)>, DispatchError> {
         Ok(Pools::<T, I>::iter_keys().collect())
+    }
+
+    //just iterate now and require improve later when Pools increased
+    /// Returns pool by lp_asset
+    fn get_pool_by_lp_asset(
+        asset_id: AssetIdOf<T, I>,
+    ) -> Option<(
+        AssetIdOf<T, I>,
+        AssetIdOf<T, I>,
+        Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
+    )> {
+        for (base_asset, quote_asset, pool) in Pools::<T, I>::iter() {
+            if pool.lp_token_id == asset_id {
+                return Some((base_asset, quote_asset, pool));
+            }
+        }
+        None
+    }
+
+    /// Returns pool by asset pair
+    fn get_pool_by_asset_pair(
+        (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
+    ) -> Option<Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>> {
+        if let Ok((_, base_asset, quote_asset)) = Self::sort_assets((base_asset, quote_asset)) {
+            return Pools::<T, I>::get(base_asset, quote_asset);
+        }
+        None
     }
 }

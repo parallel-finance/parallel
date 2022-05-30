@@ -161,7 +161,7 @@ impl JumpModel {
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default, TypeInfo)]
 pub struct CurveModel {
-    base_rate: Rate,
+    pub base_rate: Rate,
 }
 
 impl CurveModel {

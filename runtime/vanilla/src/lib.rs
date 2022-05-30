@@ -108,7 +108,9 @@ use pallet_traits::{
 };
 use primitives::{
     network::HEIKO_PREFIX,
-    tokens::{EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KSM, KUSD, LKSM, MOVR, PHA, SKSM, TUR},
+    tokens::{
+        EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KMA, KSM, KUSD, LKSM, MOVR, PHA, SKSM, TUR,
+    },
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
     Signature,
@@ -431,6 +433,8 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
             GENS => Some(MultiLocation::new(1, X1(Parachain(paras::genshiro::ID)))),
             // Turing
             TUR => Some(MultiLocation::new(1, X1(Parachain(paras::turing::ID)))),
+            // Calamari
+            KMA => Some(MultiLocation::new(1, X1(Parachain(paras::calamari::ID)))),
             _ => None,
         }
     }
@@ -509,6 +513,11 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 1,
                 interior: X1(Parachain(id)),
             } if id == paras::turing::ID => Some(TUR),
+            // Calamari
+            MultiLocation {
+                parents: 1,
+                interior: X1(Parachain(id)),
+            } if id == paras::calamari::ID => Some(KMA),
             _ => None,
         }
     }
@@ -585,6 +594,7 @@ impl pallet_assets::Config for Runtime {
 
 parameter_types! {
     pub const RewardAssetId: CurrencyId = HKO;
+    pub const LiquidationFreeAssetId: CurrencyId = KSM;
 }
 
 impl pallet_loans::Config for Runtime {
@@ -597,6 +607,7 @@ impl pallet_loans::Config for Runtime {
     type UnixTime = Timestamp;
     type Assets = CurrencyAdapter;
     type RewardAssetId = RewardAssetId;
+    type LiquidationFreeAssetId = LiquidationFreeAssetId;
 }
 
 parameter_types! {
@@ -1239,6 +1250,14 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 260
     );
+    // Calamari
+    pub KmaPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X1(Parachain(paras::calamari::ID)),
+        ).into(),
+        ksm_per_second() * 5000
+    );
 }
 
 match_types! {
@@ -1291,6 +1310,8 @@ pub type Trader = (
     FixedRateOfFungible<GensPerSecond, ToTreasury>,
     // Turing
     FixedRateOfFungible<TurPerSecond, ToTreasury>,
+    // Calamari
+    FixedRateOfFungible<KmaPerSecond, ToTreasury>,
     // Foreign Assets registered in AssetRegistry
     // TODO: replace all above except local reserved asset later
     FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
@@ -1478,7 +1499,13 @@ impl pallet_prices::Config for Runtime {
     type FeederOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
+    type VaultTokenCurrenciesFilter = Crowdloans;
+    type VaultTokenExchangeRateProvider = Crowdloans;
+    type VaultLoansRateProvider = Loans;
+    type RelayCurrency = RelayCurrency;
     type Decimal = Decimal;
+    type AMM = AMM;
+    type Assets = CurrencyAdapter;
     type WeightInfo = pallet_prices::weights::SubstrateWeight<Runtime>;
 }
 
@@ -1850,6 +1877,9 @@ parameter_types! {
     pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
+    pub LeasePeriod: BlockNumber = 1 * 2 * MINUTES;
+    pub LeaseOffset: BlockNumber = 0;
+    pub LeasePerYear: BlockNumber = 8;
 }
 
 pub struct RelayChainValidationDataProvider<T>(sp_std::marker::PhantomData<T>);
@@ -1898,6 +1928,9 @@ impl pallet_crowdloans::Config for Runtime {
     type XCM = XcmHelper;
     type RelayChainBlockNumberProvider = RelayChainValidationDataProvider<Runtime>;
     type Members = CrowdloansAutomatorsMembership;
+    type LeasePeriod = LeasePeriod;
+    type LeaseOffset = LeaseOffset;
+    type LeasePerYear = LeasePerYear;
 }
 
 parameter_types! {
@@ -2238,7 +2271,7 @@ impl_runtime_apis! {
             Loans::get_market_status(asset_id)
         }
 
-        fn get_liquidation_threshold_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall), DispatchError> {
+        fn get_liquidation_threshold_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall, sp_runtime::FixedU128), DispatchError> {
             Loans::get_account_liquidation_threshold_liquidity(&account)
         }
     }
