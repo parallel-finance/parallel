@@ -17,8 +17,11 @@ use std::sync::Arc;
 pub use pallet_router_rpc_runtime_api::RouterApi as RouterRuntimeApi;
 
 use codec::Codec;
-use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
-use jsonrpc_derive::rpc;
+use jsonrpsee::{
+    core::{async_trait, Error as JsonRpseeError, RpcResult},
+    proc_macros::rpc,
+    types::error::{CallError, ErrorCode, ErrorObject},
+};
 use primitives::CurrencyId;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
@@ -26,19 +29,19 @@ use sp_rpc::number::NumberOrHex;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 use sp_std::vec::Vec;
 
-#[rpc]
+#[rpc(client, server)]
 pub trait RouterApi<BlockHash, Balance>
 where
     Balance: Codec + Copy + TryFrom<NumberOrHex>,
 {
-    #[rpc(name = "router_getBestRoute")]
+    #[method(name = "router_getBestRoute")]
     fn get_best_route(
         &self,
         amount_in: NumberOrHex,
         token_in: CurrencyId,
         token_out: CurrencyId,
         at: Option<BlockHash>,
-    ) -> Result<(Vec<CurrencyId>, NumberOrHex)>;
+    ) -> RpcResult<(Vec<CurrencyId>, NumberOrHex)>;
 }
 
 /// A struct that implements the [`RouteApi`].
@@ -62,8 +65,8 @@ pub enum Error {
     RouterError,
 }
 
-impl From<Error> for i64 {
-    fn from(e: Error) -> i64 {
+impl From<Error> for i32 {
+    fn from(e: Error) -> i32 {
         match e {
             Error::RuntimeError => 1,
             Error::RouterError => 2,
@@ -71,7 +74,8 @@ impl From<Error> for i64 {
     }
 }
 
-impl<C, Block, Balance> RouterApi<<Block as BlockT>::Hash, Balance> for Router<C, Block>
+#[async_trait]
+impl<C, Block, Balance> RouterApiServer<<Block as BlockT>::Hash, Balance> for Router<C, Block>
 where
     Block: BlockT,
     C: Send + Sync + 'static,
@@ -86,7 +90,7 @@ where
         token_in: CurrencyId,
         token_out: CurrencyId,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> Result<(Vec<CurrencyId>, NumberOrHex)> {
+    ) -> RpcResult<(Vec<CurrencyId>, NumberOrHex)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(self.client.info().best_hash));
         let (route, amt) = api
@@ -98,36 +102,43 @@ where
 }
 
 /// Converts a runtime trap into an RPC error.
-fn runtime_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError {
-    RpcError {
-        code: ErrorCode::ServerError(Error::RuntimeError.into()),
-        message: "Runtime trapped".into(),
-        data: Some(format!("{:?}", err).into()),
-    }
+fn runtime_error_into_rpc_error(err: impl std::fmt::Debug) -> JsonRpseeError {
+    JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
+        Error::RuntimeError.into(),
+        "Runtime trapped",
+        Some(format!("{:?}", err)),
+    )))
 }
 
-fn smart_route_rpc_error(err: impl std::fmt::Debug) -> RpcError {
-    RpcError {
-        code: ErrorCode::ServerError(Error::RouterError.into()),
-        message: "Smart router error".into(),
-        data: Some(format!("{:?}", err).into()),
-    }
+fn smart_route_rpc_error(err: impl std::fmt::Debug) -> JsonRpseeError {
+    JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
+        Error::RouterError.into(),
+        "Smart router error",
+        Some(format!("{:?}", err)),
+    )))
 }
 
-fn decode_hex<H: std::fmt::Debug + Copy, T: TryFrom<H>>(from: H, name: &str) -> Result<T> {
-    from.try_into().map_err(|_| RpcError {
-        code: ErrorCode::InvalidParams,
-        message: format!("{:?} does not fit into the {} type", from, name),
-        data: None,
+fn decode_hex<H: std::fmt::Debug + Copy, T: TryFrom<H>>(
+    from: H,
+    name: &str,
+) -> Result<T, JsonRpseeError> {
+    from.try_into().map_err(|_| {
+        JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
+            ErrorCode::InvalidParams.code(),
+            format!("{:?} does not fit into the {} type", from, name),
+            None::<()>,
+        )))
     })
 }
 
 fn try_into_rpc_balance<T: std::fmt::Display + Copy + TryInto<NumberOrHex>>(
     value: T,
-) -> Result<NumberOrHex> {
-    value.try_into().map_err(|_| RpcError {
-        code: ErrorCode::InvalidParams,
-        message: format!("{} doesn't fit in NumberOrHex representation", value),
-        data: None,
+) -> Result<NumberOrHex, JsonRpseeError> {
+    value.try_into().map_err(|_| {
+        JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
+            ErrorCode::InvalidParams.code(),
+            format!("{} doesn't fit in NumberOrHex representation", value),
+            None::<()>,
+        )))
     })
 }

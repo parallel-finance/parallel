@@ -11,4 +11,14 @@ lto = true
 codegen-units = 1
 
 [workspace]
-members = ['node/*', 'pallets/*', 'runtime/*', 'integration-tests','support']
+members = ['node/*', 'pallets/*', 'runtime/*','support','integration-tests']
+
+[patch.crates-io]
+orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library', rev = 'f709ed62262435b3ad80482d309e3575625d1e5b' }
+orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library', rev = 'f709ed62262435b3ad80482d309e3575625d1e5b' }
+orml-oracle-rpc             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library', rev = 'f709ed62262435b3ad80482d309e3575625d1e5b' }
+orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library', rev = 'f709ed62262435b3ad80482d309e3575625d1e5b' }
+orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library', rev = 'f709ed62262435b3ad80482d309e3575625d1e5b' }
+orml-xcm                    = { git = 'https://github.com/open-web3-stack/open-runtime-module-library', rev = 'f709ed62262435b3ad80482d309e3575625d1e5b' }
+orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library', rev = 'f709ed62262435b3ad80482d309e3575625d1e5b' }
+orml-vesting                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library', rev = 'f709ed62262435b3ad80482d309e3575625d1e5b' }

@@ -17,37 +17,40 @@ use std::sync::Arc;
 pub use pallet_loans_rpc_runtime_api::LoansApi as LoansRuntimeApi;
 
 use codec::Codec;
-use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
-use jsonrpc_derive::rpc;
+use jsonrpsee::{
+    core::{async_trait, Error as JsonRpseeError, RpcResult},
+    proc_macros::rpc,
+    types::error::{CallError, ErrorCode, ErrorObject},
+};
 use primitives::{CurrencyId, Liquidity, Rate, Ratio, Shortfall};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_rpc::number::NumberOrHex;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT, FixedU128};
 
-#[rpc]
+#[rpc(client, server)]
 pub trait LoansApi<BlockHash, AccountId, Balance>
 where
     Balance: Codec + Copy + TryFrom<NumberOrHex>,
 {
-    #[rpc(name = "loans_getCollateralLiquidity")]
+    #[method(name = "loans_getCollateralLiquidity")]
     fn get_account_liquidity(
         &self,
         account: AccountId,
         at: Option<BlockHash>,
-    ) -> Result<(Liquidity, Shortfall)>;
-    #[rpc(name = "loans_getMarketStatus")]
+    ) -> RpcResult<(Liquidity, Shortfall)>;
+    #[method(name = "loans_getMarketStatus")]
     fn get_market_status(
         &self,
         asset_id: CurrencyId,
         at: Option<BlockHash>,
-    ) -> Result<(Rate, Rate, Rate, Ratio, NumberOrHex, NumberOrHex, FixedU128)>;
-    #[rpc(name = "loans_getLiquidationThresholdLiquidity")]
+    ) -> RpcResult<(Rate, Rate, Rate, Ratio, NumberOrHex, NumberOrHex, FixedU128)>;
+    #[method(name = "loans_getLiquidationThresholdLiquidity")]
     fn get_liquidation_threshold_liquidity(
         &self,
         account: AccountId,
         at: Option<BlockHash>,
-    ) -> Result<(Liquidity, Shortfall, FixedU128)>;
+    ) -> RpcResult<(Liquidity, Shortfall, FixedU128)>;
 }
 
 /// A struct that implements the [`LoansApi`].
@@ -72,8 +75,8 @@ pub enum Error {
     MarketStatusError,
 }
 
-impl From<Error> for i64 {
-    fn from(e: Error) -> i64 {
+impl From<Error> for i32 {
+    fn from(e: Error) -> i32 {
         match e {
             Error::RuntimeError => 1,
             Error::AccountLiquidityError => 2,
@@ -82,7 +85,8 @@ impl From<Error> for i64 {
     }
 }
 
-impl<C, Block, AccountId, Balance> LoansApi<<Block as BlockT>::Hash, AccountId, Balance>
+#[async_trait]
+impl<C, Block, AccountId, Balance> LoansApiServer<<Block as BlockT>::Hash, AccountId, Balance>
     for Loans<C, Block>
 where
     Block: BlockT,
@@ -97,7 +101,7 @@ where
         &self,
         account: AccountId,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> Result<(Liquidity, Shortfall)> {
+    ) -> RpcResult<(Liquidity, Shortfall)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(
             // If the block hash is not supplied assume the best block.
@@ -112,7 +116,7 @@ where
         &self,
         asset_id: CurrencyId,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> Result<(Rate, Rate, Rate, Ratio, NumberOrHex, NumberOrHex, FixedU128)> {
+    ) -> RpcResult<(Rate, Rate, Rate, Ratio, NumberOrHex, NumberOrHex, FixedU128)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(
             // If the block hash is not supplied assume the best block.
@@ -145,7 +149,7 @@ where
         &self,
         account: AccountId,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> Result<(Liquidity, Shortfall, FixedU128)> {
+    ) -> RpcResult<(Liquidity, Shortfall, FixedU128)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(
             // If the block hash is not supplied assume the best block.
@@ -158,38 +162,40 @@ where
 }
 
 /// Converts a runtime trap into an RPC error.
-fn runtime_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError {
-    RpcError {
-        code: ErrorCode::ServerError(Error::RuntimeError.into()),
-        message: "Runtime trapped".into(),
-        data: Some(format!("{:?}", err).into()),
-    }
+fn runtime_error_into_rpc_error(err: impl std::fmt::Debug) -> JsonRpseeError {
+    JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
+        Error::RuntimeError.into(),
+        "Runtime trapped",
+        Some(format!("{:?}", err)),
+    )))
 }
 
 /// Converts an account liquidity error into an RPC error.
-fn account_liquidity_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError {
-    RpcError {
-        code: ErrorCode::ServerError(Error::AccountLiquidityError.into()),
-        message: "Not able to get account liquidity".into(),
-        data: Some(format!("{:?}", err).into()),
-    }
+fn account_liquidity_error_into_rpc_error(err: impl std::fmt::Debug) -> JsonRpseeError {
+    JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
+        Error::AccountLiquidityError.into(),
+        "Not able to get account liquidity",
+        Some(format!("{:?}", err)),
+    )))
 }
 
 /// Converts an market status error into an RPC error.
-fn market_status_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError {
-    RpcError {
-        code: ErrorCode::ServerError(Error::MarketStatusError.into()),
-        message: "Not able to get market status".into(),
-        data: Some(format!("{:?}", err).into()),
-    }
+fn market_status_error_into_rpc_error(err: impl std::fmt::Debug) -> JsonRpseeError {
+    JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
+        Error::MarketStatusError.into(),
+        "Not able to get market status",
+        Some(format!("{:?}", err)),
+    )))
 }
 
 fn try_into_rpc_balance<T: std::fmt::Display + Copy + TryInto<NumberOrHex>>(
     value: T,
-) -> Result<NumberOrHex> {
-    value.try_into().map_err(|_| RpcError {
-        code: ErrorCode::InvalidParams,
-        message: format!("{} doesn't fit in NumberOrHex representation", value),
-        data: None,
+) -> RpcResult<NumberOrHex> {
+    value.try_into().map_err(|_| {
+        JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
+            ErrorCode::InvalidParams.code(),
+            format!("{} doesn't fit in NumberOrHex representation", value),
+            None::<()>,
+        )))
     })
 }

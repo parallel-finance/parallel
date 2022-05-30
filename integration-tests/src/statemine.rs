@@ -38,6 +38,7 @@ pub fn rmrk(n: f64) -> Balance {
 
 #[test]
 fn statemine() {
+    env_logger::init();
     use pallet_traits::xcm::AssetType;
     let statemine_rmrk_asset_location =
         MultiLocation::new(1, X3(Parachain(1000), PalletInstance(50), GeneralIndex(8)));

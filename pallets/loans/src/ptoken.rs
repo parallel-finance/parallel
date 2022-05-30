@@ -65,6 +65,7 @@ impl<T: Config> Inspect<T::AccountId> for Pallet<T> {
         ptoken_id: Self::AssetId,
         who: &T::AccountId,
         amount: Self::Balance,
+        _mint: bool,
     ) -> DepositConsequence {
         let underlying_id = match Self::underlying_id(ptoken_id) {
             Ok(asset_id) => asset_id,
