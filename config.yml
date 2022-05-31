@@ -1,5 +1,5 @@
 relaychain:
-  image: parallelfinance/polkadot:v0.9.19
+  image: parallelfinance/polkadot:v0.9.22
   chain: polkadot-local
   runtimeGenesisConfig:
     hrmp:
@@ -48,7 +48,7 @@ parachains:
     nodes:
       - flags:
           - --alice
-  - image: parallelfinance/polkadot-collator:v0.9.19
+  - image: parallelfinance/polkadot-collator:v0.9.22
     chain:
       base: statemine-dev
       collators:
