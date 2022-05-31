@@ -1518,30 +1518,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cumulus-client-consensus-relay-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.22#ebdfbea0029dd3349ce0e9c758acc73acce04d18"
-dependencies = [
- "async-trait",
- "cumulus-client-consensus-common",
- "cumulus-primitives-core",
- "cumulus-relay-chain-interface",
- "futures 0.3.21",
- "parking_lot 0.12.0",
- "sc-client-api",
- "sc-consensus",
- "sp-api",
- "sp-block-builder",
- "sp-blockchain",
- "sp-consensus",
- "sp-core",
- "sp-inherents",
- "sp-runtime",
- "substrate-prometheus-endpoint",
- "tracing",
-]
-
-[[package]]
 name = "cumulus-client-network"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.22#ebdfbea0029dd3349ce0e9c758acc73acce04d18"
@@ -3151,7 +3127,6 @@ dependencies = [
  "pallet-scheduler",
  "pallet-session",
  "pallet-streaming",
- "pallet-sudo",
  "pallet-timestamp",
  "pallet-traits",
  "pallet-transaction-payment",
@@ -5576,7 +5551,6 @@ dependencies = [
  "frame-system",
  "pallet-assets",
  "pallet-balances",
- "pallet-collective",
  "pallet-currency-adapter",
  "pallet-membership",
  "parallel-primitives",
@@ -6474,7 +6448,6 @@ dependencies = [
  "pallet-assets",
  "pallet-balances",
  "pallet-currency-adapter",
- "pallet-prices",
  "pallet-timestamp",
  "parallel-primitives",
  "parity-scale-codec",
@@ -6713,7 +6686,6 @@ dependencies = [
  "frame-system",
  "kusama-runtime",
  "orml-xcm-support",
- "orml-xtokens",
  "pallet-assets",
  "pallet-babe",
  "pallet-balances",
@@ -6788,7 +6760,6 @@ dependencies = [
  "cumulus-client-cli",
  "cumulus-client-collator",
  "cumulus-client-consensus-aura",
- "cumulus-client-consensus-relay-chain",
  "cumulus-client-network",
  "cumulus-client-service",
  "cumulus-primitives-core",
@@ -6929,7 +6900,6 @@ dependencies = [
  "pallet-scheduler",
  "pallet-session",
  "pallet-streaming",
- "pallet-sudo",
  "pallet-timestamp",
  "pallet-traits",
  "pallet-transaction-payment",
@@ -6970,11 +6940,9 @@ name = "parallel-support"
 version = "1.8.5"
 dependencies = [
  "frame-support",
- "frame-system",
  "log",
  "num-bigint 0.4.3",
  "num-traits",
- "parallel-primitives",
  "parity-scale-codec",
  "scale-info",
  "serde",

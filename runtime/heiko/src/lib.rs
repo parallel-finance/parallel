@@ -867,11 +867,6 @@ impl pallet_transaction_payment::Config for Runtime {
     type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 }
 
-// impl pallet_sudo::Config for Runtime {
-//     type Event = Event;
-//     type Call = Call;
-// }
-
 #[derive(
     Copy,
     Clone,
@@ -2012,7 +2007,6 @@ construct_runtime!(
         Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 8,
 
         // Governance
-        // Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>} = 11,
         GeneralCouncil: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 12,
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 13,

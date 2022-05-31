@@ -31,7 +31,6 @@ cumulus-pallet-xcm              = { git = 'https://github.com/paritytech/cumulus
 cumulus-pallet-xcmp-queue       = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.22' }
 kusama-runtime                  = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.22', features = ['runtime-benchmarks'] }
 orml-xcm-support                = { version = '0.4.1-dev' }
-orml-xtokens                    = { version = '0.4.1-dev' }
 pallet-babe                     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.22' }
 pallet-balances                 = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.22' }
 pallet-session                  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.22' }

@@ -15,7 +15,6 @@ frame-system       = { git = 'https://github.com/paritytech/substrate.git', bran
 orml-traits        = { version = '0.4.1-dev', default-features = false }
 pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.22', default-features = false }
 pallet-balances    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.22', default-features = false }
-pallet-prices      = { path = '../prices', default-features = false }
 pallet-timestamp   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.22', default-features = false }
 primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 scale-info         = { version = '2.1', default-features = false, features = ['derive'] }
@@ -44,7 +43,6 @@ std                = [
   'sp-std/std',
   'pallet-assets/std',
   'pallet-balances/std',
-  'pallet-prices/std',
   'pallet-assets/std',
   'pallet-timestamp/std',
   'serde',
