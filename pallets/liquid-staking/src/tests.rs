@@ -980,11 +980,11 @@ fn cancel_unstake_works() {
             MatchingPool::<Test>::get(),
             MatchingLedger {
                 total_stake_amount: ReservableAmount {
-                    total: ksm(9.95f64),
+                    total: ksm(15.95f64),
                     reserved: 0
                 },
                 total_unstake_amount: ReservableAmount {
-                    total: 0,
+                    total: ksm(6f64),
                     reserved: 0
                 }
             }
