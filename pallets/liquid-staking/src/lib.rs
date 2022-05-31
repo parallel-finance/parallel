@@ -909,12 +909,6 @@ pub mod pallet {
                 let mut cancelled: Balance = Zero::zero();
 
                 while let Some(last) = chunks.last_mut() {
-                    if last.era != Self::current_era() + T::BondingDuration::get() + 1
-                        || cancelled >= amount
-                    {
-                        break;
-                    }
-
                     if cancelled + last.value <= amount {
                         cancelled += last.value;
                         chunks.pop();
@@ -924,10 +918,14 @@ pub mod pallet {
                         cancelled += diff;
                         last.value -= diff;
                     }
+
+                    if cancelled >= amount {
+                        break;
+                    }
                 }
 
                 MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                    p.sub_unstake_amount(cancelled)
+                    p.add_stake_amount(cancelled)
                 })?;
 
                 let liquid_amount =

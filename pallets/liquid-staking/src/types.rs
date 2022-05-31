@@ -101,7 +101,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    pub fn sub_stake_amount(&mut self, amount: Balance) -> DispatchResult {
+    fn sub_stake_amount(&mut self, amount: Balance) -> DispatchResult {
         let total_free_stake_amount = self.total_stake_amount.free()?;
         if total_free_stake_amount < amount {
             return Err(ArithmeticError::Underflow.into());
@@ -115,7 +115,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         Ok(())
     }
 
-    pub fn sub_unstake_amount(&mut self, amount: Balance) -> DispatchResult {
+    fn sub_unstake_amount(&mut self, amount: Balance) -> DispatchResult {
         let total_free_unstake_amount = self.total_unstake_amount.free()?;
         if total_free_unstake_amount < amount {
             return Err(ArithmeticError::Underflow.into());
