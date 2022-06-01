@@ -1256,15 +1256,32 @@ impl<T: Config> Pallet<T> {
     ) -> Result<(Liquidity, Shortfall, Liquidity), DispatchError> {
         let total_borrow_value = Self::total_borrowed_value(account)?;
         let total_collateral_value = Self::total_liquidation_threshold_value(account)?;
+
         let base_position = Self::get_base_position(account)?;
+        let dot_borrowed_value = Self::get_asset_value(
+            T::LiquidationFreeAssetId::get(),
+            Self::current_borrow_balance(account, T::LiquidationFreeAssetId::get())?,
+        )?;
+        let lf_liquidity = if base_position > dot_borrowed_value {
+            base_position - dot_borrowed_value
+        } else {
+            FixedU128::zero()
+        };
+
         log::trace!(
             target: "loans::get_account_liquidation_threshold_liquidity",
-            "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}",
+            "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}, lf_liquidity: {:?}",
             account,
             total_borrow_value.into_inner(),
             total_collateral_value.into_inner(),
+            lf_liquidity.into_inner(),
         );
-        if total_collateral_value > total_borrow_value {
+
+        if total_collateral_value
+            > total_borrow_value
+                .checked_add(&lf_liquidity)
+                .ok_or(ArithmeticError::Overflow)?
+        {
             Ok((
                 total_collateral_value - total_borrow_value,
                 FixedU128::zero(),
