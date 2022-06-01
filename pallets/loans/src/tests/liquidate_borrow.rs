@@ -75,7 +75,7 @@ fn lf_liquidate_borrow_allowed_works() {
         // CDOT  $200
 
         let dot_market = Loans::market(DOT).unwrap();
-        // The max repay amount = (400 - 200) * 50 = $100
+        // The max repay amount = (400 - 200) * 50% = $100
         assert_err!(
             Loans::liquidate_borrow_allowed(&ALICE, DOT, dollar(51), &dot_market),
             Error::<Test>::TooMuchRepay

@@ -1582,8 +1582,7 @@ impl<T: Config> Pallet<T> {
             repay_amount,
             market
         );
-        let (_, shortfall, base_position) =
-            Self::get_account_liquidation_threshold_liquidity(borrower)?;
+        let (_, shortfall, _) = Self::get_account_liquidation_threshold_liquidity(borrower)?;
         if shortfall.is_zero() {
             return Err(Error::<T>::InsufficientShortfall.into());
         }
@@ -1593,6 +1592,7 @@ impl<T: Config> Pallet<T> {
         let account_borrows_value = Self::get_asset_value(liquidation_asset_id, account_borrows)?;
         let repay_value = Self::get_asset_value(liquidation_asset_id, repay_amount)?;
         let effects_borrows_value = if liquidation_asset_id == T::LiquidationFreeAssetId::get() {
+            let base_position = Self::get_base_position(borrower)?;
             if account_borrows_value > base_position {
                 account_borrows_value - base_position
             } else {
