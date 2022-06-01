@@ -39,7 +39,10 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use num_traits::cast::ToPrimitive;
 pub use pallet::*;
-use pallet_traits::{ConvertToBigUint, LoansRateProvider, PriceFeeder};
+use pallet_traits::{
+    ConvertToBigUint, LoansMarketDataProvider, LoansOperator, LoansPositionDataProvider,
+    LoansRateProvider, MarketInfo, MarketStatus, PriceFeeder,
+};
 use primitives::{Balance, CurrencyId, Liquidity, Price, Rate, Ratio, Shortfall, Timestamp};
 use sp_runtime::{
     traits::{
@@ -76,6 +79,7 @@ pub const MIN_INTEREST_CALCULATING_INTERVAL: u64 = 100; // 100 seconds
 pub const MAX_EXCHANGE_RATE: u128 = 1_000_000_000_000_000_000; // 1
 pub const MIN_EXCHANGE_RATE: u128 = 20_000_000_000_000_000; // 0.02
 
+type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 type BalanceOf<T> =
@@ -2024,5 +2028,66 @@ impl<T: Config> LoansRateProvider<AssetIdOf<T>> for Pallet<T> {
             return rate;
         }
         None
+    }
+}
+
+#[allow(unused_variables)]
+impl<T: Config> LoansOperator<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pallet<T> {
+    fn do_mint(
+        supplier: &AccountIdOf<T>,
+        asset_id: &AssetIdOf<T>,
+        amount: BalanceOf<T>,
+    ) -> Result<(), DispatchError> {
+        Ok(())
+    }
+    fn do_borrow(
+        borrower: &AccountIdOf<T>,
+        asset_id: &AssetIdOf<T>,
+        amount: BalanceOf<T>,
+    ) -> Result<(), DispatchError> {
+        Ok(())
+    }
+    fn do_collateral_asset(
+        supplier: &AccountIdOf<T>,
+        asset_id: &AssetIdOf<T>,
+        enable: bool,
+    ) -> Result<(), DispatchError> {
+        Ok(())
+    }
+    fn do_repay_borrow(
+        borrower: &AccountIdOf<T>,
+        asset_id: &AssetIdOf<T>,
+        amount: BalanceOf<T>,
+    ) -> Result<(), DispatchError> {
+        Ok(())
+    }
+    fn do_redeem(
+        supplier: &AccountIdOf<T>,
+        asset_id: &AssetIdOf<T>,
+        amount: BalanceOf<T>,
+    ) -> Result<(), DispatchError> {
+        Ok(())
+    }
+}
+
+#[allow(unused_variables)]
+impl<T: Config> LoansMarketDataProvider<AssetIdOf<T>, BalanceOf<T>> for Pallet<T> {
+    fn get_market_info(asset_id: &AssetIdOf<T>) -> Result<MarketInfo, DispatchError> {
+        Ok(Default::default())
+    }
+    fn get_market_status(asset_id: &AssetIdOf<T>) -> Result<MarketStatus<Balance>, DispatchError> {
+        Ok(Default::default())
+    }
+}
+
+#[allow(unused_variables)]
+impl<T: Config> LoansPositionDataProvider<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>>
+    for Pallet<T>
+{
+    fn get_current_borrow_balance(
+        asset_id: &AssetIdOf<T>,
+        borrower: &AccountIdOf<T>,
+    ) -> Result<BalanceOf<T>, DispatchError> {
+        Ok(BalanceOf::<T>::zero())
     }
 }

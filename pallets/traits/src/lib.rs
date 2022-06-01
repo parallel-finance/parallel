@@ -10,8 +10,10 @@ use sp_std::prelude::*;
 
 use primitives::{CurrencyId, DerivativeIndex, PersistedValidationData, PriceDetail, Rate};
 
+pub mod loans;
 pub mod ump;
 pub mod xcm;
+pub use loans::*;
 
 pub trait EmergencyCallFilter<Call> {
     fn contains(call: &Call) -> bool;
@@ -220,8 +222,4 @@ pub trait DistributionStrategy<Balance> {
         unbonding_amounts: Vec<(DerivativeIndex, Balance)>,
         input: Balance,
     ) -> Vec<(DerivativeIndex, Balance)>;
-}
-
-pub trait LoansRateProvider<CurrencyId> {
-    fn get_full_interest_rate(asset_id: &CurrencyId) -> Option<Rate>;
 }
