@@ -339,7 +339,18 @@ impl<AccountId, Balance: BalanceT + FixedPointOperand> StakingLedger<AccountId, 
     }
 }
 
-pub enum UnstakeProvider {
-    Relaychain = 0,
+#[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum LiqidityProvider {
+    RelayChain = 0,
     Loans = 1,
+}
+
+impl LiqidityProvider {
+    pub fn is_relay_chain(&self) -> bool {
+        self == LiquidityProvider::RelayChain
+    }
+
+    pub fn is_loans(&self) -> bool {
+        self == LiquidityProvider::Loans
+    }
 }

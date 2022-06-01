@@ -153,27 +153,27 @@ pub trait AMM<AccountId, CurrencyId, Balance, BlockNumber> {
 
 // Exported traits from our Loans pallet.
 pub trait Loans<AccountId, CurrencyId, Balance> {
-    fn do_mint(supplier: AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult;
-    fn do_borrow(borrower: AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult;
+    fn do_mint(supplier: &AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult;
+    fn do_borrow(borrower: &AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult;
     fn do_collateral_asset(
-        supplier: AccountId,
+        supplier: &AccountId,
         asset_id: CurrencyId,
         enable: bool,
     ) -> DispatchResult;
     fn do_repay_borrow(
-        borrower: AccountId,
+        borrower: &AccountId,
         asset_id: CurrencyId,
         amount: Balance,
     ) -> DispatchResult;
-    fn do_redeem(supplier: AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult;
+    fn do_redeem(supplier: &AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult;
 }
 
 pub trait LoansPositionDataProvider<AccountId, CurrencyId, Balance> {
-    fn get_current_borrow_balance(borrower: AccountId, asset_id: CurrencyId) -> Balance;
+    fn get_current_borrow_balance(borrower: &AccountId, asset_id: CurrencyId) -> Balance;
 }
 
 pub trait LoansCollateralFactorProvider<CurrencyId> {
-    fn get_collateral_factor(asset_id: CurrencyId) -> Ratio;
+    fn get_collateral_factor(asset_id: &CurrencyId) -> Ratio;
 }
 
 pub trait LoansRateProvider<CurrencyId> {
