@@ -181,31 +181,31 @@ pub trait LoansRateProvider<CurrencyId> {
 }
 
 impl<AccountId, CurrencyId, Balance> Loans<AccountId, CurrencyId, Balance> for () {
-    fn do_mint(supplier: &AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult {
+    fn do_mint(_supplier: &AccountId, _asset_id: CurrencyId, _amount: Balance) -> DispatchResult {
         Ok(())
     }
 
-    fn do_borrow(borrower: &AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult {
+    fn do_borrow(_borrower: &AccountId, _asset_id: CurrencyId, _amount: Balance) -> DispatchResult {
         Ok(())
     }
 
     fn do_collateral_asset(
-        supplier: &AccountId,
-        asset_id: CurrencyId,
-        enable: bool,
+        _supplier: &AccountId,
+        _asset_id: CurrencyId,
+        _enable: bool,
     ) -> DispatchResult {
         Ok(())
     }
 
     fn do_repay_borrow(
-        borrower: &AccountId,
-        asset_id: CurrencyId,
-        amount: Balance,
+        _borrower: &AccountId,
+        _asset_id: CurrencyId,
+        _amount: Balance,
     ) -> DispatchResult {
         Ok(())
     }
 
-    fn do_redeem(supplier: &AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult {
+    fn do_redeem(_supplier: &AccountId, _asset_id: CurrencyId, _amount: Balance) -> DispatchResult {
         Ok(())
     }
 }
@@ -213,13 +213,13 @@ impl<AccountId, CurrencyId, Balance> Loans<AccountId, CurrencyId, Balance> for (
 impl<AccountId, CurrencyId, Balance: BalanceT>
     LoansPositionDataProvider<AccountId, CurrencyId, Balance> for ()
 {
-    fn get_current_borrow_balance(borrower: &AccountId, asset_id: CurrencyId) -> Balance {
+    fn get_current_borrow_balance(_borrower: &AccountId, _asset_id: CurrencyId) -> Balance {
         Zero::zero()
     }
 }
 
 impl<CurrencyId> LoansCollateralFactorProvider<CurrencyId> for () {
-    fn get_collateral_factor(asset_id: CurrencyId) -> Ratio {
+    fn get_collateral_factor(_asset_id: CurrencyId) -> Ratio {
         Ratio::default()
     }
 }

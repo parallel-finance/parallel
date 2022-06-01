@@ -82,7 +82,7 @@ pub mod pallet {
 
     use pallet_traits::ump::*;
     use pallet_xcm_helper::XcmHelper;
-    use primitives::{Balance, CurrencyId, DerivativeIndex, EraIndex, ParaId, Rate, Ratio, KSM_U};
+    use primitives::{Balance, CurrencyId, DerivativeIndex, EraIndex, ParaId, Rate, Ratio};
 
     use super::{types::*, *};
 
@@ -499,9 +499,9 @@ pub mod pallet {
 
             Unlockings::<T>::try_mutate(
                 if liquidity_provider.is_relay_chain() {
-                    &who
+                    who.clone()
                 } else {
-                    &Self::loans_account_id()
+                    Self::loans_account_id()
                 },
                 |b| -> DispatchResult {
                     // TODO: check if we can bond before the next era
@@ -535,7 +535,7 @@ pub mod pallet {
             }
 
             if liquidity_provider.is_loans() {
-                Self::do_fast_unstake(amount)?;
+                Self::do_fast_unstake(&who, amount)?;
             }
 
             log::trace!(
@@ -1706,7 +1706,7 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_fast_unstake(amount: BalanceOf<T>) -> DispatchResult {
+        fn do_fast_unstake(who: &AccountIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
             let fast_unstake_fee = T::FastUnstakeFee::get()
                 .checked_mul_int(amount)
                 .ok_or(ArithmeticError::Overflow)?;
@@ -1722,7 +1722,7 @@ pub mod pallet {
             T::Loans::do_mint(&account_id, collateral_currency, mint_amount)?;
             let _ = T::Loans::do_collateral_asset(&account_id, collateral_currency, true);
             T::Loans::do_borrow(&account_id, staking_currency, borrow_amount)?;
-            T::Assets::transfer(staking_currency, &account_id, &who, borrow_amount, false)?;
+            T::Assets::transfer(staking_currency, &account_id, who, borrow_amount, false)?;
 
             Ok(())
         }

@@ -127,7 +127,7 @@ benchmarks! {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
-    }: _(SystemOrigin::Signed(alice.clone()), UNSTAKE_AMOUNT)
+    }: _(SystemOrigin::Signed(alice.clone()), UNSTAKE_AMOUNT, Default::default())
     verify {
         assert_last_event::<T>(Event::<T>::Unstaked(alice, UNSTAKE_AMOUNT, UNSTAKE_AMOUNT).into());
     }
@@ -193,7 +193,7 @@ benchmarks! {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
-        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNBOND_AMOUNT).unwrap();
+        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNBOND_AMOUNT, Default::default()).unwrap();
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), 0, BOND_AMOUNT, RewardDestination::Staked).unwrap();
         LiquidStaking::<T>::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
@@ -209,7 +209,7 @@ benchmarks! {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
-        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNBOND_AMOUNT).unwrap();
+        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNBOND_AMOUNT, Default::default()).unwrap();
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), 0, BOND_AMOUNT, RewardDestination::Staked).unwrap();
         LiquidStaking::<T>::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
@@ -231,7 +231,7 @@ benchmarks! {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
-        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNBOND_AMOUNT).unwrap();
+        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNBOND_AMOUNT, Default::default()).unwrap();
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), 0, BOND_AMOUNT, RewardDestination::Staked).unwrap();
         LiquidStaking::<T>::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
@@ -280,7 +280,7 @@ benchmarks! {
         let account_id = T::Lookup::unlookup(alice.clone());
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
-        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
+        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT, Default::default()).unwrap();
         assert_ok!(with_transaction(|| -> TransactionOutcome<DispatchResult>{
             LiquidStaking::<T>::do_advance_era(T::BondingDuration::get() + 1).unwrap();
             LiquidStaking::<T>::do_matching().unwrap();
@@ -384,7 +384,7 @@ benchmarks! {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
-        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
+        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT, Default::default()).unwrap();
     }: _(SystemOrigin::Signed(alice.clone()), UNSTAKE_AMOUNT)
     verify {
         assert_last_event::<T>(Event::<T>::UnstakeCancelled(alice, UNSTAKE_AMOUNT, UNSTAKE_AMOUNT).into());

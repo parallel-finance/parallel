@@ -128,7 +128,11 @@ fn stake_should_work() {
 fn unstake_should_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
-        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(6f64)));
+        assert_ok!(LiquidStaking::unstake(
+            Origin::signed(ALICE),
+            ksm(6f64),
+            Default::default()
+        ));
 
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
@@ -189,7 +193,11 @@ fn unstake_should_work() {
         );
         // Just make it 1 to calculate.
         ExchangeRate::<Test>::set(Rate::one());
-        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(3.95f64)));
+        assert_ok!(LiquidStaking::unstake(
+            Origin::signed(ALICE),
+            ksm(3.95f64),
+            Default::default()
+        ));
 
         assert_eq!(
             Unlockings::<Test>::get(ALICE).unwrap(),
@@ -244,7 +252,9 @@ impl StakeOp {
     fn execute(self) {
         match self {
             Self::Stake(amount) => LiquidStaking::stake(Origin::signed(ALICE), amount).unwrap(),
-            Self::Unstake(amount) => LiquidStaking::unstake(Origin::signed(ALICE), amount).unwrap(),
+            Self::Unstake(amount) => {
+                LiquidStaking::unstake(Origin::signed(ALICE), amount, Default::default()).unwrap()
+            }
         };
     }
 }
@@ -370,7 +380,11 @@ fn test_transact_unbond_work() {
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
-        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(1000f64),));
+        assert_ok!(LiquidStaking::unstake(
+            Origin::signed(ALICE),
+            ksm(1000f64),
+            Default::default()
+        ));
         let bond_amount = ksm(5f64);
 
         assert_ok!(LiquidStaking::bond(
@@ -416,7 +430,11 @@ fn test_transact_withdraw_unbonded_work() {
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
-        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(2000f64),));
+        assert_ok!(LiquidStaking::unstake(
+            Origin::signed(ALICE),
+            ksm(2000f64),
+            Default::default()
+        ));
         let bond_amount = ksm(5f64);
         let unbond_amount = ksm(2f64);
         assert_ok!(LiquidStaking::bond(
@@ -495,7 +513,11 @@ fn test_transact_rebond_work() {
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
-        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(1000f64),));
+        assert_ok!(LiquidStaking::unstake(
+            Origin::signed(ALICE),
+            ksm(1000f64),
+            Default::default()
+        ));
         let bond_amount = ksm(10f64);
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
@@ -651,8 +673,16 @@ fn claim_for_should_work() {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
         assert_eq!(<Test as Config>::Assets::balance(KSM, &ALICE), ksm(90f64));
 
-        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(1f64)));
-        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(3.95f64)));
+        assert_ok!(LiquidStaking::unstake(
+            Origin::signed(ALICE),
+            ksm(1f64),
+            Default::default()
+        ));
+        assert_ok!(LiquidStaking::unstake(
+            Origin::signed(ALICE),
+            ksm(3.95f64),
+            Default::default()
+        ));
         assert_eq!(
             Unlockings::<Test>::get(ALICE).unwrap(),
             vec![UnlockChunk {
@@ -946,7 +976,11 @@ fn reduce_reserves_works() {
 fn cancel_unstake_works() {
     new_test_ext().execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
-        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(6f64)));
+        assert_ok!(LiquidStaking::unstake(
+            Origin::signed(ALICE),
+            ksm(6f64),
+            Default::default()
+        ));
 
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());

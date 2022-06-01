@@ -353,10 +353,10 @@ impl Default for LiquidityProvider {
 
 impl LiquidityProvider {
     pub fn is_relay_chain(&self) -> bool {
-        self == LiquidityProvider::RelayChain
+        self == &LiquidityProvider::RelayChain
     }
 
     pub fn is_loans(&self) -> bool {
-        self == LiquidityProvider::Loans
+        self == &LiquidityProvider::Loans
     }
 }
