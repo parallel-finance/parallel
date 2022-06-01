@@ -1257,16 +1257,7 @@ impl<T: Config> Pallet<T> {
         let total_borrow_value = Self::total_borrowed_value(account)?;
         let total_collateral_value = Self::total_liquidation_threshold_value(account)?;
 
-        let base_position = Self::get_base_position(account)?;
-        let dot_borrowed_value = Self::get_asset_value(
-            T::LiquidationFreeAssetId::get(),
-            Self::current_borrow_balance(account, T::LiquidationFreeAssetId::get())?,
-        )?;
-        let lf_liquidity = if base_position > dot_borrowed_value {
-            base_position - dot_borrowed_value
-        } else {
-            FixedU128::zero()
-        };
+        let lf_liquidity = Self::get_account_lf_liquidity(account)?;
 
         log::trace!(
             target: "loans::get_account_liquidation_threshold_liquidity",
