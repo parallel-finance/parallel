@@ -1268,20 +1268,20 @@ impl<T: Config> Pallet<T> {
             lf_liquidity.into_inner(),
         );
 
-        if total_collateral_value
-            > total_borrow_value
-                .checked_add(&lf_liquidity)
-                .ok_or(ArithmeticError::Overflow)?
-        {
+        let locked_liquidity = total_borrow_value
+            .checked_add(&lf_liquidity)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        if total_collateral_value > locked_liquidity {
             Ok((
-                total_collateral_value - total_borrow_value,
+                total_collateral_value - locked_liquidity,
                 FixedU128::zero(),
                 lf_liquidity,
             ))
         } else {
             Ok((
                 FixedU128::zero(),
-                total_borrow_value - total_collateral_value,
+                locked_liquidity - total_collateral_value,
                 lf_liquidity,
             ))
         }
