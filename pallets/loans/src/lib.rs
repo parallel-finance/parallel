@@ -1212,14 +1212,14 @@ impl<T: Config> Pallet<T> {
     }
 
     fn get_account_lf_liquidity(account: &T::AccountId) -> Result<Liquidity, DispatchError> {
-        let dot_borrowed_amount =
+        let lf_borrowed_amount =
             Self::current_borrow_balance(account, T::LiquidationFreeAssetId::get())?;
-        let dot_borrowed_value =
-            Self::get_asset_value(T::LiquidationFreeAssetId::get(), dot_borrowed_amount)?;
-        let dot_base_position = Self::get_base_position(account)?;
+        let lf_borrowed_value =
+            Self::get_asset_value(T::LiquidationFreeAssetId::get(), lf_borrowed_amount)?;
+        let lf_base_position = Self::get_base_position(account)?;
 
-        let liquidity = if dot_base_position > dot_borrowed_value {
-            dot_base_position - dot_borrowed_value
+        let liquidity = if lf_base_position > lf_borrowed_value {
+            lf_base_position - lf_borrowed_value
         } else {
             FixedU128::zero()
         };
