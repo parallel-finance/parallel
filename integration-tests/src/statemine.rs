@@ -28,7 +28,7 @@ pub const RMRK_DECIMAL: u8 = 10;
 pub const RMRK_WEIGHT_PER_SEC: u128 = 100000000000;
 pub const HEIKO_RMRK_ASSET_ID: u32 = 4187061565;
 pub const STATEMINE_TOTAL_FEE_AMOUNT: u128 = 1_000_000_000; //still can be decreased further but we add some margin here
-pub const FEE_IN_KUSAMA: u128 = 165_940_672;
+pub const FEE_IN_KUSAMA: u128 = 29_642_910;
 pub const FEE_IN_STATEMINE: u128 = 10_666_664;
 pub const WEIGHT_IN_STATEMINE: u64 = 4_000_000_000;
 
@@ -38,6 +38,7 @@ pub fn rmrk(n: f64) -> Balance {
 
 #[test]
 fn statemine() {
+    env_logger::init();
     use pallet_traits::xcm::AssetType;
     let statemine_rmrk_asset_location =
         MultiLocation::new(1, X3(Parachain(1000), PalletInstance(50), GeneralIndex(8)));

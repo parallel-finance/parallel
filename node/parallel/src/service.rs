@@ -252,6 +252,7 @@ async fn build_relay_chain_interface(
             parachain_config,
             telemetry_worker_handle,
             task_manager,
+            None,
         ),
     }
 }
@@ -321,7 +322,7 @@ where
             warp_sync: None,
         })?;
 
-    let rpc_extensions_builder = {
+    let rpc_builder = {
         let client = client.clone();
         let pool = transaction_pool.clone();
 
@@ -332,7 +333,7 @@ where
                 deny_unsafe,
             };
 
-            crate::rpc::create_full(deps)
+            crate::rpc::create_full(deps).map_err(Into::into)
         })
     };
 
@@ -346,7 +347,7 @@ where
     }
 
     sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-        rpc_extensions_builder,
+        rpc_builder,
         client: client.clone(),
         transaction_pool: transaction_pool.clone(),
         task_manager: &mut task_manager,

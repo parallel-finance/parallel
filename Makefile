@@ -11,14 +11,15 @@ LAUNCH_CONFIG_YAML	  							:= config.yml
 LAUNCH_CONFIG_JSON	  							:= config.json
 DOCKER_OVERRIDE_YAML                := docker-compose.override.yml
 DOCKER_TAG     											:= latest
-RELAY_DOCKER_TAG										:= v0.9.19
-CUMULUS_DOCKER_TAG									:= v0.9.19
+RELAY_DOCKER_TAG										:= v0.9.22
+CUMULUS_DOCKER_TAG									:= v0.9.22
 
 .PHONY: init
 init: submodules
 	git config advice.ignoredHook false
 	git config core.hooksPath .githooks
-	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly-2022-04-24 --component rust-src --target wasm32-unknown-unknown
+	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly-2022-04-24 --component rust-src --component rustfmt --component clippy --target wasm32-unknown-unknown
+	cargo install cargo-udeps --locked 
 	cd scripts/helper && yarn
 	cd scripts/polkadot-launch && yarn
 
@@ -78,7 +79,7 @@ fast-test-crowdloan:
 
 .PHONY: integration-test
 integration-test:
-	SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- --nocapture
+	RUST_LOG="xcm=trace,xcm-executor=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- --nocapture
 
 .PHONY: integration-test-statemine
 integration-test-statemine:
@@ -142,6 +143,10 @@ fix:
 fmt:
 	SKIP_WASM_BUILD= cargo fmt --all
 	cd scripts/helper && yarn format
+
+.PHONY: udeps
+udeps:
+	SKIP_WASM_BUILD= cargo udeps -q --all-targets
 
 .PHONY: resources
 resources:

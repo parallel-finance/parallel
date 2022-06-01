@@ -75,7 +75,7 @@ fn trait_inspect_methods_works() {
         assert_eq!(Loans::reducible_balance(PHKO, &DAVE, true), 0);
 
         assert_eq!(Loans::total_issuance(PHKO), dollar(100) * 50);
-        assert_ok!(Loans::can_deposit(PHKO, &DAVE, 100).into_result());
+        assert_ok!(Loans::can_deposit(PHKO, &DAVE, 100, true).into_result());
         assert_ok!(Loans::can_withdraw(PHKO, &DAVE, 1000).into_result());
     })
 }

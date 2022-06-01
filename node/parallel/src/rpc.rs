@@ -10,6 +10,20 @@ use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 
+/// substrate rpc
+use pallet_transaction_payment_rpc::{TransactionPaymentApiServer, TransactionPaymentRpc};
+use substrate_frame_rpc_system::{SystemApiServer, SystemRpc};
+
+/// orml rpc
+use orml_oracle_rpc::{Oracle, OracleApiServer};
+
+/// parallel rpc
+use pallet_loans_rpc::{Loans, LoansApiServer};
+use pallet_router_rpc::{Router, RouterApiServer};
+
+/// A type representing all RPC extensions.
+pub type RpcExtension = jsonrpsee::RpcModule<()>;
+
 /// Full client dependencies.
 pub struct FullDeps<C, P> {
     /// The client instance to use.
@@ -23,7 +37,7 @@ pub struct FullDeps<C, P> {
 /// Instantiate all full RPC extensions.
 pub fn create_full<C, P>(
     deps: FullDeps<C, P>,
-) -> Result<jsonrpc_core::IoHandler<sc_rpc::Metadata>, sc_service::Error>
+) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
 where
     C: ProvideRuntimeApi<Block>,
     C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
@@ -36,38 +50,18 @@ where
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
 {
-    use orml_oracle_rpc::{Oracle, OracleApi};
-    use pallet_loans_rpc::{Loans, LoansApi};
-    use pallet_router_rpc::{Router, RouterApi};
-    use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
-    use substrate_frame_rpc_system::{FullSystem, SystemApi};
-
-    let mut io = jsonrpc_core::IoHandler::default();
+    let mut module = RpcExtension::new(());
     let FullDeps {
         client,
         pool,
         deny_unsafe,
     } = deps;
 
-    io.extend_with(SystemApi::to_delegate(FullSystem::new(
-        client.clone(),
-        pool,
-        deny_unsafe,
-    )));
+    module.merge(SystemRpc::new(client.clone(), pool, deny_unsafe).into_rpc())?;
+    module.merge(TransactionPaymentRpc::new(client.clone()).into_rpc())?;
+    module.merge(Oracle::new(client.clone()).into_rpc())?;
+    module.merge(Loans::new(client.clone()).into_rpc())?;
+    module.merge(Router::new(client.clone()).into_rpc())?;
 
-    io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
-        client.clone(),
-    )));
-
-    // Extend this RPC with a custom API by using the following syntax.
-    // `YourRpcStruct` should have a reference to a client, which is needed
-    // to call into the runtime.
-    // `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
-    io.extend_with(OracleApi::to_delegate(Oracle::new(client.clone())));
-
-    io.extend_with(LoansApi::to_delegate(Loans::new(client.clone())));
-
-    io.extend_with(RouterApi::to_delegate(Router::new(client)));
-
-    Ok(io)
+    Ok(module)
 }
