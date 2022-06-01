@@ -1276,13 +1276,13 @@ impl<T: Config> Pallet<T> {
             Ok((
                 total_collateral_value - total_borrow_value,
                 FixedU128::zero(),
-                base_position,
+                lf_liquidity,
             ))
         } else {
             Ok((
                 FixedU128::zero(),
                 total_borrow_value - total_collateral_value,
-                base_position,
+                lf_liquidity,
             ))
         }
     }
