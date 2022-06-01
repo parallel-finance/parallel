@@ -339,13 +339,19 @@ impl<AccountId, Balance: BalanceT + FixedPointOperand> StakingLedger<AccountId, 
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum LiqidityProvider {
+#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum LiquidityProvider {
     RelayChain = 0,
     Loans = 1,
 }
 
-impl LiqidityProvider {
+impl Default for LiquidityProvider {
+    fn default() -> Self {
+        LiquidityProvider::RelayChain
+    }
+}
+
+impl LiquidityProvider {
     pub fn is_relay_chain(&self) -> bool {
         self == LiquidityProvider::RelayChain
     }

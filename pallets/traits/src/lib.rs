@@ -173,7 +173,7 @@ pub trait LoansPositionDataProvider<AccountId, CurrencyId, Balance> {
 }
 
 pub trait LoansCollateralFactorProvider<CurrencyId> {
-    fn get_collateral_factor(asset_id: &CurrencyId) -> Ratio;
+    fn get_collateral_factor(asset_id: CurrencyId) -> Ratio;
 }
 
 pub trait LoansRateProvider<CurrencyId> {
@@ -181,16 +181,16 @@ pub trait LoansRateProvider<CurrencyId> {
 }
 
 impl<AccountId, CurrencyId, Balance> Loans<AccountId, CurrencyId, Balance> for () {
-    fn do_mint(supplier: AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult {
+    fn do_mint(supplier: &AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult {
         Ok(())
     }
 
-    fn do_borrow(borrower: AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult {
+    fn do_borrow(borrower: &AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult {
         Ok(())
     }
 
     fn do_collateral_asset(
-        supplier: AccountId,
+        supplier: &AccountId,
         asset_id: CurrencyId,
         enable: bool,
     ) -> DispatchResult {
@@ -198,14 +198,14 @@ impl<AccountId, CurrencyId, Balance> Loans<AccountId, CurrencyId, Balance> for (
     }
 
     fn do_repay_borrow(
-        borrower: AccountId,
+        borrower: &AccountId,
         asset_id: CurrencyId,
         amount: Balance,
     ) -> DispatchResult {
         Ok(())
     }
 
-    fn do_redeem(supplier: AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult {
+    fn do_redeem(supplier: &AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult {
         Ok(())
     }
 }
@@ -213,7 +213,7 @@ impl<AccountId, CurrencyId, Balance> Loans<AccountId, CurrencyId, Balance> for (
 impl<AccountId, CurrencyId, Balance: BalanceT>
     LoansPositionDataProvider<AccountId, CurrencyId, Balance> for ()
 {
-    fn get_current_borrow_balance(borrower: AccountId, asset_id: CurrencyId) -> Balance {
+    fn get_current_borrow_balance(borrower: &AccountId, asset_id: CurrencyId) -> Balance {
         Zero::zero()
     }
 }
