@@ -2034,3 +2034,59 @@ impl<T: Config> LoansRateProvider<AssetIdOf<T>> for Pallet<T> {
         None
     }
 }
+
+impl<T: Config> pallet_traits::Loans<T::AccountId, AssetIdOf<T>, BalanceOf<T>> for Pallet<T> {
+    fn do_mint(
+        supplier: T::AccountId,
+        asset_id: AssetIdOf<T>,
+        amount: BalanceOf<T>,
+    ) -> DispatchResult {
+        Ok(())
+    }
+
+    fn do_borrow(
+        borrower: T::AccountId,
+        asset_id: AssetIdOf<T>,
+        amount: BalanceOf<T>,
+    ) -> DispatchResult {
+        Ok(())
+    }
+
+    fn do_collateral_asset(
+        supplier: T::AccountId,
+        asset_id: AssetIdOf<T>,
+        enable: bool,
+    ) -> DispatchResult {
+        Ok(())
+    }
+
+    fn do_repay_borrow(
+        borrower: T::AccountId,
+        asset_id: AssetIdOf<T>,
+        amount: BalanceOf<T>,
+    ) -> DispatchResult {
+        Ok(())
+    }
+
+    fn do_redeem(
+        supplier: T::AccountId,
+        asset_id: AssetIdOf<T>,
+        amount: BalanceOf<T>,
+    ) -> DispatchResult {
+        Ok(())
+    }
+}
+
+impl<T: Config> pallet_traits::LoansPositionDataProvider<T::AccountId, AssetIdOf<T>, BalanceOf<T>>
+    for Pallet<T>
+{
+    fn get_current_borrow_balance(borrower: T::AccountId, asset_id: AssetIdOf<T>) -> BalanceOf<T> {
+        Zero::zero()
+    }
+}
+
+impl<T: Config> pallet_traits::LoansCollateralFactorProvider<AssetIdOf<T>> for Pallet<T> {
+    fn get_collateral_factor(asset_id: AssetIdOf<T>) -> Ratio {
+        Ratio::default()
+    }
+}

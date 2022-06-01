@@ -25,7 +25,7 @@ use sp_runtime::{
     traits::{
         AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, One, Zero,
     },
-    AccountId32, DispatchError,
+    AccountId32, DispatchError, FixedPointNumber,
     MultiAddress::Id,
 };
 pub use xcm::latest::prelude::*;
@@ -460,13 +460,16 @@ pub fn get_mock_staking_ledger(derivative_index: u16) -> StakingLedger<AccountId
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
+    pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
     pub const EraLength: BlockNumber = 10;
     pub SelfParaId: ParaId = para_a_id();
     pub const MinStake: Balance = 0;
     pub const MinUnstake: Balance = 0;
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = SKSM;
+    pub const CollateralCurrency: CurrencyId = KSM_U;
     pub const XcmFees: Balance = 0;
+    pub FastUnstakeFee: Rate = Rate::saturating_from_rational(8u32, 1000u32);
     pub const BondingDuration: EraIndex = 3;
     pub const MinNominatorBond: Balance = 0;
     pub const NumSlashingSpans: u32 = 0;
@@ -481,12 +484,16 @@ impl crate::Config for Test {
     type Call = Call;
     type UpdateOrigin = UpdateOrigin;
     type PalletId = StakingPalletId;
+    type LoansPalletId = LoansPalletId;
     type SelfParaId = SelfParaId;
     type WeightInfo = ();
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
+    type CollateralCurrency = CollateralCurrency;
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
+    type FastUnstakeFee = FastUnstakeFee;
+
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
     type EraLength = EraLength;
@@ -496,6 +503,7 @@ impl crate::Config for Test {
     type BondingDuration = BondingDuration;
     type MinNominatorBond = MinNominatorBond;
     type RelayChainValidationDataProvider = RelayChainValidationDataProvider;
+    type Loans = ();
     type Members = BobOrigin;
     type NumSlashingSpans = NumSlashingSpans;
     type DistributionStrategy = AverageDistribution;

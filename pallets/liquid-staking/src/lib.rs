@@ -26,7 +26,8 @@ use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
 pub use pallet::*;
 use pallet_traits::{
     DistributionStrategy, ExchangeRateProvider, LiquidStakingConvert,
-    LiquidStakingCurrenciesProvider, ValidationDataProvider,
+    LiquidStakingCurrenciesProvider, Loans, LoansCollateralFactorProvider,
+    LoansPositionDataProvider, ValidationDataProvider,
 };
 use primitives::{PersistedValidationData, Rate};
 
@@ -75,13 +76,13 @@ pub mod pallet {
         },
         ArithmeticError, FixedPointNumber, TransactionOutcome,
     };
-    use sp_std::{borrow::Borrow, boxed::Box, result::Result, vec::Vec};
+    use sp_std::{borrow::Borrow, boxed::Box, cmp::min, result::Result, vec::Vec};
     use sp_trie::StorageProof;
     use xcm::latest::prelude::*;
 
     use pallet_traits::ump::*;
     use pallet_xcm_helper::XcmHelper;
-    use primitives::{Balance, CurrencyId, DerivativeIndex, EraIndex, ParaId, Rate, Ratio};
+    use primitives::{Balance, CurrencyId, DerivativeIndex, EraIndex, ParaId, Rate, Ratio, KSM_U};
 
     use super::{types::*, *};
 
@@ -133,6 +134,10 @@ pub mod pallet {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
+        /// The pallet id of loans used for fast unstake
+        #[pallet::constant]
+        type LoansPalletId: Get<PalletId>;
+
         /// Returns the parachain ID we are running with.
         #[pallet::constant]
         type SelfParaId: Get<ParaId>;
@@ -145,6 +150,10 @@ pub mod pallet {
         #[pallet::constant]
         type XcmFees: Get<BalanceOf<Self>>;
 
+        /// MM fast unstake fee
+        #[pallet::constant]
+        type FastUnstakeFee: Get<Rate>;
+
         /// Staking currency
         #[pallet::constant]
         type StakingCurrency: Get<AssetIdOf<Self>>;
@@ -152,6 +161,10 @@ pub mod pallet {
         /// Liquid currency
         #[pallet::constant]
         type LiquidCurrency: Get<AssetIdOf<Self>>;
+
+        /// Collateral currency
+        #[pallet::constant]
+        type CollateralCurrency: Get<AssetIdOf<Self>>;
 
         /// Minimum stake amount
         #[pallet::constant]
@@ -183,6 +196,11 @@ pub mod pallet {
         /// The relay's validation data provider
         type RelayChainValidationDataProvider: ValidationDataProvider
             + BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
+
+        /// Loans
+        type Loans: Loans<Self::AccountId, AssetIdOf<Self>, BalanceOf<Self>>
+            + LoansPositionDataProvider<Self::AccountId, AssetIdOf<Self>, BalanceOf<Self>>
+            + LoansCollateralFactorProvider<AssetIdOf<Self>>;
 
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, Self::AccountId>;
@@ -467,8 +485,14 @@ pub mod pallet {
         pub fn unstake(
             origin: OriginFor<T>,
             #[pallet::compact] liquid_amount: BalanceOf<T>,
+            unstake_provider: UnstakeProvider,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+            let key = if unstake_provider == UnstakeProvider::Normal {
+                who.clone()
+            } else {
+                Self::loans_account_id()
+            };
 
             ensure!(
                 liquid_amount >= T::MinUnstake::get(),
@@ -478,7 +502,7 @@ pub mod pallet {
             let amount =
                 Self::liquid_to_staking(liquid_amount).ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            Unlockings::<T>::try_mutate(&who, |b| -> DispatchResult {
+            Unlockings::<T>::try_mutate(&key, |b| -> DispatchResult {
                 // TODO: check if we can bond before the next era
                 // so that the one era's delay can be removed
                 let mut chunks = b.take().unwrap_or_default();
@@ -500,6 +524,38 @@ pub mod pallet {
             })?;
 
             T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
+            if unstake_provider == UnstakeProvider::Loans {
+                let reduced_amount = amount
+                    .checked_sub(T::FastUnstakeFee::get().checked_mul_int(amount).unwrap())
+                    .unwrap();
+
+                let mint_amount = amount
+                    .checked_div(T::Loans::get_collateral_factor())
+                    .ok_or(ArithmeticError::Overflow);
+
+                T::Loans::do_mint(
+                    Self::account_id(),
+                    T::CollateralCurrency::get(),
+                    mint_amount,
+                )?;
+                let _ = T::Loans::do_collateral_asset(
+                    Self::account_id(),
+                    T::CollateralCurrency::get(),
+                    true,
+                );
+                T::Loans::do_borrow(
+                    Self::account_id(),
+                    T::CollateralCurrency::get(),
+                    reduced_amount,
+                )?;
+                T::Assets::transfer(
+                    Self::staking_currency()?,
+                    &Self::account_id(),
+                    &who,
+                    reduced_amount,
+                    false,
+                )?;
+            }
 
             log::trace!(
                 target: "liquidStaking::unstake",
@@ -508,7 +564,11 @@ pub mod pallet {
                 &liquid_amount,
             );
 
-            MatchingPool::<T>::try_mutate(|p| -> DispatchResult { p.add_unstake_amount(amount) })?;
+            if unstake_provider == UnstakeProvider::Normal {
+                MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                    p.add_unstake_amount(amount)
+                })?;
+            }
 
             Self::deposit_event(Event::<T>::Unstaked(who, liquid_amount, amount));
             Ok(().into())
@@ -718,6 +778,19 @@ pub mod pallet {
 
                 if chunks.is_empty() {
                     *b = None;
+                }
+
+                if who == Self::loans_account_id() {
+                    let account_borrows =
+                        T::Loans::get_current_borrow_balance(Self::account_id(), KSM_U);
+                    let repay_amount = min(account_borrows, amount);
+                    T::Loans::do_repay_borrow(
+                        Self::account_id(),
+                        Self::staking_currency()?,
+                        repay_amount,
+                    )?;
+                    T::Loans::do_redeem(Self::account_id(), KSM_U, amount)?;
+                    T::Assets::burn_from(KSM_U, &Self::account_id(), amount)?;
                 }
 
                 Self::deposit_event(Event::<T>::ClaimedFor(who.clone(), amount));
@@ -988,6 +1061,10 @@ pub mod pallet {
         /// Staking pool account
         pub fn account_id() -> T::AccountId {
             T::PalletId::get().into_account()
+        }
+
+        pub fn loans_account_id() -> T::AccountId {
+            T::LoansPalletId::get().into_account()
         }
 
         /// Parachain's sovereign account

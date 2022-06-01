@@ -35,7 +35,7 @@ use sp_runtime::{
 use sp_std::vec::Vec;
 
 pub use pallet::*;
-pub use pallet_traits::*;
+use pallet_traits::*;
 use sp_core::U256;
 
 #[cfg(test)]

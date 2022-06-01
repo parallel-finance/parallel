@@ -338,3 +338,8 @@ impl<AccountId, Balance: BalanceT + FixedPointOperand> StakingLedger<AccountId, 
         self.active -= value;
     }
 }
+
+pub enum UnstakeProvider {
+    Relaychain = 0,
+    Loans = 1,
+}

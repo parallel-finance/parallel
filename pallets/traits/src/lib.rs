@@ -1,14 +1,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::dispatch::DispatchError;
+use frame_support::dispatch::{DispatchError, DispatchResult};
 use frame_support::traits::tokens::Balance as BalanceT;
 use num_bigint::{BigUint, ToBigUint};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 use sp_std::prelude::*;
 
-use primitives::{CurrencyId, DerivativeIndex, PersistedValidationData, PriceDetail, Rate};
+use primitives::{CurrencyId, DerivativeIndex, PersistedValidationData, PriceDetail, Rate, Ratio};
 
 pub mod ump;
 pub mod xcm;
@@ -151,6 +151,79 @@ pub trait AMM<AccountId, CurrencyId, Balance, BlockNumber> {
     ) -> Option<Pool<CurrencyId, Balance, BlockNumber>>;
 }
 
+// Exported traits from our Loans pallet.
+pub trait Loans<AccountId, CurrencyId, Balance> {
+    fn do_mint(supplier: AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult;
+    fn do_borrow(borrower: AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult;
+    fn do_collateral_asset(
+        supplier: AccountId,
+        asset_id: CurrencyId,
+        enable: bool,
+    ) -> DispatchResult;
+    fn do_repay_borrow(
+        borrower: AccountId,
+        asset_id: CurrencyId,
+        amount: Balance,
+    ) -> DispatchResult;
+    fn do_redeem(supplier: AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult;
+}
+
+pub trait LoansPositionDataProvider<AccountId, CurrencyId, Balance> {
+    fn get_current_borrow_balance(borrower: AccountId, asset_id: CurrencyId) -> Balance;
+}
+
+pub trait LoansCollateralFactorProvider<CurrencyId> {
+    fn get_collateral_factor(asset_id: CurrencyId) -> Ratio;
+}
+
+pub trait LoansRateProvider<CurrencyId> {
+    fn get_full_interest_rate(asset_id: &CurrencyId) -> Option<Rate>;
+}
+
+impl<AccountId, CurrencyId, Balance> Loans<AccountId, CurrencyId, Balance> for () {
+    fn do_mint(supplier: AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult {
+        Ok(())
+    }
+
+    fn do_borrow(borrower: AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult {
+        Ok(())
+    }
+
+    fn do_collateral_asset(
+        supplier: AccountId,
+        asset_id: CurrencyId,
+        enable: bool,
+    ) -> DispatchResult {
+        Ok(())
+    }
+
+    fn do_repay_borrow(
+        borrower: AccountId,
+        asset_id: CurrencyId,
+        amount: Balance,
+    ) -> DispatchResult {
+        Ok(())
+    }
+
+    fn do_redeem(supplier: AccountId, asset_id: CurrencyId, amount: Balance) -> DispatchResult {
+        Ok(())
+    }
+}
+
+impl<AccountId, CurrencyId, Balance: BalanceT>
+    LoansPositionDataProvider<AccountId, CurrencyId, Balance> for ()
+{
+    fn get_current_borrow_balance(borrower: AccountId, asset_id: CurrencyId) -> Balance {
+        Zero::zero()
+    }
+}
+
+impl<CurrencyId> LoansCollateralFactorProvider<CurrencyId> for () {
+    fn get_collateral_factor(asset_id: CurrencyId) -> Ratio {
+        Ratio::default()
+    }
+}
+
 /// Exported traits from StableSwap pallet. These functions are to be used
 /// by the router.
 pub trait StableSwap<AccountId, CurrencyId, Balance> {
@@ -220,8 +293,4 @@ pub trait DistributionStrategy<Balance> {
         unbonding_amounts: Vec<(DerivativeIndex, Balance)>,
         input: Balance,
     ) -> Vec<(DerivativeIndex, Balance)>;
-}
-
-pub trait LoansRateProvider<CurrencyId> {
-    fn get_full_interest_rate(asset_id: &CurrencyId) -> Option<Rate>;
 }
