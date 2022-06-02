@@ -26,34 +26,34 @@ pub trait LoansRateProvider<CurrencyId> {
 pub trait LoansOperator<CurrencyId, AccountId, Balance> {
     fn do_mint(
         supplier: &AccountId,
-        asset_id: &CurrencyId,
+        asset_id: CurrencyId,
         amount: Balance,
     ) -> Result<(), DispatchError>;
     fn do_borrow(
         borrower: &AccountId,
-        asset_id: &CurrencyId,
+        asset_id: CurrencyId,
         amount: Balance,
     ) -> Result<(), DispatchError>;
     fn do_collateral_asset(
         supplier: &AccountId,
-        asset_id: &CurrencyId,
+        asset_id: CurrencyId,
         enable: bool,
     ) -> Result<(), DispatchError>;
     fn do_repay_borrow(
         borrower: &AccountId,
-        asset_id: &CurrencyId,
+        asset_id: CurrencyId,
         amount: Balance,
     ) -> Result<(), DispatchError>;
     fn do_redeem(
         supplier: &AccountId,
-        asset_id: &CurrencyId,
+        asset_id: CurrencyId,
         amount: Balance,
-    ) -> Result<(), DispatchError>;
+    ) -> Result<Balance, DispatchError>;
 }
 
 pub trait LoansPositionDataProvider<CurrencyId, AccountId, Balance> {
     fn get_current_borrow_balance(
-        asset_id: &CurrencyId,
+        asset_id: CurrencyId,
         borrower: &AccountId,
     ) -> Result<Balance, DispatchError>;
 }
@@ -77,6 +77,6 @@ pub struct MarketStatus<Balance> {
 }
 
 pub trait LoansMarketDataProvider<CurrencyId, Balance> {
-    fn get_market_info(asset_id: &CurrencyId) -> Result<MarketInfo, DispatchError>;
-    fn get_market_status(asset_id: &CurrencyId) -> Result<MarketStatus<Balance>, DispatchError>;
+    fn get_market_info(asset_id: CurrencyId) -> Result<MarketInfo, DispatchError>;
+    fn get_market_status(asset_id: CurrencyId) -> Result<MarketStatus<Balance>, DispatchError>;
 }
