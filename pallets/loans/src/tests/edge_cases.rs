@@ -1,4 +1,5 @@
 use super::*;
+use crate::tests::Loans;
 use crate::{mock::*, Error};
 use frame_support::{assert_err, assert_ok};
 use sp_runtime::FixedPointNumber;

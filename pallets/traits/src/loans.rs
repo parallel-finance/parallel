@@ -19,11 +19,7 @@ use scale_info::TypeInfo;
 use sp_runtime::{FixedU128, RuntimeDebug};
 use sp_std::prelude::*;
 
-pub trait LoansRateProvider<CurrencyId> {
-    fn get_full_interest_rate(asset_id: &CurrencyId) -> Option<Rate>;
-}
-
-pub trait LoansOperator<CurrencyId, AccountId, Balance> {
+pub trait Loans<CurrencyId, AccountId, Balance> {
     fn do_mint(
         supplier: &AccountId,
         asset_id: CurrencyId,
@@ -63,13 +59,17 @@ pub trait LoansPositionDataProvider<CurrencyId, AccountId, Balance> {
     ) -> Result<Balance, DispatchError>;
 }
 
+/// MarketInfo contains some static attrs as a subset of Market struct in Loans
 #[derive(Default, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct MarketInfo {
     pub collateral_factor: Ratio,
+    pub liquidation_threshold: Ratio,
+    pub reserve_factor: Ratio,
+    pub close_factor: Ratio,
     pub full_rate: Rate,
 }
 
-/// MarketStatus
+/// MarketStatus contains some dynamic calculated attrs of Market
 #[derive(Default, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct MarketStatus<Balance> {
     pub borrow_rate: Rate,
@@ -84,4 +84,6 @@ pub struct MarketStatus<Balance> {
 pub trait LoansMarketDataProvider<CurrencyId, Balance> {
     fn get_market_info(asset_id: CurrencyId) -> Result<MarketInfo, DispatchError>;
     fn get_market_status(asset_id: CurrencyId) -> Result<MarketStatus<Balance>, DispatchError>;
+    // for compatibility we keep this func
+    fn get_full_interest_rate(asset_id: CurrencyId) -> Option<Rate>;
 }

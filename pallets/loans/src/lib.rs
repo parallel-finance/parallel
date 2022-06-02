@@ -40,8 +40,8 @@ use frame_system::pallet_prelude::*;
 use num_traits::cast::ToPrimitive;
 pub use pallet::*;
 use pallet_traits::{
-    ConvertToBigUint, LoansMarketDataProvider, LoansOperator, LoansPositionDataProvider,
-    LoansRateProvider, MarketInfo, MarketStatus, PriceFeeder,
+    ConvertToBigUint, Loans, LoansMarketDataProvider, LoansPositionDataProvider, MarketInfo,
+    MarketStatus, PriceFeeder,
 };
 use primitives::{Balance, CurrencyId, Liquidity, Price, Rate, Ratio, Shortfall, Timestamp};
 use sp_runtime::{
@@ -1224,25 +1224,34 @@ impl<T: Config> Pallet<T> {
         Ok(total_borrow_value)
     }
 
-    fn collateral_asset_value(
+    fn current_collateral_balance(
         borrower: &T::AccountId,
         asset_id: AssetIdOf<T>,
-    ) -> Result<FixedU128, DispatchError> {
+    ) -> Result<BalanceOf<T>, DispatchError> {
         if !AccountDeposits::<T>::contains_key(asset_id, borrower) {
-            return Ok(FixedU128::zero());
+            return Ok(BalanceOf::<T>::zero());
         }
         let deposits = Self::account_deposits(asset_id, borrower);
         if !deposits.is_collateral {
-            return Ok(FixedU128::zero());
+            return Ok(BalanceOf::<T>::zero());
         }
         if deposits.voucher_balance.is_zero() {
-            return Ok(FixedU128::zero());
+            return Ok(BalanceOf::<T>::zero());
         }
         let exchange_rate = Self::exchange_rate_stored(asset_id)?;
         let underlying_amount =
             Self::calc_underlying_amount(deposits.voucher_balance, exchange_rate)?;
         let market = Self::market(asset_id)?;
         let effects_amount = market.collateral_factor.mul_ceil(underlying_amount);
+
+        Ok(BalanceOf::<T>::saturated_from(effects_amount))
+    }
+
+    fn collateral_asset_value(
+        borrower: &T::AccountId,
+        asset_id: AssetIdOf<T>,
+    ) -> Result<FixedU128, DispatchError> {
+        let effects_amount = Self::current_collateral_balance(borrower, asset_id)?;
 
         Self::get_asset_value(asset_id, effects_amount)
     }
@@ -1441,15 +1450,6 @@ impl<T: Config> Pallet<T> {
         asset_id: AssetIdOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
         let snapshot: BorrowSnapshot<BalanceOf<T>> = Self::account_borrows(asset_id, who);
-        Self::current_balance_from_snapshot(asset_id, snapshot)
-    }
-
-    /// Same as `current_borrow_balance` but takes a given `snapshot` instead of fetching
-    /// the storage
-    pub fn current_balance_from_snapshot(
-        asset_id: AssetIdOf<T>,
-        snapshot: BorrowSnapshot<BalanceOf<T>>,
-    ) -> Result<BalanceOf<T>, DispatchError> {
         if snapshot.principal.is_zero() || snapshot.borrow_index.is_zero() {
             return Ok(Zero::zero());
         }
@@ -1944,21 +1944,7 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-impl<T: Config> LoansRateProvider<AssetIdOf<T>> for Pallet<T> {
-    fn get_full_interest_rate(asset_id: &AssetIdOf<T>) -> Option<Rate> {
-        if let Ok(market) = Self::market(*asset_id) {
-            let rate = match market.rate_model {
-                InterestRateModel::Jump(jump) => Some(jump.full_rate),
-                _ => None,
-            };
-            return rate;
-        }
-        None
-    }
-}
-
-#[allow(unused_variables)]
-impl<T: Config> LoansOperator<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pallet<T> {
+impl<T: Config> Loans<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pallet<T> {
     fn do_mint(
         supplier: &AccountIdOf<T>,
         asset_id: AssetIdOf<T>,
@@ -2100,17 +2086,53 @@ impl<T: Config> LoansOperator<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pa
     }
 }
 
-#[allow(unused_variables)]
 impl<T: Config> LoansMarketDataProvider<AssetIdOf<T>, BalanceOf<T>> for Pallet<T> {
     fn get_market_info(asset_id: AssetIdOf<T>) -> Result<MarketInfo, DispatchError> {
-        Ok(Default::default())
+        let market = Self::market(asset_id)?;
+        let full_rate =
+            Self::get_full_interest_rate(asset_id).ok_or(Error::<T>::InvalidRateModelParam)?;
+        Ok(MarketInfo {
+            collateral_factor: market.collateral_factor,
+            liquidation_threshold: market.liquidation_threshold,
+            reserve_factor: market.reserve_factor,
+            close_factor: market.close_factor,
+            full_rate,
+        })
     }
+
     fn get_market_status(asset_id: AssetIdOf<T>) -> Result<MarketStatus<Balance>, DispatchError> {
-        Ok(Default::default())
+        let (
+            borrow_rate,
+            supply_rate,
+            exchange_rate,
+            utilization,
+            total_borrows,
+            total_reserves,
+            borrow_index,
+        ) = Self::get_market_status(asset_id)?;
+        Ok(MarketStatus {
+            borrow_rate,
+            supply_rate,
+            exchange_rate,
+            utilization,
+            total_borrows,
+            total_reserves,
+            borrow_index,
+        })
+    }
+
+    fn get_full_interest_rate(asset_id: AssetIdOf<T>) -> Option<Rate> {
+        if let Ok(market) = Self::market(asset_id) {
+            let rate = match market.rate_model {
+                InterestRateModel::Jump(jump) => Some(jump.full_rate),
+                _ => None,
+            };
+            return rate;
+        }
+        None
     }
 }
 
-#[allow(unused_variables)]
 impl<T: Config> LoansPositionDataProvider<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>>
     for Pallet<T>
 {
@@ -2118,13 +2140,13 @@ impl<T: Config> LoansPositionDataProvider<AssetIdOf<T>, AccountIdOf<T>, BalanceO
         borrower: &AccountIdOf<T>,
         asset_id: AssetIdOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
-        Ok(BalanceOf::<T>::zero())
+        Self::current_borrow_balance(borrower, asset_id)
     }
 
     fn get_current_collateral_balance(
         supplier: &AccountIdOf<T>,
         asset_id: AssetIdOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
-        Ok(BalanceOf::<T>::zero())
+        Self::current_collateral_balance(supplier, asset_id)
     }
 }

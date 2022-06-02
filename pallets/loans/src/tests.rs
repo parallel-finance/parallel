@@ -29,6 +29,8 @@ use sp_runtime::{
 
 use mock::*;
 
+use crate::mock::Loans;
+
 #[test]
 fn init_minting_ok() {
     new_test_ext().execute_with(|| {

@@ -198,9 +198,19 @@ impl VaultTokenCurrenciesFilter<CurrencyId> for TokenCurrenciesFilter {
 }
 
 pub struct VaultLoansRateProvider;
-impl LoansRateProvider<CurrencyId> for VaultLoansRateProvider {
-    fn get_full_interest_rate(_asset_id: &CurrencyId) -> Option<Rate> {
+impl LoansMarketDataProvider<CurrencyId, Balance> for VaultLoansRateProvider {
+    fn get_full_interest_rate(_asset_id: CurrencyId) -> Option<Rate> {
         Some(Rate::from_inner(450_000_000_000_000_000))
+    }
+
+    fn get_market_info(_: CurrencyId) -> Result<MarketInfo, sp_runtime::DispatchError> {
+        Ok(Default::default())
+    }
+
+    fn get_market_status(
+        _: CurrencyId,
+    ) -> Result<MarketStatus<Balance>, sp_runtime::DispatchError> {
+        Ok(Default::default())
     }
 }
 
