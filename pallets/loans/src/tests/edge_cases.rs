@@ -6,8 +6,8 @@ use sp_runtime::FixedPointNumber;
 #[test]
 fn exceeded_supply_cap() {
     new_test_ext().execute_with(|| {
-        Assets::mint(Origin::signed(ALICE), DOT, ALICE, million_dollar(1001)).unwrap();
-        let amount = million_dollar(501);
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, million_unit(1001)).unwrap();
+        let amount = million_unit(501);
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, amount));
         // Exceed upper bound.
         assert_err!(

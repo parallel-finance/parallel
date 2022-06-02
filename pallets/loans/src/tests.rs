@@ -1293,17 +1293,17 @@ fn reward_calculation_after_liquidate_borrow_works() {
         ));
 
         assert_eq!(
-            almost_equal(Loans::reward_accrued(ALICE), milli_dollar(22375)),
+            almost_equal(Loans::reward_accrued(ALICE), milli_unit(22375)),
             true
         );
         assert_eq!(
-            almost_equal(Loans::reward_accrued(BOB), micro_dollar(37512500)),
+            almost_equal(Loans::reward_accrued(BOB), micro_unit(37512500)),
             true
         );
         assert_eq!(
             almost_equal(
                 Loans::reward_accrued(Loans::incentive_reward_account_id().unwrap()),
-                micro_dollar(112500),
+                micro_unit(112500),
             ),
             true,
         );
