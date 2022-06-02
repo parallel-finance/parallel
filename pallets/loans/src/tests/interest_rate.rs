@@ -1,3 +1,4 @@
+use crate::tests::Loans;
 use crate::{mock::*, Markets};
 use frame_support::assert_ok;
 use primitives::{Rate, Ratio, SECONDS_PER_YEAR};

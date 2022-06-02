@@ -85,7 +85,7 @@ pub mod pallet {
         type VaultTokenExchangeRateProvider: VaultTokenExchangeRateProvider<CurrencyId>;
 
         /// The provider of Loans rate for vault_token
-        type VaultLoansRateProvider: LoansRateProvider<CurrencyId>;
+        type VaultLoansRateProvider: LoansMarketDataProvider<CurrencyId, BalanceOf<Self>>;
 
         /// Specify all the AMMs we are routing between
         type AMM: AMM<AccountIdOf<Self>, AssetIdOf<Self>, BalanceOf<Self>, Self::BlockNumber>;
@@ -229,7 +229,7 @@ impl<T: Config> Pallet<T> {
         base_price: TimeStampedPrice,
     ) -> Option<TimeStampedPrice> {
         if T::VaultTokenCurrenciesFilter::contains(asset_id) {
-            return T::VaultLoansRateProvider::get_full_interest_rate(asset_id).and_then(
+            return T::VaultLoansRateProvider::get_full_interest_rate(*asset_id).and_then(
                 |implied_yield_rate| {
                     T::VaultTokenExchangeRateProvider::get_exchange_rate(
                         asset_id,
