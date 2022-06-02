@@ -14,10 +14,30 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        rust: [nightly-2022-04-24]
+        os: [ubuntu-20.04]
+        rust: [nightly-2022-05-11]
 
     steps:
+      - name: Additional free space
+        run: |
+          # Workaround to provide additional free space for testing.
+          #   https://github.com/actions/virtual-environments/issues/2840
+          echo "Listing 100 largest packages"
+          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 100
+          df -h
+          echo "Removing large packages"
+          sudo apt-get remove -y php.*
+          sudo apt-get remove -y azure-cli google-cloud-sdk hhvm google-chrome-stable firefox powershell mono-devel
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean -y
+          sudo apt-get clean -y
+          sudo dpkg -l |grep ^rc|awk '{print $2}' |sudo xargs dpkg -P
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -hT
+
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -69,7 +89,7 @@ jobs:
 
       - name: Generate code coverage
         run: |
-          cargo +nightly-2022-04-24 tarpaulin --verbose --no-fail-fast -p pallet-loans -p pallet-stableswap -p pallet-liquid-staking -p pallet-farming -p pallet-prices -p pallet-amm -p pallet-router -p pallet-crowdloans -p pallet-emergency-shutdown -p pallet-asset-registry -p pallet-streaming --timeout 300 --out Xml
+          cargo +nightly-2022-05-11 tarpaulin --verbose --no-fail-fast -p pallet-loans -p pallet-stableswap -p pallet-liquid-staking -p pallet-farming -p pallet-prices -p pallet-amm -p pallet-router -p pallet-crowdloans -p pallet-emergency-shutdown -p pallet-asset-registry -p pallet-streaming --timeout 300 --out Xml
 
       - name: Upload To Codecov.io
         uses: codecov/codecov-action@v1

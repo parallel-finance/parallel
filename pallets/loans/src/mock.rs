@@ -368,21 +368,21 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         // Init assets
-        Balances::set_balance(Origin::root(), DAVE, dollar(1000), dollar(0)).unwrap();
+        Balances::set_balance(Origin::root(), DAVE, unit(1000), unit(0)).unwrap();
         Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), SDOT, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), CDOT_6_13, ALICE, true, 1).unwrap();
 
-        Assets::mint(Origin::signed(ALICE), KSM, ALICE, dollar(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), USDT, ALICE, dollar(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), CDOT_6_13, ALICE, dollar(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), KSM, BOB, dollar(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, DAVE, dollar(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), USDT, DAVE, dollar(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, ALICE, unit(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, unit(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), USDT, ALICE, unit(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), CDOT_6_13, ALICE, unit(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, BOB, unit(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, BOB, unit(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, DAVE, unit(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), USDT, DAVE, unit(1000)).unwrap();
 
         // Init Markets
         Loans::add_market(Origin::root(), HKO, market_mock(PHKO)).unwrap();
@@ -419,7 +419,7 @@ pub fn almost_equal(target: u128, value: u128) -> bool {
     let target = target as i128;
     let value = value as i128;
     let diff = (target - value).abs() as u128;
-    diff < micro_dollar(1)
+    diff < micro_unit(1)
 }
 
 pub fn accrue_interest_per_block(asset_id: CurrencyId, block_delta_secs: u64, run_to_block: u64) {
@@ -429,20 +429,20 @@ pub fn accrue_interest_per_block(asset_id: CurrencyId, block_delta_secs: u64, ru
     }
 }
 
-pub fn dollar(d: u128) -> u128 {
+pub fn unit(d: u128) -> u128 {
     d.saturating_mul(10_u128.pow(12))
 }
 
-pub fn milli_dollar(d: u128) -> u128 {
+pub fn milli_unit(d: u128) -> u128 {
     d.saturating_mul(10_u128.pow(9))
 }
 
-pub fn micro_dollar(d: u128) -> u128 {
+pub fn micro_unit(d: u128) -> u128 {
     d.saturating_mul(10_u128.pow(6))
 }
 
-pub fn million_dollar(d: u128) -> u128 {
-    dollar(d) * 10_u128.pow(6)
+pub fn million_unit(d: u128) -> u128 {
+    unit(d) * 10_u128.pow(6)
 }
 
 pub const fn market_mock(ptoken_id: u32) -> Market<Balance> {
