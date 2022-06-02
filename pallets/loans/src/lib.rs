@@ -1225,13 +1225,13 @@ impl<T: Config> Pallet<T> {
     }
 
     fn current_collateral_balance(
-        borrower: &T::AccountId,
+        supplier: &T::AccountId,
         asset_id: AssetIdOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
-        if !AccountDeposits::<T>::contains_key(asset_id, borrower) {
+        if !AccountDeposits::<T>::contains_key(asset_id, supplier) {
             return Ok(BalanceOf::<T>::zero());
         }
-        let deposits = Self::account_deposits(asset_id, borrower);
+        let deposits = Self::account_deposits(asset_id, supplier);
         if !deposits.is_collateral {
             return Ok(BalanceOf::<T>::zero());
         }
@@ -1248,10 +1248,10 @@ impl<T: Config> Pallet<T> {
     }
 
     fn collateral_asset_value(
-        borrower: &T::AccountId,
+        supplier: &T::AccountId,
         asset_id: AssetIdOf<T>,
     ) -> Result<FixedU128, DispatchError> {
-        let effects_amount = Self::current_collateral_balance(borrower, asset_id)?;
+        let effects_amount = Self::current_collateral_balance(supplier, asset_id)?;
 
         Self::get_asset_value(asset_id, effects_amount)
     }
@@ -1279,11 +1279,11 @@ impl<T: Config> Pallet<T> {
         Self::get_asset_value(asset_id, effects_amount)
     }
 
-    fn total_collateral_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
+    fn total_collateral_value(supplier: &T::AccountId) -> Result<FixedU128, DispatchError> {
         let mut total_asset_value: FixedU128 = FixedU128::zero();
         for (asset_id, _market) in Self::active_markets() {
             total_asset_value = total_asset_value
-                .checked_add(&Self::collateral_asset_value(borrower, asset_id)?)
+                .checked_add(&Self::collateral_asset_value(supplier, asset_id)?)
                 .ok_or(ArithmeticError::Overflow)?;
         }
 
