@@ -2115,8 +2115,15 @@ impl<T: Config> LoansPositionDataProvider<AssetIdOf<T>, AccountIdOf<T>, BalanceO
     for Pallet<T>
 {
     fn get_current_borrow_balance(
-        asset_id: AssetIdOf<T>,
         borrower: &AccountIdOf<T>,
+        asset_id: AssetIdOf<T>,
+    ) -> Result<BalanceOf<T>, DispatchError> {
+        Ok(BalanceOf::<T>::zero())
+    }
+
+    fn get_current_collateral_balance(
+        supplier: &AccountIdOf<T>,
+        asset_id: AssetIdOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
         Ok(BalanceOf::<T>::zero())
     }

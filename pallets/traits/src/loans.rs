@@ -53,8 +53,13 @@ pub trait LoansOperator<CurrencyId, AccountId, Balance> {
 
 pub trait LoansPositionDataProvider<CurrencyId, AccountId, Balance> {
     fn get_current_borrow_balance(
-        asset_id: CurrencyId,
         borrower: &AccountId,
+        asset_id: CurrencyId,
+    ) -> Result<Balance, DispatchError>;
+
+    fn get_current_collateral_balance(
+        supplier: &AccountId,
+        asset_id: CurrencyId,
     ) -> Result<Balance, DispatchError>;
 }
 
