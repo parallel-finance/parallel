@@ -647,7 +647,7 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = SDOT;
     pub const CollateralCurrency: CurrencyId = DOT_U;
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
-    pub FastUnstakeFee: Rate = Rate::saturating_from_rational(3u32, 100u32);
+    pub LoansFastUnstakeFee: Rate = Rate::saturating_from_rational(3u32, 100u32);
     pub const BondingDuration: EraIndex = 28; // 28Days
     pub const MinNominatorBond: Balance = 100_000_000_000; // 10DOT
     pub const NumSlashingSpans: u32 = 0;
@@ -668,8 +668,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
-    type FastUnstakeFee = FastUnstakeFee;
-
+    type LoansFastUnstakeFee = LoansFastUnstakeFee;
     type DistributionStrategy = pallet_liquid_staking::distribution::MaxMinDistribution;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;

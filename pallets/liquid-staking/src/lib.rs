@@ -152,7 +152,7 @@ pub mod pallet {
 
         /// MM fast unstake fee
         #[pallet::constant]
-        type FastUnstakeFee: Get<Rate>;
+        type LoansFastUnstakeFee: Get<Rate>;
 
         /// Staking currency
         #[pallet::constant]
@@ -485,7 +485,7 @@ pub mod pallet {
         pub fn unstake(
             origin: OriginFor<T>,
             #[pallet::compact] liquid_amount: BalanceOf<T>,
-            liquidity_provider: LiquidityProvider,
+            unstake_provider: UnstakeProvider,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
@@ -496,47 +496,38 @@ pub mod pallet {
 
             let amount =
                 Self::liquid_to_staking(liquid_amount).ok_or(Error::<T>::InvalidExchangeRate)?;
+            let unlockings_key = if unstake_provider.is_loans() {
+                Self::loans_account_id()
+            } else {
+                who.clone()
+            };
 
-            Unlockings::<T>::try_mutate(
-                if liquidity_provider.is_relay_chain() {
-                    who.clone()
+            Unlockings::<T>::try_mutate(&unlockings_key, |b| -> DispatchResult {
+                let mut chunks = b.take().unwrap_or_default();
+                let target_era = Self::target_era();
+                if let Some(mut chunk) = chunks.last_mut().filter(|chunk| chunk.era == target_era) {
+                    chunk.value = chunk.value.saturating_add(amount);
                 } else {
-                    Self::loans_account_id()
-                },
-                |b| -> DispatchResult {
-                    // TODO: check if we can bond before the next era
-                    // so that the one era's delay can be removed
-                    let mut chunks = b.take().unwrap_or_default();
-                    let target_era = Self::current_era() + T::BondingDuration::get() + 1;
-                    if let Some(mut chunk) =
-                        chunks.last_mut().filter(|chunk| chunk.era == target_era)
-                    {
-                        chunk.value = chunk.value.saturating_add(amount);
-                    } else {
-                        chunks.push(UnlockChunk {
-                            value: amount,
-                            era: target_era,
-                        });
-                    }
-                    ensure!(
-                        chunks.len() <= MAX_UNLOCKING_CHUNKS,
-                        Error::<T>::NoMoreChunks
-                    );
-                    *b = Some(chunks);
-                    Ok(())
-                },
-            )?;
+                    chunks.push(UnlockChunk {
+                        value: amount,
+                        era: target_era,
+                    });
+                }
+                ensure!(
+                    chunks.len() <= MAX_UNLOCKING_CHUNKS,
+                    Error::<T>::NoMoreChunks
+                );
+                *b = Some(chunks);
+                Ok(())
+            })?;
 
             T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
-            if liquidity_provider.is_relay_chain() {
-                MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                    p.add_unstake_amount(amount)
-                })?;
+
+            if unstake_provider.is_loans() {
+                Self::do_loans_fast_unstake(&who, amount)?;
             }
 
-            if liquidity_provider.is_loans() {
-                Self::do_fast_unstake(&who, amount)?;
-            }
+            MatchingPool::<T>::try_mutate(|p| p.add_unstake_amount(amount))?;
 
             log::trace!(
                 target: "liquidStaking::unstake",
@@ -713,6 +704,7 @@ pub mod pallet {
             let account_id = Self::account_id();
             let current_era = Self::current_era();
             let collateral_currency = T::CollateralCurrency::get();
+            let staking_currency = Self::staking_currency()?;
 
             Unlockings::<T>::try_mutate_exists(&who, |b| -> DispatchResult {
                 let mut amount: BalanceOf<T> = Zero::zero();
@@ -745,28 +737,25 @@ pub mod pallet {
                     return Err(Error::<T>::NotWithdrawn.into());
                 }
 
-                T::Assets::transfer(
-                    Self::staking_currency()?,
-                    &Self::account_id(),
-                    &who,
-                    amount,
-                    false,
-                )?;
+                if who == Self::loans_account_id() {
+                    let account_borrows =
+                        T::Loans::get_current_borrow_balance(&account_id, staking_currency)?;
+                    T::Loans::do_repay_borrow(
+                        &account_id,
+                        staking_currency,
+                        min(account_borrows, amount),
+                    )?;
+                    let redeem_amount = T::Loans::get_market_info(collateral_currency)?
+                        .collateral_factor
+                        .saturating_reciprocal_mul_ceil(amount);
+                    T::Loans::do_redeem(&account_id, collateral_currency, redeem_amount)?;
+                    T::Assets::burn_from(collateral_currency, &account_id, redeem_amount)?;
+                } else {
+                    T::Assets::transfer(staking_currency, &account_id, &who, amount, false)?;
+                }
 
                 if chunks.is_empty() {
                     *b = None;
-                }
-
-                if who == Self::loans_account_id() {
-                    let account_borrows =
-                        T::Loans::get_current_borrow_balance(&account_id, collateral_currency)?;
-                    T::Loans::do_repay_borrow(
-                        &account_id,
-                        Self::staking_currency()?,
-                        min(account_borrows, amount),
-                    )?;
-                    T::Loans::do_redeem(&account_id, collateral_currency, amount)?;
-                    T::Assets::burn_from(collateral_currency, &account_id, amount)?;
                 }
 
                 Self::deposit_event(Event::<T>::ClaimedFor(who.clone(), amount));
@@ -958,9 +947,7 @@ pub mod pallet {
                 let mut cancelled: Balance = Zero::zero();
 
                 while let Some(last) = chunks.last_mut() {
-                    if last.era != Self::current_era() + T::BondingDuration::get() + 1
-                        || cancelled >= amount
-                    {
+                    if last.era != Self::target_era() || cancelled >= amount {
                         break;
                     }
 
@@ -1039,6 +1026,7 @@ pub mod pallet {
             T::PalletId::get().into_account()
         }
 
+        /// Loans pool account
         pub fn loans_account_id() -> T::AccountId {
             T::LoansPalletId::get().into_account()
         }
@@ -1046,6 +1034,13 @@ pub mod pallet {
         /// Parachain's sovereign account
         pub fn sovereign_account_id() -> T::AccountId {
             T::SelfParaId::get().into_account()
+        }
+
+        /// Target era_index if users unstake in current_era
+        pub fn target_era() -> EraIndex {
+            // TODO: check if we can bond before the next era
+            // so that the one era's delay can be removed
+            Self::current_era() + T::BondingDuration::get() + 1
         }
 
         /// Get staking currency or return back an error
@@ -1706,12 +1701,12 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_fast_unstake(who: &AccountIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
-            let fast_unstake_fee = T::FastUnstakeFee::get()
+        fn do_loans_fast_unstake(who: &AccountIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+            let loans_fast_unstake_fee = T::LoansFastUnstakeFee::get()
                 .checked_mul_int(amount)
                 .ok_or(ArithmeticError::Overflow)?;
             let borrow_amount = amount
-                .checked_sub(fast_unstake_fee)
+                .checked_sub(loans_fast_unstake_fee)
                 .ok_or(ArithmeticError::Underflow)?;
             let collateral_currency = T::CollateralCurrency::get();
             let mint_amount = T::Loans::get_market_info(collateral_currency)?
@@ -1720,6 +1715,7 @@ pub mod pallet {
             let account_id = Self::account_id();
             let staking_currency = Self::staking_currency()?;
 
+            T::Assets::mint_into(collateral_currency, &account_id, mint_amount)?;
             T::Loans::do_mint(&account_id, collateral_currency, mint_amount)?;
             let _ = T::Loans::do_collateral_asset(&account_id, collateral_currency, true);
             T::Loans::do_borrow(&account_id, staking_currency, borrow_amount)?;

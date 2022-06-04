@@ -5951,7 +5951,6 @@ dependencies = [
  "pallet-assets",
  "pallet-babe",
  "pallet-balances",
- "pallet-currency-adapter",
  "pallet-loans",
  "pallet-session",
  "pallet-staking",

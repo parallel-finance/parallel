@@ -18,8 +18,8 @@ use primitives::{
 };
 
 use crate::{
-    mock::*,
-    types::{MatchingLedger, ReservableAmount, StakingLedger, UnlockChunk, XcmRequest},
+    mock::{Loans, *},
+    types::*,
     *,
 };
 
@@ -1025,5 +1025,64 @@ fn cancel_unstake_works() {
         );
 
         assert_eq!(Unlockings::<Test>::get(ALICE).unwrap(), vec![]);
+    })
+}
+
+#[test]
+fn fast_unstake_works() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
+        assert_ok!(Loans::mint(Origin::signed(BOB), KSM, ksm(100f64)));
+        assert_ok!(Loans::collateral_asset(Origin::signed(BOB), KSM, true));
+        assert_ok!(LiquidStaking::unstake(
+            Origin::signed(ALICE),
+            ksm(6f64),
+            UnstakeProvider::Loans
+        ));
+        assert_eq!(
+            Unlockings::<Test>::get(LiquidStaking::loans_account_id()).unwrap(),
+            vec![UnlockChunk {
+                value: ksm(6f64),
+                era: 4
+            },]
+        );
+        // 90 * 1e12 + (6 * (1 - 8/1000) * 1e12)
+        assert_eq!(
+            <Test as Config>::Assets::balance(KSM, &ALICE),
+            95952000000000u128
+        );
+
+        let derivative_index = 0u16;
+        assert_ok!(with_transaction(
+            || -> TransactionOutcome<DispatchResult> {
+                assert_ok!(LiquidStaking::do_matching());
+                assert_ok!(LiquidStaking::do_advance_era(4));
+                TransactionOutcome::Commit(Ok(()))
+            }
+        ));
+        assert_ok!(LiquidStaking::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        ));
+        assert_ok!(LiquidStaking::withdraw_unbonded(
+            Origin::root(),
+            derivative_index,
+            0
+        ));
+        assert_ok!(LiquidStaking::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            1,
+            Response::ExecutionResult(None),
+        ));
+
+        assert_ok!(LiquidStaking::claim_for(
+            Origin::signed(BOB),
+            Id(LiquidStaking::loans_account_id())
+        ));
+        assert_eq!(
+            Unlockings::<Test>::get(LiquidStaking::loans_account_id()),
+            None
+        );
     })
 }

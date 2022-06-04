@@ -311,17 +311,10 @@ impl pallet_loans::Config for Test {
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
-    type UnixTime = TimestampPallet;
-    type Assets = CurrencyAdapter;
+    type UnixTime = Timestamp;
+    type Assets = Assets;
     type RewardAssetId = RewardAssetId;
     type LiquidationFreeAssetId = LiquidationFreeAssetId;
-}
-
-impl pallet_currency_adapter::Config for Test {
-    type Assets = Assets;
-    type Balances = Balances;
-    type GetNativeCurrencyId = NativeCurrencyId;
-    type LockOrigin = EnsureRoot<AccountId>;
 }
 
 parameter_types! {
@@ -538,7 +531,7 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = SKSM;
     pub const CollateralCurrency: CurrencyId = KSM_U;
     pub const XcmFees: Balance = 0;
-    pub FastUnstakeFee: Rate = Rate::saturating_from_rational(8u32, 1000u32);
+    pub LoansFastUnstakeFee: Rate = Rate::saturating_from_rational(8u32, 1000u32);
     pub const BondingDuration: EraIndex = 3;
     pub const MinNominatorBond: Balance = 0;
     pub const NumSlashingSpans: u32 = 0;
@@ -561,8 +554,7 @@ impl crate::Config for Test {
     type CollateralCurrency = CollateralCurrency;
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
-    type FastUnstakeFee = FastUnstakeFee;
-
+    type LoansFastUnstakeFee = LoansFastUnstakeFee;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
     type EraLength = EraLength;
@@ -625,8 +617,7 @@ construct_runtime!(
         XcmHelper: pallet_xcm_helper::{Pallet, Storage, Call, Event<T>},
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
         Loans: pallet_loans::{Pallet, Storage, Call, Event<T>},
-        TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     }
 );
 
@@ -681,12 +672,16 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(10000f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(100f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), SKSM, Id(ALICE), ksm(100f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
+        LiquidStaking::update_staking_ledger_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
+
         Assets::mint(
             Origin::signed(ALICE),
             KSM,
             Id(XcmHelper::account_id()),
-            ksm(30f64),
+            ksm(100f64),
         )
         .unwrap();
 
@@ -694,10 +689,9 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Loans::activate_market(Origin::root(), KSM).unwrap();
         Loans::add_market(Origin::root(), KSM_U, market_mock(PKSM_U)).unwrap();
         Loans::activate_market(Origin::root(), KSM_U).unwrap();
-        LiquidStaking::update_staking_ledger_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
 
         System::set_block_number(1);
-        TimestampPallet::set_timestamp(6000);
+        Timestamp::set_timestamp(6000);
     });
 
     ext
@@ -799,6 +793,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         .unwrap();
 
         Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(10000f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             KSM,
@@ -814,7 +809,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         LiquidStaking::update_staking_ledger_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
 
         System::set_block_number(1);
-        TimestampPallet::set_timestamp(6000);
+        Timestamp::set_timestamp(6000);
     });
 
     ext
