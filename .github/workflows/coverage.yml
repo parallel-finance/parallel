@@ -7,6 +7,8 @@ on:
   pull_request:
     branches: [master]
 
+env:
+  CARGO_INCREMENTAL: 0
 jobs:
   coverage:
     if: github.repository == 'parallel-finance/parallel'
