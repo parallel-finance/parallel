@@ -74,6 +74,8 @@ pub const PEUSDC: CurrencyId = 2202;
 
 pub const PSKSM: CurrencyId = 3000;
 pub const PSDOT: CurrencyId = 3001;
+pub const PKSM_U: CurrencyId = 3002;
+pub const PDOT_U: CurrencyId = 3003;
 
 pub const PCDOT_6_13: CurrencyId = 200062013;
 pub const PCDOT_7_14: CurrencyId = 200072014;
@@ -115,7 +117,7 @@ pub const CDOT_6_13: CurrencyId = 200060013;
 pub const CDOT_7_14: CurrencyId = 200070014;
 pub const CDOT_8_15: CurrencyId = 200080015;
 
-// Auxiliary
+// Relay Currency Auxiliary
 pub const KSM_U: CurrencyId = 4294957295;
 pub const DOT_U: CurrencyId = 4294957296;
 

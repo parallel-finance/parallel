@@ -681,7 +681,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type BondingDuration = BondingDuration;
     type MinNominatorBond = MinNominatorBond;
     type RelayChainValidationDataProvider = RelayChainValidationDataProvider<Runtime>;
-    type Loans = ();
+    type Loans = Loans;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
     type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;

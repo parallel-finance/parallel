@@ -26,8 +26,8 @@ use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
 pub use pallet::*;
 use pallet_traits::{
     DistributionStrategy, ExchangeRateProvider, LiquidStakingConvert,
-    LiquidStakingCurrenciesProvider, Loans, LoansCollateralFactorProvider,
-    LoansPositionDataProvider, ValidationDataProvider,
+    LiquidStakingCurrenciesProvider, Loans, LoansMarketDataProvider, LoansPositionDataProvider,
+    ValidationDataProvider,
 };
 use primitives::{PersistedValidationData, Rate};
 
@@ -198,9 +198,9 @@ pub mod pallet {
             + BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 
         /// Loans
-        type Loans: Loans<Self::AccountId, AssetIdOf<Self>, BalanceOf<Self>>
-            + LoansPositionDataProvider<Self::AccountId, AssetIdOf<Self>, BalanceOf<Self>>
-            + LoansCollateralFactorProvider<AssetIdOf<Self>>;
+        type Loans: Loans<AssetIdOf<Self>, Self::AccountId, BalanceOf<Self>>
+            + LoansPositionDataProvider<AssetIdOf<Self>, Self::AccountId, BalanceOf<Self>>
+            + LoansMarketDataProvider<AssetIdOf<Self>, BalanceOf<Self>>;
 
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, Self::AccountId>;
@@ -759,7 +759,7 @@ pub mod pallet {
 
                 if who == Self::loans_account_id() {
                     let account_borrows =
-                        T::Loans::get_current_borrow_balance(&account_id, collateral_currency);
+                        T::Loans::get_current_borrow_balance(&account_id, collateral_currency)?;
                     T::Loans::do_repay_borrow(
                         &account_id,
                         Self::staking_currency()?,
@@ -1714,7 +1714,8 @@ pub mod pallet {
                 .checked_sub(fast_unstake_fee)
                 .ok_or(ArithmeticError::Underflow)?;
             let collateral_currency = T::CollateralCurrency::get();
-            let mint_amount = T::Loans::get_collateral_factor(collateral_currency)
+            let mint_amount = T::Loans::get_market_info(collateral_currency)?
+                .collateral_factor
                 .saturating_reciprocal_mul_ceil(amount);
             let account_id = Self::account_id();
             let staking_currency = Self::staking_currency()?;

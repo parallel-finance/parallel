@@ -16,9 +16,12 @@ use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::{IsSystem, Sibling};
 
-use pallet_traits::ValidationDataProvider;
+use pallet_loans::{InterestRateModel, JumpModel, Market, MarketState};
+use pallet_traits::{xcm::MultiCurrencyAdapter, PriceFeeder, ValidationDataProvider};
 use polkadot_runtime_parachains::configuration::HostConfiguration;
-use primitives::{tokens::*, Balance, EraIndex, ParaId, PersistedValidationData, Rate, Ratio};
+use primitives::{
+    tokens::*, Balance, EraIndex, ParaId, PersistedValidationData, Price, PriceDetail, Rate, Ratio,
+};
 use sp_core::H256;
 use sp_runtime::{
     generic,
@@ -28,6 +31,7 @@ use sp_runtime::{
     AccountId32, DispatchError, FixedPointNumber,
     MultiAddress::Id,
 };
+use std::{cell::RefCell, collections::HashMap};
 pub use xcm::latest::prelude::*;
 pub use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
@@ -44,10 +48,6 @@ pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 use crate::{distribution::AverageDistribution, types::StakingLedger, BalanceOf};
 pub use kusama_runtime;
-use pallet_traits::{
-    ump::{XcmCall, XcmWeightFeeMisc},
-    xcm::MultiCurrencyAdapter,
-};
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
@@ -265,6 +265,76 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
     }
 }
 
+pub struct MockPriceFeeder;
+
+impl MockPriceFeeder {
+    thread_local! {
+        pub static PRICES: RefCell<HashMap<CurrencyId, Option<PriceDetail>>> = {
+            RefCell::new(vec![KSM, KSM_U]
+                .iter()
+                .map(|&x| (x, Some((Price::saturating_from_integer(1), 1))))
+                .collect())
+        };
+    }
+
+    pub fn set_price(asset_id: CurrencyId, price: Price) {
+        Self::PRICES.with(|prices| {
+            prices.borrow_mut().insert(asset_id, Some((price, 1u64)));
+        });
+    }
+
+    pub fn reset() {
+        Self::PRICES.with(|prices| {
+            for (_, val) in prices.borrow_mut().iter_mut() {
+                *val = Some((Price::saturating_from_integer(1), 1u64));
+            }
+        })
+    }
+}
+
+impl PriceFeeder for MockPriceFeeder {
+    fn get_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
+        Self::PRICES.with(|prices| *prices.borrow().get(asset_id).unwrap())
+    }
+}
+
+parameter_types! {
+    pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
+    pub const RewardAssetId: CurrencyId = HKO;
+    pub const LiquidationFreeAssetId: CurrencyId = KSM;
+}
+
+impl pallet_loans::Config for Test {
+    type Event = Event;
+    type PriceFeeder = MockPriceFeeder;
+    type PalletId = LoansPalletId;
+    type ReserveOrigin = EnsureRoot<AccountId>;
+    type UpdateOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = ();
+    type UnixTime = TimestampPallet;
+    type Assets = CurrencyAdapter;
+    type RewardAssetId = RewardAssetId;
+    type LiquidationFreeAssetId = LiquidationFreeAssetId;
+}
+
+impl pallet_currency_adapter::Config for Test {
+    type Assets = Assets;
+    type Balances = Balances;
+    type GetNativeCurrencyId = NativeCurrencyId;
+    type LockOrigin = EnsureRoot<AccountId>;
+}
+
+parameter_types! {
+    pub const MinimumPeriod: u64 = 5;
+}
+
+impl pallet_timestamp::Config for Test {
+    type Moment = u64;
+    type OnTimestampSet = ();
+    type MinimumPeriod = MinimumPeriod;
+    type WeightInfo = ();
+}
+
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 100_000_000;
@@ -460,7 +530,6 @@ pub fn get_mock_staking_ledger(derivative_index: u16) -> StakingLedger<AccountId
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
     pub const EraLength: BlockNumber = 10;
     pub SelfParaId: ParaId = para_a_id();
     pub const MinStake: Balance = 0;
@@ -503,7 +572,7 @@ impl crate::Config for Test {
     type BondingDuration = BondingDuration;
     type MinNominatorBond = MinNominatorBond;
     type RelayChainValidationDataProvider = RelayChainValidationDataProvider;
-    type Loans = ();
+    type Loans = Loans;
     type Members = BobOrigin;
     type NumSlashingSpans = NumSlashingSpans;
     type DistributionStrategy = AverageDistribution;
@@ -555,6 +624,9 @@ construct_runtime!(
         PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
         XcmHelper: pallet_xcm_helper::{Pallet, Storage, Call, Event<T>},
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
+        Loans: pallet_loans::{Pallet, Storage, Call, Event<T>},
+        TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+        CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
     }
 );
 
@@ -566,11 +638,6 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
-
-    let xcm_weight_fee_misc = XcmWeightFeeMisc {
-        weight: 3_000_000_000,
-        fee: ksm(10f64),
-    };
 
     GenesisBuild::<Test>::assimilate_storage(
         &crate::GenesisConfig {
@@ -603,21 +670,34 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(100f64)).unwrap();
-        Assets::mint(Origin::signed(ALICE), SKSM, Id(ALICE), ksm(100f64)).unwrap();
-        Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
+        Assets::force_create(Origin::root(), KSM_U, Id(ALICE), true, 1).unwrap();
+        Assets::force_set_metadata(
+            Origin::root(),
+            KSM_U,
+            b"Kusama Ubonding".to_vec(),
+            b"KSM_U".to_vec(),
+            12,
+            false,
+        )
+        .unwrap();
 
-        LiquidStaking::update_staking_ledger_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(10000f64)).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             KSM,
             Id(XcmHelper::account_id()),
-            ksm(100f64),
+            ksm(30f64),
         )
         .unwrap();
 
-        XcmHelper::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
-            .unwrap();
+        Loans::add_market(Origin::root(), KSM, market_mock(PKSM)).unwrap();
+        Loans::activate_market(Origin::root(), KSM).unwrap();
+        Loans::add_market(Origin::root(), KSM_U, market_mock(PKSM_U)).unwrap();
+        Loans::activate_market(Origin::root(), KSM_U).unwrap();
+        LiquidStaking::update_staking_ledger_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
+
+        System::set_block_number(1);
+        TimestampPallet::set_timestamp(6000);
     });
 
     ext
@@ -667,11 +747,6 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         .build_storage::<Test>()
         .unwrap();
 
-    let xcm_weight_fee_misc = XcmWeightFeeMisc {
-        weight: 3_000_000_000,
-        fee: ksm(10f64),
-    };
-
     let parachain_info_config = parachain_info::GenesisConfig {
         parachain_id: para_id.into(),
     };
@@ -692,7 +767,6 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        System::set_block_number(1);
         Assets::force_create(Origin::root(), KSM, Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
             Origin::root(),
@@ -713,6 +787,17 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
+        Assets::force_create(Origin::root(), KSM_U, Id(ALICE), true, 1).unwrap();
+        Assets::force_set_metadata(
+            Origin::root(),
+            KSM_U,
+            b"Kusama Ubonding".to_vec(),
+            b"KSM_U".to_vec(),
+            12,
+            false,
+        )
+        .unwrap();
+
         Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(10000f64)).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
@@ -722,9 +807,14 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         )
         .unwrap();
 
+        Loans::add_market(Origin::root(), KSM, market_mock(PKSM)).unwrap();
+        Loans::activate_market(Origin::root(), KSM).unwrap();
+        Loans::add_market(Origin::root(), KSM_U, market_mock(PKSM_U)).unwrap();
+        Loans::activate_market(Origin::root(), KSM_U).unwrap();
         LiquidStaking::update_staking_ledger_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
-        XcmHelper::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
-            .unwrap();
+
+        System::set_block_number(1);
+        TimestampPallet::set_timestamp(6000);
     });
 
     ext
@@ -761,4 +851,25 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 
 pub fn ksm(n: f64) -> Balance {
     ((n * 1000000f64) as u128) * KSM_DECIMAL / 1000000u128
+}
+
+pub const fn market_mock(ptoken_id: u32) -> Market<Balance> {
+    Market {
+        close_factor: Ratio::from_percent(50),
+        collateral_factor: Ratio::from_percent(50),
+        liquidation_threshold: Ratio::from_percent(55),
+        liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
+        liquidate_incentive_reserved_factor: Ratio::from_percent(3),
+        state: MarketState::Pending,
+        rate_model: InterestRateModel::Jump(JumpModel {
+            base_rate: Rate::from_inner(Rate::DIV / 100 * 2),
+            jump_rate: Rate::from_inner(Rate::DIV / 100 * 10),
+            full_rate: Rate::from_inner(Rate::DIV / 100 * 32),
+            jump_utilization: Ratio::from_percent(80),
+        }),
+        reserve_factor: Ratio::from_percent(15),
+        supply_cap: 1_000_000_000_000_000_000_000u128, // set to 1B
+        borrow_cap: 1_000_000_000_000_000_000_000u128, // set to 1B
+        ptoken_id,
+    }
 }

@@ -71,4 +71,5 @@ std                = [
 try-runtime        = ['frame-support/try-runtime']
 
 [lib]
-doctest = false
+doctest    = false
+proc-macro = false
