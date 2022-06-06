@@ -89,7 +89,26 @@ jobs:
 
       - name: Generate code coverage
         run: |
-          cargo +nightly-2022-05-11 tarpaulin --verbose --no-fail-fast -p pallet-loans -p pallet-stableswap -p pallet-liquid-staking -p pallet-farming -p pallet-prices -p pallet-amm -p pallet-router -p pallet-crowdloans -p pallet-emergency-shutdown -p pallet-asset-registry -p pallet-streaming --timeout 300 --out Xml
+          cargo +nightly-2022-05-11 tarpaulin \
+            --verbose \
+            --no-fail-fast \
+            -p pallet-loans \
+            -p pallet-stableswap \
+            -p pallet-liquid-staking \
+            -p pallet-farming \
+            -p pallet-prices \
+            -p pallet-amm \
+            -p pallet-router \
+            -p pallet-crowdloans \
+            -p pallet-emergency-shutdown \
+            -p pallet-asset-registry\
+            -p pallet-streaming \
+            --exclude-files \
+              **/mock.rs \
+              **/weights.rs \
+              **/weights/* \
+            --timeout 300 \
+            --out Xml
 
       - name: Upload To Codecov.io
         uses: codecov/codecov-action@v1
