@@ -1642,7 +1642,7 @@ pub mod pallet {
                         remaining_year,
                     )
                     .ok()?;
-                    Some(fixed_u128_from_float(current_rate as f64).reciprocal()?)
+                    fixed_u128_from_float(current_rate as f64).reciprocal()
                 })
         }
     }
