@@ -244,7 +244,7 @@ impl<T: Config> Pallet<T> {
         let (base_asset, _quote_asset, pool) =
             T::AMM::get_pool_by_lp_asset(asset_id).filter(|(base_asset, quote_asset, _pool)| {
                 quote_asset == &T::RelayCurrency::get()
-                    && T::VaultTokenCurrenciesFilter::contains(&base_asset)
+                    && T::VaultTokenCurrenciesFilter::contains(base_asset)
             })?;
         let base_asset_mantissa = Self::get_asset_mantissa(&base_asset)?;
         let diff_mantissa = mantissa.checked_div(base_asset_mantissa)?;
