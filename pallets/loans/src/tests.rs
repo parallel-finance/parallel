@@ -408,6 +408,14 @@ fn get_account_liquidation_threshold_liquidity_works() {
 
         assert_eq!(liquidity, FixedU128::from_inner(unit(20)));
         assert_eq!(lf_liquidity, FixedU128::from_inner(unit(10)));
+
+        MockPriceFeeder::set_price(KSM, 2.into());
+        let (liquidity, shortfall, lf_liquidity, _) =
+            Loans::get_account_liquidation_threshold_liquidity(&ALICE).unwrap();
+
+        assert_eq!(liquidity, FixedU128::from_inner(unit(0)));
+        assert_eq!(shortfall, FixedU128::from_inner(unit(80)));
+        assert_eq!(lf_liquidity, FixedU128::from_inner(unit(10)));
     })
 }
 
