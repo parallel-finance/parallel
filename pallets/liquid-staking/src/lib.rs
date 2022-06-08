@@ -660,7 +660,7 @@ pub mod pallet {
             derivative_index: DerivativeIndex,
             targets: Vec<T::AccountId>,
         ) -> DispatchResult {
-            T::RelayOrigin::ensure_origin(origin)?;
+            Self::ensure_origin(origin)?;
             Self::do_nominate(derivative_index, targets)?;
             Ok(())
         }
