@@ -38,7 +38,7 @@ where
         &self,
         account: AccountId,
         at: Option<BlockHash>,
-    ) -> RpcResult<(Liquidity, Shortfall)>;
+    ) -> RpcResult<(Liquidity, Shortfall, Liquidity, Shortfall)>;
     #[method(name = "loans_getMarketStatus")]
     fn get_market_status(
         &self,
@@ -50,7 +50,7 @@ where
         &self,
         account: AccountId,
         at: Option<BlockHash>,
-    ) -> RpcResult<(Liquidity, Shortfall, FixedU128)>;
+    ) -> RpcResult<(Liquidity, Shortfall, Liquidity, Shortfall)>;
 }
 
 /// A struct that implements the [`LoansApi`].
@@ -101,7 +101,7 @@ where
         &self,
         account: AccountId,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> RpcResult<(Liquidity, Shortfall)> {
+    ) -> RpcResult<(Liquidity, Shortfall, Liquidity, Shortfall)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(
             // If the block hash is not supplied assume the best block.
@@ -149,7 +149,7 @@ where
         &self,
         account: AccountId,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> RpcResult<(Liquidity, Shortfall, FixedU128)> {
+    ) -> RpcResult<(Liquidity, Shortfall, Liquidity, Shortfall)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(
             // If the block hash is not supplied assume the best block.
