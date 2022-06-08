@@ -382,9 +382,32 @@ fn get_account_liquidity_works() {
         Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
 
         let (liquidity, _, lf_liquidity, _) = Loans::get_account_liquidity(&ALICE).unwrap();
-        assert_eq!(liquidity, FixedU128::from_inner(unit(100)));
 
+        assert_eq!(liquidity, FixedU128::from_inner(unit(100)));
         assert_eq!(lf_liquidity, FixedU128::from_inner(unit(100)));
+    })
+}
+
+#[test]
+fn get_account_liquidation_threshold_liquidity_works() {
+    new_test_ext().execute_with(|| {
+        Loans::mint(Origin::signed(BOB), DOT, unit(200)).unwrap();
+        Loans::mint(Origin::signed(BOB), KSM, unit(200)).unwrap();
+
+        Loans::mint(Origin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
+        Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
+
+        Loans::mint(Origin::signed(ALICE), USDT, unit(200)).unwrap();
+        Loans::collateral_asset(Origin::signed(ALICE), USDT, true).unwrap();
+
+        Loans::borrow(Origin::signed(ALICE), KSM, unit(100)).unwrap();
+        Loans::borrow(Origin::signed(ALICE), DOT, unit(100)).unwrap();
+
+        let (liquidity, _, lf_liquidity, _) =
+            Loans::get_account_liquidation_threshold_liquidity(&ALICE).unwrap();
+
+        assert_eq!(liquidity, FixedU128::from_inner(unit(20)));
+        assert_eq!(lf_liquidity, FixedU128::from_inner(unit(10)));
     })
 }
 

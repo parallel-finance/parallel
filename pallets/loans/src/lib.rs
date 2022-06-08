@@ -1240,6 +1240,7 @@ impl<T: Config> Pallet<T> {
     ) -> Result<(Liquidity, Shortfall, Liquidity, Shortfall), DispatchError> {
         let total_borrow_value = Self::total_borrowed_value(account)?;
         let total_collateral_value = Self::total_liquidation_threshold_value(account)?;
+
         let lf_borrowed_value = Self::get_lf_borrowed_value(account)?;
         let lf_base_position = Self::get_lf_liquidation_base_position(account)?;
 

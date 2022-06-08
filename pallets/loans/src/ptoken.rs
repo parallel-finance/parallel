@@ -209,7 +209,6 @@ impl<T: Config> Pallet<T> {
 
         // liquidity of all assets
         let (liquidity, _, _, _) = Self::get_account_liquidity(who)?;
-        //TODO(alan): LF support
 
         if liquidity >= collateral_value {
             return Ok(voucher_balance);
