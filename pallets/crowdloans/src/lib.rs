@@ -269,7 +269,7 @@ pub mod pallet {
         PartiallyRefunded(ParaId, VaultId),
         /// Refunded
         /// [para_id, vault_id, account, child_storage_kind, amount]
-        Refunded(
+        UserRefunded(
             ParaId,
             VaultId,
             T::AccountId,
@@ -1054,7 +1054,7 @@ pub mod pallet {
 
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
 
-            Self::deposit_event(Event::<T>::Refunded(
+            Self::deposit_event(Event::<T>::UserRefunded(
                 crowdloan,
                 (lease_start, lease_end),
                 who,
