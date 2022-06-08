@@ -1549,12 +1549,16 @@ impl<T: Config> Pallet<T> {
             repay_amount,
             market
         );
-        let (_, shortfall, lf_liquidity, _) =
+        let (liquidity, shortfall, lf_liquidity, _) =
             Self::get_account_liquidation_threshold_liquidity(borrower)?;
-        let shortfall = shortfall
-            .checked_add(&lf_liquidity)
-            .ok_or(ArithmeticError::Overflow)?;
-        if shortfall.is_zero() {
+
+        // C_other >= B_other + B_dot_over
+        // C_other >= B_other + max(B_dot - C_lf, 0)
+        // C_other + C_lf >= B_other + B_dot - B_dot + C_lf + max(B_dot - C_lf, 0)
+        // C_all - B_all >= max(0, C_lf - B_dot)
+        // C_all - B_all >= 0 && C_all - B_all >= max(0, C_lf - B_dot)
+        // shortfall == 0 && liquidity > lf_liquidity
+        if shortfall.is_zero() && liquidity >= lf_liquidity {
             return Err(Error::<T>::InsufficientShortfall.into());
         }
 
