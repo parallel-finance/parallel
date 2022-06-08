@@ -986,7 +986,9 @@ pub mod pallet {
             );
 
             'outer: for kind in [Contributed, Flying, Pending] {
-                for (who, (amount, _)) in Self::contribution_iterator(vault.trie_index, kind) {
+                for (who, (amount, referral_code)) in
+                    Self::contribution_iterator(vault.trie_index, kind)
+                {
                     if refund_count >= T::RemoveKeysLimit::get() {
                         all_refunded = false;
                         break 'outer;
@@ -1012,7 +1014,7 @@ pub mod pallet {
                         &who,
                         &mut vault,
                         amount,
-                        None,
+                        Some(referral_code),
                         ArithmeticKind::Subtraction,
                         kind,
                     )?;
@@ -1031,6 +1033,36 @@ pub mod pallet {
             }
 
             Ok(())
+        }
+
+        /// Refund contributions for single user
+        /// Once relaychain is in vrf but parachain didn't update vrf in time.
+        /// Contributions received during this period should be refund to users,
+        /// expecially for those succeeded parachains.
+        #[pallet::weight(<T as Config>::WeightInfo::refund())]
+        #[transactional]
+        pub fn refund_for(
+            origin: OriginFor<T>,
+            dest: <T::Lookup as StaticLookup>::Source,
+            crowdloan: ParaId,
+            kind: ChildStorageKind,
+            #[pallet::compact] amount: BalanceOf<T>,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            ensure_origin!(RefundOrigin, origin)?;
+
+            let who = T::Lookup::lookup(dest)?;
+            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
+            ensure!(
+                vault.phase == VaultPhase::Closed,
+                Error::<T>::IncorrectVaultPhase
+            );
+
+            let (kind_amount, referral_code) = Self::contribution_get(vault.trie_index, &who, kind);
+            let amount = amount.min(kind_amount);
+            Self::do_refund_for()
         }
 
         /// Dissolve vault
@@ -1577,6 +1609,41 @@ pub mod pallet {
                 VaultPhase::Failed,
             ));
 
+            Ok(())
+        }
+
+        fn do_refund_for(
+            who: T::AccountId,
+            vault: &mut Vault<T>,
+            amount: BalanceOf<T>,
+            crowdloan: ParaId,
+            kind: ChildStorageKind,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+            referral_code: Option<Vec<u8>>,
+        ) -> DispatchResult {
+            if kind == ChildStorageKind::Contributed {
+                // SovereignAccount on relaychain must have
+                // withdrawn the contribution
+                T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
+            } else {
+                T::Assets::transfer(
+                    T::RelayCurrency::get(),
+                    &Self::account_id(),
+                    &who,
+                    amount,
+                    false,
+                )?;
+            }
+
+            Self::do_update_contribution(
+                &who,
+                vault,
+                amount,
+                referral_code,
+                ArithmeticKind::Subtraction,
+                kind,
+            )?;
             Ok(())
         }
 
