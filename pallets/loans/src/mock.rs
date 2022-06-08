@@ -396,6 +396,10 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Loans::add_market(Origin::root(), CDOT_6_13, market_mock(PCDOT_6_13)).unwrap();
         Loans::activate_market(Origin::root(), CDOT_6_13).unwrap();
 
+        Loans::update_liquidation_free_collateral(Origin::root(), vec![CDOT_6_13]).unwrap();
+        // Loans::mint(Origin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
+        // Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
+
         System::set_block_number(0);
         TimestampPallet::set_timestamp(6000);
     });

@@ -378,7 +378,6 @@ fn update_liquidation_free_collateral_works() {
 #[test]
 fn get_account_liquidity_works() {
     new_test_ext().execute_with(|| {
-        Loans::update_liquidation_free_collateral(Origin::root(), vec![CDOT_6_13]).unwrap();
         Loans::mint(Origin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
         Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
 
@@ -392,7 +391,6 @@ fn get_account_liquidity_works() {
 #[test]
 fn lf_borrow_allowed_works() {
     new_test_ext().execute_with(|| {
-        Loans::update_liquidation_free_collateral(Origin::root(), vec![CDOT_6_13]).unwrap();
         Loans::mint(Origin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
         Loans::mint(Origin::signed(DAVE), USDT, unit(200)).unwrap();
         Loans::mint(Origin::signed(DAVE), DOT, unit(200)).unwrap();
