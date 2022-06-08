@@ -1049,7 +1049,10 @@ pub mod pallet {
 
             let (contribution, _) = Self::contribution_get(vault.trie_index, &who, kind);
             ensure!(contribution >= amount, Error::<T>::InsufficientContribution);
+
             Self::do_refund_for(&who, &mut vault, kind, amount)?;
+
+            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
 
             Self::deposit_event(Event::<T>::Refunded(
                 crowdloan,

@@ -1683,3 +1683,77 @@ fn get_ctoken_exchange_rate_with_minor_input_change_should_work() {
         );
     });
 }
+
+#[test]
+fn refund_should_work_for_single_user() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCM;
+        let amount = 1_000;
+
+        // Create a vault and try refund
+        Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block,                            // end_block
+        )
+        .ok();
+
+        // Open Vault
+        Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        )
+        .ok();
+
+        Crowdloans::contribute(
+            Origin::signed(ALICE), // origin
+            crowdloan,             // crowdloan
+            amount,                // amount
+            vec![],
+        )
+        .ok();
+
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
+        assert_eq!(Crowdloans::total_contribution(&vault).unwrap(), amount);
+
+        assert_eq!(Assets::balance(DOT, ALICE), dot(100f64) - amount);
+
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
+        // Close Vault
+        Crowdloans::close(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        )
+        .ok();
+
+        assert_ok!(Crowdloans::refund_for(
+            frame_system::RawOrigin::Root.into(), // origin
+            Id(ALICE),
+            crowdloan,
+            ChildStorageKind::Contributed,
+            amount / 2,
+            LEASE_START, // lease_start
+            LEASE_END,   // lease_end
+        ));
+
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
+        assert_eq!(Crowdloans::total_contribution(&vault).unwrap(), amount / 2);
+
+        assert_eq!(Assets::balance(DOT, ALICE), dot(100f64) - amount / 2);
+    })
+}
