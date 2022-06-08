@@ -382,13 +382,10 @@ fn get_account_liquidity_works() {
         Loans::mint(Origin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
         Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
 
-        let (liquidity, _) = Loans::get_account_liquidity(&ALICE).unwrap();
+        let (liquidity, _, lf_liquidity, _) = Loans::get_account_liquidity(&ALICE).unwrap();
         assert_eq!(liquidity, FixedU128::from_inner(unit(100)));
 
-        assert_eq!(
-            Loans::get_account_lf_liquidity(&ALICE).unwrap(),
-            FixedU128::from_inner(unit(100))
-        );
+        assert_eq!(lf_liquidity, FixedU128::from_inner(unit(100)));
     })
 }
 
