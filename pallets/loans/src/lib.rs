@@ -1156,38 +1156,6 @@ impl<T: Config> Pallet<T> {
         Ok(total_asset_value)
     }
 
-    // pub fn get_account_lf_liquidity(account: &T::AccountId) -> Result<Liquidity, DispatchError> {
-    //     let lf_borrowed_amount =
-    //         Self::current_borrow_balance(account, T::LiquidationFreeAssetId::get())?;
-    //     let lf_borrowed_value =
-    //         Self::get_asset_value(T::LiquidationFreeAssetId::get(), lf_borrowed_amount)?;
-    //     let lf_base_position = Self::get_lf_base_position(account)?;
-    //
-    //     let liquidity = if lf_base_position > lf_borrowed_value {
-    //         lf_base_position - lf_borrowed_value
-    //     } else {
-    //         FixedU128::zero()
-    //     };
-    //     Ok(liquidity)
-    // }
-    //
-    // pub fn get_account_lf_liquidation_threshold_liquidity(
-    //     account: &T::AccountId,
-    // ) -> Result<Liquidity, DispatchError> {
-    //     let lf_borrowed_amount =
-    //         Self::current_borrow_balance(account, T::LiquidationFreeAssetId::get())?;
-    //     let lf_borrowed_value =
-    //         Self::get_asset_value(T::LiquidationFreeAssetId::get(), lf_borrowed_amount)?;
-    //     let lf_base_position = Self::get_lf_liquidation_base_position(account)?;
-    //
-    //     let liquidity = if lf_base_position > lf_borrowed_value {
-    //         lf_base_position - lf_borrowed_value
-    //     } else {
-    //         FixedU128::zero()
-    //     };
-    //     Ok(liquidity)
-    // }
-
     pub fn get_account_liquidity(
         account: &T::AccountId,
     ) -> Result<(Liquidity, Shortfall, Liquidity, Shortfall), DispatchError> {
@@ -1196,13 +1164,14 @@ impl<T: Config> Pallet<T> {
         let lf_borrowed_value = Self::get_lf_borrowed_value(account)?;
         let lf_base_position = Self::get_lf_base_position(account)?;
 
-        //TODO(alan): log
         log::trace!(
             target: "loans::get_account_liquidity",
-            "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}",
+            "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}, lf_borrowed_value: {:?}, lf_base_position: {:?}",
             account,
             total_borrow_value.into_inner(),
             total_collateral_value.into_inner(),
+            lf_borrowed_value.into_inner(),
+            lf_base_position.into_inner(),
         );
         match (
             total_collateral_value > total_borrow_value,
@@ -1246,10 +1215,12 @@ impl<T: Config> Pallet<T> {
 
         log::trace!(
             target: "loans::get_account_liquidation_threshold_liquidity",
-            "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}",
+            "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}, lf_borrowed_value: {:?}, lf_base_position: {:?}",
             account,
             total_borrow_value.into_inner(),
             total_collateral_value.into_inner(),
+            lf_borrowed_value.into_inner(),
+            lf_base_position.into_inner(),
         );
 
         match (
