@@ -1124,10 +1124,7 @@ impl<T: Config> Pallet<T> {
     fn get_lf_borrowed_value(account: &T::AccountId) -> Result<FixedU128, DispatchError> {
         let lf_borrowed_amount =
             Self::current_borrow_balance(account, T::LiquidationFreeAssetId::get())?;
-        Ok(Self::get_asset_value(
-            T::LiquidationFreeAssetId::get(),
-            lf_borrowed_amount,
-        )?)
+        Self::get_asset_value(T::LiquidationFreeAssetId::get(), lf_borrowed_amount)
     }
 
     fn get_lf_base_position(account: &T::AccountId) -> Result<FixedU128, DispatchError> {
