@@ -124,7 +124,7 @@ pub enum XcmRequest<T: Config> {
     },
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug)]
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ChildStorageKind {
     Pending,
     Flying,

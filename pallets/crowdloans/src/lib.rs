@@ -267,6 +267,15 @@ pub mod pallet {
         /// Partially Refunded
         /// [para_id, vault_id]
         PartiallyRefunded(ParaId, VaultId),
+        /// Refunded
+        /// [para_id, vault_id, account, child_storage_kind, amount]
+        Refunded(
+            ParaId,
+            VaultId,
+            T::AccountId,
+            ChildStorageKind,
+            BalanceOf<T>,
+        ),
     }
 
     #[pallet::error]
@@ -986,9 +995,7 @@ pub mod pallet {
             );
 
             'outer: for kind in [Contributed, Flying, Pending] {
-                for (who, (amount, referral_code)) in
-                    Self::contribution_iterator(vault.trie_index, kind)
-                {
+                for (who, (amount, _)) in Self::contribution_iterator(vault.trie_index, kind) {
                     if refund_count >= T::RemoveKeysLimit::get() {
                         all_refunded = false;
                         break 'outer;
@@ -996,28 +1003,7 @@ pub mod pallet {
 
                     refund_count += 1;
 
-                    if kind == Contributed {
-                        // SovereignAccount on relaychain must have
-                        // withdrawn the contribution
-                        T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
-                    } else {
-                        T::Assets::transfer(
-                            T::RelayCurrency::get(),
-                            &Self::account_id(),
-                            &who,
-                            amount,
-                            false,
-                        )?;
-                    }
-
-                    Self::do_update_contribution(
-                        &who,
-                        &mut vault,
-                        amount,
-                        Some(referral_code),
-                        ArithmeticKind::Subtraction,
-                        kind,
-                    )?;
+                    Self::do_refund_for(&who, &mut vault, kind, amount)?;
                 }
             }
 
@@ -1038,7 +1024,7 @@ pub mod pallet {
         /// Refund contributions for single user
         /// Once relaychain is in vrf but parachain didn't update vrf in time.
         /// Contributions received during this period should be refund to users,
-        /// expecially for those succeeded parachains.
+        /// especially for those succeeded parachains.
         #[pallet::weight(<T as Config>::WeightInfo::refund())]
         #[transactional]
         pub fn refund_for(
@@ -1055,14 +1041,25 @@ pub mod pallet {
             let who = T::Lookup::lookup(dest)?;
             let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
+
             ensure!(
                 vault.phase == VaultPhase::Closed,
                 Error::<T>::IncorrectVaultPhase
             );
 
-            let (kind_amount, referral_code) = Self::contribution_get(vault.trie_index, &who, kind);
-            let amount = amount.min(kind_amount);
-            Self::do_refund_for()
+            let (contribution, _) = Self::contribution_get(vault.trie_index, &who, kind);
+            ensure!(contribution >= amount, Error::<T>::InsufficientContribution);
+            Self::do_refund_for(&who, &mut vault, kind, amount)?;
+
+            Self::deposit_event(Event::<T>::Refunded(
+                crowdloan,
+                (lease_start, lease_end),
+                who,
+                kind,
+                amount,
+            ));
+
+            Ok(())
         }
 
         /// Dissolve vault
@@ -1612,42 +1609,35 @@ pub mod pallet {
             Ok(())
         }
 
+        #[require_transactional]
         fn do_refund_for(
-            who: T::AccountId,
+            who: &T::AccountId,
             vault: &mut Vault<T>,
-            amount: BalanceOf<T>,
-            crowdloan: ParaId,
             kind: ChildStorageKind,
-            lease_start: LeasePeriod,
-            lease_end: LeasePeriod,
-            referral_code: Option<Vec<u8>>,
+            amount: BalanceOf<T>,
         ) -> DispatchResult {
+            let relay_currency = T::RelayCurrency::get();
+
             if kind == ChildStorageKind::Contributed {
                 // SovereignAccount on relaychain must have
                 // withdrawn the contribution
-                T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
+                T::Assets::mint_into(relay_currency, who, amount)?;
             } else {
-                T::Assets::transfer(
-                    T::RelayCurrency::get(),
-                    &Self::account_id(),
-                    &who,
-                    amount,
-                    false,
-                )?;
+                T::Assets::transfer(relay_currency, &Self::account_id(), who, amount, false)?;
             }
 
             Self::do_update_contribution(
-                &who,
+                who,
                 vault,
                 amount,
-                referral_code,
+                None,
                 ArithmeticKind::Subtraction,
                 kind,
             )?;
             Ok(())
         }
 
-        //just iterate now and require improve later when CTokensRegistry increased
+        // just iterate now and require improve later when CTokensRegistry increased
         fn find_vault_by_asset_id(asset_id: &AssetIdOf<T>) -> Option<(AssetIdOf<T>, AssetIdOf<T>)> {
             for (vault, ctoken_id) in CTokensRegistry::<T>::iter() {
                 if &ctoken_id == asset_id {
