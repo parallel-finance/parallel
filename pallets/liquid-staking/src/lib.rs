@@ -701,10 +701,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             Self::ensure_origin(origin)?;
             let who = T::Lookup::lookup(dest)?;
-            let account_id = Self::account_id();
             let current_era = Self::current_era();
-            let collateral_currency = T::CollateralCurrency::get();
-            let staking_currency = Self::staking_currency()?;
 
             Unlockings::<T>::try_mutate_exists(&who, |b| -> DispatchResult {
                 let mut amount: BalanceOf<T> = Zero::zero();
@@ -737,22 +734,7 @@ pub mod pallet {
                     return Err(Error::<T>::NotWithdrawn.into());
                 }
 
-                if who == Self::loans_account_id() {
-                    let account_borrows =
-                        T::Loans::get_current_borrow_balance(&account_id, staking_currency)?;
-                    T::Loans::do_repay_borrow(
-                        &account_id,
-                        staking_currency,
-                        min(account_borrows, amount),
-                    )?;
-                    let redeem_amount = T::Loans::get_market_info(collateral_currency)?
-                        .collateral_factor
-                        .saturating_reciprocal_mul_ceil(amount);
-                    T::Loans::do_redeem(&account_id, collateral_currency, redeem_amount)?;
-                    T::Assets::burn_from(collateral_currency, &account_id, redeem_amount)?;
-                } else {
-                    T::Assets::transfer(staking_currency, &account_id, &who, amount, false)?;
-                }
+                Self::do_claim_for(&who, amount)?;
 
                 if chunks.is_empty() {
                     *b = None;
@@ -1697,6 +1679,32 @@ pub mod pallet {
 
             IsMatched::<T>::put(false);
             Self::deposit_event(Event::<T>::NewEra(Self::current_era()));
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_claim_for(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+            let module_id = Self::account_id();
+            let collateral_currency = T::CollateralCurrency::get();
+            let staking_currency = Self::staking_currency()?;
+
+            if who == &Self::loans_account_id() {
+                let account_borrows =
+                    T::Loans::get_current_borrow_balance(&module_id, staking_currency)?;
+                T::Loans::do_repay_borrow(
+                    &module_id,
+                    staking_currency,
+                    min(account_borrows, amount),
+                )?;
+                let redeem_amount = T::Loans::get_market_info(collateral_currency)?
+                    .collateral_factor
+                    .saturating_reciprocal_mul_ceil(amount);
+                T::Loans::do_redeem(&module_id, collateral_currency, redeem_amount)?;
+                T::Assets::burn_from(collateral_currency, &module_id, redeem_amount)?;
+            } else {
+                T::Assets::transfer(staking_currency, &module_id, &who, amount, false)?;
+            }
+
             Ok(())
         }
 
