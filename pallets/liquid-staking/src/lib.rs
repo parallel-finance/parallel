@@ -1702,7 +1702,7 @@ pub mod pallet {
                 T::Loans::do_redeem(&module_id, collateral_currency, redeem_amount)?;
                 T::Assets::burn_from(collateral_currency, &module_id, redeem_amount)?;
             } else {
-                T::Assets::transfer(staking_currency, &module_id, &who, amount, false)?;
+                T::Assets::transfer(staking_currency, &module_id, who, amount, false)?;
             }
 
             Ok(())
@@ -1720,14 +1720,14 @@ pub mod pallet {
             let mint_amount = T::Loans::get_market_info(collateral_currency)?
                 .collateral_factor
                 .saturating_reciprocal_mul_ceil(amount);
-            let account_id = Self::account_id();
+            let module_id = Self::account_id();
             let staking_currency = Self::staking_currency()?;
 
-            T::Assets::mint_into(collateral_currency, &account_id, mint_amount)?;
-            T::Loans::do_mint(&account_id, collateral_currency, mint_amount)?;
-            let _ = T::Loans::do_collateral_asset(&account_id, collateral_currency, true);
-            T::Loans::do_borrow(&account_id, staking_currency, borrow_amount)?;
-            T::Assets::transfer(staking_currency, &account_id, who, borrow_amount, false)?;
+            T::Assets::mint_into(collateral_currency, &module_id, mint_amount)?;
+            T::Loans::do_mint(&module_id, collateral_currency, mint_amount)?;
+            let _ = T::Loans::do_collateral_asset(&module_id, collateral_currency, true);
+            T::Loans::do_borrow(&module_id, staking_currency, borrow_amount)?;
+            T::Assets::transfer(staking_currency, &module_id, who, borrow_amount, false)?;
 
             Ok(())
         }
