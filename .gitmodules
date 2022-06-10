@@ -4,6 +4,3 @@
 [submodule "scripts/polkadot-launch"]
 	path = scripts/polkadot-launch
 	url = https://github.com/paritytech/polkadot-launch
-[submodule "resources/apps-config"]
-	path = resources/apps-config
-	url = https://github.com/parallel-finance/apps-config

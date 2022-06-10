@@ -1,98 +1,54 @@
-name: Coverage
+name: Tests Coverage
 
 on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**/README.md'
   push:
     branches:
       - master
-  pull_request:
-    branches: [master]
+    paths-ignore:
+      - '**/README.md'
 
+env:
+  TARPAULIN_VERSION: 0.20.1
+  CARGO_INCREMENTAL: 0
 jobs:
-  coverage:
-    if: github.repository == 'parallel-finance/parallel'
-    name: Auto Codecov Coverage
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-20.04]
-        rust: [nightly-2022-05-11]
-
+  clean-up-actions:
+    runs-on: self-hosted
     steps:
-      - name: Additional free space
-        run: |
-          # Workaround to provide additional free space for testing.
-          #   https://github.com/actions/virtual-environments/issues/2840
-          echo "Listing 100 largest packages"
-          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 100
-          df -h
-          echo "Removing large packages"
-          sudo apt-get remove -y php.*
-          sudo apt-get remove -y azure-cli google-cloud-sdk hhvm google-chrome-stable firefox powershell mono-devel
-          sudo apt-get autoremove -y
-          sudo apt-get autoclean -y
-          sudo apt-get clean -y
-          sudo dpkg -l |grep ^rc|awk '{print $2}' |sudo xargs dpkg -P
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -hT
-
-      - name: Checkout Repository
-        uses: actions/checkout@master
-
-      - name: Install Rust toolchain
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+  test:
+    name: Coverage Report
+    runs-on: self-hosted
+    needs: clean-up-actions
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: ${{ matrix.rust }}
-          override: true
-
-      - name: Install wasm32-unknown-unknown
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.rust }}
+          toolchain: nightly-2022-05-11
+          components: rustfmt
           target: wasm32-unknown-unknown
-          override: true
-
-      - uses: actions-rs/install@v0.1.2
-        with:
-          crate: cargo-tarpaulin
-          version: 0.20.1
-          use-tool-cache: true
-
-      # # Work around https://github.com/actions/cache/issues/403 by using GNU tar
-      # # instead of BSD tar.
-      # - name: Install GNU tar
-      #   if: matrix.os == 'macOS-latest'
-      #   run: |
-      #     brew install gnu-tar
-      #     echo PATH="/usr/local/opt/gnu-tar/libexec/gnubin:$PATH" >> $GITHUB_ENV
-      #
-      # - name: Cache cargo registry
-      #   uses: actions/cache@v1
-      #   with:
-      #     path: ~/.cargo/registry
-      #     key: ${{ matrix.os }}-${{ matrix.rust }}-cargo-registry-${{ hashFiles('**/Cargo.toml') }}-${{ secrets.CACHE_VERSION }}
-      #
-      # - name: Cache cargo index
-      #   uses: actions/cache@v1
-      #   with:
-      #     path: ~/.cargo/git
-      #     key: ${{ matrix.os }}-${{ matrix.rust }}-cargo-index-${{ hashFiles('**/Cargo.toml') }}-${{ secrets.CACHE_VERSION }}
-      #
-      # - name: Cache cargo build
-      #   uses: actions/cache@v1
-      #   with:
-      #     path: target
-      #     key: ${{ matrix.os }}-${{ matrix.rust }}-cargo-build-target-${{ hashFiles('**/Cargo.toml') }}-${{ secrets.CACHE_VERSION }}
-
-      - name: Generate code coverage
+          default: true
+      - name: Run cargo-tarpaulin
         run: |
+          wget https://github.com/xd009642/tarpaulin/releases/download/${{ env.TARPAULIN_VERSION }}/cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz
+          tar -zxvf cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz -C $HOME/.cargo/bin
           cargo +nightly-2022-05-11 tarpaulin --verbose --no-fail-fast -p pallet-loans -p pallet-stableswap -p pallet-liquid-staking -p pallet-farming -p pallet-prices -p pallet-amm -p pallet-router -p pallet-crowdloans -p pallet-emergency-shutdown -p pallet-asset-registry -p pallet-streaming --timeout 300 --out Xml
-
-      - name: Upload To Codecov.io
-        uses: codecov/codecov-action@v1
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v2
         with:
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
           token: ${{secrets.CODECOV_TOKEN}}
-          fail_ci_if_error: true
