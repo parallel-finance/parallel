@@ -1837,6 +1837,7 @@ parameter_types! {
     pub LeasePeriod: BlockNumber = 2 * 2 * MINUTES;
     pub LeaseOffset: BlockNumber = 0;
     pub LeasePerYear: BlockNumber = 4;
+    pub LeaseEndDelay: BlockNumber = 0;
 }
 
 pub struct RelayChainValidationDataProvider<T>(sp_std::marker::PhantomData<T>);
@@ -1888,6 +1889,7 @@ impl pallet_crowdloans::Config for Runtime {
     type LeasePeriod = LeasePeriod;
     type LeaseOffset = LeaseOffset;
     type LeasePerYear = LeasePerYear;
+    type LeaseEndDelay = LeaseEndDelay;
 }
 
 parameter_types! {

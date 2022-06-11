@@ -456,6 +456,7 @@ parameter_types! {
     pub const LeasePeriod: BlockNumber = 84*24*3600/6;//84 days same as polkadot
     pub const LeaseOffset: BlockNumber = 64*24*3600/6;//64 days same as polkadot
     pub const LeasePerYear: BlockNumber = 4;
+    pub const LeaseEndDelay: BlockNumber = 0;
 }
 
 pub type CreateVaultOrigin =
@@ -507,6 +508,7 @@ impl crate::Config for Test {
     type LeasePeriod = LeasePeriod;
     type LeaseOffset = LeaseOffset;
     type LeasePerYear = LeasePerYear;
+    type LeaseEndDelay = LeaseEndDelay;
 }
 
 parameter_types! {

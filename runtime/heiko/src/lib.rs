@@ -1847,9 +1847,10 @@ parameter_types! {
     pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
-    pub LeasePeriod: BlockNumber = 42 * 2 * DAYS;
+    pub LeasePeriod: BlockNumber = 42 * 24 * 60 * 60 / 6;
     pub LeaseOffset: BlockNumber = 0;
     pub LeasePerYear: BlockNumber = 8;
+    pub LeaseEndDelay: BlockNumber = 15 * 24 * 60 * 60 / 6;
 }
 
 pub struct RelayChainValidationDataProvider<T>(sp_std::marker::PhantomData<T>);
@@ -1901,6 +1902,7 @@ impl pallet_crowdloans::Config for Runtime {
     type LeasePeriod = LeasePeriod;
     type LeaseOffset = LeaseOffset;
     type LeasePerYear = LeasePerYear;
+    type LeaseEndDelay = LeaseEndDelay;
 }
 
 parameter_types! {

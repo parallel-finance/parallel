@@ -1879,6 +1879,7 @@ parameter_types! {
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
     pub LeasePeriod: BlockNumber = 1 * 2 * MINUTES;
     pub LeaseOffset: BlockNumber = 0;
+    pub LeaseEndDelay: BlockNumber = 0;
     pub LeasePerYear: BlockNumber = 8;
 }
 
@@ -1931,6 +1932,7 @@ impl pallet_crowdloans::Config for Runtime {
     type LeasePeriod = LeasePeriod;
     type LeaseOffset = LeaseOffset;
     type LeasePerYear = LeasePerYear;
+    type LeaseEndDelay = LeaseEndDelay;
 }
 
 parameter_types! {

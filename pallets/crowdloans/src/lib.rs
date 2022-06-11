@@ -143,6 +143,9 @@ pub mod pallet {
         #[pallet::constant]
         type LeaseOffset: Get<Self::BlockNumber>;
 
+        #[pallet::constant]
+        type LeaseEndDelay: Get<Self::BlockNumber>;
+
         /// LeaseOffset from relaychain
         #[pallet::constant]
         type LeasePerYear: Get<Self::BlockNumber>;
@@ -1663,8 +1666,11 @@ pub mod pallet {
                 .saturating_add(T::LeaseOffset::get());
             let end_block = lease_period
                 .saturating_mul((end_lease + 1).into())
-                .saturating_add(T::LeaseOffset::get());
-            let lease_length = lease_period.saturating_mul((end_lease - start_lease + 1).into());
+                .saturating_add(T::LeaseOffset::get())
+                .saturating_add(T::LeaseEndDelay::get());
+            let lease_length = lease_period
+                .saturating_mul((end_lease - start_lease + 1).into())
+                .saturating_add(T::LeaseEndDelay::get());
             let blocks_per_year = T::LeasePerYear::get().saturating_mul(lease_period);
             let total_term_by_year = Rate::saturating_from_rational(
                 lease_length.saturated_into::<u32>(),

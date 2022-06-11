@@ -1846,10 +1846,13 @@ parameter_types! {
     pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
-    //const params from relay chain: https://github.com/paritytech/polkadot/blob/1a445d96bdaf3fe781ce642368d0e9d1b2ad3b39/runtime/polkadot/src/lib.rs#L1320-L1328
-    //and since block time in parachain is twice as much in relaychain,we multiply by 2 here
-    pub LeasePeriod: BlockNumber = 84 * 2 * DAYS;
-    pub LeaseOffset: BlockNumber = 64 * 2 * DAYS;
+    // const params reference from relay chain and block time is 6s here
+    // https://github.com/paritytech/polkadot/blob/1a445d96bdaf3fe781ce642368d0e9d1b2ad3b39/runtime/polkadot/src/lib.rs#L1320-L1328
+    pub LeasePeriod: BlockNumber = 84 * 24 * 60 * 60 /6;
+    pub LeaseOffset: BlockNumber = 64 * 24 * 60 * 60 /6;
+    // we add some delay for lease end time in parachain to
+    // make lf collater asset safe from liquidation during this period
+    pub LeaseEndDelay: BlockNumber = 30 * 24 * 60 * 60 /6;
     pub LeasePerYear: BlockNumber = 4;
 }
 
@@ -1902,6 +1905,7 @@ impl pallet_crowdloans::Config for Runtime {
     type LeasePeriod = LeasePeriod;
     type LeaseOffset = LeaseOffset;
     type LeasePerYear = LeasePerYear;
+    type LeaseEndDelay = LeaseEndDelay;
 }
 
 parameter_types! {
