@@ -20,7 +20,6 @@ jobs:
     env:
       CHAIN: ${{github.event.inputs.chain}}
       REF_URL: ${{github.event.inputs.reference_url}}
-      RUST_TOOLCHAIN: nightly-2022-05-11
 
     steps:
       - name: Checkout sources
@@ -28,18 +27,18 @@ jobs:
         with:
           submodules: true
 
-      - name: Install Rust toolchain $RUST_TOOLCHAIN
+      - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: $RUST_TOOLCHAIN
+          toolchain: nightly-2022-05-11
           components: rustfmt, clippy
           override: true
 
-      - name: Install wasm32-unknown-unknown for $RUST_TOOLCHAIN
+      - name: Install wasm32-unknown-unknown
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: $RUST_TOOLCHAIN
+          toolchain: nightly-2022-05-11
           target: wasm32-unknown-unknown
           override: true
 
