@@ -1067,6 +1067,7 @@ pub mod pallet {
         }
 
         /// Refund contributions for single user
+        ///
         /// Once relaychain is in vrf but parachain didn't update vrf in time.
         /// Contributions received during this period should be refund to users,
         /// especially for those succeeded parachains.
