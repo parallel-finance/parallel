@@ -470,13 +470,8 @@ benchmarks! {
 
         initial_set_up::<T>(caller.clone(), ctoken);
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, LEASE_START, LEASE_END, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK.into()));
-        assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller.clone()).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
-        assert_ok!(Crowdloans::<T>::notification_received(
-            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-            0,
-            Response::ExecutionResult(None),
-        ));
+        assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
     }: _(
         SystemOrigin::Root,
