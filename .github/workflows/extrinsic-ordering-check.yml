@@ -45,16 +45,16 @@ jobs:
       - name: Build binary
         run: |
           cargo build --workspace --exclude runtime-integration-tests --release --bin parallel
-          ./parallel --version
+          ./target/release/parallel --version
 
       - name: Start local node
         run: |
           echo Running on $CHAIN
-          ./parallel --chain=$CHAIN &
+          ./target/release/parallel --chain=$CHAIN &
 
       - name: Prepare output
         run: |
-          VERSION=$(./parallel --version)
+          VERSION=$(./target/release/parallel --version)
           echo "Metadata comparison:" >> output.txt
           echo "Date: $(date)" >> output.txt
           echo "Reference: $REF_URL" >> output.txt
