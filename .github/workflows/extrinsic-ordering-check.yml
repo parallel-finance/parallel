@@ -1,6 +1,5 @@
 name: Extrinsic Ordering Check
 on:
-  pull_request:
   workflow_dispatch:
     inputs:
       reference_url:
