@@ -10,10 +10,7 @@ use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
 use pallet_traits::ump::{XcmCall, XcmWeightFeeMisc};
 use primitives::{Balance, CurrencyId, ParaId};
-use sp_runtime::{
-    traits::{One, StaticLookup},
-    MultiAddress::Id,
-};
+use sp_runtime::traits::{One, StaticLookup};
 use sp_std::prelude::*;
 use xcm::latest::prelude::*;
 
