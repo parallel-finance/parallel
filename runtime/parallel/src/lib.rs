@@ -902,6 +902,7 @@ pub enum ProxyType {
     Crowdloans,
     Farming,
     Streaming,
+    Governance,
 }
 impl Default for ProxyType {
     fn default() -> Self {
@@ -961,6 +962,17 @@ impl InstanceFilter<Call> for ProxyType {
                     Call::Streaming(pallet_streaming::Call::create { .. })
                         | Call::Streaming(pallet_streaming::Call::cancel { .. })
                         | Call::Streaming(pallet_streaming::Call::withdraw { .. })
+                )
+            }
+            ProxyType::Governance => {
+                matches!(
+                    c,
+                    Call::Democracy(..)
+                        | Call::Preimage(..)
+                        | Call::GeneralCouncil(..)
+                        | Call::TechnicalCommittee(..)
+                        | Call::Treasury(..)
+                        | Call::Utility(..)
                 )
             }
         }
@@ -1115,7 +1127,7 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = 5 * DOLLARS / 2; // 2.5PARA
+        let default_gift_amount = 5 * DOLLARS; // 5PARA
         Ok(match asset_id {
             DOT if balance >= 5 * 10_u128.pow(decimal.into()).saturating_sub(96_000_000u128) => {
                 default_gift_amount
