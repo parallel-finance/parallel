@@ -6,12 +6,12 @@ on:
     branches:
       - master
     paths-ignore:
-      - '**/README.md'
+      - "**/README.md"
   push:
     branches:
       - master
     paths-ignore:
-      - '**/README.md'
+      - "**/README.md"
 
 env:
   TARPAULIN_VERSION: 0.20.1
@@ -45,10 +45,23 @@ jobs:
         run: |
           wget https://github.com/xd009642/tarpaulin/releases/download/${{ env.TARPAULIN_VERSION }}/cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz
           tar -zxvf cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz -C $HOME/.cargo/bin
-          cargo +nightly-2022-05-11 tarpaulin --verbose --no-fail-fast -p pallet-loans -p pallet-stableswap -p pallet-liquid-staking -p pallet-farming -p pallet-prices -p pallet-amm -p pallet-router -p pallet-crowdloans -p pallet-emergency-shutdown -p pallet-asset-registry -p pallet-streaming --timeout 300 --out Xml
+          cargo +nightly-2022-05-11 tarpaulin --verbose --no-fail-fast \
+            -p pallet-loans \
+            -p pallet-liquid-staking \
+            -p pallet-farming \
+            -p pallet-prices \
+            -p pallet-amm \
+            -p pallet-stableswap \
+            -p pallet-router \
+            -p pallet-crowdloans \
+            -p pallet-emergency-shutdown \
+            -p pallet-asset-registry \
+            -p pallet-streaming \
+            --timeout 300 --out Xml
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v2
         with:
           fail_ci_if_error: true # optional (default = false)
           verbose: true # optional (default = false)
           token: ${{secrets.CODECOV_TOKEN}}
+
