@@ -1,4 +1,4 @@
-name: Tests Coverage
+name: Coverage
 
 on:
   workflow_dispatch:
@@ -29,6 +29,9 @@ jobs:
     runs-on: self-hosted
     needs: clean-up-actions
     steps:
+      - name: cleaning up
+        run: |
+          echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -55,6 +58,7 @@ jobs:
             -p pallet-router \
             -p pallet-crowdloans \
             -p pallet-emergency-shutdown \
+            -p pallet-bridge \
             -p pallet-asset-registry \
             -p pallet-streaming \
             --timeout 300 --out Xml
@@ -64,4 +68,3 @@ jobs:
           fail_ci_if_error: true # optional (default = false)
           verbose: true # optional (default = false)
           token: ${{secrets.CODECOV_TOKEN}}
-
