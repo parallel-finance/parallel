@@ -95,6 +95,8 @@ pub mod fee {
 pub mod paras {
     pub mod statemine {
         pub const ID: u32 = 1000;
+        pub const PALLET_INSTANCE: u8 = 50;
+        pub const USDT_KEY: u128 = 1984;
     }
 
     pub mod karura {
