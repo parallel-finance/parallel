@@ -1,0 +1,33 @@
+name: Try Runtime Upgrade
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  try-runtime:
+    name: Try Runtime Upgrade
+    runs-on: self-hosted
+    steps:
+      - name: cleaning up
+        run: |
+          echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly-2022-05-11
+          components: rustfmt
+          target: wasm32-unknown-unknown
+          default: true
+      - name: Try Heiko Runtime Upgrade
+        run: |
+          make try-heiko-live-upgrade
+
+      - name: Try Parallel Runtime Upgrade
+        run: |
+          make try-parallel-live-upgrade
