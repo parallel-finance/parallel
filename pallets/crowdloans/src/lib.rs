@@ -1021,50 +1021,6 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Refund contributions for single user
-        /// Once relaychain is in vrf but parachain didn't update vrf in time.
-        /// Contributions received during this period should be refund to users,
-        /// especially for those succeeded parachains.
-        #[pallet::weight(<T as Config>::WeightInfo::refund())]
-        #[transactional]
-        pub fn refund_for(
-            origin: OriginFor<T>,
-            dest: <T::Lookup as StaticLookup>::Source,
-            crowdloan: ParaId,
-            kind: ChildStorageKind,
-            #[pallet::compact] amount: BalanceOf<T>,
-            lease_start: LeasePeriod,
-            lease_end: LeasePeriod,
-        ) -> DispatchResult {
-            ensure_origin!(RefundOrigin, origin)?;
-
-            let who = T::Lookup::lookup(dest)?;
-            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
-                .ok_or(Error::<T>::VaultDoesNotExist)?;
-
-            ensure!(
-                vault.phase == VaultPhase::Closed,
-                Error::<T>::IncorrectVaultPhase
-            );
-
-            let (contribution, _) = Self::contribution_get(vault.trie_index, &who, kind);
-            ensure!(contribution >= amount, Error::<T>::InsufficientContribution);
-
-            Self::do_refund_for(&who, &mut vault, kind, amount)?;
-
-            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
-
-            Self::deposit_event(Event::<T>::UserRefunded(
-                crowdloan,
-                (lease_start, lease_end),
-                who,
-                kind,
-                amount,
-            ));
-
-            Ok(())
-        }
-
         /// Dissolve vault
         #[pallet::weight(<T as Config>::WeightInfo::dissolve_vault())]
         #[transactional]
@@ -1105,6 +1061,50 @@ pub mod pallet {
             Self::deposit_event(Event::<T>::VaultDissolved(
                 crowdloan,
                 (lease_start, lease_end),
+            ));
+
+            Ok(())
+        }
+
+        /// Refund contributions for single user
+        /// Once relaychain is in vrf but parachain didn't update vrf in time.
+        /// Contributions received during this period should be refund to users,
+        /// especially for those succeeded parachains.
+        #[pallet::weight(<T as Config>::WeightInfo::refund())]
+        #[transactional]
+        pub fn refund_for(
+            origin: OriginFor<T>,
+            dest: <T::Lookup as StaticLookup>::Source,
+            crowdloan: ParaId,
+            kind: ChildStorageKind,
+            #[pallet::compact] amount: BalanceOf<T>,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            ensure_origin!(RefundOrigin, origin)?;
+
+            let who = T::Lookup::lookup(dest)?;
+            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            ensure!(
+                vault.phase == VaultPhase::Closed,
+                Error::<T>::IncorrectVaultPhase
+            );
+
+            let (contribution, _) = Self::contribution_get(vault.trie_index, &who, kind);
+            ensure!(contribution >= amount, Error::<T>::InsufficientContribution);
+
+            Self::do_refund_for(&who, &mut vault, kind, amount)?;
+
+            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
+
+            Self::deposit_event(Event::<T>::UserRefunded(
+                crowdloan,
+                (lease_start, lease_end),
+                who,
+                kind,
+                amount,
             ));
 
             Ok(())
