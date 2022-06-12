@@ -58,6 +58,7 @@ jobs:
             -p pallet-router \
             -p pallet-crowdloans \
             -p pallet-emergency-shutdown \
+            -p pallet-bridge \
             -p pallet-asset-registry \
             -p pallet-streaming \
             --timeout 300 --out Xml
