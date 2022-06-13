@@ -647,7 +647,7 @@ pub mod pallet {
             derivative_index: DerivativeIndex,
             num_slashing_spans: u32,
         ) -> DispatchResult {
-            T::RelayOrigin::ensure_origin(origin)?;
+            Self::ensure_origin(origin)?;
             Self::do_withdraw_unbonded(derivative_index, num_slashing_spans)?;
             Ok(())
         }

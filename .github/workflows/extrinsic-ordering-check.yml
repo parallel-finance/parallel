@@ -1,0 +1,91 @@
+name: Extrinsic Ordering Check
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      reference_url:
+        description: The WebSocket url of the reference node
+        default: wss://heiko-rpc.parallel.fi
+        required: true
+      chain:
+        description: The name of the chain under test. Usually, you would pass a local chain
+        default: heiko-dev
+        required: true
+
+jobs:
+  check:
+    if: github.repository == 'parallel-finance/parallel'
+    name: Run check
+    runs-on: ubuntu-latest
+    env:
+      CHAIN: heiko-dev
+      REF_URL: wss://heiko-rpc.parallel.fi
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly-2022-05-11
+          components: rustfmt, clippy
+          override: true
+
+      - name: Install wasm32-unknown-unknown
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2022-05-11
+          target: wasm32-unknown-unknown
+          override: true
+
+      - name: Build binary
+        run: |
+          cargo build --workspace --exclude runtime-integration-tests --release --bin parallel
+          ./target/release/parallel --version
+
+      - name: Start local node
+        run: |
+          echo Running on $CHAIN
+          ./target/release/parallel --chain=$CHAIN &
+
+      - name: Prepare output
+        run: |
+          VERSION=$(./target/release/parallel --version)
+          echo "Metadata comparison:" >> output.txt
+          echo "Date: $(date)" >> output.txt
+          echo "Reference: $REF_URL" >> output.txt
+          echo "Target version: $VERSION" >> output.txt
+          echo "Chain: $CHAIN" >> output.txt
+          echo "----------------------------------------------------------------------" >> output.txt
+
+      - name: Pull polkadot-js-tools image
+        run: docker pull jacogr/polkadot-js-tools
+
+      - name: Compare the metadata
+        run: |
+          CMD="docker run --pull always --network host jacogr/polkadot-js-tools metadata $REF_URL ws://localhost:9944"
+          echo -e "Running:\n$CMD"
+          $CMD >> output.txt
+          sed -z -i 's/\n\n/\n/g' output.txt
+          cat output.txt | egrep -n -i ''
+          SUMMARY=$(./scripts/ci/extrinsic-ordering-filter.sh output.txt)
+          echo -e $SUMMARY
+          echo -e $SUMMARY >> output.txt
+
+      - name: Show result
+        run: |
+          cat output.txt
+
+      - name: Stop our local node
+        run: pkill parallel
+
+      - name: Save output as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.CHAIN }}
+          path: |
+            output.txt

@@ -109,7 +109,7 @@ use pallet_traits::{
 use primitives::{
     network::HEIKO_PREFIX,
     tokens::{
-        EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KMA, KSM, KUSD, LKSM, MOVR, PHA, SKSM, TUR,
+        EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KMA, KSM, KUSD, LKSM, MOVR, PHA, SKSM, TUR, USDT,
     },
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
@@ -435,6 +435,15 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
             TUR => Some(MultiLocation::new(1, X1(Parachain(paras::turing::ID)))),
             // Calamari
             KMA => Some(MultiLocation::new(1, X1(Parachain(paras::calamari::ID)))),
+            // Statemine
+            USDT => Some(MultiLocation::new(
+                1,
+                X3(
+                    Parachain(paras::statemine::ID),
+                    PalletInstance(paras::statemine::PALLET_INSTANCE),
+                    GeneralIndex(paras::statemine::USDT_KEY),
+                ),
+            )),
             _ => None,
         }
     }
@@ -518,6 +527,16 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 1,
                 interior: X1(Parachain(id)),
             } if id == paras::calamari::ID => Some(KMA),
+            // Statemine
+            MultiLocation {
+                parents: 1,
+                interior: X3(Parachain(id), PalletInstance(pallet_instance), GeneralIndex(idx)),
+            } if id == paras::statemine::ID
+                && pallet_instance == paras::statemine::PALLET_INSTANCE
+                && idx == paras::statemine::USDT_KEY =>
+            {
+                Some(USDT)
+            }
             _ => None,
         }
     }
@@ -887,6 +906,7 @@ pub enum ProxyType {
     Crowdloans,
     Farming,
     Streaming,
+    Governance,
 }
 impl Default for ProxyType {
     fn default() -> Self {
@@ -946,6 +966,17 @@ impl InstanceFilter<Call> for ProxyType {
                     Call::Streaming(pallet_streaming::Call::create { .. })
                         | Call::Streaming(pallet_streaming::Call::cancel { .. })
                         | Call::Streaming(pallet_streaming::Call::withdraw { .. })
+                )
+            }
+            ProxyType::Governance => {
+                matches!(
+                    c,
+                    Call::Democracy(..)
+                        | Call::Preimage(..)
+                        | Call::GeneralCouncil(..)
+                        | Call::TechnicalCommittee(..)
+                        | Call::Treasury(..)
+                        | Call::Utility(..)
                 )
             }
         }
@@ -1100,7 +1131,7 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = 5 * DOLLARS / 2; // 2.5HKO
+        let default_gift_amount = 5 * DOLLARS; // 5HKO
         Ok(match asset_id {
             KSM if balance
                 >= 10_u128
@@ -1264,6 +1295,18 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 5000
     );
+    // Statemine
+    pub UsdtPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X3(
+                Parachain(paras::statemine::ID),
+                PalletInstance(paras::statemine::PALLET_INSTANCE),
+                GeneralIndex(paras::statemine::USDT_KEY),
+            ),
+        ).into(),
+        ksm_per_second() * 150
+    );
 }
 
 match_types! {
@@ -1318,6 +1361,8 @@ pub type Trader = (
     FixedRateOfFungible<TurPerSecond, ToTreasury>,
     // Calamari
     FixedRateOfFungible<KmaPerSecond, ToTreasury>,
+    // Statemine
+    FixedRateOfFungible<UsdtPerSecond, ToTreasury>,
     // Foreign Assets registered in AssetRegistry
     // TODO: replace all above except local reserved asset later
     FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
@@ -2269,7 +2314,7 @@ impl_runtime_apis! {
     }
 
     impl pallet_loans_rpc_runtime_api::LoansApi<Block, AccountId, Balance> for Runtime {
-        fn get_account_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall), DispatchError> {
+        fn get_account_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall, Liquidity, Shortfall), DispatchError> {
             Loans::get_account_liquidity(&account)
         }
 
@@ -2277,7 +2322,7 @@ impl_runtime_apis! {
             Loans::get_market_status(asset_id)
         }
 
-        fn get_liquidation_threshold_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall, sp_runtime::FixedU128), DispatchError> {
+        fn get_liquidation_threshold_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall, Liquidity, Shortfall), DispatchError> {
             Loans::get_account_liquidation_threshold_liquidity(&account)
         }
     }
