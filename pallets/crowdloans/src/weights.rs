@@ -62,6 +62,7 @@ pub trait WeightInfo {
 	fn notification_received() -> Weight;
 	fn refund() -> Weight;
 	fn dissolve_vault() -> Weight;
+	fn refund_for() -> Weight;
 }
 
 /// Weights for pallet_crowdloans using the Substrate node and recommended hardware.
@@ -273,6 +274,17 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(6 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
+	// Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
+	// Storage: Crowdloans Vaults (r:1 w:1)
+	// Storage: Assets Asset (r:1 w:1)
+	// Storage: Assets Account (r:2 w:2)
+	// Storage: System Account (r:1 w:1)
+	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:1 w:1)
+	fn refund_for() -> Weight {
+		(169_339_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(7 as Weight))
+			.saturating_add(T::DbWeight::get().writes(7 as Weight))
+	}
 }
 
 // For backwards compatibility and tests
@@ -482,5 +494,16 @@ impl WeightInfo for () {
 		(153_319_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(6 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
+	}
+	// Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
+	// Storage: Crowdloans Vaults (r:1 w:1)
+	// Storage: Assets Asset (r:1 w:1)
+	// Storage: Assets Account (r:2 w:2)
+	// Storage: System Account (r:1 w:1)
+	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:1 w:1)
+	fn refund_for() -> Weight {
+		(169_339_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(7 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(7 as Weight))
 	}
 }
