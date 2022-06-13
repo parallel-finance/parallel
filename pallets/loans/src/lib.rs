@@ -598,16 +598,29 @@ pub mod pallet {
         pub fn update_market(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            collateral_factor: Ratio,
-            liquidation_threshold: Ratio,
-            reserve_factor: Ratio,
-            close_factor: Ratio,
-            liquidate_incentive_reserved_factor: Ratio,
-            liquidate_incentive: Rate,
-            #[pallet::compact] supply_cap: BalanceOf<T>,
-            #[pallet::compact] borrow_cap: BalanceOf<T>,
+            collateral_factor: Option<Ratio>,
+            liquidation_threshold: Option<Ratio>,
+            reserve_factor: Option<Ratio>,
+            close_factor: Option<Ratio>,
+            liquidate_incentive_reserved_factor: Option<Ratio>,
+            liquidate_incentive: Option<Rate>,
+            supply_cap: Option<BalanceOf<T>>,
+            borrow_cap: Option<BalanceOf<T>>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
+
+            let market = Self::market(asset_id)?;
+
+            let collateral_factor = collateral_factor.unwrap_or(market.collateral_factor);
+            let liquidation_threshold =
+                liquidation_threshold.unwrap_or(market.liquidation_threshold);
+            let reserve_factor = reserve_factor.unwrap_or(market.reserve_factor);
+            let close_factor = close_factor.unwrap_or(market.close_factor);
+            let liquidate_incentive_reserved_factor = liquidate_incentive_reserved_factor
+                .unwrap_or(market.liquidate_incentive_reserved_factor);
+            let liquidate_incentive = liquidate_incentive.unwrap_or(market.liquidate_incentive);
+            let supply_cap = supply_cap.unwrap_or(market.supply_cap);
+            let borrow_cap = borrow_cap.unwrap_or(market.borrow_cap);
 
             ensure!(
                 collateral_factor >= Ratio::zero() && collateral_factor < Ratio::one(),
@@ -736,14 +749,17 @@ pub mod pallet {
         pub fn update_market_reward_speed(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            supply_reward_per_block: BalanceOf<T>,
-            borrow_reward_per_block: BalanceOf<T>,
+            supply_reward_per_block: Option<BalanceOf<T>>,
+            borrow_reward_per_block: Option<BalanceOf<T>>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
             Self::ensure_active_market(asset_id)?;
 
             let current_supply_speed = RewardSupplySpeed::<T>::get(asset_id);
             let current_borrow_speed = RewardBorrowSpeed::<T>::get(asset_id);
+
+            let supply_reward_per_block = supply_reward_per_block.unwrap_or(current_supply_speed);
+            let borrow_reward_per_block = borrow_reward_per_block.unwrap_or(current_borrow_speed);
 
             if supply_reward_per_block != current_supply_speed {
                 Self::update_reward_supply_index(asset_id)?;

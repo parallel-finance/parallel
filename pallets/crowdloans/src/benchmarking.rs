@@ -10,8 +10,7 @@ use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
 use pallet_traits::ump::{XcmCall, XcmWeightFeeMisc};
 use primitives::{Balance, CurrencyId, ParaId};
-use sp_runtime::traits::One;
-use sp_runtime::traits::StaticLookup;
+use sp_runtime::traits::{One, StaticLookup};
 use sp_std::prelude::*;
 use xcm::latest::prelude::*;
 
@@ -425,9 +424,15 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         let crowdloan = ParaId::from(1335u32);
 
-        initial_set_up::<T>(caller, ctoken);
+        initial_set_up::<T>(caller.clone(), ctoken);
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, LEASE_START, LEASE_END, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK.into()));
         assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
+        assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
+        assert_ok!(Crowdloans::<T>::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        ));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
     }: _(
         SystemOrigin::Root,
@@ -458,6 +463,28 @@ benchmarks! {
         assert_last_event::<T>(Event::VaultDissolved(crowdloan, (LEASE_START, LEASE_END)).into())
     }
 
+    refund_for {
+        let ctoken = 10;
+        let caller: T::AccountId = whitelisted_caller();
+        let crowdloan = ParaId::from(1335u32);
+
+        initial_set_up::<T>(caller.clone(), ctoken);
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, LEASE_START, LEASE_END, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK.into()));
+        assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller.clone()).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
+        assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
+        assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
+    }: _(
+        SystemOrigin::Root,
+        T::Lookup::unlookup(caller.clone()),
+        crowdloan,
+        ChildStorageKind::Pending,
+        CONTRIBUTE_AMOUNT,
+        LEASE_START,
+        LEASE_END
+    )
+    verify {
+        assert_last_event::<T>(Event::UserRefunded(crowdloan, (LEASE_START, LEASE_END), caller, ChildStorageKind::Pending, CONTRIBUTE_AMOUNT).into())
+    }
 }
 
 impl_benchmark_test_suite!(Crowdloans, crate::mock::new_test_ext(), crate::mock::Test,);
