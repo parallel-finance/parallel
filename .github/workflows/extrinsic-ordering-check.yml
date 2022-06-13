@@ -1,6 +1,5 @@
 name: Extrinsic Ordering Check
 on:
-  pull_request:
   workflow_dispatch:
     inputs:
       reference_url:
@@ -18,8 +17,8 @@ jobs:
     name: Run check
     runs-on: ubuntu-latest
     env:
-      CHAIN: heiko-dev
-      REF_URL: wss://heiko-rpc.parallel.fi
+      CHAIN: ${{github.event.inputs.chain}}
+      REF_URL: ${{github.event.inputs.reference_url}}
 
     steps:
       - name: Checkout sources
