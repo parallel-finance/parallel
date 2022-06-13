@@ -35,6 +35,7 @@ A decentralized lending & staking protocol built on top of the Polkadot ecosyste
 
 ## Learn More
 
+
 Refer to the upstream
 [Substrate Developer Hub Node Template](https://github.com/substrate-developer-hub/substrate-node-template)
 to learn more about the structure of this project, the capabilities it encapsulates and the way in
