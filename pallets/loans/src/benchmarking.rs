@@ -218,16 +218,16 @@ benchmarks! {
     update_market {
         assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), KSM, pending_market_mock::<T>(PKSM)));
     }: _(
-            SystemOrigin::Root,
-            KSM,
-            Ratio::from_percent(50),
-            Ratio::from_percent(55),
-            Ratio::from_percent(50),
-            Ratio::from_percent(15),
-            Ratio::from_percent(3),
-            Rate::from_inner(Rate::DIV / 100 * 110),
-            1_000_000_000_000_000_000_000u128,
-            1_000_000_000_000_000_000_000u128
+        SystemOrigin::Root,
+        KSM,
+        Some(Ratio::from_percent(50)),
+        Some(Ratio::from_percent(55)),
+        Some(Ratio::from_percent(50)),
+        Some(Ratio::from_percent(15)),
+        Some(Ratio::from_percent(3)),
+        Some(Rate::from_inner(Rate::DIV / 100 * 110)),
+        Some(1_000_000_000_000_000_000_000u128),
+        Some(1_000_000_000_000_000_000_000u128)
     )
     verify {
         let mut market = pending_market_mock::<T>(PKSM);
@@ -264,7 +264,7 @@ benchmarks! {
     update_market_reward_speed {
         assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), USDT, pending_market_mock::<T>(USDT)));
         assert_ok!(Loans::<T>::activate_market(SystemOrigin::Root.into(), USDT));
-    }: _(SystemOrigin::Root, USDT, 1_000_000, 1_000_000)
+    }: _(SystemOrigin::Root, USDT, Some(1_000_000), Some(1_000_000))
     verify {
         assert_last_event::<T>(Event::<T>::MarketRewardSpeedUpdated(USDT, 1_000_000, 1_000_000).into());
     }
@@ -276,7 +276,7 @@ benchmarks! {
         assert_ok!(Loans::<T>::activate_market(SystemOrigin::Root.into(), USDT));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), USDT, 100_000_000));
         assert_ok!(Loans::<T>::add_reward(SystemOrigin::Signed(caller.clone()).into(), 1_000_000_000_000_u128));
-        assert_ok!(Loans::<T>::update_market_reward_speed(SystemOrigin::Root.into(), USDT, 1_000_000, 1_000_000));
+        assert_ok!(Loans::<T>::update_market_reward_speed(SystemOrigin::Root.into(), USDT, Some(1_000_000), Some(1_000_000)));
         let target_height = frame_system::Pallet::<T>::block_number().saturating_add(One::one());
         frame_system::Pallet::<T>::set_block_number(target_height);
     }: _(SystemOrigin::Signed(caller.clone()))
@@ -291,7 +291,7 @@ benchmarks! {
         assert_ok!(Loans::<T>::activate_market(SystemOrigin::Root.into(), USDT));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), USDT, 100_000_000));
         assert_ok!(Loans::<T>::add_reward(SystemOrigin::Signed(caller.clone()).into(), 1_000_000_000_000_u128));
-        assert_ok!(Loans::<T>::update_market_reward_speed(SystemOrigin::Root.into(), USDT, 1_000_000, 1_000_000));
+        assert_ok!(Loans::<T>::update_market_reward_speed(SystemOrigin::Root.into(), USDT, Some(1_000_000), Some(1_000_000)));
         let target_height = frame_system::Pallet::<T>::block_number().saturating_add(One::one());
         frame_system::Pallet::<T>::set_block_number(target_height);
     }: _(SystemOrigin::Signed(caller.clone()), USDT)

@@ -525,7 +525,6 @@ impl pallet_xcm_helper::Config for Test {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Test>;
-    type XcmOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
     type RelayCurrency = RelayCurrency;
 }
