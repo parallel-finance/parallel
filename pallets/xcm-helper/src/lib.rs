@@ -95,9 +95,6 @@ pub mod pallet {
         /// The origin which can update reserve_factor, xcm_fees etc
         type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
-        /// The origin which can call XCM helper functions
-        type XcmOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
-
         /// Weight information
         type WeightInfo: WeightInfo;
 
@@ -111,31 +108,6 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// Xcm fee and weight updated
         XcmWeightFeeUpdated(XcmWeightFeeMisc<Weight, BalanceOf<T>>),
-        /// Withdrawing
-        Withdrawing,
-        /// Contributing
-        Contributing,
-        /// Bonding
-        Bonding,
-        /// BondingExtra
-        BondingExtra,
-        /// Unbonding
-        Unbonding,
-        /// Rebonding
-        Rebonding,
-        /// WithdrawingUnbonded
-        WithdrawingUnbonded,
-        /// Nominating
-        Nominating,
-        /// XCM message sent. \[to, message\]
-        Sent {
-            to: Box<MultiLocation>,
-            message: Xcm<()>,
-        },
-        /// ProxyAdded
-        ProxyAdded,
-        /// ProxyRemoved
-        ProxyRemoved,
     }
 
     #[pallet::storage]
@@ -158,15 +130,9 @@ pub mod pallet {
         ZeroXcmFees,
         /// Insufficient xcm fees
         InsufficientXcmFees,
-        /// The message and destination combination was not recognized as being
-        /// reachable.
-        Unreachable,
         /// The message and destination was recognized as being reachable but
         /// the operation could not be completed.
         SendFailure,
-        /// The version of the `Versioned` value used is not able to be
-        /// interpreted.
-        BadVersion,
     }
 
     #[pallet::call]

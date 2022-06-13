@@ -201,19 +201,18 @@ fn update_market_has_sanity_checks_for_rate_models() {
 #[test]
 fn update_market_ensures_that_it_is_not_possible_to_modify_unknown_market_currencies() {
     new_test_ext().execute_with(|| {
-        let market = MARKET_MOCK;
         assert_noop!(
             Loans::update_market(
                 Origin::root(),
                 SDOT,
-                market.collateral_factor,
-                market.liquidation_threshold,
-                market.reserve_factor,
-                market.close_factor,
-                market.liquidate_incentive_reserved_factor,
-                market.liquidate_incentive,
-                market.supply_cap,
-                market.borrow_cap,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
             ),
             Error::<Test>::MarketDoesNotExist
         );
@@ -232,14 +231,14 @@ fn update_market_works() {
         assert_ok!(Loans::update_market(
             Origin::root(),
             DOT,
-            market.collateral_factor,
-            market.liquidation_threshold,
-            market.reserve_factor,
-            Default::default(),
-            market.liquidate_incentive_reserved_factor,
-            market.liquidate_incentive,
-            market.supply_cap,
-            market.borrow_cap,
+            None,
+            None,
+            None,
+            Some(Default::default()),
+            None,
+            None,
+            None,
+            None,
         ));
 
         assert_eq!(Loans::market(DOT).unwrap().close_factor, Default::default());
@@ -255,32 +254,31 @@ fn update_market_should_not_work_if_with_invalid_params() {
             Ratio::from_percent(50)
         );
 
-        let market = MARKET_MOCK;
         // check error code while collateral_factor is [0%, 100%)
         assert_ok!(Loans::update_market(
             Origin::root(),
             DOT,
-            Ratio::zero(),
-            market.liquidation_threshold,
-            market.reserve_factor,
-            Default::default(),
-            market.liquidate_incentive_reserved_factor,
-            market.liquidate_incentive,
-            market.supply_cap,
-            market.borrow_cap,
+            Some(Ratio::zero()),
+            None,
+            None,
+            Some(Default::default()),
+            None,
+            None,
+            None,
+            None,
         ));
         assert_noop!(
             Loans::update_market(
                 Origin::root(),
                 DOT,
-                Ratio::one(),
-                market.liquidation_threshold,
-                market.reserve_factor,
-                Default::default(),
-                market.liquidate_incentive_reserved_factor,
-                market.liquidate_incentive,
-                market.supply_cap,
-                market.borrow_cap,
+                Some(Ratio::one()),
+                None,
+                None,
+                Some(Default::default()),
+                None,
+                None,
+                None,
+                None,
             ),
             Error::<Test>::InvalidFactor
         );
@@ -289,14 +287,14 @@ fn update_market_should_not_work_if_with_invalid_params() {
             Loans::update_market(
                 Origin::root(),
                 DOT,
-                market.collateral_factor,
-                market.liquidation_threshold,
-                Ratio::zero(),
-                Default::default(),
-                market.liquidate_incentive_reserved_factor,
-                market.liquidate_incentive,
-                market.supply_cap,
-                market.borrow_cap,
+                None,
+                None,
+                Some(Ratio::zero()),
+                Some(Default::default()),
+                None,
+                None,
+                None,
+                None,
             ),
             Error::<Test>::InvalidFactor
         );
@@ -304,14 +302,14 @@ fn update_market_should_not_work_if_with_invalid_params() {
             Loans::update_market(
                 Origin::root(),
                 DOT,
-                market.collateral_factor,
-                market.liquidation_threshold,
-                Ratio::one(),
-                Default::default(),
-                market.liquidate_incentive_reserved_factor,
-                market.liquidate_incentive,
-                market.supply_cap,
-                market.borrow_cap,
+                None,
+                None,
+                Some(Ratio::one()),
+                Some(Default::default()),
+                None,
+                None,
+                None,
+                None,
             ),
             Error::<Test>::InvalidFactor
         );
@@ -320,14 +318,14 @@ fn update_market_should_not_work_if_with_invalid_params() {
             Loans::update_market(
                 Origin::root(),
                 DOT,
-                market.collateral_factor,
-                market.liquidation_threshold,
-                market.reserve_factor,
-                Default::default(),
-                market.liquidate_incentive_reserved_factor,
-                Rate::from_inner(Rate::DIV / 100 * 90),
-                Zero::zero(),
-                market.borrow_cap,
+                None,
+                None,
+                None,
+                Some(Default::default()),
+                None,
+                Some(Rate::from_inner(Rate::DIV / 100 * 90)),
+                Some(Zero::zero()),
+                None,
             ),
             Error::<Test>::InvalidSupplyCap
         );
