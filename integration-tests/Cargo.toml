@@ -5,7 +5,7 @@ homepage   = 'https://parallel.fi'
 license    = 'Apache'
 name       = 'runtime-integration-tests'
 repository = 'https://github.com/parallel-finance/parallel'
-version    = '1.8.7'
+version    = '1.8.8'
 
 [dependencies]
 codec             = { package = 'parity-scale-codec', version = '3.0.0', default-features = false, features = ['derive'] }
