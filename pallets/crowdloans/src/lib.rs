@@ -1693,8 +1693,9 @@ pub mod pallet {
         /// T is the remaining term-to-maturity with year as unit
         /// r is the implied yield rate
         fn get_exchange_rate(asset_id: &AssetIdOf<T>, start_exchange_rate: Rate) -> Option<Rate> {
-            Self::find_vault_by_asset_id(asset_id).and_then(|vault| {
-                Self::get_vault_term_rate(vault).and_then(|(term_rate, total_term_by_year)| {
+            Self::find_vault_by_asset_id(asset_id)
+                .and_then(|vault| Self::get_vault_term_rate(vault))
+                .and_then(|(term_rate, total_term_by_year)| {
                     let remaining_year = fixed_u128_to_float(total_term_by_year)
                         * (1_f64 - fixed_u128_to_float(term_rate));
                     let current_rate = power_float(
@@ -1702,10 +1703,8 @@ pub mod pallet {
                         remaining_year,
                     )
                     .ok()?;
-                    let current_rate = fixed_u128_from_float(current_rate as f64).reciprocal()?;
-                    Some(current_rate)
+                    fixed_u128_from_float(current_rate as f64).reciprocal()
                 })
-            })
         }
     }
 

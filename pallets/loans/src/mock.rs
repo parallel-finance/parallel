@@ -19,7 +19,10 @@ use frame_support::{
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
-use pallet_traits::*;
+use pallet_traits::{
+    DecimalProvider, ExchangeRateProvider, LiquidStakingCurrenciesProvider,
+    VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider,
+};
 use primitives::{
     tokens::{CDOT_6_13, PCDOT_6_13},
     *,

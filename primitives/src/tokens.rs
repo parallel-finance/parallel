@@ -74,6 +74,8 @@ pub const PEUSDC: CurrencyId = 2202;
 
 pub const PSKSM: CurrencyId = 3000;
 pub const PSDOT: CurrencyId = 3001;
+pub const PKSM_U: CurrencyId = 3002;
+pub const PDOT_U: CurrencyId = 3003;
 
 pub const PCDOT_6_13: CurrencyId = 200062013;
 pub const PCDOT_7_14: CurrencyId = 200072014;
@@ -115,6 +117,10 @@ pub const CDOT_6_13: CurrencyId = 200060013;
 pub const CDOT_7_14: CurrencyId = 200070014;
 pub const CDOT_8_15: CurrencyId = 200080015;
 
+// Relay Currency Auxiliary
+pub const KSM_U: CurrencyId = 4294957295;
+pub const DOT_U: CurrencyId = 4294957296;
+
 // assume all vault token are liquidation free and within range here
 pub fn is_vault_token(asset_id: CurrencyId) -> bool {
     asset_id > 100000000 && asset_id < 300000000
@@ -127,9 +133,12 @@ pub fn is_lf_lp_token(asset_id: CurrencyId) -> bool {
 }
 
 pub fn is_ls_token(asset_id: CurrencyId) -> bool {
-    (1000..2000).contains(&asset_id)
+    asset_id == SKSM || asset_id == SDOT
 }
 
+pub fn is_auxiliary_token(asset_id: CurrencyId) -> bool {
+    asset_id >= u32::MAX - 10000
+}
 // Token Registration Information
 // +───────────+──────────────+────────────────────+
 // | Network   | Token        | Register in block  |

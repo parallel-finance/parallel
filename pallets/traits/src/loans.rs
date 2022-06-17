@@ -59,6 +59,13 @@ pub trait LoansPositionDataProvider<CurrencyId, AccountId, Balance> {
     ) -> Result<Balance, DispatchError>;
 }
 
+pub trait LoansMarketDataProvider<CurrencyId, Balance> {
+    fn get_market_info(asset_id: CurrencyId) -> Result<MarketInfo, DispatchError>;
+    fn get_market_status(asset_id: CurrencyId) -> Result<MarketStatus<Balance>, DispatchError>;
+    // for compatibility we keep this func
+    fn get_full_interest_rate(asset_id: CurrencyId) -> Option<Rate>;
+}
+
 /// MarketInfo contains some static attrs as a subset of Market struct in Loans
 #[derive(Default, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct MarketInfo {
@@ -79,11 +86,4 @@ pub struct MarketStatus<Balance> {
     pub total_borrows: Balance,
     pub total_reserves: Balance,
     pub borrow_index: FixedU128,
-}
-
-pub trait LoansMarketDataProvider<CurrencyId, Balance> {
-    fn get_market_info(asset_id: CurrencyId) -> Result<MarketInfo, DispatchError>;
-    fn get_market_status(asset_id: CurrencyId) -> Result<MarketStatus<Balance>, DispatchError>;
-    // for compatibility we keep this func
-    fn get_full_interest_rate(asset_id: CurrencyId) -> Option<Rate>;
 }

@@ -1,8 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::dispatch::DispatchError;
-use frame_support::traits::tokens::Balance as BalanceT;
+use frame_support::{dispatch::DispatchError, traits::tokens::Balance as BalanceT};
 use num_bigint::{BigUint, ToBigUint};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};

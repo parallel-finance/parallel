@@ -58,8 +58,8 @@ use sp_runtime::{
         BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, RuntimeDebug,
-    SaturatedConversion,
+    ApplyExtrinsicResult, DispatchError, FixedPointNumber, KeyTypeId, Perbill, Permill,
+    RuntimeDebug, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -108,7 +108,9 @@ use pallet_traits::{
 };
 use primitives::{
     network::PARALLEL_PREFIX,
-    tokens::{ACA, AUSD, DOT, EQ, EUSDC, EUSDT, GLMR, IBTC, INTR, LC_DOT, LDOT, PARA, PHA, SDOT},
+    tokens::{
+        ACA, AUSD, DOT, DOT_U, EQ, EUSDC, EUSDT, GLMR, IBTC, INTR, LC_DOT, LDOT, PARA, PHA, SDOT,
+    },
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
     Signature,
@@ -643,7 +645,9 @@ parameter_types! {
     pub const MinUnstake: Balance = 5_000_000_000; // 0.5sDOT
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = SDOT;
+    pub const CollateralCurrency: CurrencyId = DOT_U;
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
+    pub LoansFastUnstakeFee: Rate = Rate::saturating_from_rational(3u32, 100u32);
     pub const BondingDuration: EraIndex = 28; // 28Days
     pub const MinNominatorBond: Balance = 100_000_000_000; // 10DOT
     pub const NumSlashingSpans: u32 = 0;
@@ -656,6 +660,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type Origin = Origin;
     type Call = Call;
     type PalletId = StakingPalletId;
+    type LoansPalletId = LoansPalletId;
     type WeightInfo = weights::pallet_liquid_staking::WeightInfo<Runtime>;
     type SelfParaId = ParachainInfo;
     type Assets = Assets;
@@ -663,9 +668,11 @@ impl pallet_liquid_staking::Config for Runtime {
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
+    type LoansFastUnstakeFee = LoansFastUnstakeFee;
     type DistributionStrategy = pallet_liquid_staking::distribution::MaxMinDistribution;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
+    type CollateralCurrency = CollateralCurrency;
     type EraLength = EraLength;
     type MinStake = MinStake;
     type MinUnstake = MinUnstake;
@@ -673,6 +680,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type BondingDuration = BondingDuration;
     type MinNominatorBond = MinNominatorBond;
     type RelayChainValidationDataProvider = RelayChainValidationDataProvider<Runtime>;
+    type Loans = Loans;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
     type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;
