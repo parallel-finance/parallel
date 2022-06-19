@@ -15,7 +15,7 @@
 //! Relay chain and parachains emulation.
 
 use crate::setup::*;
-use cumulus_primitives_core::ParaId;
+use cumulus_primitives_core::{ParaId, XcmpMessageHandler};
 use frame_support::traits::GenesisBuild;
 use polkadot_primitives::v2::{BlockNumber, MAX_CODE_SIZE, MAX_POV_SIZE};
 use polkadot_runtime_parachains::configuration::HostConfiguration;
@@ -109,7 +109,10 @@ pub fn polkadot_ext() -> sp_io::TestExternalities {
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
             (AccountId::from(ALICE), dot(100f64)),
-            (ParaId::from(2012 as u32).into_account(), dot(100f64)),
+            (
+                ParaId::from(2012 as u32).into_account_truncating(),
+                dot(100f64),
+            ),
         ],
     }
     .assimilate_storage(&mut t)

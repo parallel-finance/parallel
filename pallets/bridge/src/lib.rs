@@ -659,7 +659,7 @@ impl<T: Config> Pallet<T> {
     /// Provides an AccountId for the bridge pallet.
     /// Used for teleport/materialize account.
     pub fn account_id() -> T::AccountId {
-        T::PalletId::get().into_account()
+        T::PalletId::get().into_account_truncating()
     }
 
     /// Checks if the origin is relay members

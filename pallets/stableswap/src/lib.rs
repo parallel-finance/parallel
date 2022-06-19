@@ -1292,7 +1292,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::LockAccountId::get()
     }
     pub fn account_id() -> T::AccountId {
-        T::PalletId::get().into_account()
+        T::PalletId::get().into_account_truncating()
     }
     // given an input amount and a vector of assets, return a vector of output
     // amounts

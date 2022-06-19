@@ -109,7 +109,10 @@ pub fn kusama_ext() -> sp_io::TestExternalities {
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
             (AccountId::from(ALICE), ksm(100f64)),
-            (ParaId::from(2085 as u32).into_account(), ksm(100f64)),
+            (
+                ParaId::from(2085 as u32).into_account_truncating(),
+                ksm(100f64),
+            ),
         ],
     }
     .assimilate_storage(&mut t)

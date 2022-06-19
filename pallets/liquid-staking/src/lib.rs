@@ -1005,17 +1005,17 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Staking pool account
         pub fn account_id() -> T::AccountId {
-            T::PalletId::get().into_account()
+            T::PalletId::get().into_account_truncating()
         }
 
         /// Loans pool account
         pub fn loans_account_id() -> T::AccountId {
-            T::LoansPalletId::get().into_account()
+            T::LoansPalletId::get().into_account_truncating()
         }
 
         /// Parachain's sovereign account
         pub fn sovereign_account_id() -> T::AccountId {
-            T::SelfParaId::get().into_account()
+            T::SelfParaId::get().into_account_truncating()
         }
 
         /// Target era_index if users unstake in current_era

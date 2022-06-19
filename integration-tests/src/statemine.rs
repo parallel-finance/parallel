@@ -81,7 +81,7 @@ fn statemine() {
         Balances::make_free_balance_be(&ALICE.into(), ksm(1f64));
 
         // need to have some KSM to be able to receive user assets
-        let para_acc: AccountId = Sibling::from(2085).into_account();
+        let para_acc: AccountId = Sibling::from(2085).into_account_truncating();
         println!("heiko para account in sibling chain:{:?}", para_acc);
         Balances::make_free_balance_be(&para_acc, ksm(1f64));
 
@@ -179,8 +179,8 @@ fn statemine() {
         )); //transfer rmrk back to statemine with ksm as fee
     });
     KusamaNet::execute_with(|| {
-        let heiko_sovereign: AccountId = ParaId::from(2085u32).into_account();
-        let statemine_sovereign: AccountId = ParaId::from(1000u32).into_account();
+        let heiko_sovereign: AccountId = ParaId::from(2085u32).into_account_truncating();
+        let statemine_sovereign: AccountId = ParaId::from(1000u32).into_account_truncating();
         assert_eq!(
             ksm(100f64) - (STATEMINE_TOTAL_FEE_AMOUNT - FEE_IN_STATEMINE),
             kusama_runtime::Balances::free_balance(&heiko_sovereign)

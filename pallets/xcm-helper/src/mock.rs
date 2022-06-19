@@ -104,7 +104,7 @@ parameter_types! {
 
 parameter_types! {
     pub const NativeCurrencyId: CurrencyId = HKO;
-    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account();
+    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account_truncating();
 }
 
 pub struct GiftConvert;
@@ -356,7 +356,7 @@ parameter_types! {
 parameter_types! {
     pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
     pub const NotifyTimeout: BlockNumber = 100;
-    pub RefundLocation: AccountId = para_a_id().into_account();
+    pub RefundLocation: AccountId = para_a_id().into_account_truncating();
 }
 
 impl crate::Config for Test {
@@ -532,7 +532,10 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
             (ALICE, 100 * DOT_DECIMAL),
-            (para_a_id().into_account(), 1_000_000 * DOT_DECIMAL),
+            (
+                para_a_id().into_account_truncating(),
+                1_000_000 * DOT_DECIMAL,
+            ),
         ],
     }
     .assimilate_storage(&mut t)

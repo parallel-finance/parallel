@@ -11,7 +11,7 @@ use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 
 /// substrate rpc
-use pallet_transaction_payment_rpc::{TransactionPaymentApiServer, TransactionPaymentRpc};
+use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 use substrate_frame_rpc_system::{SystemApiServer, SystemRpc};
 
 /// orml rpc
@@ -58,7 +58,7 @@ where
     } = deps;
 
     module.merge(SystemRpc::new(client.clone(), pool, deny_unsafe).into_rpc())?;
-    module.merge(TransactionPaymentRpc::new(client.clone()).into_rpc())?;
+    module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
     module.merge(Oracle::new(client.clone()).into_rpc())?;
     module.merge(Loans::new(client.clone()).into_rpc())?;
     module.merge(Router::new(client.clone()).into_rpc())?;
