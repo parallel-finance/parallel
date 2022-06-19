@@ -12,7 +12,7 @@ use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 
 /// substrate rpc
 use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
-use substrate_frame_rpc_system::{SystemApiServer, SystemRpc};
+use substrate_frame_rpc_system::{System, SystemApiServer};
 
 /// orml rpc
 use orml_oracle_rpc::{Oracle, OracleApiServer};
@@ -57,7 +57,7 @@ where
         deny_unsafe,
     } = deps;
 
-    module.merge(SystemRpc::new(client.clone(), pool, deny_unsafe).into_rpc())?;
+    module.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
     module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
     module.merge(Oracle::new(client.clone()).into_rpc())?;
     module.merge(Loans::new(client.clone()).into_rpc())?;

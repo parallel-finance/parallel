@@ -31,7 +31,7 @@ use sc_service::{
     PartialComponents,
 };
 use sp_core::hexdisplay::HexDisplay;
-use sp_runtime::traits::Block as BlockT;
+use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
 
 use std::{io::Write, net::SocketAddr};
 
