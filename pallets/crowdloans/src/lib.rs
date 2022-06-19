@@ -1115,12 +1115,12 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Crowdloans vault account
         pub fn account_id() -> T::AccountId {
-            T::PalletId::get().into_account()
+            T::PalletId::get().into_account_truncating()
         }
 
         /// Parachain's sovereign account on relaychain
         pub fn para_account_id() -> T::AccountId {
-            T::SelfParaId::get().into_account()
+            T::SelfParaId::get().into_account_truncating()
         }
 
         pub(crate) fn current_vault(crowdloan: ParaId) -> Option<Vault<T>> {

@@ -1134,7 +1134,7 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
-        T::PalletId::get().into_account()
+        T::PalletId::get().into_account_truncating()
     }
 
     fn get_lf_borrowed_value(account: &T::AccountId) -> Result<FixedU128, DispatchError> {
@@ -2003,7 +2003,7 @@ impl<T: Config> Pallet<T> {
 
     // Returns the incentive reward account
     pub fn incentive_reward_account_id() -> Result<T::AccountId, DispatchError> {
-        let account_id: T::AccountId = T::PalletId::get().into_account();
+        let account_id: T::AccountId = T::PalletId::get().into_account_truncating();
         let entropy = (b"loans/incentive", &[account_id]).using_encoded(blake2_256);
         Ok(T::AccountId::decode(&mut &entropy[..]).map_err(|_| Error::<T>::CodecError)?)
     }

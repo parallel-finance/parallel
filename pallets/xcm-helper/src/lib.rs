@@ -240,7 +240,7 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, TAccountId> {
 
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> AccountIdOf<T> {
-        T::PalletId::get().into_account()
+        T::PalletId::get().into_account_truncating()
     }
 
     pub fn refund_location() -> MultiLocation {

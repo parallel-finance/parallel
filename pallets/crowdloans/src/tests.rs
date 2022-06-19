@@ -977,12 +977,11 @@ fn xcm_contribute_should_work() {
         assert_eq!(vault.phase, VaultPhase::Contributing);
     });
     Relay::execute_with(|| {
-        RelaySystem::assert_has_event(RelayEvent::Crowdloan(RelayCrowdloanEvent::Contributed(
-            Crowdloans::para_account_id(),
-            crowdloan,
+        RelaySystem::assert_has_event(RelayEvent::Crowdloan(RelayCrowdloanEvent::Contributed {
+            who: Crowdloans::para_account_id(),
+            fund_index: crowdloan,
             amount,
-        )));
-        // println!("relay: {:?}", RelaySystem::events());
+        }))
     });
     // ParaA::execute_with(|| {
     //     println!("para: {:?}", System::events());

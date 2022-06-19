@@ -195,7 +195,7 @@ parameter_types! {
     pub const ProposalLifetime: BlockNumber = 50;
     pub const RootOperatorAccountId: AccountId = 7;
     pub const ThresholdPercentage: u32 = 80;
-    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account();
+    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account_truncating();
 }
 
 pub struct GiftConvert;
@@ -286,7 +286,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Balances::set_balance(Origin::root(), EVE, dollar(100), dollar(0)).unwrap();
         Balances::set_balance(
             Origin::root(),
-            PalletId(*b"par/gift").into_account(),
+            PalletId(*b"par/gift").into_account_truncating(),
             dollar(1000000),
             dollar(0),
         )

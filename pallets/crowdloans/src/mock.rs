@@ -123,7 +123,7 @@ parameter_types! {
 
 parameter_types! {
     pub const NativeCurrencyId: CurrencyId = HKO;
-    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account();
+    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account_truncating();
 }
 
 pub struct GiftConvert;
@@ -341,8 +341,8 @@ parameter_types! {
 }
 
 parameter_type_with_key! {
-    pub ParachainMinFee: |_location: MultiLocation| -> u128 {
-        u128::MAX
+    pub ParachainMinFee: |_location: MultiLocation| -> Option<u128> {
+        None
     };
 }
 
@@ -452,7 +452,7 @@ parameter_types! {
     pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
     pub SelfParaId: ParaId = para_a_id();
-    pub RefundLocation: AccountId = para_a_id().into_account();
+    pub RefundLocation: AccountId = para_a_id().into_account_truncating();
     pub const LeasePeriod: BlockNumber = 84*24*3600/6;//84 days same as polkadot
     pub const LeaseOffset: BlockNumber = 64*24*3600/6;//64 days same as polkadot
     pub const LeasePerYear: BlockNumber = 4;
@@ -704,7 +704,7 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
             (ALICE, dot(100_000f64)),
-            (para_a_id().into_account(), dot(1_000_000f64)),
+            (para_a_id().into_account_truncating(), dot(1_000_000f64)),
         ],
     }
     .assimilate_storage(&mut t)

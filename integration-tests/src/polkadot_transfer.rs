@@ -68,7 +68,7 @@ fn transfer_to_relay_chain() {
     });
 
     PolkadotNet::execute_with(|| {
-        let para_acc: AccountId = ParaId::from(2012).into_account();
+        let para_acc: AccountId = ParaId::from(2012).into_account_truncating();
         println!("parallel para account in relaychain:{:?}", para_acc);
         assert_eq!(
             polkadot_runtime::Balances::free_balance(&AccountId::from(BOB)),

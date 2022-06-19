@@ -790,7 +790,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn pool_account_id(asset_id: AssetIdOf<T>) -> Result<T::AccountId, DispatchError> {
-        let account_id: T::AccountId = T::PalletId::get().into_account();
+        let account_id: T::AccountId = T::PalletId::get().into_account_truncating();
         let entropy = (b"modlpy/liquidity", &[account_id], asset_id).using_encoded(blake2_256);
         Ok(T::AccountId::decode(&mut &entropy[..]).map_err(|_| Error::<T>::CodecError)?)
     }

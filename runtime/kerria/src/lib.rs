@@ -349,7 +349,7 @@ impl frame_system::Config for Runtime {
 }
 
 parameter_types! {
-   pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
+   pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
 }
 
 impl orml_xcm::Config for Runtime {
@@ -1095,7 +1095,7 @@ pub type LocationToAccountId = (
 
 parameter_types! {
     pub const NativeCurrencyId: CurrencyId = NATIVE_ASSET_ID;
-    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account();
+    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account_truncating();
 }
 
 pub struct GiftConvert;
@@ -1317,11 +1317,11 @@ pub type Trader = (
 // Min fee required when transferring non-reserve asset back to sibling chain
 // It will use another asset(e.g Relaychain's asset) as fee
 parameter_type_with_key! {
-    pub ParachainMinFee: |location: MultiLocation| -> u128 {
+    pub ParachainMinFee: |location: MultiLocation| -> Option<u128> {
         #[allow(clippy::match_ref_pats)] // false positive
         match (location.parents, location.first_interior()) {
-            (1, Some(Parachain(paras::statemint::ID))) => XcmHelper::get_xcm_weight_fee_to_sibling(location.clone()).fee,//default fee should be enough even if not configured
-            _ => u128::MAX,
+            (1, Some(Parachain(paras::statemint::ID))) => Some(XcmHelper::get_xcm_weight_fee_to_sibling(location.clone()).fee),//default fee should be enough even if not configured
+            _ => Some(u128::MAX),
         }
     };
 }
@@ -1826,7 +1826,7 @@ parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
     pub DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
     pub DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.05%
-    pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
+    pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account_truncating();
     pub const MinimumLiquidity: u128 = 1_000u128;
 }
 
@@ -1850,7 +1850,7 @@ parameter_types! {
     pub const MinContribution: Balance = 50_000_000_000;
     pub const MigrateKeysLimit: u32 = 5;
     pub const RemoveKeysLimit: u32 = 1000;
-    pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
+    pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account_truncating(), u16::MAX);
     //assume LeasePeriod in relaychain is set to 2 * MINUTES in fast mode
     pub LeasePeriod: BlockNumber = 2 * 2 * MINUTES;
     pub LeaseOffset: BlockNumber = 0;

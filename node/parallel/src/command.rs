@@ -21,7 +21,6 @@ use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
 use frame_benchmarking_cli::BenchmarkCmd;
 use log::info;
-use polkadot_parachain::primitives::AccountIdConversion;
 use primitives::ParaId;
 use sc_cli::{
     ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams,
@@ -32,7 +31,7 @@ use sc_service::{
     PartialComponents,
 };
 use sp_core::hexdisplay::HexDisplay;
-use sp_runtime::traits::Block as BlockT;
+use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
 
 use std::{io::Write, net::SocketAddr};
 
@@ -472,7 +471,7 @@ pub fn run() -> Result<()> {
                     let id = ParaId::from(para_chain_id);
 
                     let parachain_account =
-                        AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account(
+                        AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account_truncating(
                             &id,
                         );
                     let state_version =

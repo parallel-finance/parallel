@@ -95,7 +95,7 @@ parameter_types! {
 
 parameter_types! {
     pub const NativeCurrencyId: CurrencyId = HKO;
-    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account();
+    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account_truncating();
 }
 
 pub struct GiftConvert;
@@ -336,8 +336,8 @@ parameter_types! {
 }
 
 parameter_type_with_key! {
-    pub ParachainMinFee: |_location: MultiLocation| -> u128 {
-        u128::MAX
+    pub ParachainMinFee: |_location: MultiLocation| -> Option<u128> {
+        None
     };
 }
 
@@ -440,7 +440,7 @@ impl pallet_utility::Config for Test {
 parameter_types! {
     pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
     pub const NotifyTimeout: BlockNumber = 100;
-    pub RefundLocation: AccountId = para_a_id().into_account();
+    pub RefundLocation: AccountId = para_a_id().into_account_truncating();
 }
 
 impl pallet_xcm_helper::Config for Test {
@@ -823,7 +823,7 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
             (ALICE, ksm(100f64)),
-            (para_a_id().into_account(), ksm(1_000_000f64)),
+            (para_a_id().into_account_truncating(), ksm(1_000_000f64)),
         ],
     }
     .assimilate_storage(&mut t)

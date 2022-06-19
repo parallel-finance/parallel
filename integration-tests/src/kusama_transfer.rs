@@ -68,7 +68,7 @@ fn transfer_to_relay_chain() {
     });
 
     KusamaNet::execute_with(|| {
-        let para_acc: AccountId = ParaId::from(2085).into_account();
+        let para_acc: AccountId = ParaId::from(2085).into_account_truncating();
         println!("heiko para account in relaychain:{:?}", para_acc);
         assert_eq!(
             kusama_runtime::Balances::free_balance(&AccountId::from(BOB)),

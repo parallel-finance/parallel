@@ -109,7 +109,10 @@ pub fn polkadot_ext() -> sp_io::TestExternalities {
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
             (AccountId::from(ALICE), dot(100f64)),
-            (ParaId::from(2012 as u32).into_account(), dot(100f64)),
+            (
+                ParaId::from(2012 as u32).into_account_truncating(),
+                dot(100f64),
+            ),
         ],
     }
     .assimilate_storage(&mut t)

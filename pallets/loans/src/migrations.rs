@@ -16,7 +16,7 @@ use super::*;
 
 pub mod v3 {
     use super::*;
-    use crate::{Config, StorageVersion, Weight};
+    use crate::{pallet::StorageVersion, Config, Weight};
     use frame_support::{log, traits::Get};
 
     pub const DEFAULT_LIQUIDATE_INCENTIVE_RESERVED_FACTOR: Ratio = Ratio::from_percent(3);
@@ -45,22 +45,26 @@ pub mod v3 {
         /// Ptoken asset id
         pub ptoken_id: CurrencyId,
     }
-    frame_support::generate_storage_alias!(Loans, MarketRewardSpeed<T: Config> => Map<
-        (Blake2_128Concat, AssetIdOf<T>),
-        BalanceOf<T>
-    >);
-    frame_support::generate_storage_alias!(Loans, RewardAccured<T: Config> => Map<
-        (Blake2_128Concat, T::AccountId),
-        BalanceOf<T>
-    >);
-    frame_support::generate_storage_alias!(Loans, LastAccruedTimestamp => Value<Timestamp, ValueQuery>);
+    #[frame_support::storage_alias]
+    type MarketRewardSpeed<T: Config> =
+        StorageMap<crate::Pallet<T>, Blake2_128Concat, AssetIdOf<T>, BalanceOf<T>>;
+
+    #[frame_support::storage_alias]
+    type RewardAccured<T: Config> = StorageMap<
+        crate::Pallet<T>,
+        Blake2_128Concat,
+        <T as frame_system::Config>::AccountId,
+        BalanceOf<T>,
+    >;
+
+    #[frame_support::storage_alias]
+    type LastAccruedTimestamp<T: Config> = StorageValue<crate::Pallet<T>, Timestamp, ValueQuery>;
 
     #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
-        frame_support::generate_storage_alias!(Loans, Markets<T: Config> => Map<
-            (Blake2_128Concat, AssetIdOf<T>),
-            V2Market<BalanceOf<T>>
-        >);
+        #[frame_support::storage_alias]
+        type Markets<T: Config> =
+            StorageMap<crate::Pallet<T>, Blake2_128Concat, AssetIdOf<T>, V2Market<BalanceOf<T>>>;
         frame_support::ensure!(
             StorageVersion::<T>::get() == crate::Versions::V2,
             "must upgrade linearly"
@@ -74,7 +78,7 @@ pub mod v3 {
             reward_speed_count
         );
 
-        let last_accrued_timestamp = LastAccruedTimestamp::get();
+        let last_accrued_timestamp = LastAccruedTimestamp::<T>::get();
         log::info!(
             "LastAccruedTimestamp: {:#?} is about to move.",
             last_accrued_timestamp
@@ -123,7 +127,7 @@ pub mod v3 {
 
             //remove old data.
             MarketRewardSpeed::<T>::remove_all(None);
-            LastAccruedTimestamp::kill();
+            LastAccruedTimestamp::<T>::kill();
 
             StorageVersion::<T>::put(crate::Versions::V3);
             log::info!("👜 completed loans migration to Versions::V3",);
@@ -165,7 +169,7 @@ pub mod v3 {
             reward_speed_count
         );
 
-        let last_accrued_timestamp = LastAccruedTimestamp::get();
+        let last_accrued_timestamp = LastAccruedTimestamp::<T>::get();
         log::info!(
             "LastAccruedTimestamp: {:#?} after migrate.",
             last_accrued_timestamp

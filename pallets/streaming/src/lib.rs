@@ -400,7 +400,7 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> AccountOf<T> {
-        T::PalletId::get().into_account()
+        T::PalletId::get().into_account_truncating()
     }
 
     pub fn ensure_valid_duration(
