@@ -44,7 +44,7 @@ pub trait Loans<CurrencyId, AccountId, Balance> {
         supplier: &AccountId,
         asset_id: CurrencyId,
         amount: Balance,
-    ) -> Result<Balance, DispatchError>;
+    ) -> Result<(), DispatchError>;
 }
 
 pub trait LoansPositionDataProvider<CurrencyId, AccountId, Balance> {

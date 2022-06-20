@@ -830,10 +830,7 @@ pub mod pallet {
             #[pallet::compact] mint_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-
             Self::do_mint(&who, asset_id, mint_amount)?;
-
-            Self::deposit_event(Event::<T>::Deposited(who, asset_id, mint_amount));
 
             Ok(().into())
         }
@@ -851,9 +848,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             ensure!(!redeem_amount.is_zero(), Error::<T>::InvalidAmount);
-            let redeem_amount = Self::do_redeem(&who, asset_id, redeem_amount)?;
-
-            Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
+            Self::do_redeem(&who, asset_id, redeem_amount)?;
 
             Ok(().into())
         }
@@ -894,8 +889,6 @@ pub mod pallet {
 
             Self::do_borrow(&who, asset_id, borrow_amount)?;
 
-            Self::deposit_event(Event::<T>::Borrowed(who, asset_id, borrow_amount));
-
             Ok(().into())
         }
 
@@ -914,8 +907,6 @@ pub mod pallet {
 
             Self::do_repay_borrow(&who, asset_id, repay_amount)?;
 
-            Self::deposit_event(Event::<T>::RepaidBorrow(who, asset_id, repay_amount));
-
             Ok(().into())
         }
 
@@ -933,8 +924,6 @@ pub mod pallet {
             Self::accrue_interest(asset_id)?;
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             Self::do_repay_borrow(&who, asset_id, account_borrows)?;
-
-            Self::deposit_event(Event::<T>::RepaidBorrow(who, asset_id, account_borrows));
 
             Ok(().into())
         }
@@ -962,11 +951,6 @@ pub mod pallet {
             }
 
             Self::do_collateral_asset(&who, asset_id, enable)?;
-            if enable {
-                Self::deposit_event(Event::<T>::CollateralAssetAdded(who, asset_id));
-            } else {
-                Self::deposit_event(Event::<T>::CollateralAssetRemoved(who, asset_id));
-            }
 
             Ok(().into())
         }
@@ -2045,6 +2029,7 @@ impl<T: Config> Loans<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pallet<T> 
             *total_balance = new_balance;
             Ok(())
         })?;
+        Self::deposit_event(Event::<T>::Deposited(supplier.clone(), asset_id, amount));
         Ok(())
     }
 
@@ -2080,7 +2065,7 @@ impl<T: Config> Loans<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pallet<T> 
         );
         TotalBorrows::<T>::insert(asset_id, total_borrows_new);
         T::Assets::transfer(asset_id, &Self::account_id(), borrower, amount, false)?;
-
+        Self::deposit_event(Event::<T>::Borrowed(borrower.clone(), asset_id, amount));
         Ok(())
     }
 
@@ -2099,6 +2084,7 @@ impl<T: Config> Loans<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pallet<T> 
         if enable {
             deposits.is_collateral = true;
             AccountDeposits::<T>::insert(asset_id, supplier, deposits);
+            Self::deposit_event(Event::<T>::CollateralAssetAdded(supplier.clone(), asset_id));
             return Ok(());
         }
         // turn off the collateral button after checking the liquidity
@@ -2121,6 +2107,12 @@ impl<T: Config> Loans<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pallet<T> 
         }
         deposits.is_collateral = false;
         AccountDeposits::<T>::insert(asset_id, supplier, deposits);
+
+        Self::deposit_event(Event::<T>::CollateralAssetRemoved(
+            supplier.clone(),
+            asset_id,
+        ));
+
         Ok(())
     }
 
@@ -2133,6 +2125,7 @@ impl<T: Config> Loans<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pallet<T> 
         Self::accrue_interest(asset_id)?;
         let account_borrows = Self::current_borrow_balance(borrower, asset_id)?;
         Self::do_repay_borrow_with_amount(borrower, asset_id, account_borrows, amount)?;
+        Self::deposit_event(Event::<T>::RepaidBorrow(borrower.clone(), asset_id, amount));
         Ok(())
     }
 
@@ -2140,14 +2133,19 @@ impl<T: Config> Loans<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pallet<T> 
         supplier: &AccountIdOf<T>,
         asset_id: AssetIdOf<T>,
         amount: BalanceOf<T>,
-    ) -> Result<BalanceOf<T>, DispatchError> {
+    ) -> Result<(), DispatchError> {
         Self::ensure_active_market(asset_id)?;
         Self::accrue_interest(asset_id)?;
         let exchange_rate = Self::exchange_rate_stored(asset_id)?;
         Self::update_earned_stored(supplier, asset_id, exchange_rate)?;
         let voucher_amount = Self::calc_collateral_amount(amount, exchange_rate)?;
         let redeem_amount = Self::do_redeem_voucher(supplier, asset_id, voucher_amount)?;
-        Ok(redeem_amount)
+        Self::deposit_event(Event::<T>::Redeemed(
+            supplier.clone(),
+            asset_id,
+            redeem_amount,
+        ));
+        Ok(())
     }
 }
 
