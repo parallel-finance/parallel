@@ -1311,7 +1311,7 @@ parameter_types! {
                 GeneralIndex(paras::statemine::USDT_KEY),
             ),
         ).into(),
-        ksm_per_second() * 150
+        ksm_per_second() * 150 / 1_000_000 //consider usdt decimal as 6 we need div by 1_000_000 here
     );
 }
 
