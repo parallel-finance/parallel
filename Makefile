@@ -91,7 +91,7 @@ integration-test:
 
 .PHONY: integration-test-statemine
 integration-test-statemine:
-	SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- statemine::statemine --nocapture
+	RUST_LOG="xcm=trace,xcm-executor=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- statemine::statemine --nocapture
 
 .PHONY: bench
 bench: bench-loans bench-liquid-staking bench-amm bench-amm-router bench-crowdloans bench-bridge bench-xcm-helper bench-farming bench-asset-registry bench-streaming
