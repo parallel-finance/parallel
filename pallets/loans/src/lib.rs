@@ -2084,6 +2084,7 @@ impl<T: Config> Loans<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pallet<T> 
         if enable {
             deposits.is_collateral = true;
             AccountDeposits::<T>::insert(asset_id, supplier, deposits);
+            Self::deposit_event(Event::<T>::CollateralAssetAdded(supplier.clone(), asset_id));
             return Ok(());
         }
         // turn off the collateral button after checking the liquidity
@@ -2107,14 +2108,10 @@ impl<T: Config> Loans<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pallet<T> 
         deposits.is_collateral = false;
         AccountDeposits::<T>::insert(asset_id, supplier, deposits);
 
-        if enable {
-            Self::deposit_event(Event::<T>::CollateralAssetAdded(supplier.clone(), asset_id));
-        } else {
-            Self::deposit_event(Event::<T>::CollateralAssetRemoved(
-                supplier.clone(),
-                asset_id,
-            ));
-        }
+        Self::deposit_event(Event::<T>::CollateralAssetRemoved(
+            supplier.clone(),
+            asset_id,
+        ));
 
         Ok(())
     }
