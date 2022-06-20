@@ -647,7 +647,7 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = SDOT;
     pub const CollateralCurrency: CurrencyId = DOT_U;
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
-    pub LoansFastUnstakeFee: Rate = Rate::saturating_from_rational(3u32, 100u32);
+    pub LoansFastUnstakeFee: Rate = Rate::saturating_from_rational(32u32, 1000u32); // (1.45 ** (3600 * 4 * 29 / 5256000) - 1) * 100% ~= 2.996%
     pub const BondingDuration: EraIndex = 28; // 28Days
     pub const MinNominatorBond: Balance = 100_000_000_000; // 10DOT
     pub const NumSlashingSpans: u32 = 0;
