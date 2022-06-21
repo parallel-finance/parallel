@@ -2203,6 +2203,7 @@ impl<T: Config> LoansPositionDataProvider<AssetIdOf<T>, AccountIdOf<T>, BalanceO
         borrower: &AccountIdOf<T>,
         asset_id: AssetIdOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
+        Self::accrue_interest(asset_id)?;
         Self::current_borrow_balance(borrower, asset_id)
     }
 
@@ -2210,6 +2211,7 @@ impl<T: Config> LoansPositionDataProvider<AssetIdOf<T>, AccountIdOf<T>, BalanceO
         supplier: &AccountIdOf<T>,
         asset_id: AssetIdOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
+        Self::accrue_interest(asset_id)?;
         Self::current_collateral_balance(supplier, asset_id)
     }
 }
