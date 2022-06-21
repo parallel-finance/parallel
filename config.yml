@@ -38,6 +38,7 @@ parachains:
       - --force-authoring
       - --wasm-execution=compiled
       - --execution=wasm
+      - --pruning=archive
       - --state-cache-size=0
     relaychainFlags:
       - --wasm-execution=compiled
