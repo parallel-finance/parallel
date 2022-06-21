@@ -43,7 +43,9 @@ use pallet_traits::{
     ConvertToBigUint, Loans, LoansMarketDataProvider, LoansPositionDataProvider, MarketInfo,
     MarketStatus, PriceFeeder,
 };
-use primitives::{Balance, CurrencyId, Liquidity, Price, Rate, Ratio, Shortfall, Timestamp};
+use primitives::{
+    is_auxiliary_token, Balance, CurrencyId, Liquidity, Price, Rate, Ratio, Shortfall, Timestamp,
+};
 use sp_runtime::{
     traits::{
         AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One,
@@ -972,7 +974,8 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             ensure!(
-                !Self::liquidation_free_collaterals().contains(&collateral_asset_id),
+                !Self::liquidation_free_collaterals().contains(&collateral_asset_id)
+                    && !is_auxiliary_token(collateral_asset_id),
                 Error::<T>::CollateralReserved
             );
             Self::accrue_interest(liquidation_asset_id)?;
