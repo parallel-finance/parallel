@@ -8,7 +8,7 @@ Parallel uses [parachain-launch](https://github.com/open-web3-stack/parachain-la
 - `liquidation-client` : Loans pallet's liquidation operator
 - `polkadot` : Relaychain
 - `parallel` : Parachain
-- `polkadot-collator` : A dummy parachain
+- `cumulus` : A dummy parachain
 
 ## Getting Started
 
