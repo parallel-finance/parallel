@@ -139,5 +139,5 @@ pub fn polkadot_ext() -> sp_io::TestExternalities {
 
 pub fn para_ext(parachain_id: u32) -> sp_io::TestExternalities {
     let ext = ExtBuilder { parachain_id };
-    ext.parachain_id(parachain_id).polkadot_build()
+    ext.parachain_id(parachain_id).parallel_build()
 }

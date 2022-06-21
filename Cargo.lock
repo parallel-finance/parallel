@@ -9181,6 +9181,7 @@ dependencies = [
  "pallet-prices",
  "pallet-router",
  "pallet-router-rpc-runtime-api",
+ "pallet-staking",
  "pallet-traits",
  "pallet-xcm",
  "pallet-xcm-helper",
