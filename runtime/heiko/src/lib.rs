@@ -649,7 +649,8 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = SKSM;
     pub const CollateralCurrency: CurrencyId = KSM_U;
     pub const XcmFees: Balance = 5_000_000_000; // 0.005KSM
-    pub LoansFastUnstakeFee: Rate = Rate::saturating_from_rational(1u32, 100u32); // (1.5 ** (3600 * 29 / 5256000) - 1) * 100% ~= 0.808%
+    // delay 7 eras, we must be able to repay in less than 7 eras
+    pub LoansFastUnstakeFee: Rate = Rate::saturating_from_rational(1u32, 100u32); // (1.5 ** (3600 * 36 / 5256000) - 1) * 100% ~= 1.004%
     pub const BondingDuration: EraIndex = 28; // 7Days
     pub const MinNominatorBond: Balance = 100_000_000_000; // 0.1KSM
     pub const NumSlashingSpans: u32 = 0;
