@@ -11,8 +11,8 @@ LAUNCH_CONFIG_YAML	  							:= config.yml
 LAUNCH_CONFIG_JSON	  							:= config.json
 DOCKER_OVERRIDE_YAML                := docker-compose.override.yml
 DOCKER_TAG     											:= latest
-RELAY_DOCKER_TAG										:= v0.9.22
-CUMULUS_DOCKER_TAG									:= v0.9.22
+RELAY_DOCKER_TAG										:= v0.9.24
+CUMULUS_DOCKER_TAG									:= v0.9.24
 
 .PHONY: init
 init: submodules
@@ -183,7 +183,7 @@ launch: shutdown
 	yq -i eval '.parachains[0].image = "parallelfinance/parallel:$(DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].id = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].chain.base = "$(CHAIN)"' $(LAUNCH_CONFIG_YAML)
-	yq -i eval '.parachains[1].image = "parallelfinance/polkadot-collator:$(CUMULUS_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.parachains[1].image = "parallelfinance/cumulus:$(CUMULUS_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[1].chain.base = "$(CUMULUS_CHAIN)"' $(LAUNCH_CONFIG_YAML)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
