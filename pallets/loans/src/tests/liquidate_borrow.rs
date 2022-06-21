@@ -6,7 +6,7 @@ use crate::{
     Error, MarketState,
 };
 use frame_support::{assert_err, assert_noop, assert_ok};
-use primitives::{tokens::CDOT_6_13, Rate};
+use primitives::{tokens::CDOT_6_13, Rate, DOT_U};
 use sp_runtime::FixedPointNumber;
 
 #[test]
@@ -47,6 +47,10 @@ fn lf_liquidate_borrow_fails_due_to_lf_collateral() {
 
         assert_err!(
             Loans::liquidate_borrow(Origin::signed(ALICE), BOB, DOT, unit(100), CDOT_6_13),
+            Error::<Test>::CollateralReserved
+        );
+        assert_err!(
+            Loans::liquidate_borrow(Origin::signed(ALICE), BOB, DOT, unit(100), DOT_U),
             Error::<Test>::CollateralReserved
         );
     })
