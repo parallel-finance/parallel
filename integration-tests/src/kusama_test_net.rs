@@ -21,6 +21,7 @@ use polkadot_primitives::v2::{BlockNumber, MAX_CODE_SIZE, MAX_POV_SIZE};
 use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::AccountId;
 use sp_runtime::traits::AccountIdConversion;
+
 use xcm_emulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 decl_test_relay_chain! {
@@ -47,7 +48,7 @@ decl_test_parachain! {
         Origin = statemine_runtime::Origin,
         XcmpMessageHandler = statemine_runtime::XcmpQueue,
         DmpMessageHandler = statemine_runtime::DmpQueue,
-        new_ext = para_ext(1000),
+        new_ext = stamine_ext(),
     }
 }
 
@@ -100,6 +101,8 @@ fn default_parachains_host_configuration() -> HostConfiguration<BlockNumber> {
 }
 
 pub fn kusama_ext() -> sp_io::TestExternalities {
+    let _ = env_logger::try_init();
+
     use kusama_runtime::{Runtime, System};
 
     let mut t = frame_system::GenesisConfig::default()
@@ -139,5 +142,10 @@ pub fn kusama_ext() -> sp_io::TestExternalities {
 
 pub fn para_ext(parachain_id: u32) -> sp_io::TestExternalities {
     let ext = ExtBuilder { parachain_id };
-    ext.parachain_id(parachain_id).kusama_build()
+    ext.parachain_id(parachain_id).heiko_build()
+}
+
+pub fn stamine_ext() -> sp_io::TestExternalities {
+    let ext = ExtBuilder { parachain_id: 1000 };
+    ext.parachain_id(1000).statemine_build()
 }

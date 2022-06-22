@@ -87,11 +87,16 @@ test-crowdloans:
 
 .PHONY: integration-test
 integration-test:
-	RUST_LOG="xcm=trace,xcm-executor=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- --nocapture
+	RUST_LOG="xcm=trace,xcm-executor=trace,liquidStaking=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- --nocapture
 
 .PHONY: integration-test-statemine
 integration-test-statemine:
-	RUST_LOG="xcm=trace,xcm-executor=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- statemine::statemine --nocapture
+	RUST_LOG="xcm=trace,xcm-executor=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- statemine --nocapture
+
+.PHONY: integration-test-kusama-call
+integration-test-kusama-call:
+	RUST_LOG="xcm=trace,xcm-executor=trace,liquidStaking=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- kusama_call --nocapture
+
 
 .PHONY: bench
 bench: bench-loans bench-liquid-staking bench-amm bench-amm-router bench-crowdloans bench-bridge bench-xcm-helper bench-farming bench-asset-registry bench-streaming

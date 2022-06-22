@@ -1626,7 +1626,7 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        pub(crate) fn do_matching() -> DispatchResult {
+        pub fn do_matching() -> DispatchResult {
             let total_unbonding = Self::get_total_unbonding();
             let (bond_amount, rebond_amount, unbond_amount) =
                 Self::matching_pool().matching(total_unbonding)?;
@@ -1658,7 +1658,7 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        pub(crate) fn do_advance_era(offset: EraIndex) -> DispatchResult {
+        pub fn do_advance_era(offset: EraIndex) -> DispatchResult {
             if offset.is_zero() {
                 return Ok(());
             }

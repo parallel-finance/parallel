@@ -109,7 +109,7 @@ use pallet_traits::{
 use primitives::{
     network::HEIKO_PREFIX,
     tokens::{
-        EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KMA, KSM, KUSD, LKSM, MOVR, PHA, SKSM, TUR, USDT,
+        EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KMA, KSM, KUSD, LKSM, MOVR, PHA, SKSM, TUR,
     },
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
@@ -435,15 +435,6 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
             TUR => Some(MultiLocation::new(1, X1(Parachain(paras::turing::ID)))),
             // Calamari
             KMA => Some(MultiLocation::new(1, X1(Parachain(paras::calamari::ID)))),
-            // Statemine
-            USDT => Some(MultiLocation::new(
-                1,
-                X3(
-                    Parachain(paras::statemine::ID),
-                    PalletInstance(paras::statemine::PALLET_INSTANCE),
-                    GeneralIndex(paras::statemine::USDT_KEY),
-                ),
-            )),
             _ => None,
         }
     }
@@ -527,16 +518,6 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 1,
                 interior: X1(Parachain(id)),
             } if id == paras::calamari::ID => Some(KMA),
-            // Statemine
-            MultiLocation {
-                parents: 1,
-                interior: X3(Parachain(id), PalletInstance(pallet_instance), GeneralIndex(idx)),
-            } if id == paras::statemine::ID
-                && pallet_instance == paras::statemine::PALLET_INSTANCE
-                && idx == paras::statemine::USDT_KEY =>
-            {
-                Some(USDT)
-            }
             _ => None,
         }
     }
@@ -1296,18 +1277,6 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 5000
     );
-    // Statemine
-    pub UsdtPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X3(
-                Parachain(paras::statemine::ID),
-                PalletInstance(paras::statemine::PALLET_INSTANCE),
-                GeneralIndex(paras::statemine::USDT_KEY),
-            ),
-        ).into(),
-        ksm_per_second() * 150 / 1_000_000
-    );
 }
 
 match_types! {
@@ -1362,10 +1331,6 @@ pub type Trader = (
     FixedRateOfFungible<TurPerSecond, ToTreasury>,
     // Calamari
     FixedRateOfFungible<KmaPerSecond, ToTreasury>,
-    // Statemine
-    FixedRateOfFungible<UsdtPerSecond, ToTreasury>,
-    // Foreign Assets registered in AssetRegistry
-    // TODO: replace all above except local reserved asset later
     FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
 );
 
