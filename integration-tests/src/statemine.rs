@@ -49,7 +49,7 @@ fn transfer_statemine_rmrk() {
     // Rerun the Statemine::execute to actually send the egress message via XCM
     Statemine::execute_with(|| {});
 
-    //check rmrk transfered and then transfer it back to statemine with ksm as fee
+    //check rmrk transferred and then transfer it back to statemine with ksm as fee
     Heiko::execute_with(|| {
         use heiko_runtime::{Assets, Origin, XTokens};
         //with RMRK_WEIGHT_PER_SEC set in heiko rmrk fee is 12_000_000 which is 0.0012rmrk~=0.004$
@@ -133,7 +133,7 @@ fn transfer_statemine_usdt() {
 
     Statemine::execute_with(|| {});
 
-    //check usdt transfered and then transfer it back to statemine with ksm as fee
+    //check usdt transferred and then transfer it back to statemine with ksm as fee
     Heiko::execute_with(|| {
         use heiko_runtime::{Assets, Origin, XTokens};
         //with USDT_WEIGHT_PER_SEC set in heiko usdt fee is 0.018$
