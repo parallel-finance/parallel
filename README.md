@@ -7,7 +7,6 @@
 [![Substrate version](https://img.shields.io/badge/Substrate-3.0.0-brightgreen?logo=Parity%20Substrate)](https://substrate.io/)
 [![CI](https://github.com/parallel-finance/parallel/workflows/CI/badge.svg)](https://github.com/parallel-finance/parallel/actions)
 [![Codecov](https://codecov.io/gh/parallel-finance/parallel/branch/master/graph/badge.svg)](https://codecov.io/gh/parallel-finance/parallel)
-[![Dependency Status](https://deps.rs/repo/github/parallel-finance/parallel/status.svg)](https://deps.rs/repo/github/parallel-finance/parallel)
 [![Docker](https://img.shields.io/docker/pulls/parallelfinance/parallel?logo=docker)](https://hub.docker.com/r/parallelfinance/parallel)
 [![License](https://img.shields.io/github/license/parallel-finance/parallel?color=green)](https://github.com/parallel-finance/parallel/blob/master/LICENSE)
 
