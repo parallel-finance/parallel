@@ -1,14 +1,18 @@
 import '@polkadot/api-augment'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import shell from 'shelljs'
+import fs from 'fs'
 import { blake2AsU8a } from '@polkadot/util-crypto'
 import { stringToU8a, bnToU8a, u8aConcat, u8aToHex } from '@polkadot/util'
 import { decodeAddress, encodeAddress } from '@polkadot/keyring'
 import { KeyringPair } from '@polkadot/keyring/types'
 import { Index } from '@polkadot/types/interfaces'
+import { promisify } from 'util'
 
 const EMPTY_U8A_32 = new Uint8Array(32)
 const XCM_FEE = 2500000000
+
+export const readFile = promisify(fs.readFile)
 
 export const exec = (cmd: string): shell.ShellString => {
   console.log(`$ ${cmd}`)
