@@ -496,7 +496,7 @@ impl<
         let currency_id = CurrencyIdConvert::convert(asset.clone())
             .ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
         let amount: MultiCurrency::Balance = Match::matches_fungible(asset)
-            .ok_or_else(|| XcmError::AssetNotFound)?
+            .ok_or(XcmError::AssetNotFound)?
             .saturated_into();
         MultiCurrency::transfer(currency_id, &from_account, &to_account, amount, true)
             .map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
