@@ -97,6 +97,10 @@ integration-test-statemine:
 integration-test-kusama-call:
 	RUST_LOG="xcm=trace,xcm-executor=trace,liquidStaking=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- kusama_call --nocapture
 
+.PHONY: integration-test-sibling-transfer
+integration-test-sibling-transfer:
+	RUST_LOG="xcm=trace,xcm-executor=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- sibling_transfer --nocapture
+
 
 .PHONY: bench
 bench: bench-loans bench-liquid-staking bench-amm bench-amm-router bench-crowdloans bench-bridge bench-xcm-helper bench-farming bench-asset-registry bench-streaming

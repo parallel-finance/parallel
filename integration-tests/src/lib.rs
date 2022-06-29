@@ -20,4 +20,5 @@ mod kusama_transfer;
 mod polkadot_test_net;
 mod polkadot_transfer;
 mod setup;
+mod sibling_transfer;
 mod statemine;
