@@ -52,12 +52,23 @@ decl_test_parachain! {
     }
 }
 
+decl_test_parachain! {
+    pub struct MockSibling {
+        Runtime = heiko_runtime::Runtime,
+        Origin = heiko_runtime::Origin,
+        XcmpMessageHandler = heiko_runtime::XcmpQueue,
+        DmpMessageHandler = heiko_runtime::DmpQueue,
+        new_ext = para_ext(2000),
+    }
+}
+
 decl_test_network! {
     pub struct TestNet {
         relay_chain = KusamaNet,
         parachains = vec![
             (1000, Statemine),
             (2085, Heiko),
+            (2000, MockSibling),
         ],
     }
 }

@@ -34,6 +34,7 @@ pub const KSM_DECIMAL: u32 = 12;
 pub const DOT_DECIMAL: u32 = 10;
 pub const RMRK_DECIMAL: u8 = 10;
 pub const USDT_DECIMAL: u8 = 6;
+pub const HEIKO_DECIMAL: u8 = 12;
 
 pub const RMRK_ASSET_ID: u32 = 8;
 pub const USDT_ASSET_ID: u32 = 1984;
@@ -59,6 +60,10 @@ pub fn rmrk(n: u128) -> Balance {
 
 pub fn usdt(n: u128) -> Balance {
     n * 10u128.pow(USDT_DECIMAL.into())
+}
+
+pub fn heiko(n: u128) -> Balance {
+    n * 10u128.pow(HEIKO_DECIMAL.into())
 }
 
 pub const fn market_mock(ptoken_id: u32) -> Market<Balance> {
@@ -123,6 +128,15 @@ impl ExtBuilder {
             },
             &mut t,
         )
+        .unwrap();
+
+        pallet_balances::GenesisConfig::<Runtime> {
+            balances: vec![
+                (AccountId::from(ALICE), heiko(100)),
+                (AccountId::from(BOB), heiko(100)),
+            ],
+        }
+        .assimilate_storage(&mut t)
         .unwrap();
 
         <pallet_liquid_staking::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
