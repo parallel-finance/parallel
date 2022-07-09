@@ -94,6 +94,7 @@ pub const LP_DOT_SDOT: CurrencyId = 6003;
 pub const LP_DOT_CDOT_6_13: CurrencyId = 6004;
 pub const LP_DOT_CDOT_7_14: CurrencyId = 6005;
 pub const LP_PARA_CDOT_6_13: CurrencyId = 6006;
+pub const LP_DOT_CDOT_8_15: CurrencyId = 6007;
 
 pub const PLP_USDT_HKO: CurrencyId = 7000;
 pub const PLP_KSM_USDT: CurrencyId = 7001;
@@ -108,6 +109,7 @@ pub const PLP_DOT_SDOT: CurrencyId = 8003;
 pub const PLP_DOT_CDOT_6_13: CurrencyId = 8004;
 pub const PLP_DOT_CDOT_7_14: CurrencyId = 8005;
 pub const PLP_PARA_CDOT_6_13: CurrencyId = 8006;
+pub const PLP_DOT_CDOT_8_15: CurrencyId = 8007;
 
 // Crowdloan Derivative
 pub const CKSM_15_22: CurrencyId = 100150022;
