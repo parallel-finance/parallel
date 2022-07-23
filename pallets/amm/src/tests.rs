@@ -862,9 +862,10 @@ fn oracle_big_block_no_overflow() {
             AMM::pools(DOT, KSM).unwrap().block_timestamp_last,
             big_block
         );
+
         assert_eq!(
             AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last,
-            105007346_092879071079611686
+            105007346092879071079611683
         );
         assert_eq!(
             AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last,
