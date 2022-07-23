@@ -145,7 +145,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("heiko"),
     impl_name: create_runtime_str!("heiko"),
     authoring_version: 1,
-    spec_version: 189,
+    spec_version: 190,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -1119,7 +1119,7 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = 5 * DOLLARS; // 5HKO
+        let default_gift_amount = DOLLARS / 3; // 0.33HKO
         Ok(match asset_id {
             KSM if balance
                 >= 10_u128

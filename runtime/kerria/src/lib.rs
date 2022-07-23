@@ -144,7 +144,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("kerria"),
     impl_name: create_runtime_str!("kerria"),
     authoring_version: 1,
-    spec_version: 189,
+    spec_version: 190,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -1108,7 +1108,7 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = 5 * DOLLARS; // 5PARA
+        let default_gift_amount = DOLLARS / 3; // 0.33PARA
         Ok(match asset_id {
             DOT if balance >= 5 * 10_u128.pow(decimal.into()).saturating_sub(96_000_000u128) => {
                 default_gift_amount
