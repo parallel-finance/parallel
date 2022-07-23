@@ -4,11 +4,11 @@ use frame_support::{
     pallet_prelude::*,
     parameter_types, sp_io,
     traits::{
-        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, OriginTrait,
+        tokens::BalanceConversion, EitherOfDiverse, Everything, GenesisBuild, Nothing, OriginTrait,
         SortedMembers,
     },
     weights::constants::WEIGHT_PER_SECOND,
-    PalletId,
+    PalletId, WeakBoundedVec,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
@@ -63,6 +63,7 @@ impl cumulus_pallet_parachain_system::Config for Test {
     type OutboundXcmpMessageSource = XcmpQueue;
     type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
+    type CheckAssociatedRelayNumber = cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 }
 
 impl parachain_info::Config for Test {}
@@ -214,7 +215,10 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"sKSM".to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        b"sKSM".to_vec(),
+                        None,
+                    )),
                 ),
             )),
             _ => None,
@@ -427,8 +431,10 @@ impl SortedMembers<AccountId> for BobOrigin {
     }
 }
 
-pub type RelayOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
-pub type UpdateOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
+pub type RelayOrigin =
+    EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+pub type UpdateOrigin =
+    EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 impl pallet_utility::Config for Test {
     type Event = Event;

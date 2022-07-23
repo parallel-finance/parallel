@@ -180,29 +180,29 @@ fn parallel_genesis(
         democracy: DemocracyConfig::default(),
         general_council: GeneralCouncilConfig::default(),
         general_council_membership: GeneralCouncilMembershipConfig {
-            members: council,
+            members: council.try_into().unwrap(),
             phantom: Default::default(),
         },
         technical_committee: Default::default(),
         technical_committee_membership: TechnicalCommitteeMembershipConfig {
-            members: technical_committee,
+            members: technical_committee.try_into().unwrap(),
             phantom: Default::default(),
         },
         treasury: Default::default(),
         oracle_membership: OracleMembershipConfig {
-            members: oracle_accounts,
+            members: oracle_accounts.try_into().unwrap(),
             phantom: Default::default(),
         },
         bridge_membership: BridgeMembershipConfig {
-            members: bridge_accounts,
+            members: bridge_accounts.try_into().unwrap(),
             phantom: Default::default(),
         },
         liquid_staking_agents_membership: LiquidStakingAgentsMembershipConfig {
-            members: liquid_staking_agents,
+            members: liquid_staking_agents.try_into().unwrap(),
             phantom: Default::default(),
         },
         crowdloans_automators_membership: CrowdloansAutomatorsMembershipConfig {
-            members: crowdloans_automators,
+            members: crowdloans_automators.try_into().unwrap(),
             phantom: Default::default(),
         },
         vesting: VestingConfig {
