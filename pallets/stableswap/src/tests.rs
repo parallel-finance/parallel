@@ -1251,11 +1251,12 @@ fn oracle_big_block_no_overflow() {
                 .block_timestamp_last,
             big_block
         );
+
         assert_eq!(
             DefaultStableSwap::pools(DOT, KSM)
                 .unwrap()
                 .price_0_cumulative_last,
-            104962346092892538490488113 //105007346_092879071079611686
+            104962346092892538490488111 //105007346_092879071079611686
         );
         assert_eq!(
             DefaultStableSwap::pools(DOT, KSM)
