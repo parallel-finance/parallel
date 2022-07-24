@@ -43,8 +43,8 @@ fn transfer_from_relay_chain() {
     });
 
     Heiko::execute_with(|| {
-        assert_eq!(Assets::balance(KSM, &AccountId::from(BOB)), 999_860_140_000);
-        //ksm fee in heiko is 139_860_000,seems increased 50% in v0.9.24
+        assert_eq!(Assets::balance(KSM, &AccountId::from(BOB)), 999_860_956_000);
+        //ksm fee in heiko is 139_044_000,seems increased 50% in v0.9.24
     });
 }
 
@@ -72,7 +72,7 @@ fn transfer_to_relay_chain() {
         println!("heiko para account in relaychain:{:?}", para_acc);
         assert_eq!(
             kusama_runtime::Balances::free_balance(&AccountId::from(BOB)),
-            999_988_476_752 //xcm fee in kusama is 165_940_672 ~=0.015$
+            999_988_476_752 //xcm fee in kusama is 11_523_248 ~=0.015$
         );
     });
 }
