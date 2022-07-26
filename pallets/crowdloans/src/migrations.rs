@@ -23,7 +23,6 @@ pub mod v1 {
     use sp_std::{vec, vec::Vec};
     use types::*;
 
-    #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
         frame_support::ensure!(
             StorageVersion::<T>::get() == Releases::V0_0_0,
@@ -90,7 +89,6 @@ pub mod v1 {
         }
     }
 
-    #[cfg(feature = "try-runtime")]
     pub fn post_migrate<T: Config>() -> Result<(), &'static str> {
         frame_support::ensure!(
             StorageVersion::<T>::get() == Releases::V1_0_0,
@@ -111,7 +109,6 @@ pub mod v2 {
     use sp_std::{vec, vec::Vec};
     use types::*;
 
-    #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
         frame_support::ensure!(
             StorageVersion::<T>::get() == Releases::V1_0_0,
@@ -224,7 +221,6 @@ pub mod v2 {
         }
     }
 
-    #[cfg(feature = "try-runtime")]
     pub fn post_migrate<T: Config>() -> Result<(), &'static str> {
         frame_support::ensure!(
             StorageVersion::<T>::get() == Releases::V2_0_0,

@@ -92,6 +92,7 @@ use time::*;
 pub use pallet_amm;
 pub use pallet_asset_registry;
 pub use pallet_bridge;
+pub use pallet_crowdloans;
 pub use pallet_farming;
 pub use pallet_liquid_staking;
 pub use pallet_loans;
