@@ -1008,7 +1008,7 @@ fn long_route_amounts_in_should_work() {
 
         let amounts_in = DefaultStableSwap::get_amounts_in(amount_out, path).unwrap();
 
-        assert_eq!(amounts_in, [2518, 1115, 1000]);
+        assert_eq!(amounts_in, [2517, 1115, 1000]);
     })
 }
 

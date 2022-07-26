@@ -509,7 +509,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(T::ProtocolFee::get()
             .checked_add(&T::LpFee::get())
             .map(|r| T::ProtocolFee::get().div(r))
-            .map(|r| r.saturating_reciprocal_mul::<BalanceOf<T, I>>(One::one()))
+            .map(|r| r.saturating_reciprocal_mul_floor::<BalanceOf<T, I>>(One::one()))
             .ok_or(ArithmeticError::Underflow)?)
     }
 
@@ -664,7 +664,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         );
 
         Ok(fee_percent
-            .saturating_reciprocal_mul(amount_in)
+            .saturating_reciprocal_mul_floor(amount_in)
             .checked_add(One::one())
             .ok_or(ArithmeticError::Overflow)?)
     }
@@ -1007,7 +1007,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 };
 
                 ensure!(
-                    amount_in >= T::LpFee::get().saturating_reciprocal_mul(One::one()),
+                    amount_in >= T::LpFee::get().saturating_reciprocal_mul_floor(One::one()),
                     Error::<T, I>::InsufficientAmountIn
                 );
                 ensure!(!supply_out.is_zero(), Error::<T, I>::InsufficientAmountOut);
