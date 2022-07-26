@@ -995,7 +995,7 @@ pub mod pallet {
         }
 
         fn on_finalize(_n: T::BlockNumber) {
-            IsUpdated::<T>::remove_all(None);
+            let _ = IsUpdated::<T>::clear(u32::max_value(), None);
             if let Some(data) = T::RelayChainValidationDataProvider::validation_data() {
                 ValidationData::<T>::put(data);
             }

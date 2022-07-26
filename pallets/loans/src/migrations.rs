@@ -126,7 +126,7 @@ pub mod v3 {
             });
 
             //remove old data.
-            MarketRewardSpeed::<T>::remove_all(None);
+            let _ = MarketRewardSpeed::<T>::clear(u32::max_value(), None);
             LastAccruedTimestamp::<T>::kill();
 
             StorageVersion::<T>::put(crate::Versions::V3);
