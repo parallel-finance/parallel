@@ -22,6 +22,17 @@ pub mod v1 {
     use sp_runtime::traits::Zero;
     use sp_std::{vec, vec::Vec};
     use types::*;
+
+    #[cfg(feature = "try-runtime")]
+    pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
+        frame_support::ensure!(
+            StorageVersion::<T>::get() == Releases::V0_0_0,
+            "must be V0_0_0"
+        );
+        frame_support::ensure!(NextTrieIndex::<T>::get() == 10, "must be 10");
+        Ok(())
+    }
+
     /// Add vaults for batch 1 winning projects
     pub fn migrate<T: Config>() -> frame_support::weights::Weight {
         if StorageVersion::<T>::get() == Releases::V0_0_0 {
@@ -77,6 +88,18 @@ pub mod v1 {
         } else {
             T::DbWeight::get().reads(1)
         }
+    }
+
+    #[cfg(feature = "try-runtime")]
+    pub fn post_migrate<T: Config>() -> Result<(), &'static str> {
+        frame_support::ensure!(
+            StorageVersion::<T>::get() == Releases::V1_0_0,
+            "must be V1_0_0"
+        );
+        frame_support::ensure!(NextTrieIndex::<T>::get() == 11, "must be 11");
+        log::info!("👜 crowdloan migration passes POST migrate checks ✅",);
+
+        Ok(())
     }
 }
 
@@ -205,7 +228,7 @@ pub mod v2 {
     pub fn post_migrate<T: Config>() -> Result<(), &'static str> {
         frame_support::ensure!(
             StorageVersion::<T>::get() == Releases::V2_0_0,
-            "must be V1_0_0"
+            "must be V2_0_0"
         );
         frame_support::ensure!(NextTrieIndex::<T>::get() == 14, "must be 14");
         log::info!("👜 crowdloan migration passes POST migrate checks ✅",);
