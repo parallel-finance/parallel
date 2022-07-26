@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![cfg_attr(not(feature = "std"), no_std)]
-
 use sp_io::hashing::blake2_256;
 use sp_runtime::{traits::Zero, DispatchResult};
 
