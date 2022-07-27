@@ -286,6 +286,7 @@ try-runtime        = [
   'pallet-crowdloans/try-runtime',
   'pallet-xcm-helper/try-runtime',
   'pallet-asset-registry/try-runtime',
+  'pallet-ethereum/try-runtime',
 ]
 
 [package.metadata.cargo-udeps.ignore]

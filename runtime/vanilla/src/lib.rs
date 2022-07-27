@@ -944,7 +944,7 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
 parameter_types! {
     /// Ethereum-compatible chain_id:
     /// * Vanilla:  592
-    pub VanillaEvmId: u64 = 0x250;
+    pub EVMChainId: u64 = 0x250;
     /// EVM gas limit
     pub BlockGasLimit: U256 = U256::from(
         NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT / WEIGHT_PER_GAS
@@ -964,7 +964,7 @@ impl pallet_evm::Config for Runtime {
     type Runner = pallet_evm::runner::stack::Runner<Self>;
     type PrecompilesType = Precompiles;
     type PrecompilesValue = PrecompilesValue;
-    type ChainId = VanillaEvmId;
+    type ChainId = EVMChainId;
     type OnChargeTransaction = pallet_evm::EVMCurrencyAdapter<Balances, ToStakingPot>;
     type BlockGasLimit = BlockGasLimit;
     type FindAuthor = FindAuthorTruncated<Aura>;
@@ -2474,7 +2474,7 @@ impl_runtime_apis! {
 
     impl fp_rpc::EthereumRuntimeRPCApi<Block> for Runtime {
         fn chain_id() -> u64 {
-            VanillaEvmId::get()
+            EVMChainId::get()
         }
 
         fn account_basic(address: H160) -> pallet_evm::Account {

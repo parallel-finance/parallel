@@ -24,7 +24,7 @@ use sp_runtime::{
 use sp_storage::{ChildInfo, StorageData, StorageKey};
 use std::sync::Arc;
 
-/// A set of APIs that parallel-like runtimes must implement.
+/// A set of APIs that parallel-evm-like runtimes must implement.
 pub trait RuntimeApiCollection:
     sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
     + sp_api::ApiExt<Block>
@@ -39,6 +39,8 @@ pub trait RuntimeApiCollection:
     + cumulus_primitives_core::CollectCollationInfo<Block>
     + pallet_loans_rpc::LoansRuntimeApi<Block, AccountId, Balance>
     + pallet_router_rpc::RouterRuntimeApi<Block, Balance>
+    + fp_rpc::ConvertTransactionRuntimeApi<Block>
+    + fp_rpc::EthereumRuntimeRPCApi<Block>
 where
     <Self as sp_api::ApiExt<Block>>::StateBackend: sp_api::StateBackend<BlakeTwo256>,
 {
@@ -58,7 +60,9 @@ where
         + sp_session::SessionKeys<Block>
         + cumulus_primitives_core::CollectCollationInfo<Block>
         + pallet_loans_rpc::LoansRuntimeApi<Block, AccountId, Balance>
-        + pallet_router_rpc::RouterRuntimeApi<Block, Balance>,
+        + pallet_router_rpc::RouterRuntimeApi<Block, Balance>
+        + fp_rpc::ConvertTransactionRuntimeApi<Block>
+        + fp_rpc::EthereumRuntimeRPCApi<Block>,
     <Self as sp_api::ApiExt<Block>>::StateBackend: sp_api::StateBackend<BlakeTwo256>,
 {
 }
@@ -142,17 +146,6 @@ pub trait ClientHandle {
 #[allow(dead_code)]
 #[derive(Clone)]
 pub enum Client {
-    Parallel(
-        Arc<
-            crate::service::FullClient<
-                parallel_runtime::RuntimeApi,
-                crate::service::ParallelExecutor,
-            >,
-        >,
-    ),
-    Heiko(
-        Arc<crate::service::FullClient<heiko_runtime::RuntimeApi, crate::service::HeikoExecutor>>,
-    ),
     Vanilla(
         Arc<
             crate::service::FullClient<
@@ -172,8 +165,6 @@ macro_rules! with_client {
 		}
 	} => {
 		match $self {
-			Self::Parallel($client) => { $( $code )* },
-			Self::Heiko($client) => { $( $code )* },
             Self::Vanilla($client) => { $( $code )* }
 		}
 	}

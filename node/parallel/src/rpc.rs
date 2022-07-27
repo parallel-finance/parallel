@@ -2,8 +2,7 @@
 
 use std::sync::Arc;
 
-use crate::client::Block;
-use primitives::{AccountId, Balance, CurrencyId, DataProviderId, Index, TimeStampedPrice};
+use primitives::{AccountId, Balance, Block, CurrencyId, DataProviderId, Index, TimeStampedPrice};
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;

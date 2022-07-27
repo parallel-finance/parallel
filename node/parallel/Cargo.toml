@@ -20,6 +20,7 @@ frame-benchmarking-cli = { git = 'https://github.com/paritytech/substrate.git', 
 hex-literal            = '0.3.4'
 jsonrpsee              = { version = "0.13.0", features = ["server", "macros"] }
 log                    = '0.4.13'
+futures                = { version = '0.3.1', features = ["compat"] }
 
 primitives = { package = 'parallel-primitives', path = '../../primitives' }
 
@@ -38,6 +39,7 @@ sc-cli                  = { git = 'https://github.com/paritytech/substrate.git',
 sc-client-api           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.24' }
 sc-consensus            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.24' }
 sc-executor             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.24', features = ['wasmtime'] }
+sc-network              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.24' }
 sc-keystore             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.24' }
 sc-rpc                  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.24' }
 sc-rpc-api              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.24' }
