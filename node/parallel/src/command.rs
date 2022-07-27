@@ -501,15 +501,22 @@ pub fn run() -> Result<()> {
                         }
                     );
 
-                    crate::service::start_node::<RuntimeApi, Executor>(
-                        config,
-                        polkadot_config,
-                        collator_options,
-                        id,
-                    )
-                    .await
-                    .map(|r| r.0)
-                    .map_err(Into::into)
+                    if config.chain_spec.is_vanilla() {
+                        crate::evm_service::start_node(config, polkadot_config, collator_options, id)
+                            .await
+                            .map(|r| r.0)
+                            .map_err(Into::into)
+                    } else{
+                        crate::service::start_node::<RuntimeApi, Executor>(
+                            config,
+                            polkadot_config,
+                            collator_options,
+                            id,
+                        )
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                    }
                 })
             })
         }

@@ -20,8 +20,8 @@ mod service;
 mod cli;
 mod client;
 mod command;
-mod evm_client;
 mod evm_rpc;
+mod evm_service;
 mod rpc;
 
 fn main() -> sc_cli::Result<()> {

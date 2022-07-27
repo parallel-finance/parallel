@@ -255,15 +255,15 @@ keystore:
 
 .PHONY: snapshot
 snapshot:
-	cargo run --bin parallel --release --features try-runtime -- try-runtime --chain $(CHAIN) --wasm-execution=compiled on-runtime-upgrade live -a=$(BLOCK_AT) -u=$(URL) -s=snapshot.bin
+	cargo run --bin parallel --release --features try-runtime --features runtime-benchmarks -- try-runtime --chain $(CHAIN) --wasm-execution=compiled on-runtime-upgrade live -a=$(BLOCK_AT) -u=$(URL) -s=snapshot.bin
 
 .PHONY: try-snapshot-upgrade
 try-snapshot-upgrade:
-	cargo run --bin parallel --release --features try-runtime -- try-runtime --chain $(CHAIN) --wasm-execution=compiled on-runtime-upgrade snap -s snapshot.bin
+	cargo run --bin parallel --release --features try-runtime --features runtime-benchmarks -- try-runtime --chain $(CHAIN) --wasm-execution=compiled on-runtime-upgrade snap -s snapshot.bin
 
 .PHONY: try-live-upgrade
 try-live-upgrade:
-	cargo run --bin parallel --release --features try-runtime -- try-runtime --chain $(CHAIN) --wasm-execution=compiled on-runtime-upgrade live --uri=$(URL)
+	cargo run --bin parallel --release --features try-runtime --features runtime-benchmarks -- try-runtime --chain $(CHAIN) --wasm-execution=compiled on-runtime-upgrade live --uri=$(URL)
 
 .PHONY: try-heiko-live-upgrade
 try-heiko-live-upgrade:

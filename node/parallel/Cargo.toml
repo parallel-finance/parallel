@@ -21,6 +21,7 @@ hex-literal            = '0.3.4'
 jsonrpsee              = { version = "0.13.0", features = ["server", "macros"] }
 log                    = '0.4.13'
 futures                = { version = '0.3.1', features = ["compat"] }
+async-trait            = '0.1.42'
 
 primitives = { package = 'parallel-primitives', path = '../../primitives' }
 
@@ -56,8 +57,9 @@ clap       = { version = '3.1', features = ['derive'] }
 serde      = { version = '1.0.136', features = ['derive'] }
 serde_json = '1.0.79'
 
-orml-oracle-rpc            = { version = '0.4.1-dev', default-features = false }
-substrate-frame-rpc-system = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.24' }
+orml-oracle-rpc               = { version = '0.4.1-dev', default-features = false }
+substrate-frame-rpc-system    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.24' }
+substrate-prometheus-endpoint = { git = 'https://github.com/paritytech/substrate.git', branch = "polkadot-v0.9.24" }
 
 sp-api              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.24' }
 sp-block-builder    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.24' }
@@ -86,6 +88,9 @@ cumulus-primitives-parachain-inherent   = { git = 'https://github.com/paritytech
 cumulus-relay-chain-inprocess-interface = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.24' }
 cumulus-relay-chain-interface           = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.24' }
 cumulus-relay-chain-rpc-interface       = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.24' }
+cumulus-client-consensus-common         = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.24' }
+cumulus-client-consensus-relay-chain    = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.24' }
+
 
 polkadot-cli = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.24', features = [
   'kusama-native',

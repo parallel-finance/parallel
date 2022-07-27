@@ -1496,6 +1496,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "cumulus-client-consensus-relay-chain"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.24#95ca5a085727c1494ddeeae4a2b2e69c4ee1933b"
+dependencies = [
+ "async-trait",
+ "cumulus-client-consensus-common",
+ "cumulus-primitives-core",
+ "cumulus-relay-chain-interface",
+ "futures 0.3.21",
+ "parking_lot 0.12.1",
+ "sc-client-api",
+ "sc-consensus",
+ "sp-api",
+ "sp-block-builder",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-core",
+ "sp-inherents",
+ "sp-runtime",
+ "substrate-prometheus-endpoint",
+ "tracing",
+]
+
+[[package]]
 name = "cumulus-client-network"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.24#95ca5a085727c1494ddeeae4a2b2e69c4ee1933b"
@@ -3363,6 +3387,7 @@ dependencies = [
  "pallet-currency-adapter",
  "pallet-democracy",
  "pallet-emergency-shutdown",
+ "pallet-ethereum",
  "pallet-farming",
  "pallet-identity",
  "pallet-liquid-staking",
@@ -3936,6 +3961,7 @@ dependencies = [
  "pallet-currency-adapter",
  "pallet-democracy",
  "pallet-emergency-shutdown",
+ "pallet-ethereum",
  "pallet-farming",
  "pallet-identity",
  "pallet-liquid-staking",
@@ -7237,10 +7263,13 @@ dependencies = [
 name = "parallel"
 version = "1.8.9"
 dependencies = [
+ "async-trait",
  "clap",
  "cumulus-client-cli",
  "cumulus-client-collator",
  "cumulus-client-consensus-aura",
+ "cumulus-client-consensus-common",
+ "cumulus-client-consensus-relay-chain",
  "cumulus-client-network",
  "cumulus-client-service",
  "cumulus-primitives-core",
@@ -7316,6 +7345,7 @@ dependencies = [
  "sp-trie",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
+ "substrate-prometheus-endpoint",
  "try-runtime-cli",
  "vanilla-runtime",
 ]
@@ -7379,6 +7409,7 @@ dependencies = [
  "pallet-currency-adapter",
  "pallet-democracy",
  "pallet-emergency-shutdown",
+ "pallet-ethereum",
  "pallet-farming",
  "pallet-identity",
  "pallet-liquid-staking",
@@ -12903,7 +12934,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
  "digest 0.10.3",
  "rand 0.8.5",
  "static_assertions",
