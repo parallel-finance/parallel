@@ -88,7 +88,7 @@ orml-xcm-support            = { version = '0.4.1-dev', default-features = false 
 orml-xtokens                = { version = '0.4.1-dev', default-features = false }
 
 # EVM
-pallet-ethereum             = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.24", default-features = false }
+pallet-ethereum             = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
 
 # Parallel dependencies
 pallet-amm                    = { path = '../../pallets/amm', default-features = false }
