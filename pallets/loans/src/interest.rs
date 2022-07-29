@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![cfg_attr(not(feature = "std"), no_std)]
-
 use primitives::{Timestamp, SECONDS_PER_YEAR};
 use sp_runtime::{traits::Zero, DispatchResult};
 

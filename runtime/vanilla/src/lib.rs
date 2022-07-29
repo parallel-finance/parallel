@@ -24,14 +24,14 @@ use frame_support::{
     traits::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
-        ChangeMembers, Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Everything, FindAuthor,
-        InstanceFilter, Nothing, OnUnbalanced,
+        ChangeMembers, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly,
+        Everything, FindAuthor, InstanceFilter, Nothing, OnUnbalanced,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         ConstantMultiplier, DispatchClass,
     },
-    ConsensusEngineId, PalletId,
+    ConsensusEngineId, PalletId, WeakBoundedVec,
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
@@ -152,7 +152,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 189,
+    spec_version: 190,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -378,14 +378,20 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"sKSM".to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        b"sKSM".to_vec(),
+                        None,
+                    )),
                 ),
             )),
             HKO => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"HKO".to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        b"HKO".to_vec(),
+                        None,
+                    )),
                 ),
             )),
             // Karura
@@ -393,21 +399,30 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 1,
                 X2(
                     Parachain(paras::karura::ID),
-                    GeneralKey(paras::karura::KAR_KEY.to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        paras::karura::KAR_KEY.to_vec(),
+                        None,
+                    )),
                 ),
             )),
             KUSD => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(paras::karura::ID),
-                    GeneralKey(paras::karura::KUSD_KEY.to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        paras::karura::KUSD_KEY.to_vec(),
+                        None,
+                    )),
                 ),
             )),
             LKSM => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(paras::karura::ID),
-                    GeneralKey(paras::karura::LKSM_KEY.to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        paras::karura::LKSM_KEY.to_vec(),
+                        None,
+                    )),
                 ),
             )),
             // Moonriver
@@ -425,14 +440,20 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 1,
                 X2(
                     Parachain(paras::kintsugi::ID),
-                    GeneralKey(paras::kintsugi::KINT_KEY.to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        paras::kintsugi::KINT_KEY.to_vec(),
+                        None,
+                    )),
                 ),
             )),
             KBTC => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(paras::kintsugi::ID),
-                    GeneralKey(paras::kintsugi::KBTC_KEY.to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        paras::kintsugi::KBTC_KEY.to_vec(),
+                        None,
+                    )),
                 ),
             )),
             // Genshiro
@@ -877,6 +898,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
     type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
+    type Event = Event;
 }
 
 parameter_types! {
@@ -1186,6 +1208,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
     type ReservedDmpWeight = ReservedDmpWeight;
+    type CheckAssociatedRelayNumber = cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 }
 
 impl parachain_info::Config for Runtime {}
@@ -1194,7 +1217,7 @@ parameter_types! {
     pub const RelayLocation: MultiLocation = MultiLocation::parent();
     pub RelayNetwork: NetworkId = NetworkId::Kusama;
     pub RelayCurrency: CurrencyId = KSM;
-    pub VanillaNetwork: NetworkId = NetworkId::Named("vanilla".into());
+    pub VanillaNetwork: NetworkId = NetworkId::Named(WeakBoundedVec::<u8, ConstU32<32>>::force_from("vanilla".into(), None));
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
 }
@@ -1225,7 +1248,7 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = 5 * DOLLARS; // 5HKO
+        let default_gift_amount = 3 * DOLLARS / 10; // 0.3HKO
         Ok(match asset_id {
             KSM if balance
                 >= 10_u128
@@ -1287,35 +1310,35 @@ parameter_types! {
     pub SKSMPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"sKSM".to_vec())),
+            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"sKSM".to_vec(), None))),
         ).into(),
         ksm_per_second()
     );
     pub SKSMPerSecondOfCanonicalLocation: (AssetId, u128) = (
         MultiLocation::new(
             0,
-            X1(GeneralKey(b"sKSM".to_vec())),
+            X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"sKSM".to_vec(), None))),
         ).into(),
         ksm_per_second()
     );
     pub HkoPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"HKO".to_vec())),
+            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"HKO".to_vec(), None))),
         ).into(),
         ksm_per_second() * 30
     );
     pub HkoPerSecondOfCanonicalLocation: (AssetId, u128) = (
         MultiLocation::new(
             0,
-            X1(GeneralKey(b"HKO".to_vec())),
+            X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"HKO".to_vec(), None))),
         ).into(),
         ksm_per_second() * 30
     );
     pub KusdPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::KUSD_KEY.to_vec())),
+            X2(Parachain(paras::karura::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::karura::KUSD_KEY.to_vec(), None))),
         ).into(),
         ksm_per_second() * 400
     );
@@ -1323,14 +1346,14 @@ parameter_types! {
     pub KarPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::KAR_KEY.to_vec())),
+            X2(Parachain(paras::karura::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::karura::KAR_KEY.to_vec(), None))),
         ).into(),
         ksm_per_second() * 50
     );
     pub LKSMPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::LKSM_KEY.to_vec())),
+            X2(Parachain(paras::karura::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::karura::LKSM_KEY.to_vec(), None))),
         ).into(),
         ksm_per_second()
     );
@@ -1354,14 +1377,14 @@ parameter_types! {
     pub KintPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::kintsugi::ID), GeneralKey(paras::kintsugi::KINT_KEY.to_vec())),
+            X2(Parachain(paras::kintsugi::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::kintsugi::KINT_KEY.to_vec(), None))),
         ).into(),
         ksm_per_second() * 400
     );
     pub KbtcPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::kintsugi::ID), GeneralKey(paras::kintsugi::KBTC_KEY.to_vec())),
+            X2(Parachain(paras::kintsugi::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::kintsugi::KBTC_KEY.to_vec(), None))),
         ).into(),
         ksm_per_second() / 1_500_000
     );
@@ -1680,11 +1703,11 @@ impl pallet_identity::Config for Runtime {
     type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
 }
 
-type EnsureRootOrMoreThanHalfGeneralCouncil = EnsureOneOf<
+type EnsureRootOrMoreThanHalfGeneralCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionMoreThan<AccountId, GeneralCouncilCollective, 1, 2>,
 >;
-type EnsureRootOrAllTechnicalCommittee = EnsureOneOf<
+type EnsureRootOrAllTechnicalCommittee = EitherOfDiverse<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
 >;
@@ -1878,6 +1901,7 @@ impl pallet_treasury::Config for Runtime {
     type SpendFunds = ();
     type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
     type MaxApprovals = MaxApprovals;
+    type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
 }
 
 parameter_types! {
@@ -2159,7 +2183,7 @@ construct_runtime!(
         Utility: pallet_utility::{Pallet, Call, Event} = 2,
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 3,
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 4,
-        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 5,
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 5,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 6,
         Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 7,
         Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 8,

@@ -21,8 +21,8 @@ use sp_runtime::{traits::AccountIdConversion, MultiAddress};
 use xcm::latest::prelude::*;
 use xcm_emulator::TestExt;
 
+// pub const FEE_IN_KUSAMA: u128 = 29_642_910;
 pub const STATEMINE_TOTAL_FEE_AMOUNT: u128 = 1_000_000_000; //still can be decreased further but we add some margin here
-pub const FEE_IN_KUSAMA: u128 = 29_642_910;
 
 #[test]
 fn transfer_statemine_rmrk() {
@@ -88,8 +88,11 @@ fn transfer_statemine_rmrk() {
             ksm(100f64) - (STATEMINE_TOTAL_FEE_AMOUNT - FEE_IN_STATEMINE),
             kusama_runtime::Balances::free_balance(&heiko_sovereign)
         ); //fee deducted from heiko_sovereign
+           // https://github.com/open-web3-stack/open-runtime-module-library/pull/786/files
+           // teleport will bypass the statemine_sovereign so it'll always be zero
         assert_eq!(
-            STATEMINE_TOTAL_FEE_AMOUNT - FEE_IN_STATEMINE - FEE_IN_KUSAMA,
+            0,
+            // STATEMINE_TOTAL_FEE_AMOUNT - FEE_IN_STATEMINE - FEE_IN_KUSAMA,
             kusama_runtime::Balances::free_balance(&statemine_sovereign)
         ); // fee reserved into statemine_sovereign
     });

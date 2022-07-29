@@ -3,7 +3,7 @@
 use super::*;
 use frame_support::{
     parameter_types,
-    traits::{fungibles::InspectMetadata, ChangeMembers, EnsureOneOf, Everything},
+    traits::{fungibles::InspectMetadata, ChangeMembers, EitherOfDiverse, Everything},
 };
 use frame_system::{self as system, EnsureRoot};
 use primitives::tokens::{HKO, KSM};
@@ -21,7 +21,7 @@ pub type AccountId = u128;
 
 type EnsureRootOrigin = EnsureRoot<AccountId>;
 
-pub type CapOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+pub type CapOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub struct AliceOrigin;
 impl SortedMembers<AccountId> for AliceOrigin {

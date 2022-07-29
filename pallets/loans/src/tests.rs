@@ -731,9 +731,9 @@ fn ratio_and_rate_works() {
         );
 
         // u128 div Permill
-        assert_eq!(value1.saturating_reciprocal_mul(5_u128), 17); // (1/0.3) * 5 = 16.66666666..
         assert_eq!(value1.saturating_reciprocal_mul_floor(5_u128), 16); // (1/0.3) * 5 = 16.66666666..
-        assert_eq!(value2.saturating_reciprocal_mul(5_u128), 12); // (1/0.4) * 5 = 12.5
+        assert_eq!(value1.saturating_reciprocal_mul_floor(5_u128), 16); // (1/0.3) * 5 = 16.66666666..
+        assert_eq!(value2.saturating_reciprocal_mul_floor(5_u128), 12); // (1/0.4) * 5 = 12.5
 
         // Permill * u128
         let value1 = Permill::from_percent(34);

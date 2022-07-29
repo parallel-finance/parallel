@@ -5,11 +5,11 @@ use frame_support::{
     dispatch::Weight,
     parameter_types, sp_io,
     traits::{
-        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, OriginTrait,
-        SortedMembers,
+        tokens::BalanceConversion, ConstU32, EitherOfDiverse, Everything, GenesisBuild, Nothing,
+        OriginTrait, SortedMembers,
     },
     weights::constants::WEIGHT_PER_SECOND,
-    PalletId,
+    PalletId, WeakBoundedVec,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
@@ -91,6 +91,7 @@ impl cumulus_pallet_parachain_system::Config for Test {
     type OutboundXcmpMessageSource = XcmpQueue;
     type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
+    type CheckAssociatedRelayNumber = cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 }
 
 impl parachain_info::Config for Test {}
@@ -283,7 +284,10 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"sDOT".to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        b"sDOT".to_vec(),
+                        None,
+                    )),
                 ),
             )),
             _ => None,
@@ -459,26 +463,27 @@ parameter_types! {
 }
 
 pub type CreateVaultOrigin =
-    EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+    EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type DissolveVaultOrigin =
-    EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+    EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type RefundOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+pub type RefundOrigin =
+    EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type UpdateVaultOrigin =
-    EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+    EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type VrfOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+pub type VrfOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type OpenCloseOrigin =
-    EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+    EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type AuctionSucceededFailedOrigin =
-    EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
+    EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 pub type SlotExpiredOrigin =
-    EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
+    EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 impl crate::Config for Test {
     type Event = Event;

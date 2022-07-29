@@ -180,9 +180,9 @@ fn pool_as_bridge_swap_tokens_for_exact_tokens_should_work() {
         .unwrap();
 
         // check balances after swap
-        assert_eq!(Assets::balance(DOT, trader), 10_000 - 506);
-        assert_eq!(Assets::balance(SDOT, trader), 10_000 + 1);
-        assert_eq!(Assets::balance(USDT, trader), 0 + 20_000 + 69);
+        assert_eq!(Assets::balance(DOT, trader), 10_000 - 504);
+        assert_eq!(Assets::balance(SDOT, trader), 10_000);
+        assert_eq!(Assets::balance(USDT, trader), 0 + 20_000 + 29);
     });
 }
 
