@@ -24,14 +24,14 @@ use frame_support::{
     traits::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
-        ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter,
-        Nothing,
+        ChangeMembers, ConstU32, Contains, EitherOfDiverse, EqualPrivilegeOnly, Everything,
+        InstanceFilter, Nothing,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         ConstantMultiplier, DispatchClass,
     },
-    PalletId,
+    PalletId, WeakBoundedVec,
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
@@ -144,7 +144,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("kerria"),
     impl_name: create_runtime_str!("kerria"),
     authoring_version: 1,
-    spec_version: 189,
+    spec_version: 190,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -370,14 +370,20 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"sDOT".to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        b"sDOT".to_vec(),
+                        None,
+                    )),
                 ),
             )),
             PARA => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"PARA".to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        b"PARA".to_vec(),
+                        None,
+                    )),
                 ),
             )),
             // Acala
@@ -385,28 +391,40 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 1,
                 X2(
                     Parachain(paras::acala::ID),
-                    GeneralKey(paras::acala::ACA_KEY.to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        paras::acala::ACA_KEY.to_vec(),
+                        None,
+                    )),
                 ),
             )),
             AUSD => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(paras::acala::ID),
-                    GeneralKey(paras::acala::AUSD_KEY.to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        paras::acala::AUSD_KEY.to_vec(),
+                        None,
+                    )),
                 ),
             )),
             LDOT => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(paras::acala::ID),
-                    GeneralKey(paras::acala::LDOT_KEY.to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        paras::acala::LDOT_KEY.to_vec(),
+                        None,
+                    )),
                 ),
             )),
             LC_DOT => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(paras::acala::ID),
-                    GeneralKey(paras::acala::LCDOT_KEY.to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        paras::acala::LCDOT_KEY.to_vec(),
+                        None,
+                    )),
                 ),
             )),
             // Moonbeam
@@ -424,14 +442,20 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 1,
                 X2(
                     Parachain(paras::interlay::ID),
-                    GeneralKey(paras::interlay::INTR_KEY.to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        paras::interlay::INTR_KEY.to_vec(),
+                        None,
+                    )),
                 ),
             )),
             IBTC => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(paras::interlay::ID),
-                    GeneralKey(paras::interlay::IBTC_KEY.to_vec()),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        paras::interlay::IBTC_KEY.to_vec(),
+                        None,
+                    )),
                 ),
             )),
             // Equilibrium
@@ -856,6 +880,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
     type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
+    type Event = Event;
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -1069,6 +1094,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
     type ReservedDmpWeight = ReservedDmpWeight;
+    type CheckAssociatedRelayNumber = cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 }
 
 impl parachain_info::Config for Runtime {}
@@ -1077,7 +1103,7 @@ parameter_types! {
     pub RelayLocation: MultiLocation = MultiLocation::parent();
     pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
     pub RelayCurrency: CurrencyId = DOT;
-    pub KerriaNetwork: NetworkId = NetworkId::Named("kerria".into());
+    pub KerriaNetwork: NetworkId = NetworkId::Named(WeakBoundedVec::<u8, ConstU32<32>>::force_from("kerria".into(), None));
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
 }
@@ -1108,7 +1134,7 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = 5 * DOLLARS; // 5PARA
+        let default_gift_amount = 3 * DOLLARS / 10; // 0.3PARA
         Ok(match asset_id {
             DOT if balance >= 5 * 10_u128.pow(decimal.into()).saturating_sub(96_000_000u128) => {
                 default_gift_amount
@@ -1166,28 +1192,28 @@ parameter_types! {
     pub SDOTPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"sDOT".to_vec())),
+            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"sDOT".to_vec(), None))),
         ).into(),
         dot_per_second()
     );
     pub SDOTPerSecondOfCanonicalLocation: (AssetId, u128) = (
         MultiLocation::new(
             0,
-            X1(GeneralKey(b"sDOT".to_vec())),
+            X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"sDOT".to_vec(), None))),
         ).into(),
         dot_per_second()
     );
     pub ParaPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"PARA".to_vec())),
+            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"PARA".to_vec(), None))),
         ).into(),
         dot_per_second() * 100
     );
     pub ParaPerSecondOfCanonicalLocation: (AssetId, u128) = (
         MultiLocation::new(
             0,
-            X1(GeneralKey(b"PARA".to_vec())),
+            X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"PARA".to_vec(), None))),
         ).into(),
         dot_per_second() * 100
     );
@@ -1195,28 +1221,28 @@ parameter_types! {
     pub AusdPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::acala::ID), GeneralKey(paras::acala::AUSD_KEY.to_vec()))
+            X2(Parachain(paras::acala::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::acala::AUSD_KEY.to_vec(), None)))
         ).into(),
         dot_per_second() * 30
     );
     pub AcaPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::acala::ID), GeneralKey(paras::acala::ACA_KEY.to_vec()))
+            X2(Parachain(paras::acala::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::acala::ACA_KEY.to_vec(), None)))
         ).into(),
         dot_per_second() * 20
     );
     pub LDOTPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::acala::ID), GeneralKey(paras::acala::LDOT_KEY.to_vec()))
+            X2(Parachain(paras::acala::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::acala::LDOT_KEY.to_vec(), None)))
         ).into(),
         dot_per_second()
     );
     pub LCDOTPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::acala::ID), GeneralKey(paras::acala::LCDOT_KEY.to_vec()))
+            X2(Parachain(paras::acala::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::acala::LCDOT_KEY.to_vec(), None)))
         ).into(),
         dot_per_second()
     );
@@ -1240,14 +1266,14 @@ parameter_types! {
     pub IntrPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::interlay::ID), GeneralKey(paras::interlay::INTR_KEY.to_vec())),
+            X2(Parachain(paras::interlay::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::interlay::INTR_KEY.to_vec(), None))),
         ).into(),
         dot_per_second() * 400
     );
     pub IbtcPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::interlay::ID), GeneralKey(paras::interlay::IBTC_KEY.to_vec())),
+            X2(Parachain(paras::interlay::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::interlay::IBTC_KEY.to_vec(), None))),
         ).into(),
         dot_per_second() / 1_500_000
     );
@@ -1526,11 +1552,11 @@ impl pallet_identity::Config for Runtime {
     type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
 }
 
-type EnsureRootOrMoreThanHalfGeneralCouncil = EnsureOneOf<
+type EnsureRootOrMoreThanHalfGeneralCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionMoreThan<AccountId, GeneralCouncilCollective, 1, 2>,
 >;
-type EnsureRootOrAllTechnicalCommittee = EnsureOneOf<
+type EnsureRootOrAllTechnicalCommittee = EitherOfDiverse<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
 >;
@@ -1724,6 +1750,7 @@ impl pallet_treasury::Config for Runtime {
     type SpendFunds = ();
     type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
     type MaxApprovals = MaxApprovals;
+    type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
 }
 
 parameter_types! {
@@ -2007,7 +2034,7 @@ construct_runtime!(
         Utility: pallet_utility::{Pallet, Call, Event} = 2,
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 3,
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 4,
-        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 5,
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 5,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 6,
         Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 7,
         Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 8,

@@ -14,11 +14,11 @@ lto           = true
 members = ['node/*', 'pallets/*', 'runtime/*', 'support', 'integration-tests']
 
 [patch.crates-io]
-orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = 'adc4feef3e2b312d45e1a931237e590cf0b44f03' }
-orml-oracle-rpc             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = 'adc4feef3e2b312d45e1a931237e590cf0b44f03' }
-orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = 'adc4feef3e2b312d45e1a931237e590cf0b44f03' }
-orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = 'adc4feef3e2b312d45e1a931237e590cf0b44f03' }
-orml-vesting                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = 'adc4feef3e2b312d45e1a931237e590cf0b44f03' }
-orml-xcm                    = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = 'adc4feef3e2b312d45e1a931237e590cf0b44f03' }
-orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = 'adc4feef3e2b312d45e1a931237e590cf0b44f03' }
-orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = 'adc4feef3e2b312d45e1a931237e590cf0b44f03' }
+orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }
+orml-oracle-rpc             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }
+orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }
+orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }
+orml-vesting                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }
+orml-xcm                    = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }
+orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }
+orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }

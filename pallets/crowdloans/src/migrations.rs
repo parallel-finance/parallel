@@ -22,6 +22,16 @@ pub mod v1 {
     use sp_runtime::traits::Zero;
     use sp_std::{vec, vec::Vec};
     use types::*;
+
+    pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
+        frame_support::ensure!(
+            StorageVersion::<T>::get() == Releases::V0_0_0,
+            "must be V0_0_0"
+        );
+        frame_support::ensure!(NextTrieIndex::<T>::get() == 10, "must be 10");
+        Ok(())
+    }
+
     /// Add vaults for batch 1 winning projects
     pub fn migrate<T: Config>() -> frame_support::weights::Weight {
         if StorageVersion::<T>::get() == Releases::V0_0_0 {
@@ -29,110 +39,20 @@ pub mod v1 {
                 target: "crowdloans::migrate",
                 "migrating crowdloan to Releases::V1_0_0"
             );
+            let next_trie_index: u32 = NextTrieIndex::<T>::get();
             // paraId, ctoken, contributed, cap, end_block, trie_index, lease_start, lease_end
             let batch: Vec<(u32, u32, u128, u128, u32, u32, u32, u32)> = vec![
-                // Acala
-                // 1,441,645.1500372255
+                // Parallel Heiko
+                // 57,307,000,000,000,000
                 (
-                    2000,
-                    200060013,
-                    14_416_451_500_372_255,
-                    500_000_000_000_000_000,
-                    8179200,
-                    0,
-                    6,
-                    13,
-                ),
-                // Clover
-                // 3,952,961.0099297280
-                (
-                    2002,
-                    200060013,
-                    39_529_610_099_297_280,
-                    500_000_000_000_000_000,
-                    8179200,
-                    1,
-                    6,
-                    13,
-                ),
-                // Moonbeam
-                // 3,470,561.7504208070
-                (
-                    2004,
-                    200060013,
-                    34_705_617_504_208_070,
-                    1_000_000_000_000_000_000,
-                    8179199,
-                    2,
-                    6,
-                    13,
-                ),
-                // Astar
-                // 1,790,762.0716266251
-                (
-                    2006,
-                    200060013,
-                    17_907_620_716_266_251,
-                    350_000_010_000_000_000,
-                    8179200,
-                    3,
-                    6,
-                    13,
-                ),
-                // Parallel
-                (
-                    2012,
-                    200060013,
-                    85_381_150_820_717_022,
+                    2085,
+                    100150022,
+                    57_307_000_000_000_000,
                     400_000_000_000_000_000,
-                    8179200,
-                    4,
-                    6,
-                    13,
-                ),
-                // Composable Finance
-                (
-                    2019,
-                    200070014,
-                    13546295460000000,
-                    250_000_000_000_000_000,
-                    9388800,
-                    5,
-                    7,
-                    14,
-                ),
-                // Efinity
-                (
-                    2021,
-                    200070014,
-                    29081813864649582,
-                    500_000_000_000_000_000,
-                    9388800,
-                    6,
-                    7,
-                    14,
-                ),
-                // Centrifuge
-                (
-                    2031,
-                    200070014,
-                    7890821452032861,
-                    200_000_000_000_000_000,
-                    9388800,
-                    7,
-                    7,
-                    14,
-                ),
-                // HydraDX
-                (
-                    2034,
-                    200070014,
-                    9810699325000000,
-                    80_000_000_000_000_000,
-                    9388800,
-                    8,
-                    7,
-                    14,
+                    9676800,
+                    next_trie_index,
+                    15,
+                    22,
                 ),
             ];
             let length = batch.len() as u64;
@@ -157,7 +77,7 @@ pub mod v1 {
                 CTokensRegistry::<T>::insert((&lease_start, &lease_end), ctoken);
                 LeasesRegistry::<T>::insert(&ParaId::from(para_id), (lease_start, lease_end));
             }
-            NextTrieIndex::<T>::put(9);
+            NextTrieIndex::<T>::put(next_trie_index + 1);
             StorageVersion::<T>::put(Releases::V1_0_0);
             log::info!(
                 target: "crowdloans::migrate",
@@ -167,6 +87,17 @@ pub mod v1 {
         } else {
             T::DbWeight::get().reads(1)
         }
+    }
+
+    pub fn post_migrate<T: Config>() -> Result<(), &'static str> {
+        frame_support::ensure!(
+            StorageVersion::<T>::get() == Releases::V1_0_0,
+            "must be V1_0_0"
+        );
+        frame_support::ensure!(NextTrieIndex::<T>::get() == 11, "must be 11");
+        log::info!("👜 crowdloan migration passes POST migrate checks ✅",);
+
+        Ok(())
     }
 }
 
@@ -178,7 +109,6 @@ pub mod v2 {
     use sp_std::{vec, vec::Vec};
     use types::*;
 
-    #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
         frame_support::ensure!(
             StorageVersion::<T>::get() == Releases::V1_0_0,
@@ -291,11 +221,10 @@ pub mod v2 {
         }
     }
 
-    #[cfg(feature = "try-runtime")]
     pub fn post_migrate<T: Config>() -> Result<(), &'static str> {
         frame_support::ensure!(
             StorageVersion::<T>::get() == Releases::V2_0_0,
-            "must be V1_0_0"
+            "must be V2_0_0"
         );
         frame_support::ensure!(NextTrieIndex::<T>::get() == 14, "must be 14");
         log::info!("👜 crowdloan migration passes POST migrate checks ✅",);

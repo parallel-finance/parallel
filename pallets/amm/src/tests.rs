@@ -700,7 +700,7 @@ fn long_route_amounts_in_should_work() {
 
         let amounts_in = AMM::get_amounts_in(amount_out, path).unwrap();
 
-        assert_eq!(amounts_in, [2518, 1115, 1000]);
+        assert_eq!(amounts_in, [2517, 1115, 1000]);
     })
 }
 
@@ -862,9 +862,10 @@ fn oracle_big_block_no_overflow() {
             AMM::pools(DOT, KSM).unwrap().block_timestamp_last,
             big_block
         );
+
         assert_eq!(
             AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last,
-            105007346_092879071079611686
+            105007346092879071079611683
         );
         assert_eq!(
             AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last,
@@ -1159,14 +1160,14 @@ fn handling_fees_should_work() {
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(PROTOCOL_FEE_RECEIVER).into(),
             (DOT, SDOT),
-            1_499,
+            1_285,
         ));
 
         // PROTOCOL_FEE_RECEIVER should have slightly less then 3_000 total rewards
         // split between the two pools - the small difference is due to rounding errors
-        assert_eq!(Assets::balance(DOT, PROTOCOL_FEE_RECEIVER), 1499);
+        assert_eq!(Assets::balance(DOT, PROTOCOL_FEE_RECEIVER), 1285);
 
-        assert_eq!(Assets::balance(SDOT, PROTOCOL_FEE_RECEIVER), 1498);
+        assert_eq!(Assets::balance(SDOT, PROTOCOL_FEE_RECEIVER), 1284);
     })
 }
 
