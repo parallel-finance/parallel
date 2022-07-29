@@ -32,7 +32,11 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
             interior: 'Here'
           }
         },
-        createXcm(`${encodedCallData.toString()}`, sovereignRelayOf(paraId.toNumber()))
+        createXcm(
+          `${encodedCallData.toString()}`,
+          sovereignRelayOf(paraId.toNumber()),
+          'SovereignAccount'
+        )
       )
       const tx = api.tx.generalCouncil.propose(2, proposal, proposal.length)
 

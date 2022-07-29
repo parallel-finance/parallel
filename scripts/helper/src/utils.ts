@@ -65,7 +65,7 @@ export const nextNonce = async (api: ApiPromise, signer: KeyringPair): Promise<I
   return await api.rpc.system.accountNextIndex(signer.address)
 }
 
-export const createXcm = (encoded: string, refundAccount: string) => {
+export const createXcm = (encoded: string, refundAccount: string, originType = 'Native') => {
   return {
     V2: [
       {
@@ -101,7 +101,7 @@ export const createXcm = (encoded: string, refundAccount: string) => {
       },
       {
         Transact: {
-          originType: 'Native',
+          originType,
           requireWeightAtMost: '3000000000',
           call: {
             encoded
