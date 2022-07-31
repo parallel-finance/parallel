@@ -40,6 +40,10 @@ const HEIKO_PARA_ID: u32 = 2085;
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     Ok(match id {
+        #[cfg(feature = "with-evm-dev-runtime")]
+        "dev" => Box::new(chain_spec::dev::development_config(ParaId::from(
+            HEIKO_PARA_ID,
+        ))),
         "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(ParaId::from(
             HEIKO_PARA_ID,
         ))),
@@ -122,6 +126,8 @@ impl SubstrateCli for Cli {
             &vanilla_runtime::VERSION
         } else if chain_spec.is_kerria() {
             &kerria_runtime::VERSION
+        } else if chain_spec.is_dev() {
+            &vanilla_runtime::VERSION
         } else {
             unreachable!()
         }
@@ -198,7 +204,21 @@ macro_rules! switch_runtime {
             use kerria_runtime::{RuntimeApi, Block};
 
 			$( $code )*
-        } else {
+        } else if $chain_spec.is_dev() {
+            #[cfg(feature = "with-evm-dev-runtime")]
+            #[allow(unused_imports)]
+            use crate::dev::service::Executor as Executor;
+            #[cfg(feature = "with-evm-dev-runtime")]
+            #[allow(unused_imports)]
+            use dev_runtime::{RuntimeApi, Block};
+            #[cfg(feature = "with-evm-dev-runtime")]
+            {
+                $( $code )*
+            }
+            #[cfg(not(feature = "with-evm-dev-runtime"))]
+			return Err("compile the node with `--features with-evm-dev-runtime`".into());
+        }
+        else {
             unreachable!();
         }
     };
@@ -414,6 +434,13 @@ pub fn run() -> Result<()> {
 
             switch_runtime!(chain_spec, {
                 runner.run_node_until_exit(|config| async move {
+                    #[cfg(feature = "with-evm-dev-runtime")]
+                    {
+                        if config.chain_spec.is_dev() {
+                            return crate::dev::start_node(config).map_err(Into::into);
+                        }
+                    }
+
                     let extension = chain_spec::Extensions::try_get(&*config.chain_spec);
                     let relay_chain_id = extension.map(|e| e.relay_chain.clone());
                     let para_chain_id = extension

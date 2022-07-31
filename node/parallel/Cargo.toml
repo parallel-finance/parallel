@@ -32,7 +32,8 @@ pallet-router-rpc                          = { path = '../../pallets/router/rpc'
 pallet-transaction-payment-rpc             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
 parallel-runtime                           = { path = '../../runtime/parallel' }
-vanilla-runtime                            = { path = '../../runtime/vanilla' }
+vanilla-runtime                            = { path = '../../runtime/vanilla'  }
+dev-runtime                                = { path = '../../runtime/dev', optional = true }
 
 sc-basic-authorship     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
 sc-chain-spec           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
@@ -49,7 +50,8 @@ sc-tracing              = { git = 'https://github.com/paritytech/substrate.git',
 sc-transaction-pool     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
 sc-transaction-pool-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
 sc-network              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
-
+sc-consensus-aura       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
+sc-consensus-manual-seal = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
 
 frame-system-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
 try-runtime-cli              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26', optional = true }
@@ -107,6 +109,7 @@ fp-consensus = { git = "https://github.com/yrong/frontier", branch = "polkadot-v
 fp-evm = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
 fp-rpc = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
 fp-storage = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
+fp-dynamic-fee = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
 pallet-ethereum = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
 pallet-evm = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
 
@@ -133,4 +136,9 @@ try-runtime        = [
   'vanilla-runtime/try-runtime',
   'kerria-runtime/try-runtime',
   'try-runtime-cli',
+]
+with-evm-dev-runtime = [
+  'dev-runtime',
+  'dev-runtime/runtime-benchmarks',
+  'dev-runtime/try-runtime',
 ]

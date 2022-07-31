@@ -100,6 +100,8 @@ pub trait IdentifyVariant {
     fn is_vanilla(&self) -> bool;
 
     fn is_kerria(&self) -> bool;
+
+    fn is_dev(&self) -> bool;
 }
 
 impl IdentifyVariant for Box<dyn sc_service::ChainSpec> {
@@ -117,6 +119,10 @@ impl IdentifyVariant for Box<dyn sc_service::ChainSpec> {
 
     fn is_kerria(&self) -> bool {
         self.id().starts_with("kerria")
+    }
+
+    fn is_dev(&self) -> bool {
+        return self.id().starts_with("vanilla-local-dev");
     }
 }
 

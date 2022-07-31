@@ -17,6 +17,9 @@ pub mod kerria;
 pub mod parallel;
 pub mod vanilla;
 
+#[cfg(feature = "with-evm-dev-runtime")]
+pub mod dev;
+
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::Properties;
 use serde::{Deserialize, Serialize};

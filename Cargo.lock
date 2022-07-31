@@ -1873,6 +1873,111 @@ dependencies = [
 ]
 
 [[package]]
+name = "dev-runtime"
+version = "1.9.0"
+dependencies = [
+ "cumulus-pallet-aura-ext",
+ "cumulus-pallet-dmp-queue",
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcm",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-core",
+ "cumulus-primitives-timestamp",
+ "cumulus-primitives-utility",
+ "fp-rpc",
+ "fp-self-contained",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-benchmarking",
+ "frame-system-rpc-runtime-api",
+ "frame-try-runtime",
+ "hex-literal",
+ "orml-oracle",
+ "orml-oracle-rpc-runtime-api",
+ "orml-traits",
+ "orml-vesting",
+ "orml-xcm",
+ "orml-xcm-support",
+ "orml-xtokens",
+ "pallet-amm",
+ "pallet-asset-registry",
+ "pallet-assets",
+ "pallet-aura",
+ "pallet-authorship",
+ "pallet-balances",
+ "pallet-base-fee",
+ "pallet-bridge",
+ "pallet-collator-selection",
+ "pallet-collective",
+ "pallet-crowdloans",
+ "pallet-currency-adapter",
+ "pallet-democracy",
+ "pallet-emergency-shutdown",
+ "pallet-ethereum",
+ "pallet-evm",
+ "pallet-evm-precompile-blake2",
+ "pallet-evm-precompile-bn128",
+ "pallet-evm-precompile-dispatch",
+ "pallet-evm-precompile-ed25519",
+ "pallet-evm-precompile-modexp",
+ "pallet-evm-precompile-sha3fips",
+ "pallet-evm-precompile-simple",
+ "pallet-farming",
+ "pallet-grandpa",
+ "pallet-identity",
+ "pallet-liquid-staking",
+ "pallet-loans",
+ "pallet-loans-rpc-runtime-api",
+ "pallet-membership",
+ "pallet-multisig",
+ "pallet-preimage",
+ "pallet-prices",
+ "pallet-proxy",
+ "pallet-router",
+ "pallet-router-rpc-runtime-api",
+ "pallet-scheduler",
+ "pallet-session",
+ "pallet-stableswap",
+ "pallet-streaming",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-traits",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-treasury",
+ "pallet-utility",
+ "pallet-xcm",
+ "pallet-xcm-helper",
+ "parachain-info",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "polkadot-parachain",
+ "polkadot-runtime-common",
+ "scale-info",
+ "serde",
+ "smallvec",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-inherents",
+ "sp-io",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
+ "sp-transaction-pool",
+ "sp-version",
+ "static_assertions",
+ "substrate-wasm-builder",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
+]
+
+[[package]]
 name = "digest"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2548,6 +2653,16 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "fp-dynamic-fee"
+version = "1.0.0"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "async-trait",
+ "sp-core",
+ "sp-inherents",
 ]
 
 [[package]]
@@ -7075,12 +7190,14 @@ dependencies = [
  "cumulus-relay-chain-interface",
  "cumulus-relay-chain-rpc-interface",
  "derive_more 0.15.0",
+ "dev-runtime",
  "fc-consensus",
  "fc-db",
  "fc-mapping-sync",
  "fc-rpc",
  "fc-rpc-core",
  "fp-consensus",
+ "fp-dynamic-fee",
  "fp-evm",
  "fp-rpc",
  "fp-storage",
@@ -7112,6 +7229,8 @@ dependencies = [
  "sc-cli",
  "sc-client-api",
  "sc-consensus",
+ "sc-consensus-aura",
+ "sc-consensus-manual-seal",
  "sc-executor",
  "sc-keystore",
  "sc-network",
@@ -9939,6 +10058,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "sc-consensus-manual-seal"
+version = "0.10.0-dev"
+source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.26#e8a7d161f39db70cb27fdad6c6e215cf493ebc3b"
+dependencies = [
+ "assert_matches",
+ "async-trait",
+ "futures 0.3.21",
+ "jsonrpsee",
+ "log",
+ "parity-scale-codec",
+ "sc-client-api",
+ "sc-consensus",
+ "sc-consensus-aura",
+ "sc-consensus-babe",
+ "sc-consensus-epochs",
+ "sc-transaction-pool",
+ "sc-transaction-pool-api",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-consensus-aura",
+ "sp-consensus-babe",
+ "sp-consensus-slots",
+ "sp-core",
+ "sp-inherents",
+ "sp-keystore",
+ "sp-runtime",
+ "sp-timestamp",
+ "substrate-prometheus-endpoint",
+ "thiserror",
+]
+
+[[package]]
 name = "sc-consensus-slots"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.26#e8a7d161f39db70cb27fdad6c6e215cf493ebc3b"
@@ -12674,7 +12827,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "digest 0.10.3",
  "rand 0.8.5",
  "static_assertions",

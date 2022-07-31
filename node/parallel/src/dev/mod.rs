@@ -12,21 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![warn(unused_extern_crates)]
-
-mod chain_spec;
-#[macro_use]
-mod service;
-mod cli;
-mod client;
-mod command;
-mod evm_rpc;
-mod evm_service;
-mod rpc;
-
-#[cfg(feature = "with-evm-dev-runtime")]
-mod dev;
-
-fn main() -> sc_cli::Result<()> {
-    command::run()
-}
+pub mod service;
+pub use service::{new_partial, start_node, Executor, RuntimeApi};

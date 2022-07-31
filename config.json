@@ -1,14 +1,13 @@
 {
   "relaychain": {
     "bin": "../polkadot/target/release/polkadot",
-    "chain": "polkadot-local",
+    "chain": "rococo-local",
     "nodes": [
       {
         "name": "alice",
         "wsPort": 9944,
         "rpcPort": 9933,
         "port": 30333,
-        "basePath": "data/9944",
         "flags": [
           "-l",
           "xcm=trace",
@@ -21,7 +20,6 @@
         "wsPort": 9945,
         "rpcPort": 9934,
         "port": 30334,
-        "basePath": "data/9945",
         "flags": [
           "-l",
           "xcm=trace",
@@ -34,7 +32,6 @@
         "wsPort": 9946,
         "rpcPort": 9935,
         "port": 30335,
-        "basePath": "data/9946",
         "flags": [
           "-l",
           "xcm=trace",
@@ -47,7 +44,6 @@
         "wsPort": 9947,
         "rpcPort": 9936,
         "port": 30336,
-        "basePath": "data/9947",
         "flags": [
           "-l",
           "xcm=trace",
@@ -57,14 +53,22 @@
       }
     ],
     "genesis": {
-      "runtime": {}
-    }
+			"runtime": {
+				"runtime_genesis_config": {
+					"configuration": {
+						"config": {
+							"validation_upgrade_frequency": 10,
+							"validation_upgrade_delay": 10
+						}
+					}
+				}
+			}
+		}
   },
   "parachains": [
     {
       "bin": "./target/release/parallel",
-      "id": 2012,
-      "chain": "kerria-dev",
+      "chain": "vanilla-dev",
       "nodes": [
         {
           "wsPort": 9948,
@@ -73,15 +77,14 @@
           "name": "alice",
           "flags": [
             "-l",
-            "xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace,stableswap=trace,router=trace,bridge=trace",
+            "evm=trace,xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace,stableswap=trace,router=trace,bridge=trace",
             "--state-cache-size",
             "0",
             "--",
             "--execution=wasm",
             "--state-cache-size",
             "0"
-          ],
-          "basePath": "data/9948"
+          ]
         }
       ]
     }
