@@ -183,6 +183,13 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, TAccountId> {
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 
+    fn do_proxy_contribute(
+        para_id: ParaId,
+        amount: Balance,
+        who: &TAccountId,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
+
     fn do_bond(
         value: Balance,
         payee: RewardDestination<TAccountId>,
@@ -445,6 +452,61 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                     signature: None,
                 },
             ));
+
+            let mut msg = Self::do_ump_transact(
+                call.encode().into(),
+                xcm_weight_fee_misc.weight,
+                Self::refund_location(),
+                xcm_weight_fee_misc.fee,
+            )?;
+
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
+            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendFailure.into());
+            }
+
+            query_id
+        }))
+    }
+
+    fn do_proxy_contribute(
+        para_id: ParaId,
+        amount: BalanceOf<T>,
+        who: &AccountIdOf<T>,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Contribute);
+        Ok(switch_relay!({
+            let call =
+                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+                    calls: vec![
+                        RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
+                            BalancesTransferKeepAliveCall {
+                                dest: T::Lookup::unlookup(who.clone()),
+                                value: amount,
+                            },
+                        )),
+                        RelaychainCall::Proxy(Box::new(ProxyCall::Proxy(
+                            ProxyProxyCall {
+                                real: who.clone(),
+                                force_proxy_type: None,
+                                call: RelaychainCall::Crowdloans(CrowdloansCall::Contribute(
+                                    CrowdloansContributeCall {
+                                        index: para_id,
+                                        value: amount,
+                                        signature: None,
+                                    },
+                                )),
+                            },
+                        ))),
+                    ],
+                })));
 
             let mut msg = Self::do_ump_transact(
                 call.encode().into(),
