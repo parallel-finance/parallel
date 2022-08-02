@@ -27,7 +27,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup};
-use sp_std::{boxed::Box, prelude::*, str::FromStr, vec, vec::Vec};
+use sp_std::{boxed::Box, prelude::*, vec, vec::Vec};
 use xcm::{latest::prelude::*, DoubleEncoded};
 use xcm_executor::traits::InvertLocation;
 
@@ -53,10 +53,9 @@ pub type BalanceOf<T> =
 
 #[frame_support::pallet]
 pub mod pallet {
+    use super::*;
     use frame_system::pallet_prelude::{BlockNumberFor, OriginFor};
     use sp_runtime::traits::{Convert, Zero};
-
-    use super::*;
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_xcm::Config {
@@ -485,7 +484,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Contribute);
         let real =
-            AccountId::from_str(&who.to_string()).map_err(|_| Error::<T>::ConvertAccountError)?;
+            AccountId::try_from(&who.encode()[..]).map_err(|_| Error::<T>::ConvertAccountError)?;
         Ok(switch_relay!({
             let call = RelaychainCall::<T>::Utility(Box::new(UtilityCall::BatchAll(
                 UtilityBatchAllCall {
