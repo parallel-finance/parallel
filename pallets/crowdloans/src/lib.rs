@@ -370,7 +370,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn proxy_address)]
     pub type ProxyAddress<T: Config> = StorageValue<_, AccountIdOf<T>, OptionQuery>;
-    
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Create a new vault via a governance decision
@@ -662,7 +662,10 @@ pub mod pallet {
         /// Update crowdloans proxy address in relaychain
         #[pallet::weight(<T as Config>::WeightInfo::update_proxy_address())]
         #[transactional]
-        pub fn update_proxy_address(origin: OriginFor<T>, proxy_address: AccountIdOf<T>) -> DispatchResult {
+        pub fn update_proxy_address(
+            origin: OriginFor<T>,
+            proxy_address: AccountIdOf<T>,
+        ) -> DispatchResult {
             ensure_origin!(RefundOrigin, origin)?;
 
             log::trace!(
@@ -670,7 +673,7 @@ pub mod pallet {
                 "pre-toggle. proxy_address: {:?}",
                 proxy_address
             );
-            ProxyAddress::<T>::put(Some(proxy_address));
+            ProxyAddress::<T>::put(proxy_address.clone());
 
             Self::deposit_event(Event::<T>::ProxyAddressUpdated(proxy_address));
 
@@ -1469,10 +1472,18 @@ pub mod pallet {
             referral_code: Vec<u8>,
         ) -> Result<(), DispatchError> {
             let query_id = match contribution_strategy {
-                ContributionStrategy::XCM => T::XCM::do_contribute(crowdloan, amount, who, Self::notify_placeholder())?,
+                ContributionStrategy::XCM => {
+                    T::XCM::do_contribute(crowdloan, amount, who, Self::notify_placeholder())?
+                }
                 ContributionStrategy::XCMPROXY => {
-                    let proxy_address = Self::proxy_address().ok_or(Error::<T>::EmptyProxyAddress)?;
-                    T::XCM::do_proxy_contribute(crowdloan, amount, proxy_address, Self::notify_placeholder())?
+                    let proxy_address =
+                        Self::proxy_address().ok_or(Error::<T>::EmptyProxyAddress)?;
+                    T::XCM::do_proxy_contribute(
+                        crowdloan,
+                        amount,
+                        &proxy_address,
+                        Self::notify_placeholder(),
+                    )?
                 }
             };
 

@@ -215,7 +215,7 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
     }: _(
         SystemOrigin::Root,
-        caller
+        caller.clone()
     )
     verify {
         assert_last_event::<T>(Event::ProxyAddressUpdated(caller).into())
