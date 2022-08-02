@@ -85,16 +85,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ]
                 .iter()
-                .flat_map(|x| {
-                    if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap()
-                    {
-                        vec![(x.clone(), 10_u128.pow(20))]
-                    } else {
-                        vec![(x.clone(), 10_u128.pow(16))]
-                    }
-                }),
+                .flat_map(|x| vec![(x.clone(), 10_u128.pow(32))]),
             );
             let vesting_list = vec![];
             let council = vec![

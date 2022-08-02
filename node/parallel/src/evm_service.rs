@@ -516,6 +516,10 @@ where
         let client = client.clone();
         let network = network.clone();
         let transaction_pool = transaction_pool.clone();
+        let frontier_backend = frontier_backend.clone();
+        let overrides = overrides.clone();
+        let fee_history_cache = fee_history_cache.clone();
+        let block_data_cache = block_data_cache.clone();
 
         Box::new(move |deny_unsafe, subscription| {
             let deps = crate::evm_rpc::FullDeps {
@@ -539,7 +543,7 @@ where
 
     // Spawn basic services.
     sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-        rpc_builder: rpc_extensions_builder,
+        rpc_builder: Box::new(rpc_extensions_builder),
         client: client.clone(),
         transaction_pool: transaction_pool.clone(),
         task_manager: &mut task_manager,

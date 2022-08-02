@@ -225,7 +225,7 @@ dev-launch-vanilla:
 
 .PHONY: local-dev-launch
 local-dev-launch:
-	cargo run --locked --bin parallel --features with-evm-dev-runtime --features runtime-benchmarks --features try-runtime -- --tmp --alice --dev --rpc-cors all --unsafe-ws-external --ws-port 19944 --rpc-port 19933
+	cargo run --locked --bin parallel --features with-evm-dev-runtime --features runtime-benchmarks --features try-runtime -- --tmp --alice --dev --rpc-cors all --unsafe-ws-external --unsafe-rpc-external --ws-port 19944 --rpc-port 29933
 
 .PHONY: logs
 logs:

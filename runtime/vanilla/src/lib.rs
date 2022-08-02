@@ -270,7 +270,11 @@ impl Contains<Call> for WhiteListFilter {
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
             Call::CrowdloansAutomatorsMembership(_) |
-            Call::LiquidStakingAgentsMembership(_)
+            Call::LiquidStakingAgentsMembership(_) |
+            // EVM
+            Call::EVM(_) |
+            Call::Ethereum(_) |
+            Call::BaseFee(_)
         )
     }
 }

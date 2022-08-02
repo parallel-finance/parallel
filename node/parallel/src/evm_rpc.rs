@@ -174,20 +174,30 @@ where
     io.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
     io.merge(TransactionPayment::new(client.clone()).into_rpc())?;
 
-    let no_tx_converter: Option<fp_rpc::NoTransactionConverter> = None;
+    // let no_tx_converter: Option<fp_rpc::NoTransactionConverter> = None;
+    enum Never {}
+    impl<T> fp_rpc::ConvertTransaction<T> for Never {
+        fn convert_transaction(&self, _transaction: pallet_ethereum::Transaction) -> T {
+            // The Never type is not instantiable, but this method requires the type to be
+            // instantiated to be called (`&self` parameter), so if the code compiles we have the
+            // guarantee that this function will never be called.
+            unreachable!()
+        }
+    }
+    let convert_transaction: Option<Never> = None;
 
     io.merge(
         Eth::new(
-            client.clone(),
-            pool.clone(),
-            graph,
-            no_tx_converter,
-            network.clone(),
+            Arc::clone(&client),
+            Arc::clone(&pool),
+            graph.clone(),
+            convert_transaction,
+            Arc::clone(&network),
             Default::default(),
-            overrides.clone(),
-            frontier_backend.clone(),
+            Arc::clone(&overrides),
+            Arc::clone(&frontier_backend),
             is_authority,
-            block_data_cache.clone(),
+            Arc::clone(&block_data_cache),
             fee_history_cache,
             fee_history_limit,
         )
@@ -208,14 +218,14 @@ where
         .into_rpc(),
     )?;
 
-    io.merge(Net::new(client.clone(), network.clone(), true).into_rpc())?;
+    io.merge(Net::new(Arc::clone(&client), network.clone(), true).into_rpc())?;
 
-    io.merge(Web3::new(client.clone()).into_rpc())?;
+    io.merge(Web3::new(Arc::clone(&client)).into_rpc())?;
 
     io.merge(
         EthPubSub::new(
             pool,
-            client.clone(),
+            Arc::clone(&client),
             network,
             subscription_task_executor,
             overrides,

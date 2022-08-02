@@ -264,7 +264,11 @@ impl Contains<Call> for WhiteListFilter {
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
             Call::CrowdloansAutomatorsMembership(_) |
-            Call::LiquidStakingAgentsMembership(_)
+            Call::LiquidStakingAgentsMembership(_) |
+            // EVM
+            Call::EVM(_) |
+            Call::Ethereum(_) |
+            Call::BaseFee(_)
         )
     }
 }
@@ -978,8 +982,8 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
 
 parameter_types! {
     /// Ethereum-compatible chain_id:
-    /// * Vanilla:  592
-    pub EVMChainId: u64 = 0x250;
+    /// * Vanilla:  593
+    pub EVMChainId: u64 = 0x251;
     /// EVM gas limit
     pub BlockGasLimit: U256 = U256::from(
         NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT / WEIGHT_PER_GAS
