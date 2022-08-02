@@ -110,6 +110,10 @@ pub mod paras {
         pub const GLMR_KEY: u8 = 10;
     }
 
+    pub mod astar {
+        pub const ID: u32 = 2006;
+    }
+
     pub mod phala {
         pub const ID: u32 = 2035;
     }

@@ -5,7 +5,7 @@ import path from 'path'
 
 dotenv.config()
 
-program.bin('parallel-helper').discover(path.join(__dirname, 'commands'))
+program.cast(false).bin('parallel-helper').discover(path.join(__dirname, 'commands'))
 
 program.run().catch(err => {
   console.error(err.message)
