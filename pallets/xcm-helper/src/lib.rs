@@ -27,14 +27,13 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup};
-use sp_std::{boxed::Box, prelude::*, vec, vec::Vec};
+use sp_std::{boxed::Box, prelude::*, str::FromStr, vec, vec::Vec};
 use xcm::{latest::prelude::*, DoubleEncoded};
 use xcm_executor::traits::InvertLocation;
 
 pub use pallet::*;
 use pallet_traits::{switch_relay, ump::*};
 use primitives::{AccountId, Balance, BlockNumber, CurrencyId, ParaId};
-use std::str::FromStr;
 
 mod benchmarking;
 
@@ -134,6 +133,8 @@ pub mod pallet {
         /// The message and destination was recognized as being reachable but
         /// the operation could not be completed.
         SendFailure,
+        /// Can not convert account success
+        ConvertAccountError,
     }
 
     #[pallet::call]
@@ -483,6 +484,8 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Contribute);
+        let real =
+            AccountId::from_str(&who.to_string()).map_err(|_| Error::<T>::ConvertAccountError)?;
         Ok(switch_relay!({
             let call = RelaychainCall::<T>::Utility(Box::new(UtilityCall::BatchAll(
                 UtilityBatchAllCall {
@@ -494,7 +497,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                             },
                         )),
                         RelaychainCall::Proxy(Box::new(ProxyCall::Proxy(ProxyProxyCall {
-                            real: AccountId::from_str(&who.to_string()).unwrap(), //TODO:
+                            real,
                             force_proxy_type: None,
                             call: RelaychainCall::Crowdloans(CrowdloansCall::Contribute(
                                 CrowdloansContributeCall {
