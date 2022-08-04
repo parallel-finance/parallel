@@ -53,10 +53,9 @@ pub type BalanceOf<T> =
 
 #[frame_support::pallet]
 pub mod pallet {
+    use super::*;
     use frame_system::pallet_prelude::{BlockNumberFor, OriginFor};
     use sp_runtime::traits::{Convert, Zero};
-
-    use super::*;
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_xcm::Config {
@@ -133,6 +132,8 @@ pub mod pallet {
         /// The message and destination was recognized as being reachable but
         /// the operation could not be completed.
         SendFailure,
+        /// Can not convert account success
+        ConvertAccountError,
     }
 
     #[pallet::call]
@@ -177,6 +178,13 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, TAccountId> {
     ) -> Result<QueryId, DispatchError>;
 
     fn do_contribute(
+        para_id: ParaId,
+        amount: Balance,
+        who: &TAccountId,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
+
+    fn do_proxy_contribute(
         para_id: ParaId,
         amount: Balance,
         who: &TAccountId,
@@ -445,6 +453,62 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                     signature: None,
                 },
             ));
+
+            let mut msg = Self::do_ump_transact(
+                call.encode().into(),
+                xcm_weight_fee_misc.weight,
+                Self::refund_location(),
+                xcm_weight_fee_misc.fee,
+            )?;
+
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
+            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendFailure.into());
+            }
+
+            query_id
+        }))
+    }
+
+    fn do_proxy_contribute(
+        para_id: ParaId,
+        amount: BalanceOf<T>,
+        who: &AccountIdOf<T>,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Contribute);
+        let real =
+            AccountId::try_from(&who.encode()[..]).map_err(|_| Error::<T>::ConvertAccountError)?;
+        Ok(switch_relay!({
+            let call = RelaychainCall::<T>::Utility(Box::new(UtilityCall::BatchAll(
+                UtilityBatchAllCall {
+                    calls: vec![
+                        RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
+                            BalancesTransferKeepAliveCall {
+                                dest: T::Lookup::unlookup(who.clone()),
+                                value: amount,
+                            },
+                        )),
+                        RelaychainCall::Proxy(Box::new(ProxyCall::Proxy(ProxyProxyCall {
+                            real,
+                            force_proxy_type: None,
+                            call: RelaychainCall::Crowdloans(CrowdloansCall::Contribute(
+                                CrowdloansContributeCall {
+                                    index: para_id,
+                                    value: amount,
+                                    signature: None,
+                                },
+                            )),
+                        }))),
+                    ],
+                },
+            )));
 
             let mut msg = Self::do_ump_transact(
                 call.encode().into(),

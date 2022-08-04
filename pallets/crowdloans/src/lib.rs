@@ -276,6 +276,9 @@ pub mod pallet {
             ChildStorageKind,
             BalanceOf<T>,
         ),
+        /// Update proxy address
+        /// [account]
+        ProxyUpdated(T::AccountId),
     }
 
     #[pallet::error]
@@ -314,6 +317,8 @@ pub mod pallet {
         InvalidParams,
         /// Vault is not ready to be dissolved
         NotReadyToDissolve,
+        /// Proxy address is empty
+        EmptyProxyAddress,
     }
 
     #[pallet::storage]
@@ -361,6 +366,10 @@ pub mod pallet {
     /// Storage version of the pallet.
     #[pallet::storage]
     pub type StorageVersion<T: Config> = StorageValue<_, Releases, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn proxy_address)]
+    pub type ProxyAddress<T: Config> = StorageValue<_, AccountIdOf<T>, OptionQuery>;
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -596,6 +605,7 @@ pub mod pallet {
                     &who,
                     crowdloan,
                     (vault.lease_start, vault.lease_end),
+                    vault.contribution_strategy,
                     amount,
                     referral_code.clone(),
                 )?;
@@ -645,6 +655,24 @@ pub mod pallet {
             IsVrf::<T>::put(flag);
 
             Self::deposit_event(Event::<T>::VrfUpdated(flag));
+
+            Ok(())
+        }
+
+        /// Update crowdloans proxy address in relaychain
+        #[pallet::weight(<T as Config>::WeightInfo::update_proxy())]
+        #[transactional]
+        pub fn update_proxy(origin: OriginFor<T>, proxy_address: AccountIdOf<T>) -> DispatchResult {
+            ensure_origin!(RefundOrigin, origin)?;
+
+            log::trace!(
+                target: "crowdloans::update_proxy",
+                "pre-toggle. proxy_address: {:?}",
+                proxy_address
+            );
+            ProxyAddress::<T>::put(proxy_address.clone());
+
+            Self::deposit_event(Event::<T>::ProxyUpdated(proxy_address));
 
             Ok(())
         }
@@ -923,6 +951,7 @@ pub mod pallet {
                     &who,
                     crowdloan,
                     (vault.lease_start, vault.lease_end),
+                    vault.contribution_strategy,
                     amount,
                     referral_code,
                 )?;
@@ -1435,11 +1464,25 @@ pub mod pallet {
             who: &AccountIdOf<T>,
             crowdloan: ParaId,
             vault_id: VaultId,
+            contribution_strategy: ContributionStrategy,
             amount: BalanceOf<T>,
             referral_code: Vec<u8>,
         ) -> Result<(), DispatchError> {
-            let query_id =
-                T::XCM::do_contribute(crowdloan, amount, who, Self::notify_placeholder())?;
+            let query_id = match contribution_strategy {
+                ContributionStrategy::XCM => {
+                    T::XCM::do_contribute(crowdloan, amount, who, Self::notify_placeholder())?
+                }
+                ContributionStrategy::XCMPROXY => {
+                    let proxy_address =
+                        Self::proxy_address().ok_or(Error::<T>::EmptyProxyAddress)?;
+                    T::XCM::do_proxy_contribute(
+                        crowdloan,
+                        amount,
+                        &proxy_address,
+                        Self::notify_placeholder(),
+                    )?
+                }
+            };
 
             XcmRequests::<T>::insert(
                 query_id,

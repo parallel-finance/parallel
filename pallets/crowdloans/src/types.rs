@@ -104,6 +104,7 @@ impl<T: Config> Vault<T> {
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ContributionStrategy {
     XCM = 0,
+    XCMPROXY = 1,
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
