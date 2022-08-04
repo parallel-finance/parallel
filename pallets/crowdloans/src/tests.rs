@@ -1758,9 +1758,9 @@ fn refund_should_work_for_single_user() {
 }
 
 #[test]
-fn update_proxy_address_should_work() {
+fn update_proxy_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Crowdloans::update_proxy_address(
+        assert_ok!(Crowdloans::update_proxy(
             frame_system::RawOrigin::Root.into(),
             BOB,
         ));
@@ -1815,7 +1815,7 @@ fn xcm_proxy_contribute_should_work() {
             Error::<Test>::EmptyProxyAddress,
         );
 
-        assert_ok!(Crowdloans::update_proxy_address(
+        assert_ok!(Crowdloans::update_proxy(
             frame_system::RawOrigin::Root.into(),
             BOB,
         ));

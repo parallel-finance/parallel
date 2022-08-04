@@ -278,7 +278,7 @@ pub mod pallet {
         ),
         /// Update proxy address
         /// [account]
-        ProxyAddressUpdated(T::AccountId),
+        ProxyUpdated(T::AccountId),
     }
 
     #[pallet::error]
@@ -660,22 +660,19 @@ pub mod pallet {
         }
 
         /// Update crowdloans proxy address in relaychain
-        #[pallet::weight(<T as Config>::WeightInfo::update_proxy_address())]
+        #[pallet::weight(<T as Config>::WeightInfo::update_proxy())]
         #[transactional]
-        pub fn update_proxy_address(
-            origin: OriginFor<T>,
-            proxy_address: AccountIdOf<T>,
-        ) -> DispatchResult {
+        pub fn update_proxy(origin: OriginFor<T>, proxy_address: AccountIdOf<T>) -> DispatchResult {
             ensure_origin!(RefundOrigin, origin)?;
 
             log::trace!(
-                target: "crowdloans::update_proxy_address",
+                target: "crowdloans::update_proxy",
                 "pre-toggle. proxy_address: {:?}",
                 proxy_address
             );
             ProxyAddress::<T>::put(proxy_address.clone());
 
-            Self::deposit_event(Event::<T>::ProxyAddressUpdated(proxy_address));
+            Self::deposit_event(Event::<T>::ProxyUpdated(proxy_address));
 
             Ok(())
         }

@@ -211,14 +211,14 @@ benchmarks! {
         assert_last_event::<T>(Event::VrfUpdated(true).into())
     }
 
-    update_proxy_address {
+    update_proxy {
         let caller: T::AccountId = whitelisted_caller();
     }: _(
         SystemOrigin::Root,
         caller.clone()
     )
     verify {
-        assert_last_event::<T>(Event::ProxyAddressUpdated(caller).into())
+        assert_last_event::<T>(Event::ProxyUpdated(caller).into())
     }
 
     reopen {
