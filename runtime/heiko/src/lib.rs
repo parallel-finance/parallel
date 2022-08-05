@@ -25,7 +25,7 @@ use frame_support::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
         ChangeMembers, ConstU32, Contains, EitherOfDiverse, EqualPrivilegeOnly, Everything,
-        InstanceFilter, Nothing, OnRuntimeUpgrade,
+        InstanceFilter, Nothing,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -2158,26 +2158,8 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    CrowdloansMigrationV1,
+    (),
 >;
-
-pub struct CrowdloansMigrationV1;
-
-impl OnRuntimeUpgrade for CrowdloansMigrationV1 {
-    #[cfg(feature = "try-runtime")]
-    fn pre_upgrade() -> Result<(), &'static str> {
-        pallet_crowdloans::migrations::v1::pre_migrate::<Runtime>()
-    }
-
-    fn on_runtime_upgrade() -> frame_support::weights::Weight {
-        pallet_crowdloans::migrations::v1::migrate::<Runtime>()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn post_upgrade() -> Result<(), &'static str> {
-        pallet_crowdloans::migrations::v1::post_migrate::<Runtime>()
-    }
-}
 
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {

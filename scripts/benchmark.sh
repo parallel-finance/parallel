@@ -10,12 +10,8 @@ steps=50
 repeat=20
 parallelOutput=./runtime/parallel/src/weights
 heikoOutput=./runtime/heiko/src/weights
-vanillaOutput=./runtime/vanilla/src/weights
-kerriaOutput=./runtime/kerria/src/weights
 parallelChain=parallel-dev
 heikoChain=heiko-dev
-vanillaChain=vanilla-dev
-kerriaChain=kerria-dev
 
 pallets=(
   frame_system
@@ -37,28 +33,6 @@ pallets=(
 
 for p in ${pallets[@]}
 do
-	./target/release/parallel benchmark \
-    pallet \
-		--chain=$vanillaChain \
-		--execution=wasm \
-		--wasm-execution=compiled \
-		--pallet=$p \
-		--extrinsic='*' \
-		--steps=$steps \
-		--repeat=$repeat \
-		--output=$vanillaOutput/$p.rs
-
-	./target/release/parallel benchmark \
-    pallet \
-		--chain=$kerriaChain \
-		--execution=wasm \
-		--wasm-execution=compiled \
-		--pallet=$p \
-		--extrinsic='*' \
-		--steps=$steps \
-		--repeat=$repeat \
-		--output=$kerriaOutput/$p.rs
-
 	./target/release/parallel benchmark \
     pallet \
 		--chain=$parallelChain \
