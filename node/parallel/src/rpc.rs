@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+#![allow(dead_code, unused)]
 
 use std::sync::Arc;
 

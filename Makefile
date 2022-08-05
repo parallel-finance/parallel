@@ -36,6 +36,10 @@ build:
 build-release:
 	cargo build --locked --workspace --exclude runtime-integration-tests --bin parallel --release --features runtime-benchmarks --features try-runtime
 
+.PHONY: build-release-with-evm
+build-release-with-evm:
+	cargo build --locked --workspace --exclude runtime-integration-tests --bin parallel --release --features with-evm-runtime --features runtime-benchmarks --features try-runtime
+
 .PHONY: build-compact-release
 build-compact-release:
 	cargo build --locked --workspace --exclude runtime-integration-tests --bin parallel --release
@@ -60,6 +64,10 @@ ci: check lint check-helper check-wasm test integration-test
 .PHONY: check
 check:
 	SKIP_WASM_BUILD= cargo check --all-targets --features runtime-benchmarks --features try-runtime
+
+.PHONY: check-with-evm
+check-with-evm:
+	SKIP_WASM_BUILD= cargo check --all-targets --features with-evm-runtime --features runtime-benchmarks --features try-runtime
 
 .PHONY: check-wasm
 check-wasm:
@@ -225,7 +233,7 @@ dev-launch-vanilla:
 
 .PHONY: local-dev-launch
 local-dev-launch:
-	cargo run --locked --bin parallel --features with-evm-dev-runtime --features runtime-benchmarks --features try-runtime -- --tmp --alice --dev --rpc-cors all --unsafe-ws-external --unsafe-rpc-external --ws-port 19944 --rpc-port 29933
+	cargo run --locked --bin parallel --features with-evm-runtime --features runtime-benchmarks --features try-runtime -- --tmp --alice --dev --rpc-cors all --unsafe-ws-external --unsafe-rpc-external --ws-port 19944 --rpc-port 29933
 
 .PHONY: logs
 logs:

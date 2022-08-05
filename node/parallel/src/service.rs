@@ -62,19 +62,6 @@ impl sc_executor::NativeExecutionDispatch for HeikoExecutor {
     }
 }
 
-pub struct VanillaExecutor;
-impl sc_executor::NativeExecutionDispatch for VanillaExecutor {
-    type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
-
-    fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
-        vanilla_runtime::api::dispatch(method, data)
-    }
-
-    fn native_version() -> sc_executor::NativeVersion {
-        vanilla_runtime::native_version()
-    }
-}
-
 pub struct KerriaExecutor;
 impl sc_executor::NativeExecutionDispatch for KerriaExecutor {
     type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
@@ -237,6 +224,7 @@ where
     Ok(params)
 }
 
+#[allow(dead_code, unused)]
 async fn build_relay_chain_interface(
     polkadot_config: Configuration,
     parachain_config: &Configuration,
@@ -466,6 +454,7 @@ where
 }
 
 /// Start a normal parachain node.
+#[allow(dead_code, unused)]
 pub async fn start_node<RuntimeApi, Executor>(
     parachain_config: Configuration,
     polkadot_config: Configuration,

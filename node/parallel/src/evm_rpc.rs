@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(dead_code, unused)]
+
 use fc_rpc::{
     Eth, EthApiServer, EthBlockDataCacheTask, EthFilter, EthFilterApiServer, EthPubSub,
     EthPubSubApiServer, Net, NetApiServer, OverrideHandle, RuntimeApiStorageOverride,

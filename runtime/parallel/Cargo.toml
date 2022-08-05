@@ -87,9 +87,6 @@ orml-xcm                    = { version = '0.4.1-dev', default-features = false 
 orml-xcm-support            = { version = '0.4.1-dev', default-features = false }
 orml-xtokens                = { version = '0.4.1-dev', default-features = false }
 
-# EVM
-pallet-ethereum             = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
-
 # Parallel dependencies
 pallet-amm                    = { path = '../../pallets/amm', default-features = false }
 pallet-asset-registry         = { path = '../../pallets/asset-registry', default-features = false }
@@ -141,7 +138,6 @@ runtime-benchmarks = [
   'pallet-farming/runtime-benchmarks',
   'pallet-asset-registry/runtime-benchmarks',
   'pallet-streaming/runtime-benchmarks',
-  'pallet-ethereum/runtime-benchmarks',
 ]
 std                = [
   'codec/std',
@@ -221,7 +217,6 @@ std                = [
   'pallet-xcm-helper/std',
   'pallet-farming/std',
   'pallet-traits/std',
-  'pallet-ethereum/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',
@@ -257,7 +252,6 @@ try-runtime        = [
   'pallet-crowdloans/try-runtime',
   'pallet-xcm-helper/try-runtime',
   'pallet-asset-registry/try-runtime',
-  'pallet-ethereum/try-runtime',
 ]
 
 [package.metadata.cargo-udeps.ignore]

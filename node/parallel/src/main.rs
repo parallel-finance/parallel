@@ -20,12 +20,12 @@ mod service;
 mod cli;
 mod client;
 mod command;
-mod evm_rpc;
-mod evm_service;
 mod rpc;
 
-#[cfg(feature = "with-evm-dev-runtime")]
-mod dev;
+#[cfg(feature = "with-evm-runtime")]
+mod evm_rpc;
+#[cfg(feature = "with-evm-runtime")]
+mod evm_service;
 
 fn main() -> sc_cli::Result<()> {
     command::run()

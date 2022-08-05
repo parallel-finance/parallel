@@ -153,14 +153,6 @@ pub enum Client {
     Heiko(
         Arc<crate::service::FullClient<heiko_runtime::RuntimeApi, crate::service::HeikoExecutor>>,
     ),
-    Vanilla(
-        Arc<
-            crate::service::FullClient<
-                vanilla_runtime::RuntimeApi,
-                crate::service::VanillaExecutor,
-            >,
-        >,
-    ),
 }
 
 macro_rules! with_client {
@@ -174,7 +166,6 @@ macro_rules! with_client {
 		match $self {
 			Self::Parallel($client) => { $( $code )* },
 			Self::Heiko($client) => { $( $code )* },
-            Self::Vanilla($client) => { $( $code )* }
 		}
 	}
 }

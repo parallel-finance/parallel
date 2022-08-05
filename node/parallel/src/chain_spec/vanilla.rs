@@ -35,6 +35,80 @@ use crate::chain_spec::{
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
+pub fn local_development_config(id: ParaId) -> ChainSpec {
+    ChainSpec::from_genesis(
+        // Name
+        "Vanilla Local Dev",
+        // ID
+        "vanilla-local-dev",
+        ChainType::Development,
+        move || {
+            let root_key = get_account_id_from_seed::<sr25519::Public>("Alice");
+            let invulnerables = vec![get_authority_keys_from_seed("Alice")];
+            let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
+            let bridge_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Alice")];
+            let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
+            let crowdloans_automators = vec![get_account_id_from_seed::<sr25519::Public>("Bob")];
+            let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
+                vec![
+                    // Faucet accounts
+                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                        .parse()
+                        .unwrap(),
+                    get_account_id_from_seed::<sr25519::Public>("Alice"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob"),
+                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
+                    get_account_id_from_seed::<sr25519::Public>("Dave"),
+                    get_account_id_from_seed::<sr25519::Public>("Eve"),
+                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                ]
+                .iter()
+                .flat_map(|x| vec![(x.clone(), 10_u128.pow(24))]),
+            );
+            let vesting_list = vec![];
+            let council = vec![
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                get_account_id_from_seed::<sr25519::Public>("Bob"),
+                get_account_id_from_seed::<sr25519::Public>("Charlie"),
+            ];
+            let technical_committee = vec![
+                get_account_id_from_seed::<sr25519::Public>("Dave"),
+                get_account_id_from_seed::<sr25519::Public>("Eve"),
+                get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+            ];
+
+            vanilla_genesis(
+                root_key,
+                invulnerables,
+                initial_allocation,
+                vesting_list,
+                oracle_accounts,
+                bridge_accounts,
+                liquid_staking_agents,
+                crowdloans_automators,
+                council,
+                technical_committee,
+                id,
+            )
+        },
+        vec![],
+        TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
+        Some("vanilla-local-dev"),
+        None,
+        Some(as_properties(NetworkType::Heiko)),
+        Extensions {
+            relay_chain: "kusama-local".into(),
+            para_id: id.into(),
+        },
+    )
+}
+
 pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         // Name
@@ -69,16 +143,7 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ]
                 .iter()
-                .flat_map(|x| {
-                    if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap()
-                    {
-                        vec![(x.clone(), 10_u128.pow(20))]
-                    } else {
-                        vec![(x.clone(), 10_u128.pow(16))]
-                    }
-                }),
+                .flat_map(|x| vec![(x.clone(), 10_u128.pow(24))]),
             );
             let vesting_list = vec![];
             let council = vec![

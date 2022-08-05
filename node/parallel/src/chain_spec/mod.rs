@@ -15,10 +15,9 @@
 pub mod heiko;
 pub mod kerria;
 pub mod parallel;
-pub mod vanilla;
 
-#[cfg(feature = "with-evm-dev-runtime")]
-pub mod dev;
+#[cfg(feature = "with-evm-runtime")]
+pub mod vanilla;
 
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::Properties;
