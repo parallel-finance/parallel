@@ -117,7 +117,7 @@ integration-test-sibling-transfer:
 
 
 .PHONY: bench
-bench:
+bench:build-release-if-not-exists
 	./scripts/benchmark.sh
 
 .PHONY: bench-farming
