@@ -60,6 +60,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         "vanilla-dev" => Box::new(chain_spec::vanilla::vanilla_dev_config(ParaId::from(
             HEIKO_PARA_ID,
         ))),
+        #[cfg(feature = "with-evm-runtime")]
         "kerria-dev" => Box::new(chain_spec::kerria::kerria_dev_config(ParaId::from(
             PARALLEL_PARA_ID,
         ))),
@@ -87,7 +88,15 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
                         .into(),
                 );
             } else if starts_with("kerria") {
-                Box::new(chain_spec::kerria::ChainSpec::from_json_file(path)?)
+                #[cfg(feature = "with-evm-runtime")]
+                {
+                    Box::new(chain_spec::kerria::ChainSpec::from_json_file(path)?)
+                }
+                #[cfg(not(feature = "with-evm-runtime"))]
+                return Err(
+                    "chain_spec's filename start with kerria should be built with evm runtime"
+                        .into(),
+                );
             } else {
                 return Err(
                     "chain_spec's filename must start with parallel/heiko/kerria/vanilla".into(),
@@ -137,7 +146,10 @@ impl SubstrateCli for Cli {
             #[cfg(not(feature = "with-evm-runtime"))]
             return &heiko_runtime::VERSION;
         } else if chain_spec.is_kerria() {
-            &kerria_runtime::VERSION
+            #[cfg(feature = "with-evm-runtime")]
+            return &kerria_runtime::VERSION;
+            #[cfg(not(feature = "with-evm-runtime"))]
+            return &parallel_runtime::VERSION;
         } else {
             unreachable!()
         }
@@ -222,15 +234,15 @@ macro_rules! switch_runtime {
                 unreachable!();
             }
         } else if $chain_spec.is_kerria() {
-            #[cfg(not(feature = "with-evm-runtime"))] {
+            #[cfg(feature = "with-evm-runtime")] {
                 #[allow(unused_imports)]
-                use crate::service::KerriaExecutor as Executor;
+                use crate::evm_service::KerriaExecutor as Executor;
                 #[allow(unused_imports)]
                 use kerria_runtime::{RuntimeApi, Block};
 
                 $( $code )*
             }
-            #[cfg(feature = "with-evm-runtime")] {
+            #[cfg(not(feature = "with-evm-runtime"))] {
                 unreachable!();
             }
         } else {

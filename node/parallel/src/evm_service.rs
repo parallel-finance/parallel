@@ -205,6 +205,19 @@ pub mod vanilla {
     }
 }
 
+pub struct KerriaExecutor;
+impl sc_executor::NativeExecutionDispatch for KerriaExecutor {
+    type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+
+    fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+        kerria_runtime::api::dispatch(method, data)
+    }
+
+    fn native_version() -> sc_executor::NativeVersion {
+        kerria_runtime::native_version()
+    }
+}
+
 /// Starts a `ServiceBuilder` for a full service.
 ///
 /// Use this macro if you don't actually need the full service, but just the builder in order to

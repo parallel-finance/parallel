@@ -1027,6 +1027,7 @@ pub enum ProxyType {
     Farming,
     Streaming,
     Governance,
+    Evm,
 }
 impl Default for ProxyType {
     fn default() -> Self {
@@ -1098,6 +1099,10 @@ impl InstanceFilter<Call> for ProxyType {
                         | Call::Treasury(..)
                         | Call::Utility(..)
                 )
+            }
+            // EVM
+            ProxyType::Evm => {
+                matches!(c, Call::Ethereum(..) | Call::EVM(_) | Call::BaseFee(_))
             }
         }
     }
