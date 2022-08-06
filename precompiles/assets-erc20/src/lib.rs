@@ -29,7 +29,7 @@ use precompile_utils::{
     keccak256, succeed, Address, Bytes, EvmData, EvmDataWriter, EvmResult, FunctionModifier,
     LogExt, LogsBuilder, PrecompileHandleExt, RuntimeHelper,
 };
-use sp_runtime::traits::{Bounded, Zero};
+use sp_runtime::traits::Bounded;
 
 use sp_core::{H160, U256};
 use sp_std::{
@@ -101,6 +101,12 @@ impl<Runtime, Instance> Erc20AssetsPrecompileSet<Runtime, Instance> {
     }
 }
 
+impl<Runtime, Instance> Default for Erc20AssetsPrecompileSet<Runtime, Instance> {
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+
 impl<Runtime, Instance> PrecompileSet for Erc20AssetsPrecompileSet<Runtime, Instance>
 where
     Instance: 'static,
@@ -161,9 +167,7 @@ where
 
     fn is_precompile(&self, address: H160) -> bool {
         if let Some(asset_id) = Runtime::address_to_asset_id(address) {
-            let result =
-                pallet_assets::Pallet::<Runtime, Instance>::maybe_total_supply(asset_id).is_some();
-            result
+            pallet_assets::Pallet::<Runtime, Instance>::maybe_total_supply(asset_id).is_some()
         } else {
             false
         }

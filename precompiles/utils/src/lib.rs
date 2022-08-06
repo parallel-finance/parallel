@@ -14,7 +14,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![feature(assert_matches)]
-
+#![allow(clippy::double_must_use)]
 extern crate alloc;
 
 use crate::alloc::borrow::ToOwned;
