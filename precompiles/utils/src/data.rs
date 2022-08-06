@@ -151,7 +151,7 @@ impl<'a> EvmDataReader<'a> {
         Ok(data)
     }
 
-    /// Reads a pointer, returning a reader targetting the pointed location.
+    /// Reads a pointer, returning a reader targeting the pointed location.
     pub fn read_pointer(&mut self) -> EvmResult<Self> {
         let offset: usize = self
             .read::<U256>()
@@ -255,7 +255,7 @@ impl EvmDataWriter {
         }
     }
 
-    /// Add offseted data at the end of this writer's data, updating the offsets.
+    /// Add offsetted data at the end of this writer's data, updating the offsets.
     fn bake_offsets(output: &mut Vec<u8>, offsets: Vec<OffsetDatum>) {
         for mut offset_datum in offsets {
             let offset_position = offset_datum.offset_position;
@@ -278,7 +278,7 @@ impl EvmDataWriter {
     }
 
     /// Write arbitrary bytes.
-    /// Doesn't handle any alignement checks, prefer using `write` instead if possible.
+    /// Doesn't handle any alignment checks, prefer using `write` instead if possible.
     fn write_raw_bytes(mut self, value: &[u8]) -> Self {
         self.data.extend_from_slice(value);
         self
@@ -525,7 +525,7 @@ impl<T: EvmData> EvmData for Vec<T> {
 
         for inner in value {
             // Any offset in items are relative to the start of the item instead of the
-            // start of the array. However if there is offseted data it must but appended after
+            // start of the array. However if there is offsetted data it must but appended after
             // all items (offsets) are written. We thus need to rely on `compute_offsets` to do
             // that, and must store a "shift" to correct the offsets.
             let shift = inner_writer.data.len();

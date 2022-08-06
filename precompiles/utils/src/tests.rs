@@ -239,7 +239,7 @@ fn write_h256_array() {
     let writer_output = EvmDataWriter::new().write(array.clone()).build();
     assert_eq!(writer_output.len(), 0xE0);
 
-    // We can read this "manualy" using simpler functions since arrays are 32-byte aligned.
+    // We can read this "manually" using simpler functions since arrays are 32-byte aligned.
     let mut reader = EvmDataReader::new(&writer_output);
 
     assert_eq!(reader.read::<U256>().expect("read offset"), 32.into());
@@ -280,7 +280,7 @@ fn write_u256_array() {
     let writer_output = EvmDataWriter::new().write(array.clone()).build();
     assert_eq!(writer_output.len(), 0xE0);
 
-    // We can read this "manualy" using simpler functions since arrays are 32-byte aligned.
+    // We can read this "manually" using simpler functions since arrays are 32-byte aligned.
     let mut reader = EvmDataReader::new(&writer_output);
 
     assert_eq!(reader.read::<U256>().expect("read offset"), 32.into());
@@ -320,7 +320,7 @@ fn write_address_array() {
     ];
     let writer_output = EvmDataWriter::new().write(array.clone()).build();
 
-    // We can read this "manualy" using simpler functions since arrays are 32-byte aligned.
+    // We can read this "manually" using simpler functions since arrays are 32-byte aligned.
     let mut reader = EvmDataReader::new(&writer_output);
 
     assert_eq!(reader.read::<U256>().expect("read offset"), 32.into());
@@ -389,7 +389,7 @@ fn write_address_nested_array() {
     let writer_output = EvmDataWriter::new().write(array.clone()).build();
     assert_eq!(writer_output.len(), 0x160);
 
-    // We can read this "manualy" using simpler functions since arrays are 32-byte aligned.
+    // We can read this "manually" using simpler functions since arrays are 32-byte aligned.
     let mut reader = EvmDataReader::new(&writer_output);
 
     assert_eq!(reader.read::<U256>().expect("read offset"), 0x20.into()); // 0x00
@@ -444,7 +444,7 @@ fn write_multiple_arrays() {
 
     assert_eq!(writer_output.len(), 0x120);
 
-    // We can read this "manualy" using simpler functions since arrays are 32-byte aligned.
+    // We can read this "manually" using simpler functions since arrays are 32-byte aligned.
     let mut reader = EvmDataReader::new(&writer_output);
 
     assert_eq!(reader.read::<U256>().expect("read 1st offset"), 0x40.into()); // 0x00
@@ -509,7 +509,7 @@ fn write_bytes() {
 
     let writer_output = EvmDataWriter::new().write(Bytes::from(&data[..])).build();
 
-    // We can read this "manualy" using simpler functions.
+    // We can read this "manually" using simpler functions.
     let mut reader = EvmDataReader::new(&writer_output);
 
     // We pad data to a multiple of 32 bytes.
@@ -545,7 +545,7 @@ fn write_string() {
 
     let writer_output = EvmDataWriter::new().write(Bytes::from(data)).build();
 
-    // We can read this "manualy" using simpler functions.
+    // We can read this "manually" using simpler functions.
     let mut reader = EvmDataReader::new(&writer_output);
 
     // We pad data to next multiple of 32 bytes.

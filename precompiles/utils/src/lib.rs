@@ -357,7 +357,7 @@ pub fn call_cost(value: U256, config: &evm::Config) -> u64 {
 
 impl<T: PrecompileHandle> PrecompileHandleExt for T {
     #[must_use]
-    /// Record cost of a log manualy.
+    /// Record cost of a log manually.
     /// This can be useful to record log costs early when their content have static size.
     fn record_log_costs_manual(&mut self, topics: usize, data_len: usize) -> EvmResult {
         self.record_cost(log_costs(topics, data_len)?)?;

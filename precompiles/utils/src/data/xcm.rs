@@ -177,9 +177,9 @@ impl EvmData for Junction {
                 encoded.append(&mut network_id_to_bytes(network));
                 encoded.as_slice().into()
             }
-            Junction::PalletInstance(intance) => {
+            Junction::PalletInstance(instance) => {
                 encoded.push(4u8);
-                encoded.append(&mut intance.to_be_bytes().to_vec());
+                encoded.append(&mut instance.to_be_bytes().to_vec());
                 encoded.as_slice().into()
             }
             Junction::GeneralIndex(id) => {
