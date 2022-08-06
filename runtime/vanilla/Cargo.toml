@@ -121,6 +121,8 @@ pallet-traits                 = { path = '../../pallets/traits', default-feature
 pallet-xcm-helper             = { path = '../../pallets/xcm-helper', default-features = false }
 pallet-stableswap             = { path = '../../pallets/stableswap', default-features = false }
 primitives                    = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+pallet-evm-precompile-assets-erc20 = { path = '../../precompiles/assets-erc20', default-features = false }
+
 
 [build-dependencies.substrate-wasm-builder]
 branch = 'polkadot-v0.9.26'
@@ -250,6 +252,7 @@ std                = [
   'pallet-stableswap/std',
   'pallet-asset-registry/std',
   'pallet-traits/std',
+  'pallet-evm-precompile-assets-erc20/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',

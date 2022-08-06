@@ -19,6 +19,7 @@ use sp_core::H160;
 use sp_std::fmt::Debug;
 use sp_std::marker::PhantomData;
 
+use pallet_evm_precompile_assets_erc20::{AddressToAssetId, Erc20AssetsPrecompileSet};
 use pallet_evm_precompile_blake2::Blake2F;
 use pallet_evm_precompile_bn128::{Bn128Add, Bn128Mul, Bn128Pairing};
 use pallet_evm_precompile_dispatch::Dispatch;
@@ -26,6 +27,10 @@ use pallet_evm_precompile_ed25519::Ed25519Verify;
 use pallet_evm_precompile_modexp::Modexp;
 use pallet_evm_precompile_sha3fips::Sha3FIPS256;
 use pallet_evm_precompile_simple::{ECRecover, ECRecoverPublicKey, Identity, Ripemd160, Sha256};
+
+/// The asset precompile address prefix. Addresses that match against this prefix will be routed
+/// to Erc20AssetsPrecompileSet
+pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[255u8; 4];
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ParallelPrecompiles<R>(PhantomData<R>);
@@ -46,8 +51,11 @@ where
 
 impl<R> PrecompileSet for ParallelPrecompiles<R>
 where
+    Erc20AssetsPrecompileSet<R>: PrecompileSet,
     Dispatch<R>: Precompile,
-    R: pallet_evm::Config,
+    R: pallet_evm::Config
+        + AddressToAssetId<<R as pallet_assets::Config>::AssetId>
+        + pallet_assets::Config,
 {
     fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
         let address = handle.code_address();
@@ -73,12 +81,16 @@ where
             a if a == hash(1025) => Some(ECRecoverPublicKey::execute(handle)),
             a if a == hash(1026) => Some(ECRecoverPublicKey::execute(handle)),
             a if a == hash(1027) => Some(Ed25519Verify::execute(handle)),
+            a if &a.to_fixed_bytes()[0..4] == ASSET_PRECOMPILE_ADDRESS_PREFIX => {
+                Erc20AssetsPrecompileSet::<R>::new().execute(handle)
+            }
             _ => None,
         }
     }
 
     fn is_precompile(&self, address: H160) -> bool {
         Self::used_addresses().any(|x| x == address)
+            || Erc20AssetsPrecompileSet::<R>::new().is_precompile(address)
     }
 }
 

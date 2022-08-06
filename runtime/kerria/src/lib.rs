@@ -117,8 +117,9 @@ use primitives::{
 };
 
 mod precompiles;
-pub use precompiles::ParallelPrecompiles;
+pub use precompiles::{ParallelPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX};
 pub type Precompiles = ParallelPrecompiles<Runtime>;
+use pallet_evm_precompile_assets_erc20::AddressToAssetId;
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -598,6 +599,26 @@ parameter_types! {
     // https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
     pub const MetadataDepositBase: Balance = deposit(1, 68);
     pub const MetadataDepositPerByte: Balance = deposit(0, 1);
+}
+
+impl AddressToAssetId<CurrencyId> for Runtime {
+    fn address_to_asset_id(address: H160) -> Option<CurrencyId> {
+        let mut data = [0u8; 4];
+        let address_bytes: [u8; 20] = address.into();
+        if ASSET_PRECOMPILE_ADDRESS_PREFIX.eq(&address_bytes[0..4]) {
+            data.copy_from_slice(&address_bytes[16..20]);
+            Some(u32::from_be_bytes(data))
+        } else {
+            None
+        }
+    }
+
+    fn asset_id_to_address(asset_id: CurrencyId) -> H160 {
+        let mut data = [0u8; 20];
+        data[0..4].copy_from_slice(ASSET_PRECOMPILE_ADDRESS_PREFIX);
+        data[16..20].copy_from_slice(&asset_id.to_be_bytes());
+        H160::from(data)
+    }
 }
 
 impl pallet_assets::Config for Runtime {
