@@ -20,6 +20,7 @@ use crate::*;
 
 use precompile_utils::{testing::*, EvmDataWriter, LogsBuilder};
 use sha3::{Digest, Keccak256};
+use sp_runtime::traits::Zero;
 
 fn precompiles() -> Erc20AssetsPrecompileSet<Runtime> {
     PrecompilesValue::get()
