@@ -681,7 +681,7 @@ impl pallet_liquid_staking::Config for Runtime {
 }
 
 parameter_types! {
-    pub const LiquidStakingAgentsMembershipMaxMembers: u32 = 3;
+    pub const LiquidStakingAgentsMembershipMaxMembers: u32 = 100;
 }
 
 type LiquidStakingAgentsMembershipInstance = pallet_membership::Instance5;
@@ -699,7 +699,7 @@ impl pallet_membership::Config<LiquidStakingAgentsMembershipInstance> for Runtim
 }
 
 parameter_types! {
-    pub const CrowdloansAutomatorsMembershipMaxMembers: u32 = 3;
+    pub const CrowdloansAutomatorsMembershipMaxMembers: u32 = 100;
 }
 
 type CrowdloansAutomatorsMembershipInstance = pallet_membership::Instance7;
