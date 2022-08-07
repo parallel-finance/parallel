@@ -663,8 +663,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::update_proxy())]
         #[transactional]
         pub fn update_proxy(origin: OriginFor<T>, proxy_address: AccountIdOf<T>) -> DispatchResult {
-            ensure_origin!(RefundOrigin, origin)?;
-
+            T::RefundOrigin::ensure_origin(origin)?;
             log::trace!(
                 target: "crowdloans::update_proxy",
                 "pre-toggle. proxy_address: {:?}",

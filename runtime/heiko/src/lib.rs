@@ -25,7 +25,7 @@ use frame_support::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
         ChangeMembers, ConstU32, Contains, EitherOfDiverse, EqualPrivilegeOnly, Everything,
-        InstanceFilter, Nothing, OnRuntimeUpgrade,
+        InstanceFilter, Nothing,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -146,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("heiko"),
     impl_name: create_runtime_str!("heiko"),
     authoring_version: 1,
-    spec_version: 190,
+    spec_version: 191,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -693,7 +693,7 @@ impl pallet_liquid_staking::Config for Runtime {
 }
 
 parameter_types! {
-    pub const LiquidStakingAgentsMembershipMaxMembers: u32 = 3;
+    pub const LiquidStakingAgentsMembershipMaxMembers: u32 = 100;
 }
 
 type LiquidStakingAgentsMembershipInstance = pallet_membership::Instance5;
@@ -711,7 +711,7 @@ impl pallet_membership::Config<LiquidStakingAgentsMembershipInstance> for Runtim
 }
 
 parameter_types! {
-    pub const CrowdloansAutomatorsMembershipMaxMembers: u32 = 3;
+    pub const CrowdloansAutomatorsMembershipMaxMembers: u32 = 100;
 }
 
 type CrowdloansAutomatorsMembershipInstance = pallet_membership::Instance7;
@@ -2158,26 +2158,8 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    CrowdloansMigrationV1,
+    (),
 >;
-
-pub struct CrowdloansMigrationV1;
-
-impl OnRuntimeUpgrade for CrowdloansMigrationV1 {
-    #[cfg(feature = "try-runtime")]
-    fn pre_upgrade() -> Result<(), &'static str> {
-        pallet_crowdloans::migrations::v1::pre_migrate::<Runtime>()
-    }
-
-    fn on_runtime_upgrade() -> frame_support::weights::Weight {
-        pallet_crowdloans::migrations::v1::migrate::<Runtime>()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn post_upgrade() -> Result<(), &'static str> {
-        pallet_crowdloans::migrations::v1::post_migrate::<Runtime>()
-    }
-}
 
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
