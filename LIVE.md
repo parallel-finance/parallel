@@ -1,19 +1,19 @@
 ## Heiko
 
-- `node`: parallelfinance/parallel:v1.8.9
-- `runtime`: 189
-- `branch`: https://github.com/parallel-finance/parallel/tree/v1.8.9
-- `polkadot`: v0.9.24
-- `wasm`: https://github.com/parallel-finance/parallel/releases/download/v1.8.9/heiko_runtime.compact.compressed.wasm
-- `blake256_hash`: 0x39df04c75094becc47f2e76f309a78fab37f1a30cab7bbb868b8526a5ce115b8
-- `deployment_date`: 2022/07/04
+- `node`: parallelfinance/parallel:v1.9.0-1
+- `runtime`: 190
+- `branch`: https://github.com/parallel-finance/parallel/tree/v1.9.0-1
+- `polkadot`: v0.9.26
+- `wasm`: https://github.com/parallel-finance/parallel/releases/download/v1.9.0-1/heiko_runtime.compact.compressed.wasm
+- `blake256_hash`: 0x4357a776dedaf6653e6f35aae8221f29fdd28c9207ac2745a97d5f14786af506
+- `deployment_date`: 2022/08/04
 
 ## Parallel
 
-- `node`: parallelfinance/parallel:v1.8.9
-- `runtime`: 189
-- `branch`: https://github.com/parallel-finance/parallel/tree/v1.8.9
-- `polkadot`: v0.9.24
-- `wasm`: https://github.com/parallel-finance/parallel/releases/download/v1.8.9/parallel_runtime.compact.compressed.wasm
-- `blake256_hash`: 0x349590be263c0229bbbc43b5440eca9d00033d95572ae049826d27b8d3bdc85a
-- `deployment_date`: 2022/07/04
+- `node`: parallelfinance/parallel:v1.9.0-1
+- `runtime`: 190
+- `branch`: https://github.com/parallel-finance/parallel/tree/v1.9.0-1
+- `polkadot`: v0.9.26
+- `wasm`: https://github.com/parallel-finance/parallel/releases/download/v1.9.0-1/parallel_runtime.compact.compressed.wasm
+- `blake256_hash`: 0xac64ff3b9ed5a3409b2f00630b52483b2143f93b6752779b24eb13ee5e21fb34
+- `deployment_date`: 2022/08/05
