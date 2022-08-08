@@ -99,9 +99,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.59"
+version = "1.0.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c91f1f46651137be86f3a2b9a8359f9ab421d04d941c62b5982e1ca21113adf9"
+checksum = "c794e162a5eff65c72ef524dfe393eb923c354e350bb78b9c7383df13f3bc142"
 
 [[package]]
 name = "approx"
@@ -2352,111 +2352,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fc-consensus"
-version = "2.0.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "async-trait",
- "fc-db",
- "fp-consensus",
- "fp-rpc",
- "sc-client-api",
- "sc-consensus",
- "sp-api",
- "sp-block-builder",
- "sp-blockchain",
- "sp-consensus",
- "sp-runtime",
- "thiserror",
-]
-
-[[package]]
-name = "fc-db"
-version = "2.0.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "fp-storage",
- "kvdb-rocksdb",
- "parity-db",
- "parity-scale-codec",
- "parking_lot 0.12.1",
- "sc-client-db",
- "sp-core",
- "sp-database",
- "sp-runtime",
-]
-
-[[package]]
-name = "fc-mapping-sync"
-version = "2.0.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "fc-db",
- "fp-consensus",
- "fp-rpc",
- "futures 0.3.21",
- "futures-timer",
- "log",
- "sc-client-api",
- "sp-api",
- "sp-blockchain",
- "sp-runtime",
-]
-
-[[package]]
-name = "fc-rpc"
-version = "2.0.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "ethereum",
- "ethereum-types",
- "evm",
- "fc-db",
- "fc-rpc-core",
- "fp-rpc",
- "fp-storage",
- "futures 0.3.21",
- "hex",
- "jsonrpsee",
- "libsecp256k1",
- "log",
- "lru 0.7.8",
- "parity-scale-codec",
- "prometheus",
- "rand 0.8.5",
- "rlp",
- "sc-client-api",
- "sc-network",
- "sc-rpc",
- "sc-service",
- "sc-transaction-pool",
- "sc-transaction-pool-api",
- "sp-api",
- "sp-block-builder",
- "sp-blockchain",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-storage",
- "substrate-prometheus-endpoint",
- "tokio",
-]
-
-[[package]]
-name = "fc-rpc-core"
-version = "1.1.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "ethereum",
- "ethereum-types",
- "jsonrpsee",
- "rlp",
- "rustc-hex",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "fdlimit"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3022,9 +2917,9 @@ dependencies = [
 
 [[package]]
 name = "futures-rustls"
-version = "0.22.1"
+version = "0.22.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e01fe9932a224b72b45336d96040aa86386d674a31d0af27d800ea7bc8ca97fe"
+checksum = "d2411eed028cdf8c8034eaf21f9915f956b6c3abec4d4c7949ee67f0721127bd"
 dependencies = [
  "futures-io",
  "rustls",
@@ -3276,7 +3171,7 @@ checksum = "2540771e65fc8cb83cd6e8a237f70c319bd5c29f78ed1084ba5d50eeac86f7f9"
 
 [[package]]
 name = "heiko-runtime"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -3857,7 +3752,7 @@ checksum = "f9b7d56ba4a8344d6be9729995e6b06f928af29998cdf79fe390cbf6b1fee838"
 
 [[package]]
 name = "kerria-runtime"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -5615,7 +5510,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-amm"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5638,7 +5533,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-asset-registry"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5867,7 +5762,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-bridge"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5943,7 +5838,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-crowdloans"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -5987,7 +5882,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-currency-adapter"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6071,72 +5966,6 @@ dependencies = [
 name = "pallet-emergency-shutdown"
 version = "1.9.0"
 dependencies = [
- "frame-support",
- "frame-system",
- "pallet-traits",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-ethereum"
-version = "4.0.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "ethereum",
- "ethereum-types",
- "evm",
- "fp-consensus",
- "fp-ethereum",
- "fp-evm",
- "fp-rpc",
- "fp-self-contained",
- "fp-storage",
- "frame-support",
- "frame-system",
- "pallet-evm",
- "pallet-timestamp",
- "parity-scale-codec",
- "rlp",
- "scale-info",
- "serde",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-evm"
-version = "6.0.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "evm",
- "fp-evm",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "hex",
- "log",
- "pallet-timestamp",
- "parity-scale-codec",
- "primitive-types",
- "rlp",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-evm-precompile-assets-erc20"
-version = "1.9.0"
-dependencies = [
  "derive_more 0.99.17",
  "fp-evm",
  "frame-support",
@@ -6160,73 +5989,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-evm-precompile-blake2"
-version = "2.0.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "fp-evm",
-]
-
-[[package]]
-name = "pallet-evm-precompile-bn128"
-version = "2.0.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "fp-evm",
- "sp-core",
- "substrate-bn",
-]
-
-[[package]]
-name = "pallet-evm-precompile-dispatch"
-version = "2.0.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "fp-evm",
- "frame-support",
- "pallet-evm",
-]
-
-[[package]]
-name = "pallet-evm-precompile-ed25519"
-version = "2.0.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "ed25519-dalek",
- "fp-evm",
-]
-
-[[package]]
-name = "pallet-evm-precompile-modexp"
-version = "2.0.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "fp-evm",
- "num",
-]
-
-[[package]]
-name = "pallet-evm-precompile-sha3fips"
-version = "2.0.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "fp-evm",
- "tiny-keccak",
-]
-
-[[package]]
-name = "pallet-evm-precompile-simple"
-version = "2.0.0-dev"
-source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
-dependencies = [
- "fp-evm",
- "ripemd",
- "sp-io",
-]
-
-[[package]]
 name = "pallet-farming"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6339,7 +6103,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-liquid-staking"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -6386,7 +6150,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6413,7 +6177,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans-rpc"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "jsonrpsee",
  "pallet-loans-rpc-runtime-api",
@@ -6429,7 +6193,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans-rpc-runtime-api"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
@@ -6596,7 +6360,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-prices"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6650,7 +6414,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6671,7 +6435,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router-rpc"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "jsonrpsee",
  "pallet-router-rpc-runtime-api",
@@ -6688,7 +6452,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router-rpc-runtime-api"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
@@ -6766,7 +6530,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-stableswap"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6832,7 +6596,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-streaming"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6906,7 +6670,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-traits"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -7068,7 +6832,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-helper"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -7147,7 +6911,7 @@ dependencies = [
 
 [[package]]
 name = "parallel"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "async-trait",
  "clap",
@@ -7242,7 +7006,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-primitives"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -7261,7 +7025,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-runtime"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -9532,7 +9296,7 @@ dependencies = [
 
 [[package]]
 name = "runtime-integration-tests"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -12198,7 +11962,7 @@ version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "063e6045c0e62079840579a7e47a355ae92f60eb74daaf156fb1e84ba164e63f"
 dependencies = [
- "strum_macros 0.24.2",
+ "strum_macros 0.24.3",
 ]
 
 [[package]]
@@ -12216,9 +11980,9 @@ dependencies = [
 
 [[package]]
 name = "strum_macros"
-version = "0.24.2"
+version = "0.24.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4faebde00e8ff94316c01800f9054fd2ba77d30d9e922541913051d1d978918b"
+checksum = "1e385be0d24f186b4ce2f9982191e7101bb737312ad61c1f2f984f34bcf85d59"
 dependencies = [
  "heck 0.4.0",
  "proc-macro2 1.0.43",
@@ -13042,7 +12806,7 @@ dependencies = [
 
 [[package]]
 name = "vanilla-runtime"
-version = "1.9.0"
+version = "1.9.1"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -13919,9 +13683,9 @@ dependencies = [
 
 [[package]]
 name = "yamux"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c0608f53c1dc0bad505d03a34bbd49fbf2ad7b51eb036123e896365532745a1"
+checksum = "e5d9ba232399af1783a58d8eb26f6b5006fbefe2dc9ef36bd283324792d03ea5"
 dependencies = [
  "futures 0.3.21",
  "log",

@@ -211,6 +211,16 @@ benchmarks! {
         assert_last_event::<T>(Event::VrfUpdated(true).into())
     }
 
+    update_proxy {
+        let caller: T::AccountId = whitelisted_caller();
+    }: _(
+        SystemOrigin::Root,
+        caller.clone()
+    )
+    verify {
+        assert_last_event::<T>(Event::ProxyUpdated(caller).into())
+    }
+
     reopen {
         let ctoken = 13;
         let caller: T::AccountId = whitelisted_caller();

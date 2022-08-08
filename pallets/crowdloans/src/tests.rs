@@ -1756,3 +1756,96 @@ fn refund_should_work_for_single_user() {
         assert_eq!(Assets::balance(DOT, ALICE), dot(100f64) - amount / 2);
     })
 }
+
+#[test]
+fn update_proxy_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Crowdloans::update_proxy(
+            frame_system::RawOrigin::Root.into(),
+            BOB,
+        ));
+    })
+}
+
+#[test]
+fn xcm_proxy_contribute_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10;
+        let amount = 1_000;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCMPROXY;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            Id(Crowdloans::account_id()),
+            true,
+            One::one(),
+        ));
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do contribute
+        assert_err!(
+            Crowdloans::contribute(
+                Origin::signed(ALICE), // origin
+                crowdloan,             // crowdloan
+                amount,                // amount
+                vec![12, 34],
+            ),
+            Error::<Test>::EmptyProxyAddress,
+        );
+
+        assert_ok!(Crowdloans::update_proxy(
+            frame_system::RawOrigin::Root.into(),
+            BOB,
+        ));
+
+        // do contribute
+        assert_ok!(Crowdloans::contribute(
+            Origin::signed(ALICE), // origin
+            crowdloan,             // crowdloan
+            amount,                // amount
+            vec![12, 34],
+        ));
+
+        // check that we're in the right phase
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
+        assert_eq!(vault.phase, VaultPhase::Contributing);
+
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
+        // check if ctoken minted to user
+        // let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
+
+        let (contributed, referral_code) =
+            Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Contributed);
+        assert!(referral_code == vec![12, 34]);
+        assert!(contributed == amount);
+        // assert_eq!(ctoken_balance, amount);
+    });
+}
