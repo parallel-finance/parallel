@@ -19,7 +19,9 @@ pub use cumulus_primitives_core::{ParaId, PersistedValidationData};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_runtime::traits::BlakeTwo256;
 use sp_runtime::{
+    generic,
     traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
@@ -28,6 +30,18 @@ use sp_std::prelude::*;
 pub mod network;
 pub mod tokens;
 pub use tokens::*;
+
+/// Header type.
+pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+
+/// Block type.
+pub type Block = generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
+
+/// Block ID.
+pub type BlockId = generic::BlockId<Block>;
+
+/// Index of a transaction in the chain.
+pub type Nonce = u32;
 
 /// An index to a block.
 pub type BlockNumber = u32;

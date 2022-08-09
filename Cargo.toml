@@ -11,7 +11,7 @@ inherits      = 'release'
 lto           = true
 
 [workspace]
-members = ['node/*', 'pallets/*', 'runtime/*', 'support', 'integration-tests']
+members = ['node/*', 'pallets/*', 'runtime/*', 'support', 'precompiles/*','integration-tests']
 
 [patch.crates-io]
 orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }

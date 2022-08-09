@@ -19,12 +19,12 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::sr25519;
 use sp_runtime::{traits::Zero, FixedPointNumber};
 use vanilla_runtime::{
-    opaque::SessionKeys, BalancesConfig, BridgeMembershipConfig, CollatorSelectionConfig,
-    CrowdloansAutomatorsMembershipConfig, DemocracyConfig, GeneralCouncilConfig,
-    GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingAgentsMembershipConfig,
-    LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig, PolkadotXcmConfig,
-    SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, VestingConfig,
-    WASM_BINARY,
+    opaque::SessionKeys, BalancesConfig, BaseFeeConfig, BridgeMembershipConfig,
+    CollatorSelectionConfig, CrowdloansAutomatorsMembershipConfig, DemocracyConfig, EVMConfig,
+    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
+    LiquidStakingAgentsMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
+    ParachainInfoConfig, PolkadotXcmConfig, Precompiles, SessionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
 };
 
 use crate::chain_spec::{
@@ -34,6 +34,80 @@ use crate::chain_spec::{
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
+
+pub fn local_development_config(id: ParaId) -> ChainSpec {
+    ChainSpec::from_genesis(
+        // Name
+        "Vanilla Local Dev",
+        // ID
+        "vanilla-local-dev",
+        ChainType::Development,
+        move || {
+            let root_key = get_account_id_from_seed::<sr25519::Public>("Alice");
+            let invulnerables = vec![get_authority_keys_from_seed("Alice")];
+            let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
+            let bridge_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Alice")];
+            let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
+            let crowdloans_automators = vec![get_account_id_from_seed::<sr25519::Public>("Bob")];
+            let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
+                vec![
+                    // Faucet accounts
+                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                        .parse()
+                        .unwrap(),
+                    get_account_id_from_seed::<sr25519::Public>("Alice"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob"),
+                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
+                    get_account_id_from_seed::<sr25519::Public>("Dave"),
+                    get_account_id_from_seed::<sr25519::Public>("Eve"),
+                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                ]
+                .iter()
+                .flat_map(|x| vec![(x.clone(), 10_u128.pow(24))]),
+            );
+            let vesting_list = vec![];
+            let council = vec![
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                get_account_id_from_seed::<sr25519::Public>("Bob"),
+                get_account_id_from_seed::<sr25519::Public>("Charlie"),
+            ];
+            let technical_committee = vec![
+                get_account_id_from_seed::<sr25519::Public>("Dave"),
+                get_account_id_from_seed::<sr25519::Public>("Eve"),
+                get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+            ];
+
+            vanilla_genesis(
+                root_key,
+                invulnerables,
+                initial_allocation,
+                vesting_list,
+                oracle_accounts,
+                bridge_accounts,
+                liquid_staking_agents,
+                crowdloans_automators,
+                council,
+                technical_committee,
+                id,
+            )
+        },
+        vec![],
+        TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
+        Some("vanilla-local-dev"),
+        None,
+        Some(as_properties(NetworkType::Heiko)),
+        Extensions {
+            relay_chain: "kusama-local".into(),
+            para_id: id.into(),
+        },
+    )
+}
 
 pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
@@ -69,16 +143,7 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ]
                 .iter()
-                .flat_map(|x| {
-                    if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap()
-                    {
-                        vec![(x.clone(), 10_u128.pow(20))]
-                    } else {
-                        vec![(x.clone(), 10_u128.pow(16))]
-                    }
-                }),
+                .flat_map(|x| vec![(x.clone(), 10_u128.pow(24))]),
             );
             let vesting_list = vec![];
             let council = vec![
@@ -131,6 +196,11 @@ fn vanilla_genesis(
     technical_committee: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
+    // This is supposed the be the simplest bytecode to revert without returning any data.
+    // We will pre-deploy it under all of our precompiles to ensure they can be called from
+    // within contracts.
+    // (PUSH1 0x00 PUSH1 0x00 REVERT)
+    let revert_bytecode = vec![0x60, 0x00, 0x60, 0x00, 0xFD];
     GenesisConfig {
         system: SystemConfig {
             code: WASM_BINARY
@@ -203,5 +273,28 @@ fn vanilla_genesis(
         polkadot_xcm: PolkadotXcmConfig {
             safe_xcm_version: Some(2),
         },
+        evm: EVMConfig {
+            // We need _some_ code inserted at the precompile address so that
+            // the evm will actually call the address.
+            accounts: Precompiles::used_addresses()
+                .map(|addr| {
+                    (
+                        addr,
+                        fp_evm::GenesisAccount {
+                            nonce: Default::default(),
+                            balance: Default::default(),
+                            storage: Default::default(),
+                            code: revert_bytecode.clone(),
+                        },
+                    )
+                })
+                .collect(),
+        },
+        base_fee: BaseFeeConfig::new(
+            sp_core::U256::from(1_000_000_000),
+            false,
+            sp_runtime::Permill::from_parts(125_000),
+        ),
+        ethereum: Default::default(),
     }
 }

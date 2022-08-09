@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::client::Block;
 use cumulus_client_consensus_aura::{AuraConsensus, BuildAuraConsensusParams, SlotProportion};
 use cumulus_client_network::BlockAnnounceValidator;
 use cumulus_client_service::{
@@ -63,32 +62,6 @@ impl sc_executor::NativeExecutionDispatch for HeikoExecutor {
     }
 }
 
-pub struct VanillaExecutor;
-impl sc_executor::NativeExecutionDispatch for VanillaExecutor {
-    type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
-
-    fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
-        vanilla_runtime::api::dispatch(method, data)
-    }
-
-    fn native_version() -> sc_executor::NativeVersion {
-        vanilla_runtime::native_version()
-    }
-}
-
-pub struct KerriaExecutor;
-impl sc_executor::NativeExecutionDispatch for KerriaExecutor {
-    type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
-
-    fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
-        kerria_runtime::api::dispatch(method, data)
-    }
-
-    fn native_version() -> sc_executor::NativeVersion {
-        kerria_runtime::native_version()
-    }
-}
-
 pub type FullBackend = sc_service::TFullBackend<Block>;
 pub type FullClient<RuntimeApi, Executor> =
     sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>;
@@ -101,6 +74,8 @@ pub trait IdentifyVariant {
     fn is_vanilla(&self) -> bool;
 
     fn is_kerria(&self) -> bool;
+
+    fn is_dev(&self) -> bool;
 }
 
 impl IdentifyVariant for Box<dyn sc_service::ChainSpec> {
@@ -118,6 +93,10 @@ impl IdentifyVariant for Box<dyn sc_service::ChainSpec> {
 
     fn is_kerria(&self) -> bool {
         self.id().starts_with("kerria")
+    }
+
+    fn is_dev(&self) -> bool {
+        return self.id().starts_with("vanilla-local-dev");
     }
 }
 
@@ -232,6 +211,7 @@ where
     Ok(params)
 }
 
+#[allow(dead_code, unused)]
 async fn build_relay_chain_interface(
     polkadot_config: Configuration,
     parachain_config: &Configuration,
@@ -461,6 +441,7 @@ where
 }
 
 /// Start a normal parachain node.
+#[allow(dead_code, unused)]
 pub async fn start_node<RuntimeApi, Executor>(
     parachain_config: Configuration,
     polkadot_config: Configuration,

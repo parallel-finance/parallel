@@ -88,6 +88,20 @@ orml-xcm                    = { version = '0.4.1-dev', default-features = false 
 orml-xcm-support            = { version = '0.4.1-dev', default-features = false }
 orml-xtokens                = { version = '0.4.1-dev', default-features = false }
 
+# Frontier dependencies
+fp-rpc                          = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
+fp-self-contained               = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
+pallet-base-fee                 = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
+pallet-ethereum                 = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
+pallet-evm                      = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
+pallet-evm-precompile-blake2    = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
+pallet-evm-precompile-bn128     = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
+pallet-evm-precompile-dispatch  = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
+pallet-evm-precompile-ed25519   = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
+pallet-evm-precompile-modexp    = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
+pallet-evm-precompile-sha3fips  = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
+pallet-evm-precompile-simple    = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
+
 # Parallel dependencies
 pallet-amm                    = { path = '../../pallets/amm', default-features = false }
 pallet-asset-registry         = { path = '../../pallets/asset-registry', default-features = false }
@@ -106,6 +120,7 @@ pallet-streaming              = { path = '../../pallets/streaming', default-feat
 pallet-traits                 = { path = '../../pallets/traits', default-features = false }
 pallet-xcm-helper             = { path = '../../pallets/xcm-helper', default-features = false }
 primitives                    = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+pallet-evm-precompile-assets-erc20 = { path = '../../precompiles/assets-erc20', default-features = false }
 
 [build-dependencies.substrate-wasm-builder]
 branch = 'polkadot-v0.9.26'
@@ -139,6 +154,7 @@ runtime-benchmarks = [
   'pallet-farming/runtime-benchmarks',
   'pallet-asset-registry/runtime-benchmarks',
   'pallet-streaming/runtime-benchmarks',
+  'pallet-ethereum/runtime-benchmarks',
 ]
 std                = [
   'codec/std',
@@ -219,6 +235,17 @@ std                = [
   'pallet-farming/std',
   'pallet-asset-registry/std',
   'pallet-traits/std',
+  'pallet-base-fee/std',
+	'pallet-ethereum/std',
+	'pallet-evm/std',
+	'pallet-evm-precompile-blake2/std',
+	'pallet-evm-precompile-simple/std',
+	'pallet-evm-precompile-bn128/std',
+	'pallet-evm-precompile-dispatch/std',
+	'pallet-evm-precompile-ed25519/std',
+	'pallet-evm-precompile-modexp/std',
+	'pallet-evm-precompile-sha3fips/std',
+  'pallet-evm-precompile-assets-erc20/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',
@@ -255,6 +282,7 @@ try-runtime        = [
   'pallet-crowdloans/try-runtime',
   'pallet-xcm-helper/try-runtime',
   'pallet-asset-registry/try-runtime',
+  'pallet-ethereum/try-runtime',
 ]
 
 [package.metadata.cargo-udeps.ignore]

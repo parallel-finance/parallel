@@ -17,21 +17,12 @@ use sp_api::{CallApiAt, NumberFor, ProvideRuntimeApi};
 use sp_blockchain::HeaderBackend;
 use sp_consensus::BlockStatus;
 use sp_runtime::{
-    generic::{self, SignedBlock},
+    generic::SignedBlock,
     traits::{BlakeTwo256, Block as BlockT},
     Justifications,
 };
 use sp_storage::{ChildInfo, StorageData, StorageKey};
 use std::sync::Arc;
-
-/// Header type.
-pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
-
-/// Block type.
-pub type Block = generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
-
-/// Block ID.
-pub type BlockId = generic::BlockId<Block>;
 
 /// A set of APIs that parallel-like runtimes must implement.
 pub trait RuntimeApiCollection:
@@ -162,14 +153,6 @@ pub enum Client {
     Heiko(
         Arc<crate::service::FullClient<heiko_runtime::RuntimeApi, crate::service::HeikoExecutor>>,
     ),
-    Vanilla(
-        Arc<
-            crate::service::FullClient<
-                vanilla_runtime::RuntimeApi,
-                crate::service::VanillaExecutor,
-            >,
-        >,
-    ),
 }
 
 macro_rules! with_client {
@@ -183,7 +166,6 @@ macro_rules! with_client {
 		match $self {
 			Self::Parallel($client) => { $( $code )* },
 			Self::Heiko($client) => { $( $code )* },
-            Self::Vanilla($client) => { $( $code )* }
 		}
 	}
 }
