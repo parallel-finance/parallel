@@ -153,3 +153,17 @@ export const getRelayApi = async (endpoint: string): Promise<ApiPromise> => {
     provider: new WsProvider(endpoint)
   })
 }
+
+export const calcWeightPerSecond = (precision: number,price: number):number => {
+  const WEIGHT_PER_SECOND = 10**12;
+  // for fixed weigher always 600_000_000
+  const weight = 600_000_000; 
+  //assume we charge 0.02$ at most for each xcm reserved based transfer
+  const max_fee = 0.02;
+  /// fee = (weight_per_second * weight)/WEIGHT_PER_SECOND/(10**precision) * price
+  /// so weight_per_second = max_fee*WEIGHT_PER_SECOND*(10**precision)/weight/price
+  const weight_per_second = max_fee*WEIGHT_PER_SECOND*(10**precision)/weight/price
+  /// to avoid price sharply increased later so that we charge too much 
+  /// just add some soft limit here
+  return Math.min(1000*WEIGHT_PER_SECOND,Math.floor(weight_per_second));
+}
