@@ -163,9 +163,9 @@ dependencies = [
 
 [[package]]
 name = "async-channel"
-version = "1.6.1"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2114d64672151c0c5eaa5e131ec84a74f06e1e559830dabba01ca30605d66319"
+checksum = "4b31b87a3367ed04dbcbc252bce3f2a8172fef861d47177524c503c908dff2c6"
 dependencies = [
  "concurrent-queue",
  "event-listener",
@@ -851,9 +851,9 @@ dependencies = [
 
 [[package]]
 name = "cid"
-version = "0.8.5"
+version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc949bff6704880faf064c42a4854032ab07bfcf3a4fcb82a57470acededb69c"
+checksum = "f6ed9c8b2d17acb8110c46f1da5bf4a696d745e1474a16db0cd2b49cd0249bf2"
 dependencies = [
  "core2",
  "multibase",
@@ -2349,6 +2349,111 @@ dependencies = [
  "quote 1.0.21",
  "syn 1.0.99",
  "thiserror",
+]
+
+[[package]]
+name = "fc-consensus"
+version = "2.0.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "async-trait",
+ "fc-db",
+ "fp-consensus",
+ "fp-rpc",
+ "sc-client-api",
+ "sc-consensus",
+ "sp-api",
+ "sp-block-builder",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-runtime",
+ "thiserror",
+]
+
+[[package]]
+name = "fc-db"
+version = "2.0.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "fp-storage",
+ "kvdb-rocksdb",
+ "parity-db",
+ "parity-scale-codec",
+ "parking_lot 0.12.1",
+ "sc-client-db",
+ "sp-core",
+ "sp-database",
+ "sp-runtime",
+]
+
+[[package]]
+name = "fc-mapping-sync"
+version = "2.0.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "fc-db",
+ "fp-consensus",
+ "fp-rpc",
+ "futures 0.3.21",
+ "futures-timer",
+ "log",
+ "sc-client-api",
+ "sp-api",
+ "sp-blockchain",
+ "sp-runtime",
+]
+
+[[package]]
+name = "fc-rpc"
+version = "2.0.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "ethereum",
+ "ethereum-types",
+ "evm",
+ "fc-db",
+ "fc-rpc-core",
+ "fp-rpc",
+ "fp-storage",
+ "futures 0.3.21",
+ "hex",
+ "jsonrpsee",
+ "libsecp256k1",
+ "log",
+ "lru 0.7.8",
+ "parity-scale-codec",
+ "prometheus",
+ "rand 0.8.5",
+ "rlp",
+ "sc-client-api",
+ "sc-network",
+ "sc-rpc",
+ "sc-service",
+ "sc-transaction-pool",
+ "sc-transaction-pool-api",
+ "sp-api",
+ "sp-block-builder",
+ "sp-blockchain",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-storage",
+ "substrate-prometheus-endpoint",
+ "tokio",
+]
+
+[[package]]
+name = "fc-rpc-core"
+version = "1.1.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "ethereum",
+ "ethereum-types",
+ "jsonrpsee",
+ "rlp",
+ "rustc-hex",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -5964,6 +6069,72 @@ dependencies = [
 
 [[package]]
 name = "pallet-emergency-shutdown"
+version = "1.9.1"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-traits",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-ethereum"
+version = "4.0.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "ethereum",
+ "ethereum-types",
+ "evm",
+ "fp-consensus",
+ "fp-ethereum",
+ "fp-evm",
+ "fp-rpc",
+ "fp-self-contained",
+ "fp-storage",
+ "frame-support",
+ "frame-system",
+ "pallet-evm",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "rlp",
+ "scale-info",
+ "serde",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-evm"
+version = "6.0.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "evm",
+ "fp-evm",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "log",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "primitive-types",
+ "rlp",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-evm-precompile-assets-erc20"
 version = "1.9.0"
 dependencies = [
  "derive_more 0.99.17",
@@ -5986,6 +6157,71 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-evm-precompile-blake2"
+version = "2.0.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "fp-evm",
+]
+
+[[package]]
+name = "pallet-evm-precompile-bn128"
+version = "2.0.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "fp-evm",
+ "sp-core",
+ "substrate-bn",
+]
+
+[[package]]
+name = "pallet-evm-precompile-dispatch"
+version = "2.0.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "fp-evm",
+ "frame-support",
+ "pallet-evm",
+]
+
+[[package]]
+name = "pallet-evm-precompile-ed25519"
+version = "2.0.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "ed25519-dalek",
+ "fp-evm",
+]
+
+[[package]]
+name = "pallet-evm-precompile-modexp"
+version = "2.0.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "fp-evm",
+ "num",
+]
+
+[[package]]
+name = "pallet-evm-precompile-sha3fips"
+version = "2.0.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "fp-evm",
+ "tiny-keccak",
+]
+
+[[package]]
+name = "pallet-evm-precompile-simple"
+version = "2.0.0-dev"
+source = "git+https://github.com/yrong/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+dependencies = [
+ "fp-evm",
+ "ripemd",
+ "sp-io",
 ]
 
 [[package]]
@@ -8641,9 +8877,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro-crate"
-version = "1.2.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26d50bfb8c23f23915855a00d98b5a35ef2e0b871bb52937bacadb798fbb66c8"
+checksum = "eda0fc3b0fb7c975631757e14d9049da17374063edb6ebbcbc54d880d4fe94e9"
 dependencies = [
  "once_cell",
  "thiserror",
