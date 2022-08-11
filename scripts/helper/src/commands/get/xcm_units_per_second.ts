@@ -14,9 +14,9 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         logger,
         args: { precision, price }
       } = actionParameters
-      const precision_num = precision.valueOf() as number;
-      const price_num = price.valueOf() as number;
-      const result = calcWeightPerSecond(precision_num, price_num);
-      logger.info(result.toString());
+      const precision_num = precision.valueOf() as number
+      const price_num = price.valueOf() as number
+      const result = calcWeightPerSecond(precision_num, price_num)
+      logger.info(result.toString())
     })
 }
