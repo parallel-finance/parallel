@@ -1278,7 +1278,7 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = 5 * DOLLARS / 10; // 0.5HKO
+        let default_gift_amount = 65 * DOLLARS / 100; // 0.65HKO
         Ok(match asset_id {
             KSM if balance
                 >= 10_u128

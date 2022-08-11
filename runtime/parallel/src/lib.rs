@@ -1163,7 +1163,7 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
             return Ok(Zero::zero());
         }
 
-        let default_gift_amount = 5 * DOLLARS / 10; // 0.5PARA
+        let default_gift_amount = 65 * DOLLARS / 100; // 0.65PARA
         Ok(match asset_id {
             DOT if balance >= 5 * 10_u128.pow(decimal.into()).saturating_sub(96_000_000u128) => {
                 default_gift_amount
