@@ -10,7 +10,7 @@ SURI           											:= //Alice
 LAUNCH_CONFIG_YAML	  							:= config.yml
 LAUNCH_CONFIG_JSON	  							:= config.json
 DOCKER_OVERRIDE_YAML                := docker-compose.override.yml
-DOCKER_TAG     											:= latest
+DOCKER_TAG     											:= latest_evm
 RELAY_DOCKER_TAG										:= v0.9.24
 CUMULUS_DOCKER_TAG									:= v0.9.24
 
@@ -253,13 +253,19 @@ wasm:
 spec:
 	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) build-spec --chain $(CHAIN) --disable-default-bootnode --raw > ./resources/$(CHAIN)-raw.json
 
-.PHONY: image
-image:
-	docker build --build-arg BIN=parallel \
+.PHONY: production-image
+production-image:
+	DOCKER_BUILDKIT=1 docker build --build-arg BIN=parallel \
 		-c 512 \
-		-t parallelfinance/parallel:$(DOCKER_TAG) \
-		-f Dockerfile.release \
-		. --network=host
+		-t parallelfinance/parallel:latest \
+		-f Dockerfile.release .
+
+.PHONY: integration-image-with-evm
+integration-image-with-evm:
+	DOCKER_BUILDKIT=1 docker build --build-arg BIN=parallel \
+		-c 512 \
+		-t parallelfinance/parallel:latest_evm \
+		-f Dockerfile.evm .
 
 .PHONY: key
 key:
