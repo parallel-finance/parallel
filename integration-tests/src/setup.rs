@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use frame_support::traits::ConstU32;
 use frame_support::traits::GenesisBuild;
+use frame_support::WeakBoundedVec;
 
 use frame_support::traits::Currency;
 use pallet_loans::{InterestRateModel, JumpModel, Market, MarketState};
@@ -35,6 +37,7 @@ pub const DOT_DECIMAL: u32 = 10;
 pub const RMRK_DECIMAL: u8 = 10;
 pub const USDT_DECIMAL: u8 = 6;
 pub const HEIKO_DECIMAL: u8 = 12;
+pub const KAR_DECIMAL: u8 = 12;
 
 pub const RMRK_ASSET_ID: u32 = 8;
 pub const USDT_ASSET_ID: u32 = 1984;
@@ -42,6 +45,7 @@ pub const RMRK: CurrencyId = 126;
 
 pub const RMRK_WEIGHT_PER_SEC: u128 = 20_000_000_000;
 pub const USDT_WEIGHT_PER_SEC: u128 = 30_000_000;
+pub const KAR_WEIGHT_PER_SEC: u128 = 30_000_000_000;
 
 pub const FEE_IN_STATEMINE: u128 = 15_540_916;
 pub const WEIGHT_IN_STATEMINE: u64 = 4_000_000_000;
@@ -256,6 +260,44 @@ impl ExtBuilder {
                 Origin::root(),
                 statemine_usdt_asset_type,
                 USDT_WEIGHT_PER_SEC,
+            )
+            .unwrap();
+
+            //initialize for acala kar as mock sibling
+            Assets::force_create(
+                Origin::root(),
+                KAR,
+                MultiAddress::Id(AccountId::from(ALICE)),
+                true,
+                1,
+            )
+            .unwrap();
+            Assets::force_set_metadata(
+                Origin::root(),
+                KAR,
+                b"KAR".to_vec(),
+                b"KAR".to_vec(),
+                KAR_DECIMAL,
+                false,
+            )
+            .unwrap();
+            let kar_asset_location = MultiLocation::new(
+                1,
+                X2(
+                    Parachain(2000),
+                    //since we use hko to mock kar,just use hko location here
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        b"HKO".to_vec(),
+                        None,
+                    )),
+                ),
+            );
+            let kar_asset_type = AssetType::Xcm(kar_asset_location);
+            AssetRegistry::register_asset(Origin::root(), KAR, kar_asset_type.clone()).unwrap();
+            AssetRegistry::update_asset_units_per_second(
+                Origin::root(),
+                kar_asset_type,
+                KAR_WEIGHT_PER_SEC,
             )
             .unwrap();
 

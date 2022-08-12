@@ -1,9 +1,19 @@
-import { createXcm, getApi, getRelayApi, nextNonce, sovereignRelayOf } from '../../utils'
+import {
+  createXcm,
+  getApi,
+  getRelayApi,
+  nextNonce,
+  sovereignRelayOf,
+  getDefaultRelayChainWsUrl,
+  getDefaultParachainWsUrl
+} from '../../utils'
 import { Command, CreateCommandParameters, program } from '@caporal/core'
 import { Keyring } from '@polkadot/api'
 import { PolkadotRuntimeParachainsConfigurationHostConfiguration } from '@polkadot/types/lookup'
 
 export default function ({ createCommand }: CreateCommandParameters): Command {
+  const relayChainUrl: string = getDefaultRelayChainWsUrl()
+  const paraChainUrl: string = getDefaultParachainWsUrl()
   return createCommand('open hrmp channel to specific chain')
     .argument('<source>', 'paraId of source chain', {
       validator: program.NUMBER
@@ -12,10 +22,10 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       validator: program.NUMBER
     })
     .option('-r, --relay-ws [url]', 'the relaychain API endpoint', {
-      default: 'wss://rpc.polkadot.io'
+      default: relayChainUrl
     })
     .option('-p, --para-ws [url]', 'the parachain API endpoint', {
-      default: 'wss://rpc.parallel.fi'
+      default: paraChainUrl
     })
     .option('-d, --dry-run [boolean]', 'whether to execute using PARA_CHAIN_SUDO_KEY', {
       validator: program.BOOLEAN,

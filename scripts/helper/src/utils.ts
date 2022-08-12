@@ -10,7 +10,6 @@ import { Index } from '@polkadot/types/interfaces'
 import { promisify } from 'util'
 
 const EMPTY_U8A_32 = new Uint8Array(32)
-const XCM_FEE = 2500000000
 
 export const readFile = promisify(fs.readFile)
 
@@ -78,7 +77,7 @@ export const createXcm = (encoded: string, refundAccount: string, originType = '
               }
             },
             fun: {
-              Fungible: XCM_FEE
+              Fungible: getDefaultXcmFee()
             }
           }
         ]
@@ -93,7 +92,7 @@ export const createXcm = (encoded: string, refundAccount: string, originType = '
               }
             },
             fun: {
-              Fungible: XCM_FEE
+              Fungible: getDefaultXcmFee()
             }
           },
           weightLimit: 'Unlimited'
@@ -152,4 +151,34 @@ export const getRelayApi = async (endpoint: string): Promise<ApiPromise> => {
   return ApiPromise.create({
     provider: new WsProvider(endpoint)
   })
+}
+
+export const calcWeightPerSecond = (precision: number, price: number): number => {
+  const WEIGHT_PER_SECOND = 10 ** 12
+  // for fixed weigher always 600_000_000
+  const weight = 600_000_000
+  //assume we charge 0.02$ at most for each xcm reserved based transfer
+  const max_fee = 0.02
+  /// max_fee = (weight_per_second * weight)/WEIGHT_PER_SECOND/(10**precision) * price
+  /// so weight_per_second = max_fee*WEIGHT_PER_SECOND*(10**precision)/weight/price
+  const weight_per_second = (((max_fee * WEIGHT_PER_SECOND) / weight) * 10 ** precision) / price
+  /// to avoid price sharply increased later so that we charge too much
+  /// just add some soft limit here
+  return Math.min(1000 * WEIGHT_PER_SECOND, Math.floor(weight_per_second))
+}
+
+export const getDefaultRelayChainWsUrl = (): string => {
+  return process.env['RELAY_CHAIN_TYPE'] === 'kusama'
+    ? 'wss://kusama-rpc.polkadot.io'
+    : 'wss://rpc.polkadot.io'
+}
+
+export const getDefaultParachainWsUrl = (): string => {
+  return process.env['RELAY_CHAIN_TYPE'] === 'kusama'
+    ? 'wss://heiko-rpc.parallel.fi'
+    : 'wss://rpc.parallel.fi'
+}
+
+export const getDefaultXcmFee = (): number => {
+  return process.env['RELAY_CHAIN_TYPE'] === 'kusama' ? 10_000_000_000 : 2_500_000_000
 }

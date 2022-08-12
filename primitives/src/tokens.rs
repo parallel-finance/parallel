@@ -44,6 +44,7 @@ pub const IBTC: CurrencyId = 122;
 pub const GENS: CurrencyId = 123;
 pub const EQ: CurrencyId = 124;
 pub const TUR: CurrencyId = 125;
+pub const LIT: CurrencyId = 127;
 
 // Ethereum ecosystem
 pub const EUSDT: CurrencyId = 201;

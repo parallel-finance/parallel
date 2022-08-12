@@ -1268,14 +1268,16 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 400
     );
-    // Kintsugi
+    //Kintsugi:(1,X2(2092,0x000C))
     pub KintPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
             X2(Parachain(paras::kintsugi::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::kintsugi::KINT_KEY.to_vec(), None))),
         ).into(),
+        //~100
         ksm_per_second() * 400
     );
+    //Kbtc:(1,X2(2092,0x000B))
     pub KbtcPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
@@ -1299,7 +1301,7 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 260
     );
-    // Calamari
+    // Calamari(1,2084)
     pub KmaPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
