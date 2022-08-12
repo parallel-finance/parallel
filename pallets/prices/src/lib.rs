@@ -122,6 +122,12 @@ pub mod pallet {
     pub type EmergencyPrice<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, Price, OptionQuery>;
 
+    /// Mapping from foreign vault token to our's vault token
+    #[pallet::storage]
+    #[pallet::getter(fn foreign_vault_token)]
+    pub type ForeignVaultTokenMap<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, CurrencyId, OptionQuery>;
+
     #[pallet::pallet]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
@@ -152,6 +158,19 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::FeederOrigin::ensure_origin(origin)?;
             <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::reset_emergency_price(asset_id);
+            Ok(().into())
+        }
+
+        /// Set foreign vault token mapping
+        #[pallet::weight((<T as Config>::WeightInfo::set_foreign_vault_mapping(), DispatchClass::Operational))]
+        #[transactional]
+        pub fn set_foreign_vault_mapping(
+            origin: OriginFor<T>,
+            foreign_asset_id: CurrencyId,
+            asset_id: CurrencyId,
+        ) -> DispatchResultWithPostInfo {
+            T::FeederOrigin::ensure_origin(origin)?;
+            ForeignVaultTokenMap::<T>::insert(foreign_asset_id, asset_id);
             Ok(().into())
         }
     }
@@ -189,6 +208,8 @@ impl<T: Config> Pallet<T> {
             Self::get_lp_vault_asset_price(asset_id, base_price)
         } else if is_auxiliary_token(asset_id) {
             Some(base_price)
+        } else if let Some(vault_asset_id) = Self::foreign_vault_token(&asset_id) {
+            Self::get_vault_asset_price(vault_asset_id, base_price)
         } else {
             None
         }

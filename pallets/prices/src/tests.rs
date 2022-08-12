@@ -272,3 +272,20 @@ fn get_lp_ctoken_no_op_price_work() {
         );
     });
 }
+
+#[test]
+fn get_foreign_ctoken_price_work() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(
+            Prices::get_price(&DOT),
+            Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
+        );
+
+        assert_eq!(
+            Prices::get_price(&CDOT_7_14),
+            Some((Price::from_inner(6666666666_666666660000000000), 0))
+        );
+
+        assert_eq!(Prices::get_price(&CDOT_7_14), Prices::get_price(&LC_DOT));
+    });
+}
