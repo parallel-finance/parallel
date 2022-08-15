@@ -203,7 +203,7 @@ pub mod pallet {
                 // cant error because we fetch pools above
                 let adjacents = graph.get(&start).unwrap();
 
-                // items that are adjecent but not already in path
+                // items that are adjacent but not already in path
                 let difference: Vec<_> = adjacents
                     .iter()
                     .filter(|item| !path.contains(item))
