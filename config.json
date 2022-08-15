@@ -1,7 +1,7 @@
 {
   "relaychain": {
     "bin": "../polkadot/target/release/polkadot",
-    "chain": "rococo-local",
+    "chain": "polkadot-local",
     "nodes": [
       {
         "name": "alice",
@@ -53,22 +53,22 @@
       }
     ],
     "genesis": {
-			"runtime": {
-				"runtime_genesis_config": {
-					"configuration": {
-						"config": {
-							"validation_upgrade_frequency": 10,
-							"validation_upgrade_delay": 10
-						}
-					}
-				}
-			}
-		}
+      "runtime": {
+        "runtime_genesis_config": {
+          "configuration": {
+            "config": {
+              "validation_upgrade_frequency": 10,
+              "validation_upgrade_delay": 10
+            }
+          }
+        }
+      }
+    }
   },
   "parachains": [
     {
       "bin": "./target/release/parallel",
-      "chain": "vanilla-dev",
+      "chain": "kerria-dev",
       "nodes": [
         {
           "wsPort": 9948,
@@ -86,7 +86,8 @@
             "0"
           ]
         }
-      ]
+      ],
+      "id": 2012
     }
   ],
   "simpleParachains": [],

@@ -17,8 +17,8 @@ use kerria_runtime::{
     CollatorSelectionConfig, CrowdloansAutomatorsMembershipConfig, DemocracyConfig, EVMConfig,
     GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
     LiquidStakingAgentsMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
-    ParachainInfoConfig, PolkadotXcmConfig, Precompiles, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
+    ParachainInfoConfig, ParallelPrecompilesType, PolkadotXcmConfig, SessionConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
@@ -207,7 +207,7 @@ fn kerria_genesis(
         evm: EVMConfig {
             // We need _some_ code inserted at the precompile address so that
             // the evm will actually call the address.
-            accounts: Precompiles::used_addresses()
+            accounts: ParallelPrecompilesType::used_addresses()
                 .map(|addr| {
                     (
                         addr,

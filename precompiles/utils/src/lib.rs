@@ -37,6 +37,8 @@ pub use precompile_utils_macro::{generate_function_selector, keccak256};
 
 #[cfg(feature = "testing")]
 pub mod testing;
+#[cfg(feature = "testing")]
+pub use testing::*;
 #[cfg(test)]
 mod tests;
 

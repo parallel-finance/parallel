@@ -73,7 +73,7 @@ check:
 
 .PHONY: check-with-evm
 check-with-evm:
-	SKIP_WASM_BUILD= cargo check --all-targets --features with-evm-runtime --features runtime-benchmarks --features try-runtime
+	SKIP_WASM_BUILD= cargo check --all-targets --features with-evm-runtime --features runtime-benchmarks --features try-runtime --features testing
 
 .PHONY: check-wasm
 check-wasm:
