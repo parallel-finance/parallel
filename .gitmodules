@@ -1,9 +1,9 @@
 [submodule "resources/specs"]
 	path = resources/specs
 	url = https://github.com/parallel-finance/specs
-[submodule "scripts/evm"]
-	path = scripts/evm
-	url = https://github.com/yrong/evm-script
 [submodule "scripts/polkadot-launch"]
 	path = scripts/polkadot-launch
-	url = https://github.com/yrong/polkadot-launch
+	url = https://github.com/parallel-finance/polkadot-launch
+[submodule "scripts/evm"]
+	path = scripts/evm
+	url = https://github.com/parallel-finance/evm-script
