@@ -83,6 +83,10 @@ pub mod pallet {
         #[pallet::constant]
         type MaxLengthRoute: Get<u32>;
 
+        /// The asset id for native currency.
+        #[pallet::constant]
+        type GetNativeCurrencyId: Get<AssetIdOf<Self, I>>;
+
         /// Currency type for deposit/withdraw assets to/from amm route
         /// module
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
@@ -291,8 +295,11 @@ pub mod pallet {
             // Ensure the trader has enough tokens for transaction.
             let from_currency_id = route[0];
             ensure!(
-                <T as Config<I>>::Assets::reducible_balance(from_currency_id, &trader, false)
-                    >= amount_in,
+                <T as Config<I>>::Assets::reducible_balance(
+                    from_currency_id,
+                    &trader,
+                    from_currency_id == <T as Config<I>>::GetNativeCurrencyId::get()
+                ) >= amount_in,
                 Error::<T, I>::InsufficientBalance
             );
 
