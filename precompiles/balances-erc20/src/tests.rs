@@ -588,7 +588,7 @@ fn deposit(data: Vec<u8>) {
                         to: Account::Alice,
                         amount: 500
                     }),
-                    // Log is correctly emited.
+                    // Log is correctly emitted.
                     Event::Evm(pallet_evm::Event::Log {
                         log: log2(
                             Precompile,
