@@ -537,6 +537,7 @@ parameter_types! {
     pub const CollateralCurrency: CurrencyId = KSM_U;
     pub const XcmFees: Balance = 0;
     pub LoansInstantUnstakeFee: Rate = Rate::saturating_from_rational(8u32, 1000u32);
+    pub MatchingPoolFastUnstakeFee: Rate = Rate::saturating_from_rational(1u32, 1000u32);
     pub const BondingDuration: EraIndex = 3;
     pub const MinNominatorBond: Balance = 0;
     pub const NumSlashingSpans: u32 = 0;
@@ -561,6 +562,7 @@ impl crate::Config for Test {
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
     type LoansInstantUnstakeFee = LoansInstantUnstakeFee;
+    type MatchingPoolFastUnstakeFee = MatchingPoolFastUnstakeFee;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
     type EraLength = EraLength;
