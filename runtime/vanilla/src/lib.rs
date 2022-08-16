@@ -223,14 +223,6 @@ impl Contains<Call> for WhiteListFilter {
             // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
-            Call::Balances(_) |
-            Call::Assets(pallet_assets::Call::mint { .. }) |
-            Call::Assets(pallet_assets::Call::transfer { .. }) |
-            Call::Assets(pallet_assets::Call::burn { .. }) |
-            Call::Assets(pallet_assets::Call::destroy { .. }) |
-            Call::Assets(pallet_assets::Call::force_create { .. }) |
-            Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
-            Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -258,24 +250,14 @@ impl Contains<Call> for WhiteListFilter {
             Call::Proxy(_) |
             Call::Identity(_) |
             Call::EmergencyShutdown(_) |
-            Call::CurrencyAdapter(_) |
             Call::XcmHelper(_) |
-            // 3rd Party
-            Call::Oracle(_) |
-            Call::XTokens(_) |
-            Call::OrmlXcm(_) |
-            Call::Vesting(_) |
             // Membership
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
             Call::CrowdloansAutomatorsMembership(_) |
-            Call::LiquidStakingAgentsMembership(_) |
-            // EVM
-            Call::EVM(_) |
-            Call::Ethereum(_) |
-            Call::BaseFee(_)
+            Call::LiquidStakingAgentsMembership(_)
         )
     }
 }
@@ -286,6 +268,21 @@ impl Contains<Call> for BaseCallFilter {
         (WhiteListFilter::contains(call)
             || matches!(
                 call,
+                // System, Currencies
+                Call::Balances(_) |
+                Call::Assets(pallet_assets::Call::mint { .. }) |
+                Call::Assets(pallet_assets::Call::transfer { .. }) |
+                Call::Assets(pallet_assets::Call::burn { .. }) |
+                Call::Assets(pallet_assets::Call::destroy { .. }) |
+                Call::Assets(pallet_assets::Call::force_create { .. }) |
+                Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
+                Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
+                Call::CurrencyAdapter(_) |
+                // 3rd Party
+                Call::Oracle(_) |
+                Call::XTokens(_) |
+                Call::OrmlXcm(_) |
+                Call::Vesting(_) |
                 // Loans
                 Call::Loans(_) |
                 Call::Prices(_) |
@@ -303,7 +300,11 @@ impl Contains<Call> for BaseCallFilter {
                 // Streaming
                 Call::Streaming(_) |
                 // Asset Management
-                Call::AssetRegistry(_)
+                Call::AssetRegistry(_) |
+                // EVM
+                Call::EVM(_) |
+                Call::Ethereum(_) |
+                Call::BaseFee(_)
             ))
             && EmergencyShutdown::contains(call)
     }
