@@ -196,8 +196,6 @@ pub mod pallet {
         InvalidAmount,
         /// Payer cannot be signer
         PayerIsSigner,
-        /// Insufficient Market Liquidity
-        InsufficientMarketLiquidity,
         /// Codec error
         CodecError,
         /// Collateral is reserved and cannot be liquidated
