@@ -347,7 +347,7 @@ pub mod pallet {
 
             // Ensure balances user input is bigger than zero.
             ensure!(
-                max_amount_in > Zero::zero() && max_amount_in >= Zero::zero(),
+                amount_out > Zero::zero() && max_amount_in >= Zero::zero(),
                 Error::<T, I>::ZeroBalance
             );
 
