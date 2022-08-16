@@ -14,11 +14,8 @@
 
 use std::str::from_utf8;
 
-use crate::{
-    eip2612::Eip2612,
-    mock::{Account::*, *},
-    *,
-};
+use crate::{eip2612::Eip2612, mock::*, *};
+use precompile_utils::PrecompileTesterExt;
 
 use libsecp256k1::{sign, Message, SecretKey};
 use sha3::{Digest, Keccak256};
@@ -140,7 +137,7 @@ fn approve() {
                         .build(),
                 )
                 .expect_cost(1756)
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::Precompile.into()).log3(
                     SELECTOR_LOG_APPROVAL,
                     Account::Alice,
                     Account::Bob,
@@ -166,7 +163,7 @@ fn approve_saturating() {
                         .build(),
                 )
                 .expect_cost(1756u64)
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::Precompile.into()).log3(
                     SELECTOR_LOG_APPROVAL,
                     Account::Alice,
                     Account::Bob,
@@ -258,7 +255,7 @@ fn transfer() {
                         .build(),
                 )
                 .expect_cost(166861756u64) // 1 weight => 1 gas in mock
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::Precompile.into()).log3(
                     SELECTOR_LOG_TRANSFER,
                     Account::Alice,
                     Account::Bob,
@@ -344,7 +341,7 @@ fn transfer_from() {
                         .build(),
                 )
                 .expect_cost(166861756u64) // 1 weight => 1 gas in mock
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::Precompile.into()).log3(
                     SELECTOR_LOG_TRANSFER,
                     Account::Alice,
                     Account::Bob,
@@ -439,7 +436,7 @@ fn transfer_from_self() {
                         .build(),
                 )
                 .expect_cost(166861756u64) // 1 weight => 1 gas in mock
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::Precompile.into()).log3(
                     SELECTOR_LOG_TRANSFER,
                     Account::Alice,
                     Account::Bob,
@@ -589,17 +586,14 @@ fn deposit(data: Vec<u8>) {
                         amount: 500
                     }),
                     // Log is correctly emitted.
-                    Event::Evm(pallet_evm::Event::Log {
-                        log: log2(
-                            Precompile,
+                    Event::Evm(pallet_evm::Event::Log(
+                        LogsBuilder::new(Account::Precompile.into()).log2(
                             SELECTOR_LOG_DEPOSIT,
                             Account::Alice,
                             EvmDataWriter::new().write(U256::from(500)).build(),
                         )
-                    }),
-                    Event::Evm(pallet_evm::Event::Executed {
-                        address: Account::Precompile.into()
-                    }),
+                    )),
+                    Event::Evm(pallet_evm::Event::Executed(Account::Precompile.into())),
                 ]
             );
 
@@ -684,9 +678,9 @@ fn deposit_zero() {
 
             assert_eq!(
                 events(),
-                vec![Event::Evm(pallet_evm::Event::ExecutedFailed {
-                    address: Account::Precompile.into()
-                }),]
+                vec![Event::Evm(pallet_evm::Event::ExecutedFailed(
+                    Account::Precompile.into()
+                )),]
             );
 
             // Check precompile balance is still 0.
@@ -746,8 +740,7 @@ fn withdraw() {
                         .build(),
                 )
                 .expect_cost(1381)
-                .expect_log(log2(
-                    Precompile,
+                .expect_log(LogsBuilder::new(Account::Precompile.into()).log2(
                     SELECTOR_LOG_WITHDRAWAL,
                     Account::Alice,
                     EvmDataWriter::new().write(U256::from(500)).build(),
@@ -865,7 +858,7 @@ fn permit_valid() {
                         .build(),
                 )
                 .expect_cost(0) // TODO: Test db read/write costs
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::Precompile.into()).log3(
                     SELECTOR_LOG_APPROVAL,
                     Account::Alice,
                     Account::Bob,
@@ -1283,7 +1276,7 @@ fn permit_valid_with_metamask_signed_data() {
                         .build(),
                 )
                 .expect_cost(0) // TODO: Test db read/write costs
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::Precompile.into()).log3(
                     SELECTOR_LOG_APPROVAL,
                     Account::Alice,
                     Account::Bob,

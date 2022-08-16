@@ -65,7 +65,7 @@ clean:
 	cargo clean -p parallel -p vanilla-runtime -p kerria-runtime -p heiko-runtime -p parallel-runtime
 
 .PHONY: ci
-ci: check lint check-helper check-wasm test integration-test
+ci: check check-with-evm lint check-helper check-wasm test integration-test
 
 .PHONY: check
 check:
@@ -115,6 +115,9 @@ integration-test-kusama-call:
 integration-test-sibling-transfer:
 	RUST_LOG="xcm=trace,xcm-executor=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- sibling_transfer --nocapture
 
+.PHONY: test-pallet-evm-precompile-balances-erc20
+test-pallet-evm-precompile-balances-erc20:
+	SKIP_WASM_BUILD= cargo test -p pallet-evm-precompile-balances-erc20 --lib --no-fail-fast -- --nocapture
 
 .PHONY: bench
 bench:build-release-if-not-exists
