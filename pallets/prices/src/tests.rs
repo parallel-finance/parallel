@@ -46,7 +46,7 @@ fn set_price_work() {
         );
         // set DOT price
         assert_ok!(Prices::set_price(
-            Origin::signed(1),
+            Origin::signed(ALICE),
             DOT,
             Price::saturating_from_integer(99)
         ));
@@ -55,7 +55,7 @@ fn set_price_work() {
             Some((Price::from_inner(9_900_000_000 * PRICE_ONE), 0))
         );
         assert_ok!(Prices::set_price(
-            Origin::signed(1),
+            Origin::signed(ALICE),
             KSM,
             Price::saturating_from_integer(1)
         ));
@@ -100,11 +100,15 @@ fn set_price_call_work() {
             Some((FixedU128::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         assert_noop!(
-            Prices::set_price(Origin::signed(2), DOT, Price::saturating_from_integer(100),),
+            Prices::set_price(
+                Origin::signed(CHARLIE),
+                DOT,
+                Price::saturating_from_integer(100),
+            ),
             BadOrigin
         );
         assert_ok!(Prices::set_price(
-            Origin::signed(1),
+            Origin::signed(ALICE),
             DOT,
             Price::saturating_from_integer(90),
         ));
@@ -122,7 +126,11 @@ fn set_price_call_work() {
             .iter()
             .any(|record| record.event == set_price_event));
         assert_eq!(
-            Prices::set_price(Origin::signed(1), DOT, Price::saturating_from_integer(90),),
+            Prices::set_price(
+                Origin::signed(ALICE),
+                DOT,
+                Price::saturating_from_integer(90),
+            ),
             Ok(().into())
         );
     });
@@ -139,7 +147,7 @@ fn reset_price_call_work() {
             Some((FixedU128::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         assert_ok!(Prices::set_price(
-            Origin::signed(1),
+            Origin::signed(ALICE),
             DOT,
             Price::saturating_from_integer(90),
         ));
@@ -149,8 +157,8 @@ fn reset_price_call_work() {
         );
 
         // try reset price
-        assert_noop!(Prices::reset_price(Origin::signed(2), DOT), BadOrigin);
-        assert_ok!(Prices::reset_price(Origin::signed(1), DOT));
+        assert_noop!(Prices::reset_price(Origin::signed(CHARLIE), DOT), BadOrigin);
+        assert_ok!(Prices::reset_price(Origin::signed(ALICE), DOT));
 
         // price need to be 100 after reset_price
         assert_eq!(
@@ -163,7 +171,10 @@ fn reset_price_call_work() {
         assert!(System::events()
             .iter()
             .any(|record| record.event == reset_price_event));
-        assert_eq!(Prices::reset_price(Origin::signed(1), DOT), Ok(().into()));
+        assert_eq!(
+            Prices::reset_price(Origin::signed(ALICE), DOT),
+            Ok(().into())
+        );
     });
 }
 
