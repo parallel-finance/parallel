@@ -40,8 +40,8 @@ use frame_system::pallet_prelude::*;
 use num_traits::cast::ToPrimitive;
 pub use pallet::*;
 use pallet_traits::{
-    ConvertToBigUint, Loans, LoansMarketDataProvider, LoansPositionDataProvider, MarketInfo,
-    MarketStatus, PriceFeeder,
+    ConvertToBigUint, Loans as LoansTrait, LoansMarketDataProvider, LoansPositionDataProvider,
+    MarketInfo, MarketStatus, PriceFeeder,
 };
 use primitives::{
     is_auxiliary_token, Balance, CurrencyId, Liquidity, Price, Rate, Ratio, Shortfall, Timestamp,
@@ -196,8 +196,6 @@ pub mod pallet {
         InvalidAmount,
         /// Payer cannot be signer
         PayerIsSigner,
-        /// Insufficient Market Liquidity
-        InsufficientMarketLiquidity,
         /// Codec error
         CodecError,
         /// Collateral is reserved and cannot be liquidated
@@ -1367,13 +1365,15 @@ impl<T: Config> Pallet<T> {
         if deposit.voucher_balance < voucher_amount {
             return Err(Error::<T>::InsufficientDeposit.into());
         }
-        if !deposit.is_collateral {
-            return Ok(());
-        }
 
         let exchange_rate = Self::exchange_rate_stored(asset_id)?;
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
         Self::ensure_enough_cash(asset_id, redeem_amount)?;
+
+        if !deposit.is_collateral {
+            return Ok(());
+        }
+
         let market = Self::market(asset_id)?;
         let effects_amount = market.collateral_factor.mul_ceil(redeem_amount);
         let redeem_effects_value = Self::get_asset_value(asset_id, effects_amount)?;
@@ -1429,7 +1429,7 @@ impl<T: Config> Pallet<T> {
         })?;
 
         T::Assets::transfer(asset_id, &Self::account_id(), who, redeem_amount, false)
-            .map_err(|_| Error::<T>::InsufficientMarketLiquidity)?;
+            .map_err(|_| Error::<T>::InsufficientCash)?;
         Ok(redeem_amount)
     }
 
@@ -1996,7 +1996,7 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-impl<T: Config> Loans<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pallet<T> {
+impl<T: Config> LoansTrait<AssetIdOf<T>, AccountIdOf<T>, BalanceOf<T>> for Pallet<T> {
     fn do_mint(
         supplier: &AccountIdOf<T>,
         asset_id: AssetIdOf<T>,
