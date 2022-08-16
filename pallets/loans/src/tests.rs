@@ -18,7 +18,6 @@ mod liquidate_borrow;
 mod market;
 mod ptokens;
 
-use super::*;
 use frame_support::{assert_err, assert_noop, assert_ok};
 
 use primitives::tokens::CDOT_6_13;
@@ -27,9 +26,7 @@ use sp_runtime::{
     FixedU128, Permill,
 };
 
-use mock::*;
-
-use crate::mock::Loans;
+use crate::mock::*;
 
 #[test]
 fn init_minting_ok() {
@@ -274,7 +271,7 @@ fn redeem_fails() {
 }
 
 #[test]
-fn withdraw_fails_when_insufficient_liquidity() {
+fn redeem_fails_when_insufficient_liquidity() {
     new_test_ext().execute_with(|| {
         // Prepare: Bob Deposit 200 DOT
         assert_ok!(Loans::mint(Origin::signed(BOB), DOT, 200));
@@ -288,7 +285,28 @@ fn withdraw_fails_when_insufficient_liquidity() {
 
         assert_noop!(
             Loans::redeem(Origin::signed(BOB), DOT, 151),
-            Error::<Test>::InsufficientMarketLiquidity
+            Error::<Test>::InsufficientCash
+        );
+    })
+}
+
+#[test]
+fn redeem_fails_when_would_use_reserved_balanace() {
+    new_test_ext().execute_with(|| {
+        // Prepare: Bob Deposit 200 DOT
+        assert_ok!(Loans::mint(Origin::signed(BOB), DOT, 200));
+
+        // Deposit 200 KSM as collateral
+        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
+
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
+        // Borrow 50 DOT will reduce 100 KSM liquidity for collateral_factor is 50%
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 50));
+        assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, 50));
+
+        assert_noop!(
+            Loans::redeem(Origin::signed(BOB), DOT, 151),
+            Error::<Test>::InsufficientCash
         );
     })
 }

@@ -135,6 +135,7 @@ impl DecimalProvider<CurrencyId> for Decimal {
             CKSM_20_27 => Some(12),
             CDOT_7_14 => Some(10),
             LP_DOT_CDOT_7_14 => Some(12),
+            LC_DOT => Some(10),
             _ => None,
         }
     }
@@ -269,6 +270,7 @@ impl crate::Config for Test {
     type Event = Event;
     type Source = MockDataProvider;
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
+    type UpdateOrigin = EnsureSignedBy<One, AccountId>;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
     type VaultTokenCurrenciesFilter = TokenCurrenciesFilter;
@@ -326,6 +328,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             1000 * PRICE_ONE,
         )
         .unwrap();
+
+        Prices::set_foreign_asset(Origin::signed(ALICE), tokens::LC_DOT, CDOT_7_14).unwrap();
     });
 
     ext

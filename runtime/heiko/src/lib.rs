@@ -216,11 +216,6 @@ impl Contains<Call> for WhiteListFilter {
             // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
-            Call::Balances(_) |
-            Call::Assets(pallet_assets::Call::mint { .. }) |
-            Call::Assets(pallet_assets::Call::transfer { .. }) |
-            Call::Assets(pallet_assets::Call::burn { .. }) |
-            Call::Assets(pallet_assets::Call::destroy { .. }) |
             Call::Assets(pallet_assets::Call::force_create { .. }) |
             Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
             Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
@@ -251,13 +246,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Proxy(_) |
             Call::Identity(_) |
             Call::EmergencyShutdown(_) |
-            Call::CurrencyAdapter(_) |
             Call::XcmHelper(_) |
-            // 3rd Party
-            Call::Vesting(_) |
-            Call::Oracle(_) |
-            Call::XTokens(_) |
-            Call::OrmlXcm(_) |
             // Membership
             Call::OracleMembership(_) |
             Call::GeneralCouncilMembership(_) |
@@ -275,6 +264,18 @@ impl Contains<Call> for BaseCallFilter {
         (WhiteListFilter::contains(call)
             || matches!(
                 call,
+                // System, Currencies
+                Call::Balances(_) |
+                Call::Assets(pallet_assets::Call::mint { .. }) |
+                Call::Assets(pallet_assets::Call::transfer { .. }) |
+                Call::Assets(pallet_assets::Call::burn { .. }) |
+                Call::Assets(pallet_assets::Call::destroy { .. }) |
+                Call::CurrencyAdapter(_) |
+                // 3rd Party
+                Call::Vesting(_) |
+                Call::Oracle(_) |
+                Call::XTokens(_) |
+                Call::OrmlXcm(_) |
                 // Loans
                 Call::Loans(_) |
                 Call::Prices(_) |
@@ -1526,6 +1527,7 @@ impl pallet_prices::Config for Runtime {
     type Event = Event;
     type Source = AggregatedDataProvider;
     type FeederOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type VaultTokenCurrenciesFilter = Crowdloans;
@@ -2011,6 +2013,7 @@ impl pallet_router::Config for Runtime {
     type AMMRouterWeightInfo = weights::pallet_router::WeightInfo<Runtime>;
     type MaxLengthRoute = MaxLengthRoute;
     type Assets = CurrencyAdapter;
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 impl pallet_currency_adapter::Config for Runtime {
