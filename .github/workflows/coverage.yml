@@ -55,6 +55,7 @@ jobs:
       - name: cleaning up
         run: |
           echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
+          echo "HOME=/home/ubuntu" >> ${GITHUB_ENV}
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -67,11 +68,11 @@ jobs:
           components: rustfmt
           target: wasm32-unknown-unknown
           default: true
+          path: ""
       - name: Run cargo-tarpaulin
         run: |
           wget https://github.com/xd009642/tarpaulin/releases/download/${{ env.TARPAULIN_VERSION }}/cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz
           tar -zxvf cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz -C $HOME/.cargo/bin
-          source $HOME/.cargo/env
           cargo +nightly-2022-05-11 tarpaulin --verbose --no-fail-fast \
             -p pallet-loans \
             -p pallet-liquid-staking \
