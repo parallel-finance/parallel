@@ -27,7 +27,7 @@ jobs:
         uses: machulav/ec2-github-runner@v2
         with:
           mode: start
-          github-token: ${{ secrets.PAT }}
+          github-token: ${{ secrets.PAT_RUNNER }}
           ec2-image-id: ${{ secrets.EC2_IMAGE_ID }}
           ec2-instance-type: ${{ secrets.EC2_INSTANCE_TYPE }}
           subnet-id: ${{ secrets.SUBNET_ID }}
@@ -131,7 +131,6 @@ jobs:
     needs: srtool
     runs-on: ${{ needs.start-runner.outputs.label }}
     if: startsWith(github.ref, 'refs/tags/')
-    needs: srtool
     steps:
       - name: Get GIT Tag
         id: git_tag
@@ -166,6 +165,6 @@ jobs:
         uses: machulav/ec2-github-runner@v2
         with:
           mode: stop
-          github-token: ${{ secrets.PAT }}
+          github-token: ${{ secrets.PAT_RUNNER }}
           label: ${{ needs.start-runner.outputs.label }}
           ec2-instance-id: ${{ needs.start-runner.outputs.ec2-instance-id }}
