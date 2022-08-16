@@ -135,6 +135,8 @@ pub mod pallet {
         LpTokenAlreadyExists,
         /// Conversion failure to u128
         ConversionToU128Failed,
+        /// Protocol fee receiver not set
+        ProtocolFeeReceiverEmpty,
     }
 
     #[pallet::event]
@@ -206,13 +208,11 @@ pub mod pallet {
     /// How much the protocol is taking out of each trade.
     #[pallet::storage]
     #[pallet::getter(fn protocol_fee)]
-    pub type ProtocolFee<T: Config<I>, I: 'static = ()> = StorageValue<_, Ratio, OptionQuery>;
+    pub type ProtocolFee<T: Config<I>, I: 'static = ()> = StorageValue<_, Ratio, ValueQuery>;
 
     /// Who/where to send the protocol fees
     #[pallet::storage]
-    #[pallet::getter(fn protocol_fee_receiver)]
-    pub type ProtocolFeeReceiver<T: Config<I>, I: 'static = ()> =
-        StorageValue<_, T::AccountId, OptionQuery>;
+    pub type ProtocolFeeReceiver<T: Config<I>, I: 'static = ()> = StorageValue<_, T::AccountId>;
 
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
@@ -464,6 +464,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::LockAccountId::get()
     }
 
+    fn protolcol_fee_receiver() -> Result<T::AccountId, DispatchError> {
+        ProtocolFeeReceiver::<T, I>::get().ok_or(Error::<T, I>::ProtocolFeeReceiverEmpty.into())
+    }
+
     fn quote(
         base_amount: BalanceOf<T, I>,
         base_pool: BalanceOf<T, I>,
@@ -529,13 +533,13 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     fn protocol_fee_on() -> bool {
-        !T::ProtocolFee::get().is_zero()
+        !Self::protocol_fee().is_zero()
     }
 
     fn get_protocol_fee_reciprocal_proportion() -> Result<BalanceOf<T, I>, DispatchError> {
-        Ok(T::ProtocolFee::get()
+        Ok(Self::protocol_fee()
             .checked_add(&T::LpFee::get())
-            .map(|r| T::ProtocolFee::get().div(r))
+            .map(|r| Self::protocol_fee().div(r))
             .map(|r| r.saturating_reciprocal_mul_floor::<BalanceOf<T, I>>(One::one()))
             .ok_or(ArithmeticError::Underflow)?)
     }
@@ -610,7 +614,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         reserve_out: BalanceOf<T, I>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
         let fees = T::LpFee::get()
-            .checked_add(&T::ProtocolFee::get())
+            .checked_add(&Self::protocol_fee())
             .map(|r| r.mul_ceil(amount_in))
             .ok_or(ArithmeticError::Overflow)?;
 
@@ -675,7 +679,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(ArithmeticError::Underflow)?;
 
         let fee_percent = T::LpFee::get()
-            .checked_add(&T::ProtocolFee::get())
+            .checked_add(&Self::protocol_fee())
             .and_then(|r| Ratio::from_percent(100).checked_sub(&r))
             .ok_or(ArithmeticError::Underflow)?;
 
@@ -998,7 +1002,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         T::Assets::mint_into(
             pool.lp_token_id,
-            &T::ProtocolFeeReceiver::get(),
+            &Self::protolcol_fee_receiver()?,
             protocol_fees,
         )?;
 

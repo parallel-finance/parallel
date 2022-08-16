@@ -1897,9 +1897,7 @@ impl pallet_amm::Config for Runtime {
     type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AMMWeightInfo = weights::pallet_amm::WeightInfo<Runtime>;
     type LpFee = DefaultLpFee;
-    type ProtocolFee = DefaultProtocolFee;
     type MinimumLiquidity = MinimumLiquidity;
-    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
     type MaxLengthRoute = MaxLengthRoute;
     type GetNativeCurrencyId = NativeCurrencyId;
 }
