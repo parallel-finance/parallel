@@ -124,8 +124,8 @@ pub mod pallet {
 
     /// Mapping from foreign vault token to our's vault token
     #[pallet::storage]
-    #[pallet::getter(fn foreign_vault_token)]
-    pub type ForeignVaultTokenMap<T: Config> =
+    #[pallet::getter(fn foreign_to_native_token)]
+    pub type ForeignToNativeTokenMap<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, CurrencyId, OptionQuery>;
 
     #[pallet::pallet]
@@ -162,15 +162,15 @@ pub mod pallet {
         }
 
         /// Set foreign vault token mapping
-        #[pallet::weight((<T as Config>::WeightInfo::set_foreign_vault_mapping(), DispatchClass::Operational))]
+        #[pallet::weight((<T as Config>::WeightInfo::set_foreign_asset_mapping(), DispatchClass::Operational))]
         #[transactional]
-        pub fn set_foreign_vault_mapping(
+        pub fn set_foreign_asset_mapping(
             origin: OriginFor<T>,
             foreign_asset_id: CurrencyId,
             asset_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
-            T::FeederOrigin::ensure_origin(origin)?;
-            ForeignVaultTokenMap::<T>::insert(foreign_asset_id, asset_id);
+            frame_system::ensure_root(origin)?;
+            ForeignToNativeTokenMap::<T>::insert(foreign_asset_id, asset_id);
             Ok(().into())
         }
     }
@@ -208,8 +208,8 @@ impl<T: Config> Pallet<T> {
             Self::get_lp_vault_asset_price(asset_id, base_price)
         } else if is_auxiliary_token(asset_id) {
             Some(base_price)
-        } else if let Some(vault_asset_id) = Self::foreign_vault_token(&asset_id) {
-            Self::get_vault_asset_price(vault_asset_id, base_price)
+        } else if let Some(native_asset_id) = Self::foreign_to_native_token(&asset_id) {
+            Self::get_special_asset_price(native_asset_id, base_price)
         } else {
             None
         }

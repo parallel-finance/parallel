@@ -328,8 +328,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        Prices::set_foreign_vault_mapping(Origin::signed(ALICE), tokens::LC_DOT, CDOT_7_14)
-            .unwrap();
+        Prices::set_foreign_asset_mapping(Origin::root(), tokens::LC_DOT, CDOT_7_14).unwrap();
     });
 
     ext
