@@ -223,6 +223,9 @@ impl Contains<Call> for WhiteListFilter {
             // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
+            Call::Assets(pallet_assets::Call::force_create { .. }) |
+            Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
+            Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -274,9 +277,6 @@ impl Contains<Call> for BaseCallFilter {
                 Call::Assets(pallet_assets::Call::transfer { .. }) |
                 Call::Assets(pallet_assets::Call::burn { .. }) |
                 Call::Assets(pallet_assets::Call::destroy { .. }) |
-                Call::Assets(pallet_assets::Call::force_create { .. }) |
-                Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
-                Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
                 Call::CurrencyAdapter(_) |
                 // 3rd Party
                 Call::Oracle(_) |
