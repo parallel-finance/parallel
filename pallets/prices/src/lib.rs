@@ -70,6 +70,9 @@ pub mod pallet {
         /// The origin which may set prices feed to system.
         type FeederOrigin: EnsureOrigin<Self::Origin>;
 
+        /// The origin which can update prices link.
+        type UpdateOrigin: EnsureOrigin<Self::Origin>;
+
         /// Liquid currency & staking currency provider
         type LiquidStakingCurrenciesProvider: LiquidStakingCurrenciesProvider<CurrencyId>;
 
@@ -124,8 +127,8 @@ pub mod pallet {
 
     /// Mapping from foreign vault token to our's vault token
     #[pallet::storage]
-    #[pallet::getter(fn foreign_to_native_token)]
-    pub type ForeignToNativeTokenMap<T: Config> =
+    #[pallet::getter(fn foreign_to_native_asset)]
+    pub type ForeignToNativeAsset<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, CurrencyId, OptionQuery>;
 
     #[pallet::pallet]
@@ -162,15 +165,15 @@ pub mod pallet {
         }
 
         /// Set foreign vault token mapping
-        #[pallet::weight((<T as Config>::WeightInfo::set_foreign_asset_mapping(), DispatchClass::Operational))]
+        #[pallet::weight((<T as Config>::WeightInfo::set_foreign_asset(), DispatchClass::Operational))]
         #[transactional]
-        pub fn set_foreign_asset_mapping(
+        pub fn set_foreign_asset(
             origin: OriginFor<T>,
             foreign_asset_id: CurrencyId,
             asset_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
-            frame_system::ensure_root(origin)?;
-            ForeignToNativeTokenMap::<T>::insert(foreign_asset_id, asset_id);
+            T::UpdateOrigin::ensure_origin(origin)?;
+            ForeignToNativeAsset::<T>::insert(foreign_asset_id, asset_id);
             Ok(().into())
         }
     }
@@ -208,7 +211,7 @@ impl<T: Config> Pallet<T> {
             Self::get_lp_vault_asset_price(asset_id, base_price)
         } else if is_auxiliary_token(asset_id) {
             Some(base_price)
-        } else if let Some(native_asset_id) = Self::foreign_to_native_token(&asset_id) {
+        } else if let Some(native_asset_id) = Self::foreign_to_native_asset(&asset_id) {
             Self::get_special_asset_price(native_asset_id, base_price)
         } else {
             None

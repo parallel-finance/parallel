@@ -25,7 +25,7 @@ use sp_std::marker::PhantomData;
 pub trait WeightInfo {
     fn set_price() -> Weight;
     fn reset_price() -> Weight;
-    fn set_foreign_asset_mapping() -> Weight;
+    fn set_foreign_asset() -> Weight;
 }
 
 /// Weights for pallet_prices using the Substrate node and recommended hardware.
@@ -37,7 +37,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn reset_price() -> Weight {
         10_000 as Weight
     }
-    fn set_foreign_asset_mapping() -> Weight {
+    fn set_foreign_asset() -> Weight {
         10_000 as Weight
     }
 }
@@ -50,7 +50,7 @@ impl WeightInfo for () {
     fn reset_price() -> Weight {
         10_000 as Weight
     }
-    fn set_foreign_asset_mapping() -> Weight {
+    fn set_foreign_asset() -> Weight {
         10_000 as Weight
     }
 }

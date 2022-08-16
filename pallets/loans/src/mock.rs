@@ -260,6 +260,7 @@ impl pallet_prices::Config for Test {
     type Event = Event;
     type Source = MockDataProvider;
     type FeederOrigin = EnsureRoot<AccountId>;
+    type UpdateOrigin = EnsureRoot<AccountId>;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type VaultTokenCurrenciesFilter = TokenCurrenciesFilter;

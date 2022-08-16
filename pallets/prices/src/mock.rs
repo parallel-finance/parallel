@@ -270,6 +270,7 @@ impl crate::Config for Test {
     type Event = Event;
     type Source = MockDataProvider;
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
+    type UpdateOrigin = EnsureSignedBy<One, AccountId>;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
     type VaultTokenCurrenciesFilter = TokenCurrenciesFilter;
@@ -328,7 +329,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        Prices::set_foreign_asset_mapping(Origin::root(), tokens::LC_DOT, CDOT_7_14).unwrap();
+        Prices::set_foreign_asset(Origin::root(), tokens::LC_DOT, CDOT_7_14).unwrap();
     });
 
     ext
