@@ -2,11 +2,11 @@ name: Docker Image
 
 on:
   push:
-    branches: [fix-dockerimage]
-    #tags:
-     # - "v*"
-      #- "staging*"
-      #- "qa*"
+    branches: [master]
+    tags:
+      - "v*"
+      - "staging*"
+      - "qa*"
 
 jobs:
   start-runner:
