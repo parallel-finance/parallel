@@ -106,6 +106,15 @@ jobs:
             BIN=${{ matrix.bin }}
             PROFILE=release
           tags: ${{ secrets.DOCKERHUB_ORGNAME }}/${{ matrix.bin }}:${{ steps.docker_tag.outputs.value }}_evm
+      - name: slack
+        uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,eventName,ref,workflow
+        if: always()
+
   parallel-helper:
     if: github.repository == 'parallel-finance/parallel'
     needs: parallel
@@ -158,6 +167,14 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_ORGNAME }}/${{ matrix.bin }}:${{ steps.docker_tag.outputs.value }}
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
+      - name: slack
+        uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,eventName,ref,workflow
+        if: always()
 
   stop-runner:
     name: stop self-hosted EC2 runner
