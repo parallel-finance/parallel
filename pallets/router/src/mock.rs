@@ -175,6 +175,7 @@ impl Config for Runtime {
     type AMMRouterWeightInfo = ();
     type MaxLengthRoute = MaxLengthRoute;
     type Assets = CurrencyAdapter;
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;

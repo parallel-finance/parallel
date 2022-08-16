@@ -2119,6 +2119,7 @@ impl pallet_router::Config for Runtime {
     type AMMRouterWeightInfo = weights::pallet_router::WeightInfo<Runtime>;
     type MaxLengthRoute = MaxLengthRoute;
     type Assets = CurrencyAdapter;
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 impl pallet_currency_adapter::Config for Runtime {
