@@ -53,6 +53,7 @@ jobs:
         run: |
           echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
           echo "HOME=/home/ubuntu" >> ${GITHUB_ENV}
+          apt update -y && apt install git-lfs -y
       - name: Checkout github repo (+ download lfs dependencies)
         uses: actions/checkout@v3
         with:
