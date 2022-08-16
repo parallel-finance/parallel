@@ -93,10 +93,6 @@ pub mod pallet {
         #[pallet::constant]
         type LpFee: Get<Ratio>;
 
-        /// How much the protocol is taking out of each trade.
-        #[pallet::constant]
-        type ProtocolFee: Get<Ratio>;
-
         /// Minimum amount of liquidty needed to init a new pool
         /// this amount is burned when the pool is created.
         ///
@@ -108,10 +104,6 @@ pub mod pallet {
         /// is first added.
         #[pallet::constant]
         type MinimumLiquidity: Get<BalanceOf<Self, I>>;
-
-        /// Who/where to send the protocol fees
-        #[pallet::constant]
-        type ProtocolFeeReceiver: Get<Self::AccountId>;
 
         /// How many routes we support at most
         #[pallet::constant]
@@ -210,6 +202,17 @@ pub mod pallet {
         Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
         OptionQuery,
     >;
+
+    /// How much the protocol is taking out of each trade.
+    #[pallet::storage]
+    #[pallet::getter(fn protocol_fee)]
+    pub type ProtocolFee<T: Config<I>, I: 'static = ()> = StorageValue<_, Ratio, OptionQuery>;
+
+    /// Who/where to send the protocol fees
+    #[pallet::storage]
+    #[pallet::getter(fn protocol_fee_receiver)]
+    pub type ProtocolFeeReceiver<T: Config<I>, I: 'static = ()> =
+        StorageValue<_, T::AccountId, OptionQuery>;
 
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
@@ -423,6 +426,26 @@ pub mod pallet {
                 pool.quote_amount,
             ));
 
+            Ok(().into())
+        }
+
+        #[pallet::weight(0)]
+        #[transactional]
+        pub fn update_protocol_fee(
+            origin: OriginFor<T>,
+            protocol_fee: Ratio,
+        ) -> DispatchResultWithPostInfo {
+            T::CreatePoolOrigin::ensure_origin(origin)?;
+            Ok(().into())
+        }
+
+        #[pallet::weight(0)]
+        #[transactional]
+        pub fn update_protocol_fee_receiver(
+            origin: OriginFor<T>,
+            protocol_fee_receiver: T::AccountId,
+        ) -> DispatchResultWithPostInfo {
+            T::CreatePoolOrigin::ensure_origin(origin)?;
             Ok(().into())
         }
     }
