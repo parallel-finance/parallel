@@ -52,6 +52,7 @@ jobs:
       - name: cleaning up
         run: |
           echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
+          echo "HOME=/home/ubuntu" >> ${GITHUB_ENV}
       - name: Checkout github repo (+ download lfs dependencies)
         uses: actions/checkout@v3
         with:
@@ -118,6 +119,7 @@ jobs:
       - name: cleaning up
         run: |
           echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
+          echo "HOME=/home/ubuntu" >> ${GITHUB_ENV}
       - name: Checkout github repo (+ download lfs dependencies)
         uses: actions/checkout@v3
         with:
