@@ -295,10 +295,10 @@ pub mod pallet {
             // Ensure the trader has enough tokens for transaction.
             let from_currency_id = route[0];
             ensure!(
-                <T as Config<I>>::Assets::reducible_balance(
+                T::Assets::reducible_balance(
                     from_currency_id,
                     &trader,
-                    from_currency_id == <T as Config<I>>::GetNativeCurrencyId::get()
+                    from_currency_id == T::GetNativeCurrencyId::get()
                 ) >= amount_in,
                 Error::<T, I>::InsufficientBalance
             );
@@ -358,7 +358,11 @@ pub mod pallet {
             // Ensure the trader has enough tokens for transaction.
             let from_currency_id = route[0];
             ensure!(
-                <T as Config<I>>::Assets::balance(from_currency_id, &trader) > amounts[0],
+                T::Assets::reducible_balance(
+                    from_currency_id,
+                    &trader,
+                    from_currency_id == T::GetNativeCurrencyId::get()
+                ) > amounts[0],
                 Error::<T, I>::InsufficientBalance
             );
 
