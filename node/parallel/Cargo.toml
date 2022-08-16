@@ -102,18 +102,18 @@ polkadot-primitives = { git = 'https://github.com/paritytech/polkadot.git', bran
 polkadot-service    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
 
 # Frontier dependencies
-fc-consensus = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
-fc-db = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
-fc-mapping-sync = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
-fc-rpc = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", features = ["rpc_binary_search_estimate"] }
-fc-rpc-core = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
-fp-consensus = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
-fp-evm = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26", default-features = false }
-fp-rpc = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
-fp-storage = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
-fp-dynamic-fee = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
-pallet-ethereum = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
-pallet-evm = { git = "https://github.com/yrong/frontier", branch = "polkadot-v0.9.26" }
+fc-consensus = { git = "https://github.com/parallel-finance/frontier", branch = "polkadot-v0.9.26" }
+fc-db = { git = "https://github.com/parallel-finance/frontier", branch = "polkadot-v0.9.26" }
+fc-mapping-sync = { git = "https://github.com/parallel-finance/frontier", branch = "polkadot-v0.9.26" }
+fc-rpc = { git = "https://github.com/parallel-finance/frontier", branch = "polkadot-v0.9.26", features = ["rpc_binary_search_estimate"] }
+fc-rpc-core = { git = "https://github.com/parallel-finance/frontier", branch = "polkadot-v0.9.26" }
+fp-consensus = { git = "https://github.com/parallel-finance/frontier", branch = "polkadot-v0.9.26" }
+fp-evm = { git = "https://github.com/parallel-finance/frontier", branch = "polkadot-v0.9.26", default-features = false }
+fp-rpc = { git = "https://github.com/parallel-finance/frontier", branch = "polkadot-v0.9.26" }
+fp-storage = { git = "https://github.com/parallel-finance/frontier", branch = "polkadot-v0.9.26" }
+fp-dynamic-fee = { git = "https://github.com/parallel-finance/frontier", branch = "polkadot-v0.9.26" }
+pallet-ethereum = { git = "https://github.com/parallel-finance/frontier", branch = "polkadot-v0.9.26" }
+pallet-evm = { git = "https://github.com/parallel-finance/frontier", branch = "polkadot-v0.9.26" }
 
 
 [build-dependencies]

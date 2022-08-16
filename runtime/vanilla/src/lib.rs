@@ -1679,6 +1679,7 @@ impl pallet_prices::Config for Runtime {
     type Event = Event;
     type Source = AggregatedDataProvider;
     type FeederOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type VaultTokenCurrenciesFilter = Crowdloans;
