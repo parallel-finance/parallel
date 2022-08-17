@@ -118,7 +118,9 @@ jobs:
 
   parallel-helper:
     if: github.repository == 'parallel-finance/parallel'
-    needs: parallel
+    needs: 
+      - start-runner
+      - parallel
     runs-on: ${{ needs.start-runner.outputs.label }}
     strategy:
       matrix:
