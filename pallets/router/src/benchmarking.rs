@@ -128,7 +128,7 @@ benchmarks_instance_pallet! {
         let routes: Vec<_> = vec![DOT, SDOT];
         let balance_after_trade: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(DOT, &caller);
         let amount_in = balance_before_trade - balance_after_trade;
-        let expected = 983u128;
+        let expected = 984u128;
 
         assert_eq!(amount_in, expected);
         assert_last_event::<T, I>(Event::Traded(caller, expected, routes, amount_out).into());
