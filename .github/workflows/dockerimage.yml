@@ -2,7 +2,7 @@ name: Docker Image
 
 on:
   push:
-    branches: [master]
+    branches: [fix/dockerimage-ci-syntax-error]
     tags:
       - "v*"
       - "staging*"
@@ -118,7 +118,9 @@ jobs:
 
   parallel-helper:
     if: github.repository == 'parallel-finance/parallel'
-    needs: parallel
+    needs: 
+      - start-runner
+      - parallel
     runs-on: ${{ needs.start-runner.outputs.label }}
     strategy:
       matrix:
