@@ -14,6 +14,7 @@ lto           = true
 members = ['node/*', 'pallets/*', 'runtime/*', 'support', 'precompiles/*','integration-tests']
 
 [patch.crates-io]
+#orml
 orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }
 orml-oracle-rpc             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }
 orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }
@@ -22,3 +23,25 @@ orml-vesting                = { git = 'https://github.com/open-web3-stack/open-r
 orml-xcm                    = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }
 orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }
 orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '8c625a5ab43c1c56cdeed5f8d814a891566d4cf8' }
+#evm
+fc-consensus                =  { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+fc-db                       = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+fc-mapping-sync             = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+fc-rpc                      = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+fc-rpc-core                 = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+fp-consensus                = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+fp-evm                      = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+fp-rpc                      = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+fp-storage                  = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+fp-dynamic-fee              = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+pallet-ethereum             = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+pallet-evm                  = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+fp-self-contained               = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+pallet-base-fee                 = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+pallet-evm-precompile-blake2    = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+pallet-evm-precompile-bn128     = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+pallet-evm-precompile-dispatch  = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+pallet-evm-precompile-ed25519   = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+pallet-evm-precompile-modexp    = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+pallet-evm-precompile-sha3fips  = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
+pallet-evm-precompile-simple    = { git = 'https://github.com/parallel-finance/frontier.git', rev = 'a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b' }
