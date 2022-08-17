@@ -129,7 +129,7 @@ fn swap_tokens_for_exact_tokens_should_work() {
         .unwrap();
 
         // check balances after swap
-        assert_eq!(Assets::balance(DOT, trader), 10_000 - 1_004);
+        assert_eq!(Assets::balance(DOT, trader), 10_000 - 1_005);
         assert_eq!(Assets::balance(SDOT, trader), 10_000 + 1_000);
     });
 }
@@ -180,7 +180,7 @@ fn pool_as_bridge_swap_tokens_for_exact_tokens_should_work() {
         .unwrap();
 
         // check balances after swap
-        assert_eq!(Assets::balance(DOT, trader), 10_000 - 504);
+        assert_eq!(Assets::balance(DOT, trader), 10_000 - 506);
         assert_eq!(Assets::balance(SDOT, trader), 10_000);
         assert_eq!(Assets::balance(USDT, trader), 0 + 20_000 + 29);
     });
@@ -360,7 +360,7 @@ fn trade_should_work_more_than_one_route() {
         assert_eq!(Assets::balance(tokens::KSM, &ALICE), 10_000);
 
         // Alice should now have some USDT!
-        assert_eq!(Assets::balance(tokens::USDT, &ALICE), 990);
+        assert_eq!(Assets::balance(tokens::USDT, &ALICE), 988);
 
         // First Pool
 
@@ -387,7 +387,7 @@ fn trade_should_work_more_than_one_route() {
         // we should have less KSM
         assert_eq!(
             DefaultAMM::pools(SDOT, KSM).unwrap().quote_amount,
-            100_000_000 - 993
+            100_000_000 - 992
         );
 
         // Third Pool
@@ -395,13 +395,13 @@ fn trade_should_work_more_than_one_route() {
         // we should have more KSM since were trading it for USDT
         assert_eq!(
             DefaultAMM::pools(USDT, KSM).unwrap().quote_amount,
-            100_000_000 + 993
+            100_000_000 + 992
         );
 
         // we should have less USDT since its the token the trader is receiving
         assert_eq!(
             DefaultAMM::pools(USDT, KSM).unwrap().base_amount,
-            100_000_000 - 990
+            100_000_000 - 988
         );
     })
 }
@@ -447,7 +447,7 @@ fn get_all_routes_should_work() {
         // Returns descending order `highest` value first.
         assert_eq!(
             routes,
-            vec![(vec![101, 1001, 100], 894), (vec![101, 100], 697)]
+            vec![(vec![101, 1001, 100], 893), (vec![101, 100], 697)]
         );
     })
 }
@@ -491,7 +491,7 @@ fn get_best_route_should_work() {
         .unwrap();
 
         // Returns descending order `highest` value first.
-        assert_eq!(best_route, (vec![101, 1001, 100], 894));
+        assert_eq!(best_route, (vec![101, 1001, 100], 893));
     })
 }
 
