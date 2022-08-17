@@ -307,7 +307,7 @@ pub mod pallet {
 
             // make sure the required amount in does not violate our input
             ensure!(
-                amounts[amounts.len() - 1] > min_amount_out,
+                amounts[amounts.len() - 1] >= min_amount_out,
                 Error::<T, I>::MinimumAmountOutViolated
             );
 
@@ -368,7 +368,7 @@ pub mod pallet {
 
             // make sure the required amount in does not violate our input
             ensure!(
-                max_amount_in > amounts[0],
+                max_amount_in >= amounts[0],
                 Error::<T, I>::MaximumAmountInViolated
             );
 
