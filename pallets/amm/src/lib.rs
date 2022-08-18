@@ -1007,7 +1007,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 };
 
                 ensure!(
-                    amount_in >= T::LpFee::get().saturating_reciprocal_mul_ceil(One::one()),
+                    amount_in
+                        >= T::ProtocolFee::get()
+                            .saturating_add(T::LpFee::get())
+                            .saturating_reciprocal_mul_ceil(One::one()),
                     Error::<T, I>::InsufficientAmountIn
                 );
                 ensure!(!supply_out.is_zero(), Error::<T, I>::InsufficientAmountOut);
