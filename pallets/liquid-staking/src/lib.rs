@@ -315,6 +315,11 @@ pub mod pallet {
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
 
+    /// The commission rate charge for staking total rewards.
+    #[pallet::storage]
+    #[pallet::getter(fn commission_rate)]
+    pub type CommissionRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
+
     /// ValidationData of previous block
     ///
     /// This is needed since validation data from cumulus_pallet_parachain_system
@@ -768,6 +773,18 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Force set commission rate
+        #[pallet::weight(10000)]
+        #[transactional]
+        pub fn force_set_commission_rate(
+            origin: OriginFor<T>,
+            commission_rate: Rate,
+        ) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            CommissionRate::<T>::put(commission_rate);
+            Ok(())
+        }
+
         /// Force advance era
         #[pallet::weight(<T as Config>::WeightInfo::force_advance_era())]
         #[transactional]
@@ -871,6 +888,10 @@ pub mod pallet {
                     Self::verify_merkle_proof(key, value, proof),
                     Error::<T>::InvalidProof
                 );
+                let rewards = staking_ledger.total.saturating_sub(ledger.total);
+                if let Err(e) = Self::do_charge_commission(rewards) {
+                    log::error!(target: "liquidStaking::do_charge_commission", "charge commission error caught: {:?}", &e);
+                }
                 log::trace!(
                     target: "liquidStaking::set_staking_ledger",
                     "index: {:?}, staking_ledger: {:?}",
@@ -1728,6 +1749,37 @@ pub mod pallet {
             let _ = T::Loans::do_collateral_asset(&module_id, collateral_currency, true);
             T::Loans::do_borrow(&module_id, staking_currency, borrow_amount)?;
             T::Assets::transfer(staking_currency, &module_id, who, borrow_amount, false)?;
+
+            Ok(())
+        }
+
+        // liquid_amount_to_fee=TotalLiquidCurrency * (commission_rate*total_rewards/(TotalStakeCurrency+(1-commission_rate)*total_rewards))
+        fn do_charge_commission(rewards: BalanceOf<T>) -> DispatchResult {
+            let liquid_currency = Self::liquid_currency()?;
+            let issuance = T::Assets::total_issuance(liquid_currency);
+            let commission_rate = Self::commission_rate();
+            if issuance.is_zero() || commission_rate.is_zero() {
+                return Ok(());
+            }
+
+            let matching_ledger = Self::matching_pool();
+            let total_active_bonded = Self::get_total_active_bonded();
+            let total_stake_amount = total_active_bonded
+                .checked_add(matching_ledger.total_stake_amount.total)
+                .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount.total))
+                .ok_or(ArithmeticError::Overflow)?;
+
+            let numerator = commission_rate
+                .saturating_mul_int(rewards)
+                .saturating_mul(issuance);
+            let denominator = total_stake_amount
+                .saturating_add(rewards)
+                .saturating_sub(commission_rate.saturating_mul_int(rewards));
+            let liquid_amount_to_fee = numerator
+                .checked_div(denominator)
+                .unwrap_or_else(Zero::zero());
+
+            T::Assets::mint_into(liquid_currency, &Self::account_id(), liquid_amount_to_fee)?;
 
             Ok(())
         }
