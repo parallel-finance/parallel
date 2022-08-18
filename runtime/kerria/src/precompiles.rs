@@ -12,14 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use frame_support::weights::GetDispatchInfo;
+use frame_support::weights::PostDispatchInfo;
 use pallet_evm::{
     ExitRevert, Precompile, PrecompileFailure, PrecompileHandle, PrecompileResult, PrecompileSet,
 };
 use sp_core::H160;
+use sp_runtime::traits::Dispatchable;
 use sp_std::fmt::Debug;
 use sp_std::marker::PhantomData;
 
 use pallet_evm_precompile_assets_erc20::{AddressToAssetId, Erc20AssetsPrecompileSet};
+use pallet_evm_precompile_balances_erc20::Erc20BalancesPrecompile;
+use pallet_evm_precompile_balances_erc20::Erc20Metadata;
 use pallet_evm_precompile_blake2::Blake2F;
 use pallet_evm_precompile_bn128::{Bn128Add, Bn128Mul, Bn128Pairing};
 use pallet_evm_precompile_dispatch::Dispatch;
@@ -33,29 +38,40 @@ use pallet_evm_precompile_simple::{ECRecover, ECRecoverPublicKey, Identity, Ripe
 pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[255u8; 4];
 
 #[derive(Debug, Default, Clone, Copy)]
-pub struct ParallelPrecompiles<R>(PhantomData<R>);
+pub struct ParallelPrecompiles<R, M>(PhantomData<(R, M)>);
 
-impl<R> ParallelPrecompiles<R>
+impl<R, M> ParallelPrecompiles<R, M>
 where
     R: pallet_evm::Config,
+    M: Erc20Metadata,
 {
     pub fn new() -> Self {
         Self(Default::default())
     }
     pub fn used_addresses() -> impl Iterator<Item = H160> {
-        sp_std::vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 1024, 1025, 1026, 1027]
+        sp_std::vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 1024, 1025, 1026, 1027, 2050]
             .into_iter()
             .map(hash)
     }
 }
 
-impl<R> PrecompileSet for ParallelPrecompiles<R>
+impl<R, M> PrecompileSet for ParallelPrecompiles<R, M>
 where
     Erc20AssetsPrecompileSet<R>: PrecompileSet,
+    Erc20BalancesPrecompile<R, M>: Precompile,
     Dispatch<R>: Precompile,
     R: pallet_evm::Config
         + AddressToAssetId<<R as pallet_assets::Config>::AssetId>
-        + pallet_assets::Config,
+        + pallet_assets::Config
+        + pallet_balances::Config,
+    R::Call: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
+    <R as frame_system::Config>::Call: From<polkadot_runtime_common::BalancesCall<R>>,
+    <<R as frame_system::Config>::Call as Dispatchable>::Origin:
+        From<Option<<R as frame_system::Config>::AccountId>>,
+    <R as pallet_balances::Config>::Balance: TryFrom<sp_core::U256>,
+    <R as pallet_balances::Config>::Balance: Into<sp_core::U256>,
+    <R as pallet_timestamp::Config>::Moment: Into<sp_core::U256>,
+    M: Erc20Metadata,
 {
     fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
         let address = handle.code_address();
@@ -81,6 +97,8 @@ where
             a if a == hash(1025) => Some(ECRecoverPublicKey::execute(handle)),
             a if a == hash(1026) => Some(ECRecoverPublicKey::execute(handle)),
             a if a == hash(1027) => Some(Ed25519Verify::execute(handle)),
+            //Parallel precompiles:
+            a if a == hash(2050) => Some(Erc20BalancesPrecompile::<R, M>::execute(handle)),
             a if &a.to_fixed_bytes()[0..4] == ASSET_PRECOMPILE_ADDRESS_PREFIX => {
                 Erc20AssetsPrecompileSet::<R>::new().execute(handle)
             }

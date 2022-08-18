@@ -31,11 +31,14 @@ use precompile_utils::{
 };
 use sp_runtime::traits::Bounded;
 
+use core::fmt::Display;
 use sp_core::{H160, U256};
 use sp_std::{
     convert::{TryFrom, TryInto},
     marker::PhantomData,
 };
+
+mod eip2612;
 
 #[cfg(test)]
 mod mock;
@@ -69,6 +72,10 @@ pub enum Action {
     MinimumBalance = "minimumBalance()",
     Mint = "mint(address,uint256)",
     Burn = "burn(address,uint256)",
+    // EIP 2612
+    Eip2612Permit = "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)",
+    Eip2612Nonces = "nonces(address)",
+    Eip2612DomainSeparator = "DOMAIN_SEPARATOR()",
 }
 
 /// This trait ensure we can convert EVM address to AssetIds
@@ -109,7 +116,7 @@ impl<Runtime, Instance> Default for Erc20AssetsPrecompileSet<Runtime, Instance> 
 
 impl<Runtime, Instance> PrecompileSet for Erc20AssetsPrecompileSet<Runtime, Instance>
 where
-    Instance: 'static,
+    Instance: eip2612::InstanceToPrefix + 'static,
     Runtime: pallet_assets::Config<Instance> + pallet_evm::Config + frame_system::Config,
     Runtime::Call: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
     Runtime::Call: From<pallet_assets::Call<Runtime, Instance>>,
@@ -117,6 +124,8 @@ where
     BalanceOf<Runtime, Instance>: TryFrom<U256> + Into<U256> + EvmData,
     Runtime: AddressToAssetId<AssetIdOf<Runtime, Instance>>,
     <<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
+    <Runtime as pallet_timestamp::Config>::Moment: Into<U256>,
+    AssetIdOf<Runtime, Instance>: Display,
 {
     fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<EvmResult<PrecompileOutput>> {
         let address = handle.code_address();
@@ -157,6 +166,18 @@ where
                         Action::MinimumBalance => Self::minimum_balance(asset_id, handle),
                         Action::Mint => Self::mint(asset_id, handle),
                         Action::Burn => Self::burn(asset_id, handle),
+                        // EIP2612
+                        Action::Eip2612Permit => {
+                            eip2612::Eip2612::<Runtime, Instance>::permit(asset_id, handle)
+                        }
+                        Action::Eip2612Nonces => {
+                            eip2612::Eip2612::<Runtime, Instance>::nonces(asset_id, handle)
+                        }
+                        Action::Eip2612DomainSeparator => {
+                            eip2612::Eip2612::<Runtime, Instance>::domain_separator(
+                                asset_id, handle,
+                            )
+                        }
                     }
                 };
                 return Some(result);
@@ -176,7 +197,7 @@ where
 
 impl<Runtime, Instance> Erc20AssetsPrecompileSet<Runtime, Instance>
 where
-    Instance: 'static,
+    Instance: eip2612::InstanceToPrefix + 'static,
     Runtime: pallet_assets::Config<Instance> + pallet_evm::Config + frame_system::Config,
     Runtime::Call: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
     Runtime::Call: From<pallet_assets::Call<Runtime, Instance>>,
@@ -254,40 +275,7 @@ where
         let spender: H160 = input.read::<Address>()?.into();
         let amount: U256 = input.read()?;
 
-        {
-            let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
-            let spender: Runtime::AccountId = Runtime::AddressMapping::into_account_id(spender);
-            // Amount saturate if too high.
-            let amount: BalanceOf<Runtime, Instance> =
-                amount.try_into().unwrap_or_else(|_| Bounded::max_value());
-
-            // Allowance read
-            handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
-
-            // If previous approval exists, we need to clean it
-            if pallet_assets::Pallet::<Runtime, Instance>::allowance(asset_id, &origin, &spender)
-                != 0u32.into()
-            {
-                RuntimeHelper::<Runtime>::try_dispatch(
-                    handle,
-                    Some(origin.clone()).into(),
-                    pallet_assets::Call::<Runtime, Instance>::cancel_approval {
-                        id: asset_id,
-                        delegate: Runtime::Lookup::unlookup(spender.clone()),
-                    },
-                )?;
-            }
-            // Dispatch call (if enough gas).
-            RuntimeHelper::<Runtime>::try_dispatch(
-                handle,
-                Some(origin).into(),
-                pallet_assets::Call::<Runtime, Instance>::approve_transfer {
-                    id: asset_id,
-                    delegate: Runtime::Lookup::unlookup(spender),
-                    amount,
-                },
-            )?;
-        }
+        Self::approve_inner(asset_id, handle, handle.context().caller, spender, amount)?;
 
         LogsBuilder::new(handle.context().address)
             .log3(
@@ -299,6 +287,47 @@ where
             .record(handle)?;
 
         Ok(succeed(EvmDataWriter::new().write(true).build()))
+    }
+
+    fn approve_inner(
+        asset_id: AssetIdOf<Runtime, Instance>,
+        handle: &mut impl PrecompileHandle,
+        owner: H160,
+        spender: H160,
+        value: U256,
+    ) -> EvmResult {
+        let owner = Runtime::AddressMapping::into_account_id(owner);
+        let spender: Runtime::AccountId = Runtime::AddressMapping::into_account_id(spender);
+        // Amount saturate if too high.
+        let amount: BalanceOf<Runtime, Instance> =
+            value.try_into().unwrap_or_else(|_| Bounded::max_value());
+
+        // Allowance read
+        handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+
+        // If previous approval exists, we need to clean it
+        if pallet_assets::Pallet::<Runtime, Instance>::allowance(asset_id, &owner, &spender)
+            != 0u32.into()
+        {
+            RuntimeHelper::<Runtime>::try_dispatch(
+                handle,
+                Some(owner.clone()).into(),
+                pallet_assets::Call::<Runtime, Instance>::cancel_approval {
+                    id: asset_id,
+                    delegate: Runtime::Lookup::unlookup(spender.clone()),
+                },
+            )?;
+        }
+        // Dispatch call (if enough gas).
+        RuntimeHelper::<Runtime>::try_dispatch(
+            handle,
+            Some(owner).into(),
+            pallet_assets::Call::<Runtime, Instance>::approve_transfer {
+                id: asset_id,
+                delegate: Runtime::Lookup::unlookup(spender),
+                amount,
+            },
+        )
     }
 
     fn transfer(

@@ -108,9 +108,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.61"
+version = "1.0.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "508b352bb5c066aac251f6daf6b36eccd03e8a88e8081cd44959ea277a3af9a8"
+checksum = "1485d4d2cc45e7b201ee3767015c96faa5904387c9d87c6efdd0fb511f12d305"
 
 [[package]]
 name = "approx"
@@ -2364,7 +2364,7 @@ dependencies = [
 [[package]]
 name = "fc-consensus"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "async-trait",
  "fc-db",
@@ -2383,7 +2383,7 @@ dependencies = [
 [[package]]
 name = "fc-db"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "fp-storage",
  "kvdb-rocksdb",
@@ -2399,7 +2399,7 @@ dependencies = [
 [[package]]
 name = "fc-mapping-sync"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "fc-db",
  "fp-consensus",
@@ -2416,7 +2416,7 @@ dependencies = [
 [[package]]
 name = "fc-rpc"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -2455,7 +2455,7 @@ dependencies = [
 [[package]]
 name = "fc-rpc-core"
 version = "1.1.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -2579,7 +2579,7 @@ dependencies = [
 [[package]]
 name = "fp-consensus"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "ethereum",
  "parity-scale-codec",
@@ -2591,7 +2591,7 @@ dependencies = [
 [[package]]
 name = "fp-dynamic-fee"
 version = "1.0.0"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "async-trait",
  "sp-core",
@@ -2601,7 +2601,7 @@ dependencies = [
 [[package]]
 name = "fp-ethereum"
 version = "1.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -2615,7 +2615,7 @@ dependencies = [
 [[package]]
 name = "fp-evm"
 version = "3.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "evm",
  "frame-support",
@@ -2628,7 +2628,7 @@ dependencies = [
 [[package]]
 name = "fp-rpc"
 version = "3.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -2645,7 +2645,7 @@ dependencies = [
 [[package]]
 name = "fp-self-contained"
 version = "1.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "ethereum",
  "frame-support",
@@ -2659,7 +2659,7 @@ dependencies = [
 [[package]]
 name = "fp-storage"
 version = "2.0.0"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "parity-scale-codec",
  "serde",
@@ -3205,9 +3205,9 @@ dependencies = [
 
 [[package]]
 name = "h2"
-version = "0.3.13"
+version = "0.3.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37a82c6d637fc9515a4694bbf1cb2457b79d81ce52b3108bdeea58b07dd34a57"
+checksum = "5ca32592cf21ac7ccab1825cd87f6c9b3d9022c44d086172ed0966bec8af30be"
 dependencies = [
  "bytes",
  "fnv",
@@ -3524,9 +3524,9 @@ dependencies = [
 
 [[package]]
 name = "iana-time-zone"
-version = "0.1.44"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "808cf7d67cf4a22adc5be66e75ebdf769b3f2ea032041437a7061f97a63dad4b"
+checksum = "ef5528d9c2817db4e10cc78f8d4c8228906e5854f389ff6b076cee3572a09d35"
 dependencies = [
  "android_system_properties",
  "core-foundation-sys",
@@ -3655,9 +3655,9 @@ checksum = "ec58677acfea8a15352d42fc87d11d63596ade9239e0a7c9352914417515dbe6"
 
 [[package]]
 name = "io-lifetimes"
-version = "0.7.2"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24c3f4eff5495aee4c0399d7b6a0dc2b6e81be84242ffbfcf253ebacccc1d0cb"
+checksum = "1ea37f355c05dde75b84bba2d767906ad522e97cd9e2eef2be7a4ab7fb442c06"
 
 [[package]]
 name = "ip_network"
@@ -3924,6 +3924,7 @@ dependencies = [
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-precompile-assets-erc20",
+ "pallet-evm-precompile-balances-erc20",
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
  "pallet-evm-precompile-dispatch",
@@ -4151,9 +4152,9 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "libc"
-version = "0.2.131"
+version = "0.2.132"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04c3b4822ccebfa39c02fc03d1534441b22ead323fa0f48bb7ddd8e6ba076a40"
+checksum = "8371e4e5341c3a96db127eb2465ac681ced4c433e01dd0e938adbef26ba93ba5"
 
 [[package]]
 name = "libloading"
@@ -4939,9 +4940,9 @@ dependencies = [
 
 [[package]]
 name = "memmap2"
-version = "0.5.6"
+version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e2e4455be2010e8c5e77f0d10234b30f3a636a5305725609b5a71ad00d22577"
+checksum = "95af15f345b17af2efc8ead6080fb8bc376f8cec1b35277b935637595fe77498"
 dependencies = [
  "libc",
 ]
@@ -5423,9 +5424,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.13.0"
+version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18a6dbe30758c9f83eb00cbea4ac95966305f5a7772f3f42ebfc7fc7eddbd8e1"
+checksum = "074864da206b4973b84eb91683020dbefd6a8c3f0f38e054d93954e891935e4e"
 
 [[package]]
 name = "opaque-debug"
@@ -5819,7 +5820,7 @@ dependencies = [
 [[package]]
 name = "pallet-base-fee"
 version = "1.0.0"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -6108,7 +6109,7 @@ dependencies = [
 [[package]]
 name = "pallet-ethereum"
 version = "4.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -6135,7 +6136,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm"
 version = "6.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "evm",
  "fp-evm",
@@ -6171,6 +6172,7 @@ dependencies = [
  "pallet-evm",
  "pallet-timestamp",
  "parity-scale-codec",
+ "paste",
  "precompile-utils",
  "scale-info",
  "serde",
@@ -6183,9 +6185,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-evm-precompile-balances-erc20"
+version = "1.9.0"
+dependencies = [
+ "derive_more 0.99.17",
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "hex-literal",
+ "libsecp256k1",
+ "log",
+ "num_enum",
+ "pallet-balances",
+ "pallet-evm",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "paste",
+ "precompile-utils",
+ "scale-info",
+ "serde",
+ "sha3 0.8.2",
+ "slices",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-evm-precompile-blake2"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "fp-evm",
 ]
@@ -6193,7 +6223,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-bn128"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "fp-evm",
  "sp-core",
@@ -6203,7 +6233,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-dispatch"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -6213,7 +6243,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-ed25519"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "ed25519-dalek",
  "fp-evm",
@@ -6222,7 +6252,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-modexp"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "fp-evm",
  "num",
@@ -6231,7 +6261,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-sha3fips"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "fp-evm",
  "tiny-keccak",
@@ -6240,7 +6270,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-simple"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier?branch=polkadot-v0.9.26#08df34ea5eae591c79fdf6d62058fa105b85c3a5"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b#a782f9ab37a442c2c6eb0d9d54b1634a24a9e20b"
 dependencies = [
  "fp-evm",
  "ripemd",
@@ -7196,6 +7226,7 @@ dependencies = [
  "fp-dynamic-fee",
  "fp-evm",
  "fp-rpc",
+ "fp-self-contained",
  "fp-storage",
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -7207,6 +7238,7 @@ dependencies = [
  "kerria-runtime",
  "log",
  "orml-oracle-rpc",
+ "pallet-base-fee",
  "pallet-ethereum",
  "pallet-evm",
  "pallet-loans-rpc",
@@ -7631,18 +7663,18 @@ dependencies = [
 
 [[package]]
 name = "pin-project"
-version = "1.0.11"
+version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78203e83c48cffbe01e4a2d35d566ca4de445d79a85372fc64e378bfc812a260"
+checksum = "ad29a609b6bcd67fee905812e544992d216af9d755757c05ed2d0e15a74c6ecc"
 dependencies = [
  "pin-project-internal",
 ]
 
 [[package]]
 name = "pin-project-internal"
-version = "1.0.11"
+version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "710faf75e1b33345361201d36d04e98ac1ed8909151a017ed384700836104c74"
+checksum = "069bdb1e05adc7a8990dce9cc75370895fbe4e3d58b9b73bf1aee56359344a55"
 dependencies = [
  "proc-macro2 1.0.43",
  "quote 1.0.21",
@@ -9676,13 +9708,13 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.35.7"
+version = "0.35.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d51cc38aa10f6bbb377ed28197aa052aa4e2b762c22be9d3153d01822587e787"
+checksum = "0d2b64e76b8da597d38473a277e87b91c3747d0cf9922be989e68fc1c046adf9"
 dependencies = [
  "bitflags",
  "errno",
- "io-lifetimes 0.7.2",
+ "io-lifetimes 0.7.3",
  "libc",
  "linux-raw-sys 0.0.46",
  "windows-sys",
@@ -9845,7 +9877,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.26#e8a7d161f39db70cb27fdad6c6e215cf493ebc3b"
 dependencies = [
  "impl-trait-for-tuples",
- "memmap2 0.5.6",
+ "memmap2 0.5.7",
  "parity-scale-codec",
  "sc-chain-spec-derive",
  "sc-network",
@@ -10230,7 +10262,7 @@ dependencies = [
  "once_cell",
  "parity-scale-codec",
  "parity-wasm 0.42.2",
- "rustix 0.35.7",
+ "rustix 0.35.8",
  "sc-allocator",
  "sc-executor-common",
  "sp-runtime-interface",
@@ -13109,6 +13141,7 @@ dependencies = [
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-precompile-assets-erc20",
+ "pallet-evm-precompile-balances-erc20",
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
  "pallet-evm-precompile-dispatch",

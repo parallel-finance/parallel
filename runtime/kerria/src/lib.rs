@@ -116,10 +116,37 @@ use primitives::{
     Signature, DOT_U,
 };
 
+use pallet_evm_precompile_balances_erc20::Erc20Metadata;
+
 mod precompiles;
-pub use precompiles::{ParallelPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX};
-pub type Precompiles = ParallelPrecompiles<Runtime>;
 use pallet_evm_precompile_assets_erc20::AddressToAssetId;
+pub use precompiles::{ParallelPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX};
+
+pub struct NativeErc20Metadata;
+
+/// ERC20 metadata for the native token.
+impl Erc20Metadata for NativeErc20Metadata {
+    /// Returns the name of the token.
+    fn name() -> &'static str {
+        "PARA token"
+    }
+
+    /// Returns the symbol of the token.
+    fn symbol() -> &'static str {
+        "PARA"
+    }
+
+    /// Returns the decimals places of the token.
+    fn decimals() -> u8 {
+        12
+    }
+
+    /// Must return `true` only if it represents the main native currency of
+    /// the network. It must be the currency used in `pallet_evm`.
+    fn is_native_currency() -> bool {
+        true
+    }
+}
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -987,6 +1014,8 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
     }
 }
 
+pub type ParallelPrecompilesType = ParallelPrecompiles<Runtime, NativeErc20Metadata>;
+
 parameter_types! {
     /// Ethereum-compatible chain_id:
     /// * Vanilla:  592
@@ -995,7 +1024,7 @@ parameter_types! {
     pub BlockGasLimit: U256 = U256::from(
         NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT / WEIGHT_PER_GAS
     );
-    pub PrecompilesValue: Precompiles = ParallelPrecompiles::<_>::new();
+    pub ParallelPrecompilesValue: ParallelPrecompilesType = ParallelPrecompiles::<Runtime,NativeErc20Metadata>::new();
 }
 
 impl pallet_evm::Config for Runtime {
@@ -1008,8 +1037,8 @@ impl pallet_evm::Config for Runtime {
     type Currency = Balances;
     type Event = Event;
     type Runner = pallet_evm::runner::stack::Runner<Self>;
-    type PrecompilesType = Precompiles;
-    type PrecompilesValue = PrecompilesValue;
+    type PrecompilesType = ParallelPrecompilesType;
+    type PrecompilesValue = ParallelPrecompilesValue;
     type ChainId = EVMChainId;
     type OnChargeTransaction = pallet_evm::EVMCurrencyAdapter<Balances, ToStakingPot>;
     type BlockGasLimit = BlockGasLimit;
