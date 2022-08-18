@@ -585,14 +585,14 @@ fn trade_should_work_flipped_currencies() {
 
         assert_eq!(
             Assets::balance(SDOT, trader),
-            1_000_000_000 + 248 //
+            1_000_000_000 + 247 //
         );
 
         // pools values should be updated - we should have less DOT in the pool
         assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 100_000 + 500);
 
         // pools values should be updated - we should have more SDOT
-        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 50_000 - 248);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 50_000 - 247);
     })
 }
 
@@ -671,7 +671,7 @@ fn amounts_out_should_work() {
 
         let amounts_out = AMM::get_amounts_out(amount_in, path).unwrap();
 
-        assert_eq!(amounts_out, [1000, 332, 249]);
+        assert_eq!(amounts_out, [1000, 332, 248]);
     })
 }
 
@@ -700,7 +700,7 @@ fn long_route_amounts_in_should_work() {
 
         let amounts_in = AMM::get_amounts_in(amount_out, path).unwrap();
 
-        assert_eq!(amounts_in, [2517, 1115, 1000]);
+        assert_eq!(amounts_in, [2521, 1116, 1000]);
     })
 }
 
@@ -721,7 +721,7 @@ fn short_route_amounts_in_should_work() {
 
         let amounts_in = AMM::get_amounts_in(amount_out, path).unwrap();
 
-        assert_eq!(amounts_in, [1004, 1000]);
+        assert_eq!(amounts_in, [1005, 1000]);
     })
 }
 
@@ -736,7 +736,7 @@ fn amount_in_should_work() {
 
         // actual value == 1004.0190572718165
         // TODO: assumes we round down to int
-        assert_eq!(amount_in, 1004);
+        assert_eq!(amount_in, 1005);
     })
 }
 
@@ -749,7 +749,7 @@ fn amount_in_uneven_should_work() {
 
         let amount_in = AMM::get_amount_in(amount_out, supply_in, supply_out).unwrap();
 
-        assert_eq!(amount_in, 75);
+        assert_eq!(amount_in, 76);
     })
 }
 
@@ -777,7 +777,7 @@ fn amount_out_and_in_should_work() {
 
         let amount_in = AMM::get_amount_in(amount_out, supply_in, supply_out).unwrap();
 
-        assert_eq!(amount_in, 1004);
+        assert_eq!(amount_in, 1005);
 
         let amount_out = AMM::get_amount_out(amount_in, supply_in, supply_out).unwrap();
 

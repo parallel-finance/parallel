@@ -584,7 +584,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     ) -> Result<BalanceOf<T, I>, DispatchError> {
         let fees = T::LpFee::get()
             .checked_add(&T::ProtocolFee::get())
-            .map(|r| r.mul_floor(amount_in))
+            .map(|r| r.mul_ceil(amount_in))
             .ok_or(ArithmeticError::Overflow)?;
 
         let amount_in = amount_in
@@ -664,7 +664,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         );
 
         Ok(fee_percent
-            .saturating_reciprocal_mul_floor(amount_in)
+            .saturating_reciprocal_mul_ceil(amount_in)
             .checked_add(One::one())
             .ok_or(ArithmeticError::Overflow)?)
     }
@@ -1007,7 +1007,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 };
 
                 ensure!(
-                    amount_in >= T::LpFee::get().saturating_reciprocal_mul_floor(One::one()),
+                    amount_in
+                        >= T::ProtocolFee::get()
+                            .saturating_add(T::LpFee::get())
+                            .saturating_reciprocal_mul_ceil(One::one()),
                     Error::<T, I>::InsufficientAmountIn
                 );
                 ensure!(!supply_out.is_zero(), Error::<T, I>::InsufficientAmountOut);
