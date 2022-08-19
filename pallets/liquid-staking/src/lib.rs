@@ -591,6 +591,18 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Update commission rate
+        #[pallet::weight(10000)]
+        #[transactional]
+        pub fn update_commission_rate(
+            origin: OriginFor<T>,
+            commission_rate: Rate,
+        ) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            CommissionRate::<T>::put(commission_rate);
+            Ok(())
+        }
+
         /// Bond on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::bond())]
         #[transactional]
@@ -770,18 +782,6 @@ pub mod pallet {
             T::UpdateOrigin::ensure_origin(origin)?;
             IsMatched::<T>::put(false);
             CurrentEra::<T>::put(era);
-            Ok(())
-        }
-
-        /// Force set commission rate
-        #[pallet::weight(10000)]
-        #[transactional]
-        pub fn force_set_commission_rate(
-            origin: OriginFor<T>,
-            commission_rate: Rate,
-        ) -> DispatchResult {
-            T::UpdateOrigin::ensure_origin(origin)?;
-            CommissionRate::<T>::put(commission_rate);
             Ok(())
         }
 
@@ -1758,7 +1758,7 @@ pub mod pallet {
             let liquid_currency = Self::liquid_currency()?;
             let issuance = T::Assets::total_issuance(liquid_currency);
             let commission_rate = Self::commission_rate();
-            if issuance.is_zero() || commission_rate.is_zero() {
+            if issuance.is_zero() || commission_rate.is_zero() || rewards.is_zero() {
                 return Ok(());
             }
 
@@ -1775,11 +1775,11 @@ pub mod pallet {
             let denominator = total_stake_amount
                 .saturating_add(rewards)
                 .saturating_sub(commission_rate.saturating_mul_int(rewards));
-            let liquid_amount_to_fee = numerator
+            let inflate_liquid_amount = numerator
                 .checked_div(denominator)
                 .unwrap_or_else(Zero::zero());
 
-            T::Assets::mint_into(liquid_currency, &Self::account_id(), liquid_amount_to_fee)?;
+            T::Assets::mint_into(liquid_currency, &Self::account_id(), inflate_liquid_amount)?;
 
             Ok(())
         }
