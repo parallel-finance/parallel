@@ -939,6 +939,7 @@ pub enum ProxyType {
     Farming,
     Streaming,
     Governance,
+    AMM,
 }
 impl Default for ProxyType {
     fn default() -> Self {
@@ -961,6 +962,7 @@ impl InstanceFilter<Call> for ProxyType {
                         | Call::Loans(pallet_loans::Call::repay_borrow_all { .. })
                         | Call::Loans(pallet_loans::Call::collateral_asset { .. })
                         | Call::Loans(pallet_loans::Call::liquidate_borrow { .. })
+                        | Call::Loans(pallet_loans::Call::add_reward { .. })
                         | Call::Loans(pallet_loans::Call::claim_reward { .. })
                         | Call::Loans(pallet_loans::Call::claim_reward_for_market { .. })
                 )
@@ -970,17 +972,18 @@ impl InstanceFilter<Call> for ProxyType {
                     c,
                     Call::LiquidStaking(pallet_liquid_staking::Call::stake { .. })
                         | Call::LiquidStaking(pallet_liquid_staking::Call::unstake { .. })
+                        | Call::LiquidStaking(pallet_liquid_staking::Call::cancel_unstake { .. })
                 )
             }
             ProxyType::Crowdloans => {
                 matches!(
                     c,
                     Call::Crowdloans(pallet_crowdloans::Call::contribute { .. },)
-                        | Call::Crowdloans(pallet_crowdloans::Call::withdraw { .. })
                         | Call::Crowdloans(pallet_crowdloans::Call::claim { .. })
-                        | Call::Crowdloans(pallet_crowdloans::Call::redeem { .. })
-                        | Call::Crowdloans(pallet_crowdloans::Call::withdraw_for { .. })
                         | Call::Crowdloans(pallet_crowdloans::Call::claim_for { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::withdraw { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::withdraw_for { .. })
+                        | Call::Crowdloans(pallet_crowdloans::Call::redeem { .. })
                 )
             }
             ProxyType::Farming => {
@@ -1009,6 +1012,15 @@ impl InstanceFilter<Call> for ProxyType {
                         | Call::TechnicalCommittee(..)
                         | Call::Treasury(..)
                         | Call::Utility(..)
+                )
+            }
+            ProxyType::AMM => {
+                matches!(
+                    c,
+                    Call::AMM(pallet_amm::Call::add_liquidity { .. })
+                        | Call::AMM(pallet_amm::Call::remove_liquidity { .. })
+                        | Call::AMMRoute(pallet_router::Call::swap_tokens_for_exact_tokens { .. })
+                        | Call::AMMRoute(pallet_router::Call::swap_exact_tokens_for_tokens { .. })
                 )
             }
         }
