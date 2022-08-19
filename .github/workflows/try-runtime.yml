@@ -5,13 +5,45 @@ on:
   workflow_dispatch:
 
 jobs:
+  start-runner:
+    name: start self-hosted EC2 runner
+    runs-on: ubuntu-latest
+    outputs:
+      label: ${{ steps.start-ec2-runner.outputs.label }}
+      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Start EC2 runner
+        id: start-ec2-runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: start
+          github-token: ${{ secrets.PAT_RUNNER }}
+          ec2-image-id: ${{ secrets.EC2_IMAGE_ID }}
+          ec2-instance-type: ${{ secrets.EC2_INSTANCE_TYPE }}
+          subnet-id: ${{ secrets.SUBNET_ID }}
+          security-group-id: ${{ secrets.SECURITY_GROUP_ID }}
+          aws-resource-tags: > 
+            [
+              {"Key": "Name", "Value": "${{ github.workflow }}"},
+              {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
+            ]
+
   try-runtime:
     name: Try Runtime Upgrade
-    runs-on: self-hosted
+    needs: start-runner
+    runs-on: ${{ needs.start-runner.outputs.label }}
     steps:
       - name: cleaning up
         run: |
           echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
+          echo "HOME=/home/ubuntu" >> ${GITHUB_ENV}
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -31,3 +63,34 @@ jobs:
       - name: Try Parallel Runtime Upgrade
         run: |
           make try-parallel-live-upgrade
+      - name: slack
+        uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,eventName,ref,workflow
+        if: always()
+
+  stop-runner:
+    name: stop self-hosted EC2 runner
+    needs:
+      - start-runner 
+      - try-runtime
+    runs-on: ubuntu-latest
+    if: ${{ always() }} 
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Stop EC2 runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: stop
+          github-token: ${{ secrets.PAT_RUNNER }}
+          label: ${{ needs.start-runner.outputs.label }}
+          ec2-instance-id: ${{ needs.start-runner.outputs.ec2-instance-id }}
