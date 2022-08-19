@@ -1076,6 +1076,8 @@ pub enum ProxyType {
     Farming,
     Streaming,
     Governance,
+    AMM,
+    EVM,
 }
 impl Default for ProxyType {
     fn default() -> Self {
@@ -1147,6 +1149,19 @@ impl InstanceFilter<Call> for ProxyType {
                         | Call::Treasury(..)
                         | Call::Utility(..)
                 )
+            }
+            ProxyType::AMM => {
+                matches!(
+                    c,
+                    Call::AMM(pallet_amm::Call::add_liquidity { .. })
+                        | Call::AMM(pallet_amm::Call::remove_liquidity { .. })
+                        | Call::AMMRoute(pallet_router::Call::swap_tokens_for_exact_tokens { .. })
+                        | Call::AMMRoute(pallet_router::Call::swap_exact_tokens_for_tokens { .. })
+                )
+            }
+            // EVM
+            ProxyType::EVM => {
+                matches!(c, Call::Ethereum(..) | Call::EVM(_) | Call::BaseFee(_))
             }
         }
     }
