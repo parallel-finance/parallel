@@ -62,3 +62,4 @@ snapshot.bin
 !**/.yarn/versions
 
 scripts/helper/.env
+soljson*
