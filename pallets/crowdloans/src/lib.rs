@@ -659,23 +659,6 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Update crowdloans proxy address in relaychain
-        #[pallet::weight(<T as Config>::WeightInfo::update_proxy())]
-        #[transactional]
-        pub fn update_proxy(origin: OriginFor<T>, proxy_address: AccountIdOf<T>) -> DispatchResult {
-            T::RefundOrigin::ensure_origin(origin)?;
-            log::trace!(
-                target: "crowdloans::update_proxy",
-                "pre-toggle. proxy_address: {:?}",
-                proxy_address
-            );
-            ProxyAddress::<T>::put(proxy_address.clone());
-
-            Self::deposit_event(Event::<T>::ProxyUpdated(proxy_address));
-
-            Ok(())
-        }
-
         /// Mark the associated vault as `Closed` and stop accepting contributions
         #[pallet::weight(<T as Config>::WeightInfo::close())]
         #[transactional]
@@ -1135,6 +1118,23 @@ pub mod pallet {
                 kind,
                 amount,
             ));
+
+            Ok(())
+        }
+
+        /// Update crowdloans proxy address in relaychain
+        #[pallet::weight(<T as Config>::WeightInfo::update_proxy())]
+        #[transactional]
+        pub fn update_proxy(origin: OriginFor<T>, proxy_address: AccountIdOf<T>) -> DispatchResult {
+            T::RefundOrigin::ensure_origin(origin)?;
+            log::trace!(
+                target: "crowdloans::update_proxy",
+                "pre-toggle. proxy_address: {:?}",
+                proxy_address
+            );
+            ProxyAddress::<T>::put(proxy_address.clone());
+
+            Self::deposit_event(Event::<T>::ProxyUpdated(proxy_address));
 
             Ok(())
         }
