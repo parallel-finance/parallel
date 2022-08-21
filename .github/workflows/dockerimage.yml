@@ -22,7 +22,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-      
+
       - name: Start EC2 runner
         id: start-ec2-runner
         uses: machulav/ec2-github-runner@v2
@@ -33,7 +33,7 @@ jobs:
           ec2-instance-type: ${{ secrets.EC2_INSTANCE_TYPE }}
           subnet-id: ${{ secrets.SUBNET_ID }}
           security-group-id: ${{ secrets.SECURITY_GROUP_ID }}
-          aws-resource-tags: > 
+          aws-resource-tags: >
             [
               {"Key": "Name", "Value": "${{ github.workflow }}"},
               {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
@@ -118,7 +118,7 @@ jobs:
 
   parallel-helper:
     if: github.repository == 'parallel-finance/parallel'
-    needs: 
+    needs:
       - start-runner
       - parallel
     runs-on: ${{ needs.start-runner.outputs.label }}
@@ -182,11 +182,11 @@ jobs:
   stop-runner:
     name: stop self-hosted EC2 runner
     needs:
-      - start-runner 
+      - start-runner
       - parallel
       - parallel-helper
     runs-on: ubuntu-latest
-    if: ${{ always() }} 
+    if: ${{ always() }}
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -194,7 +194,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-      
+
       - name: Stop EC2 runner
         uses: machulav/ec2-github-runner@v2
         with:
