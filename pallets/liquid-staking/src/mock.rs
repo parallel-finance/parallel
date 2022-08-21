@@ -543,6 +543,7 @@ parameter_types! {
     pub static DerivativeIndexList: Vec<u16> = vec![0];
     pub static RelayChainValidationDataProvider: BlockNumber = 0;
     pub const ElectionSolutionStoredOffset: BlockNumber = 10;
+    pub const DefaultProtocolFeeReceiver: AccountId32 = AccountId32::new([100u8; 32]);
 }
 
 impl crate::Config for Test {
@@ -574,6 +575,7 @@ impl crate::Config for Test {
     type NumSlashingSpans = NumSlashingSpans;
     type DistributionStrategy = AverageDistribution;
     type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
 parameter_types! {

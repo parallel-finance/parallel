@@ -212,6 +212,10 @@ pub mod pallet {
         /// Need to do_bond before relaychain store npos solution
         #[pallet::constant]
         type ElectionSolutionStoredOffset: Get<BlockNumberFor<Self>>;
+
+        /// Who/where to send the protocol fees
+        #[pallet::constant]
+        type ProtocolFeeReceiver: Get<Self::AccountId>;
     }
 
     #[pallet::event]
@@ -1779,7 +1783,11 @@ pub mod pallet {
                 .checked_div(denominator)
                 .unwrap_or_else(Zero::zero());
 
-            T::Assets::mint_into(liquid_currency, &Self::account_id(), inflate_liquid_amount)?;
+            T::Assets::mint_into(
+                liquid_currency,
+                &T::ProtocolFeeReceiver::get(),
+                inflate_liquid_amount,
+            )?;
 
             Ok(())
         }
