@@ -21,7 +21,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::traits::{fungibles::InspectMetadata, tokens::Balance as BalanceT, Get};
-use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
+use sp_runtime::{
+    traits::{One, Zero},
+    FixedPointNumber, FixedPointOperand,
+};
 
 pub use pallet::*;
 use pallet_traits::{
@@ -269,6 +272,8 @@ pub mod pallet {
         /// Unstake cancelled
         /// [account_id, amount, liquid_amount]
         UnstakeCancelled(T::AccountId, BalanceOf<T>, BalanceOf<T>),
+        /// Commission rate was updated
+        CommissionRateUpdated(Rate),
     }
 
     #[pallet::error]
@@ -312,6 +317,8 @@ pub mod pallet {
         InvalidProof,
         /// No unlocking items
         NoUnlockings,
+        /// Invalid commission rate
+        InvalidCommissionRate,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -593,18 +600,6 @@ pub mod pallet {
             StakingLedgerCap::<T>::mutate(|v| *v = cap);
             Self::deposit_event(Event::<T>::StakingLedgerCapUpdated(cap));
             Ok(().into())
-        }
-
-        /// Update commission rate
-        #[pallet::weight(10000)]
-        #[transactional]
-        pub fn update_commission_rate(
-            origin: OriginFor<T>,
-            commission_rate: Rate,
-        ) -> DispatchResult {
-            T::UpdateOrigin::ensure_origin(origin)?;
-            CommissionRate::<T>::put(commission_rate);
-            Ok(())
         }
 
         /// Bond on relaychain via xcm.transact
@@ -893,14 +888,22 @@ pub mod pallet {
                     Error::<T>::InvalidProof
                 );
                 let rewards = staking_ledger.total.saturating_sub(ledger.total);
-                if let Err(e) = Self::do_charge_commission(rewards) {
-                    log::error!(target: "liquidStaking::do_charge_commission", "charge commission error caught: {:?}", &e);
+
+                let inflate_liquid_amount = Self::get_inflate_liquid_amount(rewards)?;
+                if !inflate_liquid_amount.is_zero() {
+                    T::Assets::mint_into(
+                        Self::liquid_currency()?,
+                        &T::ProtocolFeeReceiver::get(),
+                        inflate_liquid_amount,
+                    )?;
                 }
+
                 log::trace!(
                     target: "liquidStaking::set_staking_ledger",
-                    "index: {:?}, staking_ledger: {:?}",
+                    "index: {:?}, staking_ledger: {:?}, inflate_liquid_amount: {:?}",
                     &derivative_index,
                     &staking_ledger,
+                    inflate_liquid_amount,
                 );
                 *ledger = staking_ledger;
                 Ok(())
@@ -986,6 +989,31 @@ pub mod pallet {
 
                 Ok(().into())
             })
+        }
+
+        /// Update commission rate
+        #[pallet::weight(<T as Config>::WeightInfo::update_commission_rate())]
+        #[transactional]
+        pub fn update_commission_rate(
+            origin: OriginFor<T>,
+            commission_rate: Rate,
+        ) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+
+            ensure!(
+                commission_rate > Rate::zero() && commission_rate < Rate::one(),
+                Error::<T>::InvalidCommissionRate,
+            );
+
+            log::trace!(
+                target: "liquidStaking::update_commission_rate",
+                 "commission_rate: {:?}",
+                &commission_rate,
+            );
+
+            CommissionRate::<T>::put(commission_rate);
+            Self::deposit_event(Event::<T>::CommissionRateUpdated(commission_rate));
+            Ok(())
         }
     }
 
@@ -1758,12 +1786,11 @@ pub mod pallet {
         }
 
         // liquid_amount_to_fee=TotalLiquidCurrency * (commission_rate*total_rewards/(TotalStakeCurrency+(1-commission_rate)*total_rewards))
-        fn do_charge_commission(rewards: BalanceOf<T>) -> DispatchResult {
-            let liquid_currency = Self::liquid_currency()?;
-            let issuance = T::Assets::total_issuance(liquid_currency);
+        fn get_inflate_liquid_amount(rewards: BalanceOf<T>) -> Result<BalanceOf<T>, DispatchError> {
+            let issuance = T::Assets::total_issuance(Self::liquid_currency()?);
             let commission_rate = Self::commission_rate();
             if issuance.is_zero() || commission_rate.is_zero() || rewards.is_zero() {
-                return Ok(());
+                return Ok(Zero::zero());
             }
 
             let matching_ledger = Self::matching_pool();
@@ -1773,23 +1800,17 @@ pub mod pallet {
                 .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount.total))
                 .ok_or(ArithmeticError::Overflow)?;
 
-            let numerator = commission_rate
-                .saturating_mul_int(rewards)
-                .saturating_mul(issuance);
-            let denominator = total_stake_amount
-                .saturating_add(rewards)
-                .saturating_sub(commission_rate.saturating_mul_int(rewards));
-            let inflate_liquid_amount = numerator
-                .checked_div(denominator)
-                .unwrap_or_else(Zero::zero());
+            let commission_staking_amount = commission_rate.saturating_mul_int(rewards);
 
-            T::Assets::mint_into(
-                liquid_currency,
-                &T::ProtocolFeeReceiver::get(),
-                inflate_liquid_amount,
-            )?;
-
-            Ok(())
+            let inflate_rate = Rate::checked_from_rational(
+                commission_staking_amount,
+                total_stake_amount
+                    .saturating_add(rewards)
+                    .saturating_sub(commission_staking_amount),
+            )
+            .unwrap_or_else(Rate::zero);
+            let inflate_liquid_amount = inflate_rate.saturating_mul_int(issuance);
+            Ok(inflate_liquid_amount)
         }
 
         fn ensure_origin(origin: OriginFor<T>) -> DispatchResult {

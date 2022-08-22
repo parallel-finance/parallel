@@ -35,6 +35,8 @@ const BOND_AMOUNT: u128 = 10000000000000u128;
 const UNBOND_AMOUNT: u128 = 5000000000000u128;
 const REBOND_AMOUNT: u128 = 5000000000000u128;
 
+const COMMISSION_RATE: Rate = Rate::from_rational(1, 100);
+
 fn initial_set_up<
     T: Config
         + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
@@ -254,6 +256,12 @@ benchmarks! {
     }: _(SystemOrigin::Root, RESERVE_FACTOR)
     verify {
         assert_eq!(ReserveFactor::<T>::get(), RESERVE_FACTOR);
+    }
+
+    update_commission_rate {
+    }: _(SystemOrigin::Root, COMMISSION_RATE)
+    verify {
+        assert_eq!(CommissionRate::<T>::get(), COMMISSION_RATE);
     }
 
     update_staking_ledger_cap {

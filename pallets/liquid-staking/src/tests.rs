@@ -1,6 +1,9 @@
 use frame_support::{
-    assert_noop, assert_ok, dispatch::DispatchResult, error::BadOrigin, storage::with_transaction,
-    traits::Hooks,
+    assert_noop, assert_ok,
+    dispatch::DispatchResult,
+    error::BadOrigin,
+    storage::with_transaction,
+    traits::{fungibles::Inspect, Hooks},
 };
 use sp_runtime::{
     traits::{BlakeTwo256, One, Zero},
@@ -1084,5 +1087,62 @@ fn fast_unstake_works() {
             Unlockings::<Test>::get(LiquidStaking::loans_account_id()),
             None
         );
+    })
+}
+
+#[test]
+fn test_charge_commission_work() {
+    new_test_ext().execute_with(|| {
+        let derivative_index = 0u16;
+        let bond_amount = ksm(200f64);
+        let staking_ledger = <StakingLedger<AccountId, BalanceOf<Test>>>::new(
+            LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            bond_amount,
+        );
+        StakingLedgers::<Test>::insert(derivative_index, staking_ledger.clone());
+        assert_ok!(LiquidStaking::update_commission_rate(
+            Origin::root(),
+            Rate::from_rational(1, 100)
+        ));
+        LiquidStaking::on_finalize(1);
+
+        // liquid_amount_to_fee=TotalLiquidCurrency * (commission_rate*total_rewards/(TotalStakeCurrency+(1-commission_rate)*total_rewards))
+        let commission_rate = CommissionRate::<Test>::get();
+        let total_rewards = MOCK_LEDGER_AMOUNT - bond_amount;
+        let commission_staking_amount = commission_rate.saturating_mul_int(total_rewards);
+        let issurance = <Test as Config>::Assets::total_issuance(SKSM);
+        let matching_ledger = LiquidStaking::matching_pool();
+        let total_active_bonded: u128 = StakingLedgers::<Test>::iter_values()
+            .fold(Zero::zero(), |acc, ledger| {
+                acc.saturating_add(ledger.active)
+            });
+        let total_bonded = total_active_bonded + matching_ledger.total_stake_amount.total
+            - matching_ledger.total_unstake_amount.total;
+        let inflate_rate = Rate::checked_from_rational(
+            commission_staking_amount,
+            total_bonded + total_rewards - commission_staking_amount,
+        )
+        .unwrap();
+
+        let inflate_liquid_amount = inflate_rate.saturating_mul_int(issurance);
+
+        assert_ok!(LiquidStaking::set_staking_ledger(
+            Origin::signed(ALICE),
+            derivative_index,
+            get_mock_staking_ledger(derivative_index),
+            get_mock_proof_bytes()
+        ));
+
+        assert_eq!(
+            LiquidStaking::staking_ledger(derivative_index)
+                .unwrap()
+                .total,
+            MOCK_LEDGER_AMOUNT
+        );
+
+        assert_eq!(
+            <Test as Config>::Assets::balance(SKSM, &DefaultProtocolFeeReceiver::get()),
+            inflate_liquid_amount
+        )
     })
 }
