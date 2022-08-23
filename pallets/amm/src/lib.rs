@@ -537,11 +537,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     fn get_protocol_fee_reciprocal_proportion() -> Result<BalanceOf<T, I>, DispatchError> {
-        Ok(Self::protocol_fee()
-            .checked_add(&T::LpFee::get())
-            .map(|r| Self::protocol_fee().div(r))
-            .map(|r| r.saturating_reciprocal_mul_floor::<BalanceOf<T, I>>(One::one()))
-            .ok_or(ArithmeticError::Underflow)?)
+        Ok(Self::protocol_fee().saturating_reciprocal_mul_floor::<BalanceOf<T, I>>(One::one()))
     }
 
     // given an input amount and a vector of assets, return a vector of output
