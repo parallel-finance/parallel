@@ -691,6 +691,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
     type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
 parameter_types! {
