@@ -609,10 +609,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         reserve_in: BalanceOf<T, I>,
         reserve_out: BalanceOf<T, I>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
-        let fees = T::LpFee::get()
-            .checked_add(&Self::protocol_fee())
-            .map(|r| r.mul_ceil(amount_in))
-            .ok_or(ArithmeticError::Overflow)?;
+        let fees = T::LpFee::get().mul_ceil(amount_in);
 
         let amount_in = amount_in
             .checked_sub(fees)
@@ -674,9 +671,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_div(denominator)
             .ok_or(ArithmeticError::Underflow)?;
 
-        let fee_percent = T::LpFee::get()
-            .checked_add(&Self::protocol_fee())
-            .and_then(|r| Ratio::from_percent(100).checked_sub(&r))
+        let fee_percent = Ratio::from_percent(100)
+            .checked_sub(&T::LpFee::get())
             .ok_or(ArithmeticError::Underflow)?;
 
         log::trace!(
@@ -1033,11 +1029,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     (pool.base_amount, pool.quote_amount)
                 };
 
+                //FIXME(Alan): Why do this check?
                 ensure!(
-                    amount_in
-                        >= T::ProtocolFee::get()
-                            .saturating_add(T::LpFee::get())
-                            .saturating_reciprocal_mul_ceil(One::one()),
+                    amount_in >= T::LpFee::get().saturating_reciprocal_mul_ceil(One::one()),
                     Error::<T, I>::InsufficientAmountIn
                 );
                 ensure!(!supply_out.is_zero(), Error::<T, I>::InsufficientAmountOut);
