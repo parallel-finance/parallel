@@ -146,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("heiko"),
     impl_name: create_runtime_str!("heiko"),
     authoring_version: 1,
-    spec_version: 191,
+    spec_version: 192,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -654,7 +654,7 @@ parameter_types! {
     pub const CollateralCurrency: CurrencyId = KSM_U;
     pub const XcmFees: Balance = 5_000_000_000; // 0.005KSM
     // delay 7 eras, we must be able to repay in less than 7 eras
-    pub LoansFastUnstakeFee: Rate = Rate::saturating_from_rational(1u32, 100u32); // (1.5 ** (3600 * 36 / 5256000) - 1) * 100% ~= 1.004%
+    pub LoansInstantUnstakeFee: Rate = Rate::saturating_from_rational(1u32, 100u32); // (1.5 ** (3600 * 36 / 5256000) - 1) * 100% ~= 1.004%
     pub const BondingDuration: EraIndex = 28; // 7Days
     pub const MinNominatorBond: Balance = 100_000_000_000; // 0.1KSM
     pub const NumSlashingSpans: u32 = 0;
@@ -676,7 +676,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type DerivativeIndexList = DerivativeIndexList;
     type DistributionStrategy = pallet_liquid_staking::distribution::MaxMinDistribution;
     type XcmFees = XcmFees;
-    type LoansFastUnstakeFee = LoansFastUnstakeFee;
+    type LoansInstantUnstakeFee = LoansInstantUnstakeFee;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type CollateralCurrency = CollateralCurrency;
