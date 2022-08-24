@@ -332,7 +332,6 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	}
 	fn fast_match_unstake(n: u32, ) -> Weight {
 		(7_082_000 as Weight)
-			// Standard Error: 88_000
 			.saturating_add((63_412_000 as Weight).saturating_mul(n as Weight))
 			.saturating_add(T::DbWeight::get().reads(9 as Weight))
 			.saturating_add(T::DbWeight::get().reads((3 as Weight).saturating_mul(n as Weight)))
