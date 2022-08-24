@@ -462,16 +462,16 @@ parameter_types! {
     pub const LeasePerYear: BlockNumber = 4;
 }
 
-pub type CreateVaultOrigin =
+pub type CreateOrigin =
     EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type DissolveVaultOrigin =
+pub type DissolveOrigin =
     EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type RefundOrigin =
     EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type UpdateVaultOrigin =
+pub type UpdateOrigin =
     EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type VrfOrigin = EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
@@ -496,11 +496,12 @@ impl crate::Config for Test {
     type MinContribution = MinContribution;
     type MigrateKeysLimit = MigrateKeysLimit;
     type RemoveKeysLimit = RemoveKeysLimit;
+    type ProxyOrigin = EnsureRoot<AccountId>;
     type MigrateOrigin = EnsureRoot<AccountId>;
-    type CreateVaultOrigin = CreateVaultOrigin;
-    type DissolveVaultOrigin = DissolveVaultOrigin;
+    type CreateOrigin = CreateOrigin;
+    type DissolveOrigin = DissolveOrigin;
     type RefundOrigin = RefundOrigin;
-    type UpdateVaultOrigin = UpdateVaultOrigin;
+    type UpdateOrigin = UpdateOrigin;
     type VrfOrigin = VrfOrigin;
     type OpenCloseOrigin = OpenCloseOrigin;
     type AuctionSucceededFailedOrigin = AuctionSucceededFailedOrigin;

@@ -1950,12 +1950,13 @@ impl pallet_crowdloans::Config for Runtime {
     type MinContribution = MinContribution;
     type MigrateKeysLimit = MigrateKeysLimit;
     type RemoveKeysLimit = RemoveKeysLimit;
+    type ProxyOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MigrateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type VrfOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type DissolveVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type DissolveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type RefundOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type UpdateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type OpenCloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionSucceededFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
