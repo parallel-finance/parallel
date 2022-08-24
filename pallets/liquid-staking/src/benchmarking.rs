@@ -10,7 +10,7 @@ use frame_support::{
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
 use sp_runtime::{
-    traits::{One, StaticLookup},
+    traits::{One, Saturating, StaticLookup},
     TransactionOutcome,
 };
 use sp_std::{prelude::*, vec};
@@ -19,7 +19,10 @@ use xcm::latest::prelude::*;
 use pallet_traits::ump::RewardDestination;
 use primitives::{Balance, CurrencyId, Rate, Ratio};
 
-use crate::{types::StakingLedger, Pallet as LiquidStaking};
+use crate::{
+    types::{StakingLedger, UnstakeProvider},
+    Pallet as LiquidStaking,
+};
 
 use super::*;
 
@@ -396,6 +399,17 @@ benchmarks! {
     }: _(SystemOrigin::Signed(alice.clone()), UNSTAKE_AMOUNT)
     verify {
         assert_last_event::<T>(Event::<T>::UnstakeCancelled(alice, UNSTAKE_AMOUNT, UNSTAKE_AMOUNT).into());
+    }
+
+    fast_match_unstake {
+        let alice: T::AccountId = account("Sample", 100, SEED);
+        initial_set_up::<T>(alice.clone());
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
+        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT, UnstakeProvider::MatchingPool).unwrap();
+    }: _(SystemOrigin::Signed(alice.clone()), [alice.clone()].to_vec())
+    verify {
+        let receive_amount = Rate::one().saturating_sub(T::MatchingPoolFastUnstakeFee::get()).saturating_mul_int(UNSTAKE_AMOUNT);
+        assert_last_event::<T>(Event::<T>::FastUnstakeMatched(alice, receive_amount, UNSTAKE_AMOUNT).into());
     }
 }
 

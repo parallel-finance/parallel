@@ -675,6 +675,7 @@ parameter_types! {
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
     // delay 7 eras, we must be able to repay in less than 7 eras
     pub LoansInstantUnstakeFee: Rate = Rate::saturating_from_rational(38u32, 1000u32); // (1.45 ** (3600 * 4 * 36 / 5256000) - 1) * 100% ~= 3.732%
+    pub MatchingPoolFastUnstakeFee: Rate = Rate::saturating_from_rational(1u32, 100u32);
     pub const BondingDuration: EraIndex = 28; // 28Days
     pub const MinNominatorBond: Balance = 100_000_000_000; // 10DOT
     pub const NumSlashingSpans: u32 = 0;
@@ -696,6 +697,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
     type LoansInstantUnstakeFee = LoansInstantUnstakeFee;
+    type MatchingPoolFastUnstakeFee = MatchingPoolFastUnstakeFee;
     type DistributionStrategy = pallet_liquid_staking::distribution::MaxMinDistribution;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
