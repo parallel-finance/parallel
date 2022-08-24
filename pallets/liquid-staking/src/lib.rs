@@ -153,9 +153,9 @@ pub mod pallet {
         #[pallet::constant]
         type XcmFees: Get<BalanceOf<Self>>;
 
-        /// MM fast unstake fee
+        /// Loans instant unstake fee
         #[pallet::constant]
-        type LoansFastUnstakeFee: Get<Rate>;
+        type LoansInstantUnstakeFee: Get<Rate>;
 
         /// Staking currency
         #[pallet::constant]
@@ -540,7 +540,7 @@ pub mod pallet {
             T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
 
             if unstake_provider.is_loans() {
-                Self::do_loans_fast_unstake(&who, amount)?;
+                Self::do_loans_instant_unstake(&who, amount)?;
             }
 
             MatchingPool::<T>::try_mutate(|p| p.add_unstake_amount(amount))?;
@@ -1762,8 +1762,8 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_loans_fast_unstake(who: &AccountIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
-            let loans_fast_unstake_fee = T::LoansFastUnstakeFee::get()
+        fn do_loans_instant_unstake(who: &AccountIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+            let loans_fast_unstake_fee = T::LoansInstantUnstakeFee::get()
                 .checked_mul_int(amount)
                 .ok_or(ArithmeticError::Overflow)?;
             let borrow_amount = amount

@@ -180,7 +180,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 191,
+    spec_version: 192,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -700,7 +700,7 @@ parameter_types! {
     pub const CollateralCurrency: CurrencyId = KSM_U;
     pub const XcmFees: Balance = 5_000_000_000; // 0.005KSM
     // delay 4 eras, we must be able to repay in less than 4 eras
-    pub LoansFastUnstakeFee: Rate = Rate::saturating_from_rational(125u32, 10000000u32); // (1.32 ** (30 * 8 / 5256000) - 1) * 100% ~= 0.00126%
+    pub LoansInstantUnstakeFee: Rate = Rate::saturating_from_rational(125u32, 10000000u32); // (1.32 ** (30 * 8 / 5256000) - 1) * 100% ~= 0.00126%
     pub const BondingDuration: EraIndex = 3; // 9Minutes
     pub const MinNominatorBond: Balance = 100_000_000_000; // 0.1KSM
     pub const NumSlashingSpans: u32 = 0;
@@ -725,7 +725,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type DerivativeIndexList = DerivativeIndexList;
     type DistributionStrategy = pallet_liquid_staking::distribution::MaxMinDistribution;
     type XcmFees = XcmFees;
-    type LoansFastUnstakeFee = LoansFastUnstakeFee;
+    type LoansInstantUnstakeFee = LoansInstantUnstakeFee;
     type EraLength = EraLength;
     type MinStake = MinStake;
     type MinUnstake = MinUnstake;
