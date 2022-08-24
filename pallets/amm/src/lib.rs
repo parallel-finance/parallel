@@ -533,7 +533,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     fn protocol_fee_on() -> bool {
-        !Self::protocol_fee().is_zero()
+        !Self::protocol_fee().is_zero() && Self::protolcol_fee_receiver().is_ok()
     }
 
     fn get_protocol_fee_reciprocal_proportion() -> Result<BalanceOf<T, I>, DispatchError> {
@@ -598,12 +598,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
     //
+    // amountIn = amountIn * (1 - fee_percent)
     // reserveIn * reserveOut = (reserveIn + amountIn) * (reserveOut - amountOut)
     // reserveIn * reserveOut = reserveIn * reserveOut + amountIn * reserveOut - (reserveIn + amountIn) * amountOut
     // amountIn * reserveOut = (reserveIn + amountIn) * amountOut
     //
     // amountOut = amountIn * reserveOut / (reserveIn + amountIn)
-    // amountOut  = amountOut * (1 - fee_percent)
     fn get_amount_out(
         amount_in: BalanceOf<T, I>,
         reserve_in: BalanceOf<T, I>,
@@ -644,12 +644,13 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
     //
-    // amountOut = amountIn * reserveOut / reserveIn + amountIn
+    // amountOut = amountIn * reserveOut / (reserveIn + amountIn)
     // amountOut * reserveIn + amountOut * amountIn  = amountIn * reserveOut
     // amountOut * reserveIn = amountIn * (reserveOut - amountOut)
     //
     // amountIn = amountOut * reserveIn / (reserveOut - amountOut)
-    // amountIn = (amountIn / (1 - fee_percent)) + 1
+    // Note: To make sure it greater than expected amount_out.
+    // amountIn = (amountIn / (1 - fee_percent)) + **1**
     fn get_amount_in(
         amount_out: BalanceOf<T, I>,
         reserve_in: BalanceOf<T, I>,
