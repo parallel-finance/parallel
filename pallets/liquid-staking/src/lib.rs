@@ -1721,7 +1721,7 @@ pub mod pallet {
 
         #[require_transactional]
         pub fn do_matching() -> DispatchResult {
-            let remove_results = FastUnstakeRequests::<T>::clear(u32::max_value(), None);
+            let remove_results = FastUnstakeRequests::<T>::clear(200u32, None);
             let total_unbonding = Self::get_total_unbonding();
             let (bond_amount, rebond_amount, unbond_amount) =
                 Self::matching_pool().matching(total_unbonding)?;

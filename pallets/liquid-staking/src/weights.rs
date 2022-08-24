@@ -374,12 +374,13 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	fn fast_match_unstake(n: u32, ) -> Weight {
-		(7_082_000 as Weight)
-			.saturating_add((63_412_000 as Weight).saturating_mul(n as Weight))
-			.saturating_add(T::DbWeight::get().reads(9 as Weight))
-			.saturating_add(T::DbWeight::get().reads((3 as Weight).saturating_mul(n as Weight)))
-			.saturating_add(T::DbWeight::get().writes(6 as Weight))
-			.saturating_add(T::DbWeight::get().writes((3 as Weight).saturating_mul(n as Weight)))
+		(21_480_000 as Weight)
+			// Standard Error: 38_000
+			.saturating_add((82_727_000 as Weight).saturating_mul(n as Weight))
+			.saturating_add(T::DbWeight::get().reads(7 as Weight))
+			.saturating_add(T::DbWeight::get().reads((4 as Weight).saturating_mul(n as Weight)))
+			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+			.saturating_add(T::DbWeight::get().writes((4 as Weight).saturating_mul(n as Weight)))
 	}
 }
 
@@ -688,11 +689,11 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
 	}
 	fn fast_match_unstake(n: u32, ) -> Weight {
-		(7_082_000 as Weight)
-			.saturating_add((63_412_000 as Weight).saturating_mul(n as Weight))
-			.saturating_add(RocksDbWeight::get().reads(9 as Weight))
-			.saturating_add(RocksDbWeight::get().reads((3 as Weight).saturating_mul(n as Weight)))
-			.saturating_add(RocksDbWeight::get().writes(6 as Weight))
-			.saturating_add(RocksDbWeight::get().writes((3 as Weight).saturating_mul(n as Weight)))
+		(21_480_000 as Weight)
+			.saturating_add((82_727_000 as Weight).saturating_mul(n as Weight))
+			.saturating_add(RocksDbWeight::get().reads(7 as Weight))
+			.saturating_add(RocksDbWeight::get().reads((4 as Weight).saturating_mul(n as Weight)))
+			.saturating_add(RocksDbWeight::get().writes(4 as Weight))
+			.saturating_add(RocksDbWeight::get().writes((4 as Weight).saturating_mul(n as Weight)))
 	}
 }

@@ -402,14 +402,37 @@ benchmarks! {
     }
 
     fast_match_unstake {
+        let n in 1 .. 50;
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
-        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT, UnstakeProvider::MatchingPool).unwrap();
-    }: _(SystemOrigin::Signed(alice.clone()), [alice.clone()].to_vec())
+
+        let mut unstaker_list: Vec<T::AccountId> = vec![];
+        let fast_unstake_amount = 50_000_000_000;
+        for i in 0 .. n {
+            let unstaker = account("unstaker", i, SEED);
+            <T as pallet_xcm_helper::Config>::Assets::mint_into(
+                T::LiquidCurrency::get(),
+                &unstaker,
+                INITIAL_AMOUNT,
+            )
+            .unwrap();
+
+            LiquidStaking::<T>::unstake(SystemOrigin::Signed(unstaker.clone()).into(), fast_unstake_amount, UnstakeProvider::MatchingPool).unwrap();
+            assert_eq!(FastUnstakeRequests::<T>::get(&unstaker), fast_unstake_amount);
+            unstaker_list.push(unstaker);
+        }
+    }: _(SystemOrigin::Signed(alice.clone()), unstaker_list)
     verify {
-        let receive_amount = Rate::one().saturating_sub(T::MatchingPoolFastUnstakeFee::get()).saturating_mul_int(UNSTAKE_AMOUNT);
-        assert_last_event::<T>(Event::<T>::FastUnstakeMatched(alice, receive_amount, UNSTAKE_AMOUNT).into());
+        let xcm_fee = T::XcmFees::get();
+        let reserve = ReserveFactor::<T>::get().mul_floor(STAKE_AMOUNT);
+        let total_matched_amount = Rate::one()
+            .saturating_sub(T::MatchingPoolFastUnstakeFee::get())
+            .saturating_mul_int(fast_unstake_amount) * (n as u128) ;
+        assert_eq!(
+            MatchingPool::<T>::get().total_stake_amount.total,
+            STAKE_AMOUNT - xcm_fee - reserve - total_matched_amount
+        );
     }
 }
 
