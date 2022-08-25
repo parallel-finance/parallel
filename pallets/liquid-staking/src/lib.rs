@@ -564,10 +564,6 @@ pub mod pallet {
 
             if unstake_provider.is_loans() {
                 Self::do_loans_instant_unstake(&who, amount)?;
-            } else if unstake_provider.is_matching_pool() {
-                FastUnstakeRequests::<T>::mutate(&who, |b| {
-                    *b = b.saturating_add(amount);
-                });
             }
 
             MatchingPool::<T>::try_mutate(|p| p.add_unstake_amount(amount))?;
@@ -1862,14 +1858,12 @@ pub mod pallet {
                 if b.is_none() {
                     return Ok(());
                 }
-                let request_liquid_amount =
-                    b.take()
-                        .expect("Could not be none, qed;")
-                        .min(T::Assets::reducible_balance(
-                            Self::liquid_currency()?,
-                            unstaker,
-                            false,
-                        ));
+                let current_liquid_amount =
+                    T::Assets::reducible_balance(Self::liquid_currency()?, unstaker, false);
+                let request_liquid_amount = b
+                    .take()
+                    .expect("Could not be none, qed;")
+                    .min(current_liquid_amount);
 
                 let available_liquid_amount =
                     Self::staking_to_liquid(Self::matching_pool().total_stake_amount.free()?)
