@@ -36,81 +36,117 @@
 // --template=./.maintain/frame-weight-template.hbs
 // --output=./pallets/amm/src/weights.rs
 
-#![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
-use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
+use frame_support::{
+    traits::Get,
+    weights::{constants::RocksDbWeight, Weight},
+};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_amm.
 pub trait WeightInfo {
-	fn add_liquidity() -> Weight;
-	fn remove_liquidity() -> Weight;
-	fn create_pool() -> Weight;
+    fn add_liquidity() -> Weight;
+    fn remove_liquidity() -> Weight;
+    fn create_pool() -> Weight;
+    fn update_protocol_fee_receiver() -> Weight;
+    fn update_protocol_fee() -> Weight;
 }
 
 /// Weights for pallet_amm using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	// Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
-	// Storage: AMM Pools (r:1 w:1)
-	// Storage: Assets Asset (r:3 w:3)
-	// Storage: Assets Account (r:5 w:5)
-	fn add_liquidity() -> Weight {
-		(217_917_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(10 as Weight))
-			.saturating_add(T::DbWeight::get().writes(10 as Weight))
-	}
-	// Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
-	// Storage: AMM Pools (r:1 w:1)
-	// Storage: Assets Asset (r:3 w:3)
-	// Storage: Assets Account (r:5 w:5)
-	fn remove_liquidity() -> Weight {
-		(238_051_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(10 as Weight))
-			.saturating_add(T::DbWeight::get().writes(10 as Weight))
-	}
-	// Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
-	// Storage: AMM Pools (r:1 w:1)
-	// Storage: Assets Asset (r:3 w:3)
-	// Storage: Assets Account (r:6 w:6)
-	// Storage: System Account (r:2 w:2)
-	fn create_pool() -> Weight {
-		(291_928_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(13 as Weight))
-			.saturating_add(T::DbWeight::get().writes(13 as Weight))
-	}
+    // Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
+    // Storage: AMM Pools (r:1 w:1)
+    // Storage: Assets Asset (r:3 w:3)
+    // Storage: Assets Account (r:5 w:5)
+    fn add_liquidity() -> Weight {
+        (217_917_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(10 as Weight))
+            .saturating_add(T::DbWeight::get().writes(10 as Weight))
+    }
+    // Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
+    // Storage: AMM Pools (r:1 w:1)
+    // Storage: Assets Asset (r:3 w:3)
+    // Storage: Assets Account (r:5 w:5)
+    fn remove_liquidity() -> Weight {
+        (238_051_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(10 as Weight))
+            .saturating_add(T::DbWeight::get().writes(10 as Weight))
+    }
+    // Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
+    // Storage: AMM Pools (r:1 w:1)
+    // Storage: Assets Asset (r:3 w:3)
+    // Storage: Assets Account (r:6 w:6)
+    // Storage: System Account (r:2 w:2)
+    fn create_pool() -> Weight {
+        (291_928_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(13 as Weight))
+            .saturating_add(T::DbWeight::get().writes(13 as Weight))
+    }
+
+    fn update_protocol_fee() -> Weight {
+        (238_051_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(10 as Weight))
+            .saturating_add(T::DbWeight::get().writes(10 as Weight))
+    }
+    // Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
+    // Storage: AMM Pools (r:1 w:1)
+    // Storage: Assets Asset (r:3 w:3)
+    // Storage: Assets Account (r:6 w:6)
+    // Storage: System Account (r:2 w:2)
+    fn update_protocol_fee_receiver() -> Weight {
+        (291_928_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(13 as Weight))
+            .saturating_add(T::DbWeight::get().writes(13 as Weight))
+    }
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-	// Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
-	// Storage: AMM Pools (r:1 w:1)
-	// Storage: Assets Asset (r:3 w:3)
-	// Storage: Assets Account (r:5 w:5)
-	fn add_liquidity() -> Weight {
-		(217_917_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(10 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(10 as Weight))
-	}
-	// Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
-	// Storage: AMM Pools (r:1 w:1)
-	// Storage: Assets Asset (r:3 w:3)
-	// Storage: Assets Account (r:5 w:5)
-	fn remove_liquidity() -> Weight {
-		(238_051_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(10 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(10 as Weight))
-	}
-	// Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
-	// Storage: AMM Pools (r:1 w:1)
-	// Storage: Assets Asset (r:3 w:3)
-	// Storage: Assets Account (r:6 w:6)
-	// Storage: System Account (r:2 w:2)
-	fn create_pool() -> Weight {
-		(291_928_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(13 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(13 as Weight))
-	}
+    // Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
+    // Storage: AMM Pools (r:1 w:1)
+    // Storage: Assets Asset (r:3 w:3)
+    // Storage: Assets Account (r:5 w:5)
+    fn add_liquidity() -> Weight {
+        (217_917_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(10 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(10 as Weight))
+    }
+    // Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
+    // Storage: AMM Pools (r:1 w:1)
+    // Storage: Assets Asset (r:3 w:3)
+    // Storage: Assets Account (r:5 w:5)
+    fn remove_liquidity() -> Weight {
+        (238_051_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(10 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(10 as Weight))
+    }
+    // Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
+    // Storage: AMM Pools (r:1 w:1)
+    // Storage: Assets Asset (r:3 w:3)
+    // Storage: Assets Account (r:6 w:6)
+    // Storage: System Account (r:2 w:2)
+    fn create_pool() -> Weight {
+        (291_928_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(13 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(13 as Weight))
+    }
+
+    fn update_protocol_fee() -> Weight {
+        (238_051_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(10 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(10 as Weight))
+    }
+    // Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
+    // Storage: AMM Pools (r:1 w:1)
+    // Storage: Assets Asset (r:3 w:3)
+    // Storage: Assets Account (r:6 w:6)
+    // Storage: System Account (r:2 w:2)
+    fn update_protocol_fee_receiver() -> Weight {
+        (291_928_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(13 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(13 as Weight))
+    }
 }

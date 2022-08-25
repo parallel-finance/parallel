@@ -432,7 +432,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(0)]
+        #[pallet::weight(T::AMMWeightInfo::update_protocol_fee())]
         #[transactional]
         pub fn update_protocol_fee(
             origin: OriginFor<T>,
@@ -444,7 +444,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(0)]
+        #[pallet::weight(T::AMMWeightInfo::update_protocol_fee_receiver())]
         #[transactional]
         pub fn update_protocol_fee_receiver(
             origin: OriginFor<T>,

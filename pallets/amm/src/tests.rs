@@ -778,12 +778,12 @@ fn amount_out_and_in_should_work() {
 
         let amount_in = AMM::get_amount_in(amount_out, supply_in, supply_out).unwrap();
 
-        // actual: 10025.162908248136
+        // actual: 1002.5162908248136
         assert_eq!(amount_in, 1004);
 
         let amount_out = AMM::get_amount_out(amount_in, supply_in, supply_out).unwrap();
 
-        // actual: 10000.834982275963
+        // actual: 1000.0834982275963
         assert_eq!(amount_out, 1000);
     })
 }
