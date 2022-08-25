@@ -46,7 +46,7 @@ use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedSub, One, Saturating, Zero},
     ArithmeticError, DispatchError, FixedPointNumber, FixedU128, SaturatedConversion,
 };
-use sp_std::{cmp::min, ops::Div, result::Result, vec::Vec};
+use sp_std::{cmp::min, result::Result, vec::Vec};
 
 pub use pallet::*;
 pub use weights::WeightInfo;
@@ -87,6 +87,9 @@ pub mod pallet {
 
         /// Specify which origin is allowed to create new pools.
         type CreatePoolOrigin: EnsureOrigin<Self::Origin>;
+
+        /// Specify which origin is allowed to update fee receiver.
+        type ProtocolFeeUpdateOrigin: EnsureOrigin<Self::Origin>;
 
         /// Defines the fees taken out of each trade and sent back to the AMM pool,
         /// typically 0.3%.
@@ -136,7 +139,7 @@ pub mod pallet {
         /// Conversion failure to u128
         ConversionToU128Failed,
         /// Protocol fee receiver not set
-        ProtocolFeeReceiverEmpty,
+        ProtocolFeeReceiverNotSet,
     }
 
     #[pallet::event]
@@ -465,7 +468,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     fn protolcol_fee_receiver() -> Result<T::AccountId, DispatchError> {
-        ProtocolFeeReceiver::<T, I>::get().ok_or(Error::<T, I>::ProtocolFeeReceiverEmpty.into())
+        ProtocolFeeReceiver::<T, I>::get().ok_or(Error::<T, I>::ProtocolFeeReceiverNotSet.into())
     }
 
     fn quote(

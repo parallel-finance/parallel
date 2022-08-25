@@ -142,6 +142,7 @@ impl pallet_amm::Config for Runtime {
     type LockAccountId = LockAccountId;
     type AMMWeightInfo = ();
     type CreatePoolOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
+    type ProtocolFeeUpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type LpFee = DefaultLpFee;
     type MinimumLiquidity = MinimumLiquidity;
     type MaxLengthRoute = MaxLengthRoute;

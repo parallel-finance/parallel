@@ -2089,6 +2089,7 @@ impl pallet_amm::Config for Runtime {
     type LockAccountId = OneAccount;
     type AMMWeightInfo = weights::pallet_amm::WeightInfo<Runtime>;
     type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ProtocolFeeUpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type LpFee = DefaultLpFee;
     type MinimumLiquidity = MinimumLiquidity;
     type MaxLengthRoute = MaxLengthRoute;

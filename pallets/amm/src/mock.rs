@@ -173,6 +173,7 @@ impl pallet_amm::Config for Test {
     type LockAccountId = LockAccountId;
     type AMMWeightInfo = ();
     type CreatePoolOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
+    type ProtocolFeeUpdateOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
     type LpFee = DefaultLpFee;
     type MinimumLiquidity = MinimumLiquidity;
     type MaxLengthRoute = MaxLengthRoute;
