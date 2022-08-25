@@ -468,7 +468,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     fn protolcol_fee_receiver() -> Result<T::AccountId, DispatchError> {
-        ProtocolFeeReceiver::<T, I>::get().ok_or(Error::<T, I>::ProtocolFeeReceiverNotSet.into())
+        Ok(ProtocolFeeReceiver::<T, I>::get().ok_or(Error::<T, I>::ProtocolFeeReceiverNotSet)?)
     }
 
     fn quote(

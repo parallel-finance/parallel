@@ -168,7 +168,7 @@ benchmarks_instance_pallet! {
         let caller: T::AccountId = whitelisted_caller();
         let origin = T::ProtocolFeeUpdateOrigin::successful_origin();
         let call = Call::<T, I>::update_protocol_fee_receiver {
-            protocol_fee_receiver: caller.clone()
+            protocol_fee_receiver: caller
         };
     }: {
         call.dispatch_bypass_filter(origin)?
