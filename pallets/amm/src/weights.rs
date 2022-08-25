@@ -86,20 +86,13 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().writes(13 as Weight))
     }
 
+    // Storage: AMM ProtocolFee (r:0 w:1)
     fn update_protocol_fee() -> Weight {
-        (238_051_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(10 as Weight))
-            .saturating_add(T::DbWeight::get().writes(10 as Weight))
+        (4_067_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
-    // Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
-    // Storage: AMM Pools (r:1 w:1)
-    // Storage: Assets Asset (r:3 w:3)
-    // Storage: Assets Account (r:6 w:6)
-    // Storage: System Account (r:2 w:2)
+    // Storage: AMM ProtocolFeeReceiver (r:0 w:1)
     fn update_protocol_fee_receiver() -> Weight {
-        (291_928_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(13 as Weight))
-            .saturating_add(T::DbWeight::get().writes(13 as Weight))
+        (4_114_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
 }
 
@@ -134,19 +127,12 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().writes(13 as Weight))
     }
 
+    // Storage: AMM ProtocolFee (r:0 w:1)
     fn update_protocol_fee() -> Weight {
-        (238_051_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(10 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(10 as Weight))
+        (4_067_000 as Weight).saturating_add(RocksDbWeight::get().writes(1 as Weight))
     }
-    // Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
-    // Storage: AMM Pools (r:1 w:1)
-    // Storage: Assets Asset (r:3 w:3)
-    // Storage: Assets Account (r:6 w:6)
-    // Storage: System Account (r:2 w:2)
+    // Storage: AMM ProtocolFeeReceiver (r:0 w:1)
     fn update_protocol_fee_receiver() -> Weight {
-        (291_928_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(13 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(13 as Weight))
+        (4_114_000 as Weight).saturating_add(RocksDbWeight::get().writes(1 as Weight))
     }
 }

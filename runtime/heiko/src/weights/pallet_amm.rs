@@ -19,6 +19,7 @@
 // --repeat=20
 // --output=./runtime/heiko/src/weights/pallet_amm.rs
 
+#![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
@@ -33,7 +34,7 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:3 w:3)
 	// Storage: Assets Account (r:5 w:5)
 	fn add_liquidity() -> Weight {
-		(80_073_000 as Weight)
+		(81_263_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(10 as Weight))
 			.saturating_add(T::DbWeight::get().writes(9 as Weight))
 	}
@@ -42,7 +43,7 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:3 w:3)
 	// Storage: Assets Account (r:5 w:5)
 	fn remove_liquidity() -> Weight {
-		(86_332_000 as Weight)
+		(90_447_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(10 as Weight))
 			.saturating_add(T::DbWeight::get().writes(9 as Weight))
 	}
@@ -52,24 +53,18 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:2 w:2)
 	// Storage: AMM ProtocolFee (r:1 w:0)
 	fn create_pool() -> Weight {
-		(106_388_000 as Weight)
+		(112_174_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(13 as Weight))
 			.saturating_add(T::DbWeight::get().writes(12 as Weight))
 	}
-
-    fn update_protocol_fee() -> Weight {
-        (238_051_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(10 as Weight))
-            .saturating_add(T::DbWeight::get().writes(10 as Weight))
-    }
-    // Storage: unknown [0x3a7472616e73616374696f6e5f6c6576656c3a] (r:1 w:1)
-    // Storage: AMM Pools (r:1 w:1)
-    // Storage: Assets Asset (r:3 w:3)
-    // Storage: Assets Account (r:6 w:6)
-    // Storage: System Account (r:2 w:2)
-    fn update_protocol_fee_receiver() -> Weight {
-        (291_928_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(13 as Weight))
-            .saturating_add(T::DbWeight::get().writes(13 as Weight))
-    }
+	// Storage: AMM ProtocolFee (r:0 w:1)
+	fn update_protocol_fee() -> Weight {
+		(4_067_000 as Weight)
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
+	// Storage: AMM ProtocolFeeReceiver (r:0 w:1)
+	fn update_protocol_fee_receiver() -> Weight {
+		(4_114_000 as Weight)
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
 }
