@@ -975,40 +975,12 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            Unlockings::<T>::try_mutate(&who, |b| -> DispatchResultWithPostInfo {
-                let chunks = b.as_mut().ok_or(Error::<T>::NoUnlockings)?;
-                let mut cancelled: Balance = Zero::zero();
+            FastUnstakeRequests::<T>::try_mutate(&who, |b| -> DispatchResultWithPostInfo {
+                let balance = T::Assets::reducible_balance(Self::liquid_currency()?, &who, false);
+                *b = b.min(balance).saturating_sub(amount);
 
-                while let Some(last) = chunks.last_mut() {
-                    if last.era != Self::target_era() || cancelled >= amount {
-                        break;
-                    }
-
-                    if cancelled + last.value <= amount {
-                        cancelled += last.value;
-                        chunks.pop();
-                    } else {
-                        let diff = amount - cancelled;
-
-                        cancelled += diff;
-                        last.value -= diff;
-                    }
-                }
-
-                MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                    p.sub_unstake_amount(cancelled)
-                })?;
-
-                let liquid_amount =
-                    Self::staking_to_liquid(cancelled).ok_or(Error::<T>::InvalidExchangeRate)?;
-
-                T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
-
-                Self::deposit_event(Event::<T>::UnstakeCancelled(
-                    who.clone(),
-                    cancelled,
-                    liquid_amount,
-                ));
+                // reserve two amounts in event
+                Self::deposit_event(Event::<T>::UnstakeCancelled(who.clone(), amount, amount));
 
                 Ok(().into())
             })

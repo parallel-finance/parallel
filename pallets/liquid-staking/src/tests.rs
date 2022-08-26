@@ -982,8 +982,10 @@ fn cancel_unstake_works() {
         assert_ok!(LiquidStaking::unstake(
             Origin::signed(ALICE),
             ksm(6f64),
-            Default::default()
+            UnstakeProvider::MatchingPool
         ));
+
+        assert_eq!(LiquidStaking::fast_unstake_requests(&ALICE), ksm(6f64));
 
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
@@ -999,14 +1001,6 @@ fn cancel_unstake_works() {
                     reserved: 0
                 }
             }
-        );
-
-        assert_eq!(
-            Unlockings::<Test>::get(ALICE).unwrap(),
-            vec![UnlockChunk {
-                value: ksm(6f64),
-                era: 4
-            }]
         );
 
         assert_ok!(LiquidStaking::cancel_unstake(
@@ -1027,7 +1021,7 @@ fn cancel_unstake_works() {
             }
         );
 
-        assert_eq!(Unlockings::<Test>::get(ALICE).unwrap(), vec![]);
+        assert_eq!(LiquidStaking::fast_unstake_requests(&ALICE), 0);
     })
 }
 
