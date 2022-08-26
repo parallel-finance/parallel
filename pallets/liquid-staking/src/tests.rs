@@ -997,7 +997,7 @@ fn cancel_unstake_works() {
                     reserved: 0
                 },
                 total_unstake_amount: ReservableAmount {
-                    total: ksm(6f64),
+                    total: 0,
                     reserved: 0
                 }
             }
@@ -1162,6 +1162,11 @@ fn test_complete_fast_match_unstake_work() {
         ));
 
         assert_eq!(
+            <Test as Config>::Assets::balance(SKSM, &DefaultProtocolFeeReceiver::get()),
+            MatchingPoolFastUnstakeFee::get().saturating_mul_int(fast_unstake_amount)
+        );
+
+        assert_eq!(
             <Test as Config>::Assets::balance(SKSM, &BOB),
             total_stake_amount - fast_unstake_amount
         );
@@ -1257,10 +1262,5 @@ fn test_partial_fast_match_unstake_work() {
                 TransactionOutcome::Commit(Ok(()))
             }
         ));
-
-        assert_eq!(
-            LiquidStaking::fast_unstake_requests(&ALICE),
-            Default::default()
-        );
     })
 }

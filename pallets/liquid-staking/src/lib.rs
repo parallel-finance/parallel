@@ -977,7 +977,7 @@ pub mod pallet {
 
             FastUnstakeRequests::<T>::try_mutate(&who, |b| -> DispatchResultWithPostInfo {
                 let balance = T::Assets::reducible_balance(Self::liquid_currency()?, &who, false);
-                *b = b.min(balance).saturating_sub(amount);
+                *b = (*b).min(balance).saturating_sub(amount);
 
                 // reserve two amounts in event
                 Self::deposit_event(Event::<T>::UnstakeCancelled(who.clone(), amount, amount));
