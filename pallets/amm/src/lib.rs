@@ -444,7 +444,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             protocol_fee: Ratio,
         ) -> DispatchResultWithPostInfo {
-            T::CreatePoolOrigin::ensure_origin(origin)?;
+            T::ProtocolFeeUpdateOrigin::ensure_origin(origin)?;
             ProtocolFee::<T, I>::put(protocol_fee);
             Self::deposit_event(Event::<T, I>::ProtocolFeeUpdated(protocol_fee));
             Ok(().into())
@@ -456,7 +456,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             protocol_fee_receiver: T::AccountId,
         ) -> DispatchResultWithPostInfo {
-            T::CreatePoolOrigin::ensure_origin(origin)?;
+            T::ProtocolFeeUpdateOrigin::ensure_origin(origin)?;
             ProtocolFeeReceiver::<T, I>::put(protocol_fee_receiver.clone());
             Self::deposit_event(Event::<T, I>::ProtocolFeeReceiverUpdated(
                 protocol_fee_receiver,
