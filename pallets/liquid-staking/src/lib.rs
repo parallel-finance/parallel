@@ -1772,11 +1772,11 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_loans_instant_unstake(who: &AccountIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
-            let loans_fast_unstake_fee = T::LoansInstantUnstakeFee::get()
+            let loans_instant_unstake_fee = T::LoansInstantUnstakeFee::get()
                 .checked_mul_int(amount)
                 .ok_or(ArithmeticError::Overflow)?;
             let borrow_amount = amount
-                .checked_sub(loans_fast_unstake_fee)
+                .checked_sub(loans_instant_unstake_fee)
                 .ok_or(ArithmeticError::Underflow)?;
             let collateral_currency = T::CollateralCurrency::get();
             let mint_amount = T::Loans::get_market_info(collateral_currency)?
