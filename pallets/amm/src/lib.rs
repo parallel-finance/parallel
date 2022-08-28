@@ -190,6 +190,12 @@ pub mod pallet {
             BalanceOf<T, I>,
             BalanceOf<T, I>,
         ),
+
+        /// Protocol fee proportion of LP fee updated.
+        ProtocolFeeUpdated(Ratio),
+
+        /// Protocol fee receiver updated
+        ProtocolFeeReceiverUpdated(T::AccountId),
     }
 
     #[pallet::pallet]
@@ -438,9 +444,9 @@ pub mod pallet {
             origin: OriginFor<T>,
             protocol_fee: Ratio,
         ) -> DispatchResultWithPostInfo {
-            T::CreatePoolOrigin::ensure_origin(origin)?;
+            T::ProtocolFeeUpdateOrigin::ensure_origin(origin)?;
             ProtocolFee::<T, I>::put(protocol_fee);
-            //TODO(alanotnerd): deposite event
+            Self::deposit_event(Event::<T, I>::ProtocolFeeUpdated(protocol_fee));
             Ok(().into())
         }
 
@@ -450,9 +456,11 @@ pub mod pallet {
             origin: OriginFor<T>,
             protocol_fee_receiver: T::AccountId,
         ) -> DispatchResultWithPostInfo {
-            T::CreatePoolOrigin::ensure_origin(origin)?;
-            ProtocolFeeReceiver::<T, I>::put(protocol_fee_receiver);
-            //TODO(alanotnerd): deposite event
+            T::ProtocolFeeUpdateOrigin::ensure_origin(origin)?;
+            ProtocolFeeReceiver::<T, I>::put(protocol_fee_receiver.clone());
+            Self::deposit_event(Event::<T, I>::ProtocolFeeReceiverUpdated(
+                protocol_fee_receiver,
+            ));
             Ok(().into())
         }
     }
