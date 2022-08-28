@@ -46,7 +46,7 @@ use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedSub, One, Saturating, Zero},
     ArithmeticError, DispatchError, FixedPointNumber, FixedU128, SaturatedConversion,
 };
-use sp_std::{cmp::min, ops::Div, result::Result, vec::Vec};
+use sp_std::{cmp::min, result::Result, vec::Vec};
 
 pub use pallet::*;
 pub use weights::WeightInfo;
@@ -88,14 +88,13 @@ pub mod pallet {
         /// Specify which origin is allowed to create new pools.
         type CreatePoolOrigin: EnsureOrigin<Self::Origin>;
 
+        /// Specify which origin is allowed to update fee receiver.
+        type ProtocolFeeUpdateOrigin: EnsureOrigin<Self::Origin>;
+
         /// Defines the fees taken out of each trade and sent back to the AMM pool,
         /// typically 0.3%.
         #[pallet::constant]
         type LpFee: Get<Ratio>;
-
-        /// How much the protocol is taking out of each trade.
-        #[pallet::constant]
-        type ProtocolFee: Get<Ratio>;
 
         /// Minimum amount of liquidty needed to init a new pool
         /// this amount is burned when the pool is created.
@@ -108,10 +107,6 @@ pub mod pallet {
         /// is first added.
         #[pallet::constant]
         type MinimumLiquidity: Get<BalanceOf<Self, I>>;
-
-        /// Who/where to send the protocol fees
-        #[pallet::constant]
-        type ProtocolFeeReceiver: Get<Self::AccountId>;
 
         /// How many routes we support at most
         #[pallet::constant]
@@ -143,6 +138,8 @@ pub mod pallet {
         LpTokenAlreadyExists,
         /// Conversion failure to u128
         ConversionToU128Failed,
+        /// Protocol fee receiver not set
+        ProtocolFeeReceiverNotSet,
     }
 
     #[pallet::event]
@@ -193,6 +190,12 @@ pub mod pallet {
             BalanceOf<T, I>,
             BalanceOf<T, I>,
         ),
+
+        /// Protocol fee proportion of LP fee updated.
+        ProtocolFeeUpdated(Ratio),
+
+        /// Protocol fee receiver updated
+        ProtocolFeeReceiverUpdated(T::AccountId),
     }
 
     #[pallet::pallet]
@@ -210,6 +213,15 @@ pub mod pallet {
         Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
         OptionQuery,
     >;
+
+    /// How much the protocol is taking out of each trade.
+    #[pallet::storage]
+    #[pallet::getter(fn protocol_fee)]
+    pub type ProtocolFee<T: Config<I>, I: 'static = ()> = StorageValue<_, Ratio, ValueQuery>;
+
+    /// Who/where to send the protocol fees
+    #[pallet::storage]
+    pub type ProtocolFeeReceiver<T: Config<I>, I: 'static = ()> = StorageValue<_, T::AccountId>;
 
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
@@ -425,6 +437,32 @@ pub mod pallet {
 
             Ok(().into())
         }
+
+        #[pallet::weight(T::AMMWeightInfo::update_protocol_fee())]
+        #[transactional]
+        pub fn update_protocol_fee(
+            origin: OriginFor<T>,
+            protocol_fee: Ratio,
+        ) -> DispatchResultWithPostInfo {
+            T::ProtocolFeeUpdateOrigin::ensure_origin(origin)?;
+            ProtocolFee::<T, I>::put(protocol_fee);
+            Self::deposit_event(Event::<T, I>::ProtocolFeeUpdated(protocol_fee));
+            Ok(().into())
+        }
+
+        #[pallet::weight(T::AMMWeightInfo::update_protocol_fee_receiver())]
+        #[transactional]
+        pub fn update_protocol_fee_receiver(
+            origin: OriginFor<T>,
+            protocol_fee_receiver: T::AccountId,
+        ) -> DispatchResultWithPostInfo {
+            T::ProtocolFeeUpdateOrigin::ensure_origin(origin)?;
+            ProtocolFeeReceiver::<T, I>::put(protocol_fee_receiver.clone());
+            Self::deposit_event(Event::<T, I>::ProtocolFeeReceiverUpdated(
+                protocol_fee_receiver,
+            ));
+            Ok(().into())
+        }
     }
 }
 
@@ -435,6 +473,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     pub fn lock_account_id() -> T::AccountId {
         T::LockAccountId::get()
+    }
+
+    fn protolcol_fee_receiver() -> Result<T::AccountId, DispatchError> {
+        Ok(ProtocolFeeReceiver::<T, I>::get().ok_or(Error::<T, I>::ProtocolFeeReceiverNotSet)?)
     }
 
     fn quote(
@@ -502,15 +544,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     fn protocol_fee_on() -> bool {
-        !T::ProtocolFee::get().is_zero()
+        !Self::protocol_fee().is_zero() && Self::protolcol_fee_receiver().is_ok()
     }
 
     fn get_protocol_fee_reciprocal_proportion() -> Result<BalanceOf<T, I>, DispatchError> {
-        Ok(T::ProtocolFee::get()
-            .checked_add(&T::LpFee::get())
-            .map(|r| T::ProtocolFee::get().div(r))
-            .map(|r| r.saturating_reciprocal_mul_floor::<BalanceOf<T, I>>(One::one()))
-            .ok_or(ArithmeticError::Underflow)?)
+        Ok(Self::protocol_fee().saturating_reciprocal_mul_floor::<BalanceOf<T, I>>(One::one()))
     }
 
     // given an input amount and a vector of assets, return a vector of output
@@ -571,21 +609,18 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
     //
+    // amountIn = amountIn * (1 - fee_percent)
     // reserveIn * reserveOut = (reserveIn + amountIn) * (reserveOut - amountOut)
     // reserveIn * reserveOut = reserveIn * reserveOut + amountIn * reserveOut - (reserveIn + amountIn) * amountOut
     // amountIn * reserveOut = (reserveIn + amountIn) * amountOut
     //
     // amountOut = amountIn * reserveOut / (reserveIn + amountIn)
-    // amountOut  = amountOut * (1 - fee_percent)
     fn get_amount_out(
         amount_in: BalanceOf<T, I>,
         reserve_in: BalanceOf<T, I>,
         reserve_out: BalanceOf<T, I>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
-        let fees = T::LpFee::get()
-            .checked_add(&T::ProtocolFee::get())
-            .map(|r| r.mul_ceil(amount_in))
-            .ok_or(ArithmeticError::Overflow)?;
+        let fees = T::LpFee::get().mul_ceil(amount_in);
 
         let amount_in = amount_in
             .checked_sub(fees)
@@ -620,12 +655,13 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
     //
-    // amountOut = amountIn * reserveOut / reserveIn + amountIn
+    // amountOut = amountIn * reserveOut / (reserveIn + amountIn)
     // amountOut * reserveIn + amountOut * amountIn  = amountIn * reserveOut
     // amountOut * reserveIn = amountIn * (reserveOut - amountOut)
     //
     // amountIn = amountOut * reserveIn / (reserveOut - amountOut)
-    // amountIn = (amountIn / (1 - fee_percent)) + 1
+    // Note: To make sure it greater than expected amount_out.
+    // amountIn = (amountIn / (1 - fee_percent)) + **1**
     fn get_amount_in(
         amount_out: BalanceOf<T, I>,
         reserve_in: BalanceOf<T, I>,
@@ -647,9 +683,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_div(denominator)
             .ok_or(ArithmeticError::Underflow)?;
 
-        let fee_percent = T::LpFee::get()
-            .checked_add(&T::ProtocolFee::get())
-            .and_then(|r| Ratio::from_percent(100).checked_sub(&r))
+        let fee_percent = Ratio::from_percent(100)
+            .checked_sub(&T::LpFee::get())
             .ok_or(ArithmeticError::Underflow)?;
 
         log::trace!(
@@ -971,7 +1006,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         T::Assets::mint_into(
             pool.lp_token_id,
-            &T::ProtocolFeeReceiver::get(),
+            &Self::protolcol_fee_receiver()?,
             protocol_fees,
         )?;
 
@@ -1006,11 +1041,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     (pool.base_amount, pool.quote_amount)
                 };
 
+                //FIXME(Alan): Why do this check?
                 ensure!(
-                    amount_in
-                        >= T::ProtocolFee::get()
-                            .saturating_add(T::LpFee::get())
-                            .saturating_reciprocal_mul_ceil(One::one()),
+                    amount_in >= T::LpFee::get().saturating_reciprocal_mul_ceil(One::one()),
                     Error::<T, I>::InsufficientAmountIn
                 );
                 ensure!(!supply_out.is_zero(), Error::<T, I>::InsufficientAmountOut);

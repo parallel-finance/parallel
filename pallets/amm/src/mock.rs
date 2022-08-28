@@ -154,8 +154,6 @@ impl pallet_assets::Config for Test {
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
     pub DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
-    pub DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.05%
-    pub const DefaultProtocolFeeReceiver: AccountId = PROTOCOL_FEE_RECEIVER;
     pub const MinimumLiquidity: u128 = 1_000u128;
     pub const LockAccountId: AccountId = AccountId(1_u64);
     pub const MaxLengthRoute: u8 = 10;
@@ -175,10 +173,9 @@ impl pallet_amm::Config for Test {
     type LockAccountId = LockAccountId;
     type AMMWeightInfo = ();
     type CreatePoolOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
+    type ProtocolFeeUpdateOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
     type LpFee = DefaultLpFee;
-    type ProtocolFee = DefaultProtocolFee;
     type MinimumLiquidity = MinimumLiquidity;
-    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
     type MaxLengthRoute = MaxLengthRoute;
     type GetNativeCurrencyId = NativeCurrencyId;
 }

@@ -56,4 +56,12 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(13 as Weight))
 			.saturating_add(T::DbWeight::get().writes(13 as Weight))
 	}
+	// Storage: AMM ProtocolFee (r:0 w:1)
+	fn update_protocol_fee() -> Weight {
+			(4_067_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
+	// Storage: AMM ProtocolFeeReceiver (r:0 w:1)
+	fn update_protocol_fee_receiver() -> Weight {
+			(4_114_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
 }

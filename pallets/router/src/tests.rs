@@ -129,7 +129,7 @@ fn swap_tokens_for_exact_tokens_should_work() {
         .unwrap();
 
         // check balances after swap
-        assert_eq!(Assets::balance(DOT, trader), 10_000 - 1_005);
+        assert_eq!(Assets::balance(DOT, trader), 10_000 - 1_004);
         assert_eq!(Assets::balance(SDOT, trader), 10_000 + 1_000);
     });
 }

@@ -1906,11 +1906,10 @@ impl pallet_amm::Config for Runtime {
     type PalletId = AMMPalletId;
     type LockAccountId = OneAccount;
     type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ProtocolFeeUpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AMMWeightInfo = weights::pallet_amm::WeightInfo<Runtime>;
     type LpFee = DefaultLpFee;
-    type ProtocolFee = DefaultProtocolFee;
     type MinimumLiquidity = MinimumLiquidity;
-    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
     type MaxLengthRoute = MaxLengthRoute;
     type GetNativeCurrencyId = NativeCurrencyId;
 }
