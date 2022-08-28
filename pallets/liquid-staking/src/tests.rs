@@ -6,7 +6,7 @@ use frame_support::{
     traits::{fungibles::Inspect, Hooks},
 };
 use sp_runtime::{
-    traits::{BlakeTwo256, One, Zero},
+    traits::{BlakeTwo256, One, Saturating, Zero},
     ArithmeticError::Underflow,
     MultiAddress::Id,
     TransactionOutcome,
@@ -982,8 +982,10 @@ fn cancel_unstake_works() {
         assert_ok!(LiquidStaking::unstake(
             Origin::signed(ALICE),
             ksm(6f64),
-            Default::default()
+            UnstakeProvider::MatchingPool
         ));
+
+        assert_eq!(LiquidStaking::fast_unstake_requests(&ALICE), ksm(6f64));
 
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
@@ -995,18 +997,10 @@ fn cancel_unstake_works() {
                     reserved: 0
                 },
                 total_unstake_amount: ReservableAmount {
-                    total: ksm(6f64),
+                    total: 0,
                     reserved: 0
                 }
             }
-        );
-
-        assert_eq!(
-            Unlockings::<Test>::get(ALICE).unwrap(),
-            vec![UnlockChunk {
-                value: ksm(6f64),
-                era: 4
-            }]
         );
 
         assert_ok!(LiquidStaking::cancel_unstake(
@@ -1027,7 +1021,7 @@ fn cancel_unstake_works() {
             }
         );
 
-        assert_eq!(Unlockings::<Test>::get(ALICE).unwrap(), vec![]);
+        assert_eq!(LiquidStaking::fast_unstake_requests(&ALICE), 0);
     })
 }
 
@@ -1144,5 +1138,129 @@ fn test_charge_commission_work() {
             <Test as Config>::Assets::balance(SKSM, &DefaultProtocolFeeReceiver::get()),
             inflate_liquid_amount
         )
+    })
+}
+
+#[test]
+fn test_complete_fast_match_unstake_work() {
+    new_test_ext().execute_with(|| {
+        let reserve_factor = LiquidStaking::reserve_factor();
+        let xcm_fees = XcmFees::get();
+        let bond_amount = ksm(10f64);
+        assert_ok!(LiquidStaking::stake(Origin::signed(BOB), bond_amount));
+        let total_stake_amount = bond_amount - xcm_fees - reserve_factor.mul_floor(bond_amount);
+
+        let fast_unstake_amount = ksm(3f64);
+        assert_ok!(LiquidStaking::unstake(
+            Origin::signed(BOB),
+            fast_unstake_amount,
+            UnstakeProvider::MatchingPool
+        ));
+        assert_ok!(LiquidStaking::fast_match_unstake(
+            Origin::signed(ALICE),
+            [BOB].to_vec(),
+        ));
+
+        assert_eq!(
+            <Test as Config>::Assets::balance(SKSM, &DefaultProtocolFeeReceiver::get()),
+            MatchingPoolFastUnstakeFee::get().saturating_mul_int(fast_unstake_amount)
+        );
+
+        assert_eq!(
+            <Test as Config>::Assets::balance(SKSM, &BOB),
+            total_stake_amount - fast_unstake_amount
+        );
+        let pool_stake_amount = total_stake_amount
+            - Rate::one()
+                .saturating_sub(MatchingPoolFastUnstakeFee::get())
+                .saturating_mul_int(fast_unstake_amount);
+        assert_eq!(
+            LiquidStaking::matching_pool(),
+            MatchingLedger {
+                total_stake_amount: ReservableAmount {
+                    total: pool_stake_amount,
+                    reserved: 0
+                },
+                total_unstake_amount: Default::default(),
+            }
+        );
+    })
+}
+
+#[test]
+fn test_partial_fast_match_unstake_work() {
+    new_test_ext().execute_with(|| {
+        let reserve_factor = LiquidStaking::reserve_factor();
+        let xcm_fees = XcmFees::get();
+        let bond_amount = ksm(5f64);
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), bond_amount));
+        assert_ok!(LiquidStaking::stake(Origin::signed(BOB), bond_amount));
+
+        let alice_stake_amount = bond_amount - xcm_fees - reserve_factor.mul_floor(bond_amount);
+        let bob_stake_amount = alice_stake_amount;
+
+        // default exchange_rate is 1
+        let alice_fast_unstake_amount = ksm(10f64);
+        let bob_fast_unstake_amount = ksm(1f64);
+        assert_ok!(LiquidStaking::unstake(
+            Origin::signed(ALICE),
+            alice_fast_unstake_amount,
+            UnstakeProvider::MatchingPool
+        ));
+        assert_ok!(LiquidStaking::unstake(
+            Origin::signed(BOB),
+            bob_fast_unstake_amount,
+            UnstakeProvider::MatchingPool
+        ));
+        assert_ok!(LiquidStaking::fast_match_unstake(
+            Origin::signed(ALICE),
+            [BOB, ALICE].to_vec(),
+        ));
+
+        assert_eq!(
+            <Test as Config>::Assets::balance(SKSM, &BOB),
+            bob_stake_amount - bob_fast_unstake_amount
+        );
+
+        let bob_matched_amount = Rate::one()
+            .saturating_sub(MatchingPoolFastUnstakeFee::get())
+            .saturating_mul_int(bob_fast_unstake_amount);
+
+        let available_amount = (alice_stake_amount + bob_stake_amount - bob_matched_amount)
+            .min(alice_fast_unstake_amount);
+        let alice_matched_amount = Rate::one()
+            .saturating_sub(MatchingPoolFastUnstakeFee::get())
+            .saturating_mul_int(available_amount);
+
+        // mint in mock
+        let alice_initial_amount = ksm(100f64);
+        assert_eq!(
+            <Test as Config>::Assets::balance(SKSM, &ALICE),
+            alice_initial_amount + alice_stake_amount - available_amount
+        );
+
+        assert_eq!(
+            LiquidStaking::matching_pool(),
+            MatchingLedger {
+                total_stake_amount: ReservableAmount {
+                    total: alice_stake_amount + bob_stake_amount
+                        - bob_matched_amount
+                        - alice_matched_amount,
+                    reserved: 0
+                },
+                total_unstake_amount: Default::default(),
+            }
+        );
+        assert_eq!(
+            LiquidStaking::fast_unstake_requests(&ALICE),
+            alice_fast_unstake_amount - available_amount
+        );
+
+        assert_ok!(with_transaction(
+            || -> TransactionOutcome<DispatchResult> {
+                assert_ok!(LiquidStaking::do_matching());
+                TransactionOutcome::Commit(Ok(()))
+            }
+        ));
     })
 }

@@ -157,6 +157,10 @@ pub mod pallet {
         #[pallet::constant]
         type LoansInstantUnstakeFee: Get<Rate>;
 
+        /// MatchingPool fast unstake fee
+        #[pallet::constant]
+        type MatchingPoolFastUnstakeFee: Get<Rate>;
+
         /// Staking currency
         #[pallet::constant]
         type StakingCurrency: Get<AssetIdOf<Self>>;
@@ -274,6 +278,9 @@ pub mod pallet {
         UnstakeCancelled(T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// Commission rate was updated
         CommissionRateUpdated(Rate),
+        /// Fast Unstake Matched
+        /// [unstaker, received_staking_amount, matched_liquid_amount, fee_in_liquid_currency]
+        FastUnstakeMatched(T::AccountId, BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -364,6 +371,12 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn xcm_request)]
     pub type XcmRequests<T> = StorageMap<_, Blake2_128Concat, QueryId, XcmRequest<T>, OptionQuery>;
+
+    /// Users' fast unstake requests in liquid currency
+    #[pallet::storage]
+    #[pallet::getter(fn fast_unstake_requests)]
+    pub type FastUnstakeRequests<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
     /// Current era index
     /// Users can come to claim their unbonded staking assets back once this value arrived
@@ -509,6 +522,16 @@ pub mod pallet {
                 liquid_amount >= T::MinUnstake::get(),
                 Error::<T>::UnstakeTooSmall
             );
+
+            if unstake_provider.is_matching_pool() {
+                FastUnstakeRequests::<T>::try_mutate(&who, |b| -> DispatchResult {
+                    let balance =
+                        T::Assets::reducible_balance(Self::liquid_currency()?, &who, false);
+                    *b = b.saturating_add(liquid_amount).min(balance);
+                    Ok(())
+                })?;
+                return Ok(().into());
+            }
 
             let amount =
                 Self::liquid_to_staking(liquid_amount).ok_or(Error::<T>::InvalidExchangeRate)?;
@@ -952,40 +975,12 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            Unlockings::<T>::try_mutate(&who, |b| -> DispatchResultWithPostInfo {
-                let chunks = b.as_mut().ok_or(Error::<T>::NoUnlockings)?;
-                let mut cancelled: Balance = Zero::zero();
+            FastUnstakeRequests::<T>::try_mutate(&who, |b| -> DispatchResultWithPostInfo {
+                let balance = T::Assets::reducible_balance(Self::liquid_currency()?, &who, false);
+                *b = (*b).min(balance).saturating_sub(amount);
 
-                while let Some(last) = chunks.last_mut() {
-                    if last.era != Self::target_era() || cancelled >= amount {
-                        break;
-                    }
-
-                    if cancelled + last.value <= amount {
-                        cancelled += last.value;
-                        chunks.pop();
-                    } else {
-                        let diff = amount - cancelled;
-
-                        cancelled += diff;
-                        last.value -= diff;
-                    }
-                }
-
-                MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                    p.sub_unstake_amount(cancelled)
-                })?;
-
-                let liquid_amount =
-                    Self::staking_to_liquid(cancelled).ok_or(Error::<T>::InvalidExchangeRate)?;
-
-                T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
-
-                Self::deposit_event(Event::<T>::UnstakeCancelled(
-                    who.clone(),
-                    cancelled,
-                    liquid_amount,
-                ));
+                // reserve two amounts in event
+                Self::deposit_event(Event::<T>::UnstakeCancelled(who.clone(), amount, amount));
 
                 Ok(().into())
             })
@@ -1013,6 +1008,20 @@ pub mod pallet {
 
             CommissionRate::<T>::put(commission_rate);
             Self::deposit_event(Event::<T>::CommissionRateUpdated(commission_rate));
+            Ok(())
+        }
+
+        /// Fast match unstake through matching pool
+        #[pallet::weight(<T as Config>::WeightInfo::fast_match_unstake(unstaker_list.len() as u32))]
+        #[transactional]
+        pub fn fast_match_unstake(
+            origin: OriginFor<T>,
+            unstaker_list: Vec<T::AccountId>,
+        ) -> DispatchResult {
+            let _ = ensure_signed(origin)?;
+            for unstaker in unstaker_list {
+                Self::do_fast_match_unstake(&unstaker)?;
+            }
             Ok(())
         }
     }
@@ -1763,11 +1772,11 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_loans_instant_unstake(who: &AccountIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
-            let loans_fast_unstake_fee = T::LoansInstantUnstakeFee::get()
+            let loans_instant_unstake_fee = T::LoansInstantUnstakeFee::get()
                 .checked_mul_int(amount)
                 .ok_or(ArithmeticError::Overflow)?;
             let borrow_amount = amount
-                .checked_sub(loans_fast_unstake_fee)
+                .checked_sub(loans_instant_unstake_fee)
                 .ok_or(ArithmeticError::Underflow)?;
             let collateral_currency = T::CollateralCurrency::get();
             let mint_amount = T::Loans::get_market_info(collateral_currency)?
@@ -1811,6 +1820,75 @@ pub mod pallet {
             .unwrap_or_else(Rate::zero);
             let inflate_liquid_amount = inflate_rate.saturating_mul_int(issuance);
             Ok(inflate_liquid_amount)
+        }
+
+        #[require_transactional]
+        fn do_fast_match_unstake(unstaker: &T::AccountId) -> DispatchResult {
+            FastUnstakeRequests::<T>::try_mutate_exists(unstaker, |b| -> DispatchResult {
+                if b.is_none() {
+                    return Ok(());
+                }
+                let current_liquid_amount =
+                    T::Assets::reducible_balance(Self::liquid_currency()?, unstaker, false);
+                let request_liquid_amount = b
+                    .take()
+                    .expect("Could not be none, qed;")
+                    .min(current_liquid_amount);
+
+                let available_liquid_amount =
+                    Self::staking_to_liquid(Self::matching_pool().total_stake_amount.free()?)
+                        .ok_or(Error::<T>::InvalidExchangeRate)?;
+
+                let matched_liquid_amount = request_liquid_amount.min(available_liquid_amount);
+
+                if !matched_liquid_amount.is_zero() {
+                    let matched_fee = T::MatchingPoolFastUnstakeFee::get()
+                        .saturating_mul_int(matched_liquid_amount);
+                    let liquid_to_burn = matched_liquid_amount.saturating_sub(matched_fee);
+                    T::Assets::burn_from(Self::liquid_currency()?, unstaker, liquid_to_burn)?;
+                    T::Assets::transfer(
+                        Self::liquid_currency()?,
+                        unstaker,
+                        &T::ProtocolFeeReceiver::get(),
+                        matched_fee,
+                        false,
+                    )?;
+
+                    let staking_to_receive = Self::liquid_to_staking(liquid_to_burn)
+                        .ok_or(Error::<T>::InvalidExchangeRate)?;
+
+                    MatchingPool::<T>::try_mutate(|p| p.sub_stake_amount(staking_to_receive))?;
+                    T::Assets::transfer(
+                        Self::staking_currency()?,
+                        &Self::account_id(),
+                        unstaker,
+                        staking_to_receive,
+                        false,
+                    )?;
+
+                    Self::deposit_event(Event::<T>::FastUnstakeMatched(
+                        unstaker.clone(),
+                        staking_to_receive,
+                        matched_liquid_amount,
+                        matched_fee,
+                    ));
+                }
+
+                let unmatched_amount = request_liquid_amount.saturating_sub(matched_liquid_amount);
+                if !unmatched_amount.is_zero() {
+                    *b = Some(unmatched_amount);
+                }
+
+                log::trace!(
+                    target: "liquidStaking::do_fast_match_unstake",
+                    "unstaker: {:?}, request_liquid_amount: {:?}, unmatched_amount: {:?}",
+                    unstaker,
+                    request_liquid_amount,
+                    unmatched_amount,
+                );
+
+                Ok(())
+            })
         }
 
         fn ensure_origin(origin: OriginFor<T>) -> DispatchResult {

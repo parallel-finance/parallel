@@ -343,6 +343,7 @@ impl<AccountId, Balance: BalanceT + FixedPointOperand> StakingLedger<AccountId, 
 pub enum UnstakeProvider {
     RelayChain = 0,
     Loans = 1,
+    MatchingPool = 2,
 }
 
 impl Default for UnstakeProvider {
@@ -358,5 +359,9 @@ impl UnstakeProvider {
 
     pub fn is_loans(&self) -> bool {
         self == &UnstakeProvider::Loans
+    }
+
+    pub fn is_matching_pool(&self) -> bool {
+        self == &UnstakeProvider::MatchingPool
     }
 }
