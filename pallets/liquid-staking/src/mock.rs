@@ -536,13 +536,15 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = SKSM;
     pub const CollateralCurrency: CurrencyId = KSM_U;
     pub const XcmFees: Balance = 0;
-    pub LoansFastUnstakeFee: Rate = Rate::saturating_from_rational(8u32, 1000u32);
+    pub LoansInstantUnstakeFee: Rate = Rate::saturating_from_rational(8u32, 1000u32);
+    pub MatchingPoolFastUnstakeFee: Rate = Rate::saturating_from_rational(1u32, 1000u32);
     pub const BondingDuration: EraIndex = 3;
     pub const MinNominatorBond: Balance = 0;
     pub const NumSlashingSpans: u32 = 0;
     pub static DerivativeIndexList: Vec<u16> = vec![0];
     pub static RelayChainValidationDataProvider: BlockNumber = 0;
     pub const ElectionSolutionStoredOffset: BlockNumber = 10;
+    pub const DefaultProtocolFeeReceiver: AccountId32 = AccountId32::new([100u8; 32]);
 }
 
 impl crate::Config for Test {
@@ -559,7 +561,8 @@ impl crate::Config for Test {
     type CollateralCurrency = CollateralCurrency;
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
-    type LoansFastUnstakeFee = LoansFastUnstakeFee;
+    type LoansInstantUnstakeFee = LoansInstantUnstakeFee;
+    type MatchingPoolFastUnstakeFee = MatchingPoolFastUnstakeFee;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
     type EraLength = EraLength;
@@ -574,6 +577,7 @@ impl crate::Config for Test {
     type NumSlashingSpans = NumSlashingSpans;
     type DistributionStrategy = AverageDistribution;
     type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
 parameter_types! {

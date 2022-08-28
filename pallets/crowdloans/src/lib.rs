@@ -147,6 +147,9 @@ pub mod pallet {
         #[pallet::constant]
         type LeasePerYear: Get<Self::BlockNumber>;
 
+        /// The origin which can update global proxy address
+        type ProxyOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
         /// The origin which can migrate pending contribution
         type MigrateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
@@ -154,16 +157,16 @@ pub mod pallet {
         type VrfOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can create vault
-        type CreateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type CreateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can refund
         type RefundOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can dissolve vault
-        type DissolveVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type DissolveOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can update vault
-        type UpdateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can close/reopen vault
         type OpenCloseOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
@@ -394,7 +397,7 @@ pub mod pallet {
             #[pallet::compact] cap: BalanceOf<T>,
             end_block: BlockNumberFor<T>,
         ) -> DispatchResult {
-            ensure_origin!(CreateVaultOrigin, origin)?;
+            ensure_origin!(CreateOrigin, origin)?;
 
             ensure!(!cap.is_zero(), Error::<T>::InvalidCap);
 
@@ -475,7 +478,7 @@ pub mod pallet {
             end_block: Option<BlockNumberFor<T>>,
             contribution_strategy: Option<ContributionStrategy>,
         ) -> DispatchResult {
-            ensure_origin!(UpdateVaultOrigin, origin)?;
+            ensure_origin!(UpdateOrigin, origin)?;
 
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
@@ -1041,7 +1044,7 @@ pub mod pallet {
             lease_start: LeasePeriod,
             lease_end: LeasePeriod,
         ) -> DispatchResult {
-            ensure_origin!(DissolveVaultOrigin, origin)?;
+            ensure_origin!(DissolveOrigin, origin)?;
 
             let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
@@ -1126,7 +1129,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::update_proxy())]
         #[transactional]
         pub fn update_proxy(origin: OriginFor<T>, proxy_address: AccountIdOf<T>) -> DispatchResult {
-            T::RefundOrigin::ensure_origin(origin)?;
+            T::ProxyOrigin::ensure_origin(origin)?;
             log::trace!(
                 target: "crowdloans::update_proxy",
                 "pre-toggle. proxy_address: {:?}",

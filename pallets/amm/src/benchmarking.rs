@@ -152,6 +152,29 @@ benchmarks_instance_pallet! {
             quote_amount,
         ).into());
     }
+
+    update_protocol_fee {
+        let origin = T::ProtocolFeeUpdateOrigin::successful_origin();
+        let call = Call::<T, I>::update_protocol_fee {
+            protocol_fee: Ratio::from_percent(20)
+        };
+    }: {
+        call.dispatch_bypass_filter(origin)?
+    }
+    verify {
+    }
+
+    update_protocol_fee_receiver {
+        let caller: T::AccountId = whitelisted_caller();
+        let origin = T::ProtocolFeeUpdateOrigin::successful_origin();
+        let call = Call::<T, I>::update_protocol_fee_receiver {
+            protocol_fee_receiver: caller
+        };
+    }: {
+        call.dispatch_bypass_filter(origin)?
+    }
+    verify {
+    }
 }
 
 impl_benchmark_test_suite!(AMM, crate::mock::new_test_ext(), crate::mock::Test,);

@@ -151,7 +151,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 191,
+    spec_version: 192,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -674,7 +674,8 @@ parameter_types! {
     pub const CollateralCurrency: CurrencyId = DOT_U;
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
     // delay 7 eras, we must be able to repay in less than 7 eras
-    pub LoansFastUnstakeFee: Rate = Rate::saturating_from_rational(38u32, 1000u32); // (1.45 ** (3600 * 4 * 36 / 5256000) - 1) * 100% ~= 3.732%
+    pub LoansInstantUnstakeFee: Rate = Rate::saturating_from_rational(38u32, 1000u32); // (1.45 ** (3600 * 4 * 36 / 5256000) - 1) * 100% ~= 3.732%
+    pub MatchingPoolFastUnstakeFee: Rate = Rate::saturating_from_rational(1u32, 100u32);
     pub const BondingDuration: EraIndex = 28; // 28Days
     pub const MinNominatorBond: Balance = 100_000_000_000; // 10DOT
     pub const NumSlashingSpans: u32 = 0;
@@ -695,7 +696,8 @@ impl pallet_liquid_staking::Config for Runtime {
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
-    type LoansFastUnstakeFee = LoansFastUnstakeFee;
+    type LoansInstantUnstakeFee = LoansInstantUnstakeFee;
+    type MatchingPoolFastUnstakeFee = MatchingPoolFastUnstakeFee;
     type DistributionStrategy = pallet_liquid_staking::distribution::MaxMinDistribution;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
@@ -711,6 +713,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;
     type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
 parameter_types! {
@@ -1894,11 +1897,10 @@ impl pallet_amm::Config for Runtime {
     type PalletId = AMMPalletId;
     type LockAccountId = OneAccount;
     type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ProtocolFeeUpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AMMWeightInfo = weights::pallet_amm::WeightInfo<Runtime>;
     type LpFee = DefaultLpFee;
-    type ProtocolFee = DefaultProtocolFee;
     type MinimumLiquidity = MinimumLiquidity;
-    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
     type MaxLengthRoute = MaxLengthRoute;
     type GetNativeCurrencyId = NativeCurrencyId;
 }
@@ -1949,12 +1951,13 @@ impl pallet_crowdloans::Config for Runtime {
     type MinContribution = MinContribution;
     type MigrateKeysLimit = MigrateKeysLimit;
     type RemoveKeysLimit = RemoveKeysLimit;
+    type ProxyOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MigrateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type VrfOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type DissolveVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type DissolveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type RefundOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type UpdateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type OpenCloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionSucceededFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;

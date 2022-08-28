@@ -65,6 +65,8 @@ pub trait WeightInfo {
 	fn force_matching() -> Weight;
 	fn reduce_reserves() -> Weight;
 	fn cancel_unstake() -> Weight;
+	fn update_commission_rate() -> Weight;
+	fn fast_match_unstake(n: u32, ) -> Weight;
 }
 
 /// Weights for pallet_liquid_staking using the Substrate node and recommended hardware.
@@ -366,6 +368,20 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(8 as Weight))
 			.saturating_add(T::DbWeight::get().writes(5 as Weight))
 	}
+	fn update_commission_rate() -> Weight {
+		(40_612_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(2 as Weight))
+			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+	}
+	fn fast_match_unstake(n: u32, ) -> Weight {
+		(21_480_000 as Weight)
+			// Standard Error: 38_000
+			.saturating_add((82_727_000 as Weight).saturating_mul(n as Weight))
+			.saturating_add(T::DbWeight::get().reads(7 as Weight))
+			.saturating_add(T::DbWeight::get().reads((4 as Weight).saturating_mul(n as Weight)))
+			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+			.saturating_add(T::DbWeight::get().writes((4 as Weight).saturating_mul(n as Weight)))
+	}
 }
 
 // For backwards compatibility and tests
@@ -665,5 +681,19 @@ impl WeightInfo for () {
 		(117_945_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(8 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(5 as Weight))
+	}
+
+	fn update_commission_rate() -> Weight {
+		(40_612_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
+	}
+	fn fast_match_unstake(n: u32, ) -> Weight {
+		(21_480_000 as Weight)
+			.saturating_add((82_727_000 as Weight).saturating_mul(n as Weight))
+			.saturating_add(RocksDbWeight::get().reads(7 as Weight))
+			.saturating_add(RocksDbWeight::get().reads((4 as Weight).saturating_mul(n as Weight)))
+			.saturating_add(RocksDbWeight::get().writes(4 as Weight))
+			.saturating_add(RocksDbWeight::get().writes((4 as Weight).saturating_mul(n as Weight)))
 	}
 }

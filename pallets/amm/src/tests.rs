@@ -700,7 +700,7 @@ fn long_route_amounts_in_should_work() {
 
         let amounts_in = AMM::get_amounts_in(amount_out, path).unwrap();
 
-        assert_eq!(amounts_in, [2521, 1116, 1000]);
+        assert_eq!(amounts_in, [2517, 1115, 1000]);
     })
 }
 
@@ -721,7 +721,7 @@ fn short_route_amounts_in_should_work() {
 
         let amounts_in = AMM::get_amounts_in(amount_out, path).unwrap();
 
-        assert_eq!(amounts_in, [1005, 1000]);
+        assert_eq!(amounts_in, [1004, 1000]);
     })
 }
 
@@ -733,10 +733,11 @@ fn amount_in_should_work() {
         let supply_out = 100_000_000;
 
         let amount_in = AMM::get_amount_in(amount_out, supply_in, supply_out).unwrap();
-
-        // actual value == 1004.0190572718165
-        // TODO: assumes we round down to int
-        assert_eq!(amount_in, 1005);
+        // p = 1 - fee_percent
+        // x * y = ( x + p * dx) ( y - dy)
+        //
+        // actual value == round_up(1002.5162908218259) + 1
+        assert_eq!(amount_in, 1004)
     })
 }
 
@@ -777,10 +778,12 @@ fn amount_out_and_in_should_work() {
 
         let amount_in = AMM::get_amount_in(amount_out, supply_in, supply_out).unwrap();
 
-        assert_eq!(amount_in, 1005);
+        // actual: 1002.5162908248136
+        assert_eq!(amount_in, 1004);
 
         let amount_out = AMM::get_amount_out(amount_in, supply_in, supply_out).unwrap();
 
+        // actual: 1000.0834982275963
         assert_eq!(amount_out, 1000);
     })
 }
@@ -1101,6 +1104,37 @@ fn do_add_liquidity_large_amounts_should_work() {
 }
 
 #[test]
+fn update_protocol_fee_should_work() {
+    new_test_ext().execute_with(|| {
+        assert!(AMM::protocol_fee().is_zero());
+
+        assert_ok!(AMM::update_protocol_fee(
+            Origin::signed(ALICE),
+            Ratio::from_percent(20)
+        ));
+
+        assert_eq!(AMM::protocol_fee(), Ratio::from_percent(20));
+    })
+}
+
+#[test]
+fn update_protocol_fee_receiver_should_work() {
+    new_test_ext().execute_with(|| {
+        assert!(AMM::protolcol_fee_receiver().is_err());
+
+        assert_ok!(AMM::update_protocol_fee_receiver(
+            Origin::signed(ALICE),
+            PROTOCOL_FEE_RECEIVER
+        ));
+
+        assert_eq!(
+            AMM::protolcol_fee_receiver().unwrap(),
+            PROTOCOL_FEE_RECEIVER
+        );
+    })
+}
+
+#[test]
 fn handling_fees_should_work() {
     new_test_ext().execute_with(|| {
         // Pool gets created and BOB should receive all of the LP tokens (minus the min amount)
@@ -1111,6 +1145,16 @@ fn handling_fees_should_work() {
             (100_000_000_000, 100_000_000_000), // Liquidity amounts to be added in pool
             BOB,                                // LPToken receiver
             SAMPLE_LP_TOKEN                     // Liquidity pool share representative token
+        ));
+
+        assert_ok!(AMM::update_protocol_fee(
+            Origin::signed(ALICE),
+            Ratio::from_percent(20)
+        ));
+
+        assert_ok!(AMM::update_protocol_fee_receiver(
+            Origin::signed(ALICE),
+            PROTOCOL_FEE_RECEIVER
         ));
 
         // Another user makes a swap that should generate fees for the LP provider and the protocol
@@ -1129,21 +1173,21 @@ fn handling_fees_should_work() {
         );
 
         // now we withdraw the fees and at this point we should mint tokens
-        // for the protocol proportional to 1/6 of the total fees generated
+        // for the protocol proportional to 1/5 of the total fees generated
 
-        // we know that 18_000 fees should be collected and ~3_000 are for the protocol
-        let total_fees_collected = 6_000_000.0 * 0.003;
-        let fees_to_be_collected_by_protocol = total_fees_collected * (1.0 / 6.0);
+        // we know that 18_000 fees should be collected and ~2_500 are for the protocol
+        let total_fees_collected = 6_000_000.0 * 0.0025;
+        let fees_to_be_collected_by_protocol = total_fees_collected * (0.20);
         assert_eq!(fees_to_be_collected_by_protocol, 3000.0);
 
         // expand the math to calculate exact amount of fees to dilute lp total supply
-        let prop_of_total_fee = 1.0 / 6.0;
+        let prop_of_total_fee = 1.0 / 5.0;
         let scalar = (1.0 / prop_of_total_fee) - 1.0;
-        assert_eq!(scalar, 5.0);
+        assert_eq!(scalar, 4.0);
 
         let total_lp_token_supply = 100_000_000_000.0;
         let old_root_k = (100_000_000_000f64 * 100_000_000_000f64).sqrt();
-        let new_root_k = (99_994_018_358f64 * 100_006_000_000f64).sqrt();
+        let new_root_k = (99_994_015_358f64 * 100_006_000_000f64).sqrt();
         let root_k_growth = new_root_k - old_root_k;
 
         let numerator = total_lp_token_supply * root_k_growth;
@@ -1151,11 +1195,14 @@ fn handling_fees_should_work() {
         let rewards_to_mint = numerator / denominator;
 
         assert_eq!(old_root_k, 100_000_000_000.0); // 100_000_000_000
-        assert_eq!(new_root_k, 100_000_008_999.55034); // 100_000_008_999
-        assert_eq!(root_k_growth, 8999.550338745117); // 8999
-        assert_eq!(numerator, 899955033874511.8); // 899_900_000_000_000
-        assert_eq!(denominator, 600000044997.7517); // 600_000_044_995
-        assert_eq!(rewards_to_mint, 1499.9249439687692); // 1499
+        assert_eq!(new_root_k, 100000007499.46045); // 100_000_007_499
+
+        assert_eq!(root_k_growth, 7499.46044921875); // 7499
+        assert_eq!(
+            (numerator, denominator),
+            (749946044921875.0, 500000029997.8418)
+        );
+        assert_eq!(rewards_to_mint, 1499.8919998567042); // 1499
 
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(PROTOCOL_FEE_RECEIVER).into(),
@@ -1165,9 +1212,9 @@ fn handling_fees_should_work() {
 
         // PROTOCOL_FEE_RECEIVER should have slightly less then 3_000 total rewards
         // split between the two pools - the small difference is due to rounding errors
-        assert_eq!(Assets::balance(DOT, PROTOCOL_FEE_RECEIVER), 1285);
+        assert_eq!(Assets::balance(DOT, PROTOCOL_FEE_RECEIVER), 1028);
 
-        assert_eq!(Assets::balance(SDOT, PROTOCOL_FEE_RECEIVER), 1284);
+        assert_eq!(Assets::balance(SDOT, PROTOCOL_FEE_RECEIVER), 1027);
     })
 }
 

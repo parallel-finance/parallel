@@ -45,9 +45,11 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_amm.
 pub trait WeightInfo {
-	fn add_liquidity() -> Weight;
-	fn remove_liquidity() -> Weight;
-	fn create_pool() -> Weight;
+  fn add_liquidity() -> Weight;
+  fn remove_liquidity() -> Weight;
+  fn create_pool() -> Weight;
+  fn update_protocol_fee() -> Weight;
+  fn update_protocol_fee_receiver() -> Weight;
 }
 
 /// Weights for pallet_amm using the Substrate node and recommended hardware.
@@ -81,6 +83,14 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(13 as Weight))
 			.saturating_add(T::DbWeight::get().writes(13 as Weight))
 	}
+	// Storage: AMM ProtocolFee (r:0 w:1)
+  fn update_protocol_fee() -> Weight {
+      (4_067_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
+  }
+  // Storage: AMM ProtocolFeeReceiver (r:0 w:1)
+  fn update_protocol_fee_receiver() -> Weight {
+      (4_114_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
+  }
 }
 
 // For backwards compatibility and tests
@@ -112,5 +122,13 @@ impl WeightInfo for () {
 		(291_928_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(13 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(13 as Weight))
+	}
+	// Storage: AMM ProtocolFee (r:0 w:1)
+	fn update_protocol_fee() -> Weight {
+			(4_067_000 as Weight).saturating_add(RocksDbWeight::get().writes(1 as Weight))
+	}
+	// Storage: AMM ProtocolFeeReceiver (r:0 w:1)
+	fn update_protocol_fee_receiver() -> Weight {
+			(4_114_000 as Weight).saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
 }

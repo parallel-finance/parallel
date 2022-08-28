@@ -31,7 +31,6 @@ pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const CHARLIE: AccountId = 3;
 pub const DAVE: AccountId = 4;
 
 pub const DOT: CurrencyId = tokens::DOT;
@@ -123,8 +122,6 @@ parameter_types! {
     // pub const DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
     // pub const DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);
     pub  DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);         // 0.3%
-    pub  DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.2%
-    pub const DefaultProtocolFeeReceiver: AccountId = CHARLIE;
     pub const MinimumLiquidity: u128 = 1_000u128;
     pub const LockAccountId: AccountId = ALICE;
 
@@ -144,10 +141,9 @@ impl pallet_amm::Config for Runtime {
     type LockAccountId = LockAccountId;
     type AMMWeightInfo = ();
     type CreatePoolOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
+    type ProtocolFeeUpdateOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
     type LpFee = DefaultLpFee;
-    type ProtocolFee = DefaultProtocolFee;
     type MinimumLiquidity = MinimumLiquidity;
-    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
     type MaxLengthRoute = MaxLengthRoute;
     type GetNativeCurrencyId = NativeCurrencyId;
 }
