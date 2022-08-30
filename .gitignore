@@ -1,6 +1,5 @@
 # Editor
 .idea/
-.vscode/
 .vim/
 
 # will have compiled files and executables
@@ -63,3 +62,5 @@ snapshot.bin
 
 scripts/helper/.env
 soljson*
+
+info/
