@@ -37,9 +37,10 @@ where
     #[method(name = "router_getBestRoute")]
     fn get_best_route(
         &self,
-        amount_in: NumberOrHex,
+        amount: NumberOrHex,
         token_in: CurrencyId,
         token_out: CurrencyId,
+        reversed: bool,
         at: Option<BlockHash>,
     ) -> RpcResult<(Vec<CurrencyId>, NumberOrHex)>;
 }
@@ -86,15 +87,22 @@ where
 {
     fn get_best_route(
         &self,
-        amount_in: NumberOrHex,
+        amount: NumberOrHex,
         token_in: CurrencyId,
         token_out: CurrencyId,
+        reversed: bool,
         at: Option<<Block as BlockT>::Hash>,
     ) -> RpcResult<(Vec<CurrencyId>, NumberOrHex)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(self.client.info().best_hash));
         let (route, amt) = api
-            .get_best_route(&at, decode_hex(amount_in, "balance")?, token_in, token_out)
+            .get_best_route(
+                &at,
+                decode_hex(amount, "balance")?,
+                token_in,
+                token_out,
+                reversed,
+            )
             .map_err(runtime_error_into_rpc_error)?
             .map_err(smart_route_rpc_error)?;
         Ok((route, try_into_rpc_balance(amt)?))

@@ -441,6 +441,7 @@ fn get_all_routes_should_work() {
             input_amount, // input amount
             DOT,          // input token
             KSM,          // output token
+            false,
         )
         .unwrap();
 
@@ -585,6 +586,7 @@ fn get_routes_for_non_existing_pair_should_not_work() {
                 10000, // input amount
                 USDT,  // input token
                 SDOT,  // output token
+                false,
             ),
             Error::<Runtime>::TokenDoesNotExists
         );
@@ -626,6 +628,7 @@ fn get_best_route_same_tokens_should_work() {
             input_amount, // input amount
             DOT,          // input token
             DOT,          // output token
+            false,
         )
         .unwrap();
 

@@ -23,9 +23,10 @@ sp_api::decl_runtime_apis! {
     pub trait RouterApi<Balance> where
         Balance: Codec, {
         fn get_best_route(
-            amount_in: Balance,
+            amount: Balance,
             token_in: CurrencyId,
-            token_out: CurrencyId
+            token_out: CurrencyId,
+            reversed: bool,
         ) -> Result<(Vec<CurrencyId>, Balance), DispatchError>;
     }
 }
