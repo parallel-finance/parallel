@@ -671,7 +671,6 @@ fn amounts_out_should_work() {
 
         let amounts_out = AMM::get_amounts_out(amount_in, path).unwrap();
 
-        //
         assert_eq!(amounts_out, [1000, 332, 248]);
     })
 }
