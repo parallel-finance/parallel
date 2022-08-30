@@ -237,7 +237,11 @@ pub mod pallet {
         ) -> Result<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>), DispatchError> {
             let mut all_routes = Self::get_all_routes(amount, token_in, token_out, reversed)?;
             ensure!(!all_routes.is_empty(), Error::<T, I>::NoPossibleRoute);
-            let best_route = all_routes.remove(0);
+            let best_route = if reversed {
+                all_routes.remove(all_routes.len() - 1)
+            } else {
+                all_routes.remove(0)
+            };
 
             log::trace!(
                 target: "router::get_best_route",
@@ -260,13 +264,16 @@ pub mod pallet {
         ) -> Result<Vec<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>)>, DispatchError> {
             let mut output_routes = Vec::new();
 
-            for route in routes {
-                let amounts = if reversed {
-                    T::AMM::get_amounts_in(amount, route.clone())?
-                } else {
-                    T::AMM::get_amounts_out(amount, route.clone())?
-                };
-                output_routes.push((route, amounts[amounts.len() - 1]));
+            if reversed {
+                for route in routes {
+                    let amounts = T::AMM::get_amounts_in(amount, route.clone())?;
+                    output_routes.push((route, amounts[0]));
+                }
+            } else {
+                for route in routes {
+                    let amounts = T::AMM::get_amounts_out(amount, route.clone())?;
+                    output_routes.push((route, amounts[amounts.len() - 1]));
+                }
             }
 
             Ok(output_routes)
