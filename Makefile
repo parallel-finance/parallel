@@ -22,6 +22,7 @@ init: submodules
 	cargo install cargo-udeps --locked
 	cd scripts/helper && yarn
 	cd scripts/polkadot-launch && yarn
+	cd scripts/evm && npm install
 
 .PHONY: submodules
 submodules:
@@ -243,6 +244,14 @@ dev-launch-vanilla:
 .PHONY: local-dev-launch
 local-dev-launch:
 	cargo run --locked --bin parallel --features with-evm-runtime --features runtime-benchmarks --features try-runtime -- --tmp --alice --dev --rpc-cors all --unsafe-ws-external --unsafe-rpc-external --ws-port 19944 --rpc-port 29933
+
+.PHONY: provision-evm
+provision-evm:
+	cd scripts/evm && npm run test-deploy-token
+
+.PHONY: evm-token-test
+evm-token-test:
+	cd scripts/evm && npm run test-mint-token
 
 .PHONY: logs
 logs:

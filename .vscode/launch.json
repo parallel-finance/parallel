@@ -40,11 +40,38 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Mocha Tests",
+            "name": "Bridge Tests",
             "program": "${workspaceFolder}/scripts/evm/node_modules/.bin/_mocha",
             "args": [
               "--colors",
-              "${workspaceFolder}/scripts/evm/test/axelar-test.js",
+              "${workspaceFolder}/scripts/evm/test/axelar-bridge.js",
+            ],
+            "internalConsoleOptions": "openOnSessionStart",
+            "skipFiles": [
+              "<node_internals>/**"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Deploy Token",
+            "args": [
+              "${workspaceFolder}/scripts/evm/script/token.js",
+              "deploy"
+            ],
+            "internalConsoleOptions": "openOnSessionStart",
+            "skipFiles": [
+              "<node_internals>/**"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Mint token test",
+            "args": [
+              "${workspaceFolder}/scripts/evm/script/token.js",
+              "mint",
+              "0x55B243b8A5239D794DA4Af25cD263ad75cb90971"
             ],
             "internalConsoleOptions": "openOnSessionStart",
             "skipFiles": [
