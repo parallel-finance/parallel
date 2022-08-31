@@ -70,8 +70,7 @@
             "name": "Mint token test",
             "args": [
               "${workspaceFolder}/scripts/evm/script/token.js",
-              "mint",
-              "0x55B243b8A5239D794DA4Af25cD263ad75cb90971"
+              "mint"
             ],
             "internalConsoleOptions": "openOnSessionStart",
             "skipFiles": [
