@@ -241,17 +241,17 @@ dev-launch: shutdown
 dev-launch-vanilla:
 	make PARA_ID=2085 CHAIN=vanilla-dev RELAY_CHAIN=kusama-local dev-launch
 
-.PHONY: local-dev-launch
-local-dev-launch:
+.PHONY: launch-evm
+launch-evm:
 	cargo run --locked --bin parallel --features with-evm-runtime --features runtime-benchmarks --features try-runtime -- --tmp --alice --dev --rpc-cors all --unsafe-ws-external --unsafe-rpc-external --ws-port 19944 --rpc-port 29933
 
-.PHONY: provision-evm
-provision-evm:
-	cd scripts/evm && npm run test-deploy-token
+.PHONY: provisioning-evm
+provisioning-evm:
+	cd scripts/evm && npm run init-chain && npm run provisioning-chain
 
-.PHONY: evm-token-test
-evm-token-test:
-	cd scripts/evm && npm run test-mint-token
+.PHONY: test-evm
+test-evm:
+	cd scripts/evm && npm run test-chain
 
 .PHONY: logs
 logs:
