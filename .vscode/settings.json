@@ -1,4 +1,0 @@
-{
-  "solidity.packageDefaultDependenciesContractsDirectory": "",
-  "solidity.packageDefaultDependenciesDirectory": "scripts/evm/node_modules"
-}
