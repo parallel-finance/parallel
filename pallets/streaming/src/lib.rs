@@ -227,54 +227,18 @@ pub mod pallet {
             cancellable: bool,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-            ensure!(sender != recipient, Error::<T>::RecipientIsAlsoSender);
-
-            let minimum_deposit =
-                Self::minimum_deposit(asset_id).ok_or(Error::<T>::InvalidAssetId)?;
-            ensure!(
-                deposit >= minimum_deposit,
-                Error::<T>::DepositLowerThanMinimum
-            );
-
-            let duration = Self::ensure_valid_duration(start_time, end_time)?;
-            let rate_per_sec = deposit
-                .checked_div(duration as u128)
-                .ok_or(Error::<T>::InvalidRatePerSecond)?;
-            ensure!(!rate_per_sec.is_zero(), Error::<T>::InvalidRatePerSecond);
-
-            // Transfer deposit asset from sender to global EOA
-            T::Assets::transfer(asset_id, &sender, &Self::account_id(), deposit, false)?;
-
-            // The remaining balance will be the same value as the deposit due to initialization
-            let stream: Stream<T> = Stream::new(
+            let stream_id = Self::do_create(
+                sender.clone(),
+                recipient,
                 deposit,
                 asset_id,
-                rate_per_sec,
-                sender.clone(),
-                recipient.clone(),
                 start_time,
                 end_time,
                 cancellable,
-            );
-
-            let stream_id = NextStreamId::<T>::get();
-            // Increment next stream id and store the new created stream
-            NextStreamId::<T>::set(
-                stream_id
-                    .checked_add(One::one())
-                    .ok_or(ArithmeticError::Overflow)?,
-            );
-            Streams::<T>::insert(stream_id, stream);
-
+            )?;
             // Add the stream_id to stream_library for both the sender and receiver.
             Self::try_push_stream_library(&sender, stream_id, StreamKind::Send)?;
             Self::try_push_stream_library(&recipient, stream_id, StreamKind::Receive)?;
-            // Remove the outdated and finished streams, should do update after push
-            Self::update_finished_stream_library(&sender, &recipient)?;
-
-            Self::deposit_event(Event::<T>::StreamCreated(
-                stream_id, sender, recipient, deposit, asset_id, start_time, end_time, true,
-            ));
             Ok(().into())
         }
 
@@ -516,5 +480,61 @@ impl<T: Config> Pallet<T> {
         }
 
         Ok(())
+    }
+
+    pub fn do_create(
+        sender: AccountOf<T>,
+        recipient: AccountOf<T>,
+        deposit: BalanceOf<T>,
+        asset_id: AssetIdOf<T>,
+        start_time: Timestamp,
+        end_time: Timestamp,
+        cancellable: bool,
+    ) -> Result<StreamId, DispatchError> {
+        ensure!(sender != recipient, Error::<T>::RecipientIsAlsoSender);
+
+        let minimum_deposit = Self::minimum_deposit(asset_id).ok_or(Error::<T>::InvalidAssetId)?;
+        ensure!(
+            deposit >= minimum_deposit,
+            Error::<T>::DepositLowerThanMinimum
+        );
+
+        let duration = Self::ensure_valid_duration(start_time, end_time)?;
+        let rate_per_sec = deposit
+            .checked_div(duration as u128)
+            .ok_or(Error::<T>::InvalidRatePerSecond)?;
+        ensure!(!rate_per_sec.is_zero(), Error::<T>::InvalidRatePerSecond);
+
+        // Transfer deposit asset from sender to global EOA
+        T::Assets::transfer(asset_id, &sender, &Self::account_id(), deposit, false)?;
+
+        // The remaining balance will be the same value as the deposit due to initialization
+        let stream: Stream<T> = Stream::new(
+            deposit,
+            asset_id,
+            rate_per_sec,
+            sender.clone(),
+            recipient.clone(),
+            start_time,
+            end_time,
+            cancellable,
+        );
+
+        let stream_id = NextStreamId::<T>::get();
+        // Increment next stream id and store the new created stream
+        NextStreamId::<T>::set(
+            stream_id
+                .checked_add(One::one())
+                .ok_or(ArithmeticError::Overflow)?,
+        );
+        Streams::<T>::insert(stream_id, stream);
+
+        // Remove the outdated and finished streams, should do update after push
+        Self::update_finished_stream_library(&sender, &recipient)?;
+
+        Self::deposit_event(Event::<T>::StreamCreated(
+            stream_id, sender, recipient, deposit, asset_id, start_time, end_time, true,
+        ));
+        Ok(stream_id)
     }
 }
