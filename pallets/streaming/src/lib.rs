@@ -30,6 +30,7 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
+use pallet_traits::Streaming;
 use primitives::*;
 use sp_runtime::{
     traits::{AccountIdConversion, One, Zero},
@@ -229,7 +230,7 @@ pub mod pallet {
             let sender = ensure_signed(origin)?;
             let stream_id = Self::do_create(
                 sender.clone(),
-                recipient,
+                recipient.clone(),
                 deposit,
                 asset_id,
                 start_time,
@@ -536,5 +537,31 @@ impl<T: Config> Pallet<T> {
             stream_id, sender, recipient, deposit, asset_id, start_time, end_time, true,
         ));
         Ok(stream_id)
+    }
+}
+
+impl<T: Config> Streaming<AccountIdOf<T>, AssetIdOf<T>, BalanceOf<T>> for Pallet<T> {
+    fn create(
+        sender: AccountOf<T>,
+        recipient: AccountOf<T>,
+        deposit: BalanceOf<T>,
+        asset_id: AssetIdOf<T>,
+        start_time: Timestamp,
+        end_time: Timestamp,
+        cancellable: bool,
+    ) -> Result<(), DispatchError> {
+        let stream_id = Self::do_create(
+            sender,
+            recipient.clone(),
+            deposit,
+            asset_id,
+            start_time,
+            end_time,
+            cancellable,
+        )?;
+        // Add the stream_id to stream_library for both the sender and receiver.
+        // Self::try_push_stream_library(&sender, stream_id, StreamKind::Send)?;
+        Self::try_push_stream_library(&recipient, stream_id, StreamKind::Receive)?;
+        Ok(())
     }
 }
