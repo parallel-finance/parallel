@@ -188,6 +188,12 @@ pub mod pallet {
 
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, Self::AccountId>;
+
+        /// To expose Streaming related functions
+        type Streaming: Streaming<Self::AccountId, AssetIdOf<Self>, BalanceOf<Self>>;
+
+        #[pallet::constant]
+        type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
     }
 
     #[pallet::event]
@@ -1592,7 +1598,16 @@ pub mod pallet {
             T::Assets::mint_into(ctoken, &who, amount)?;
 
             Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
-
+            //TODO:
+            T::Streaming::create(
+                Self::account_id(),
+                who.clone(),
+                amount,
+                T::GetNativeCurrencyId::get(),
+                0,
+                0,
+                false,
+            )?;
             Self::deposit_event(Event::<T>::VaultClaimed(
                 crowdloan,
                 (lease_start, lease_end),
