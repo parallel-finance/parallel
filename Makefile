@@ -247,7 +247,7 @@ launch-evm:
 
 .PHONY: provisioning-evm
 provisioning-evm:
-	cd scripts/evm && npm run init-chain && npm run provisioning-chain
+	cd scripts/evm && npm run build && npm run init-chain && npm run provisioning-chain
 
 .PHONY: test-evm
 test-evm:
