@@ -53,9 +53,11 @@ use sp_runtime::{
     traits::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
         BlockNumberProvider, Convert, DispatchInfoOf, Dispatchable, PostDispatchInfoOf,
-        UniqueSaturatedInto, Zero,
+        UniqueSaturatedInto, Verify, Zero,
     },
-    transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
+    transaction_validity::{
+        TransactionPriority, TransactionSource, TransactionValidity, TransactionValidityError,
+    },
     ApplyExtrinsicResult, DispatchError, FixedPointNumber, KeyTypeId, Perbill, Permill,
     RuntimeDebug, SaturatedConversion,
 };
@@ -2246,6 +2248,24 @@ impl pallet_emergency_shutdown::Config for Runtime {
     type Call = Call;
 }
 
+parameter_types! {
+    pub const EcdsaUnsignedPriority: TransactionPriority = TransactionPriority::MAX / 2;
+    pub const CallFee: Balance = 1 * DOLLARS / 10;
+    pub const CallMagicNumber: u16 = 0x0250;
+}
+
+impl pallet_evm_signatures::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type Signature = pallet_evm_signatures::ethereum::EthereumSignature;
+    type Signer = <Signature as Verify>::Signer;
+    type CallMagicNumber = CallMagicNumber;
+    type Currency = Balances;
+    type CallFee = CallFee;
+    type OnChargeTransaction = ToStakingPot;
+    type UnsignedPriority = EcdsaUnsignedPriority;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -2327,6 +2347,7 @@ construct_runtime!(
         EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>} = 97,
         Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Origin, Config} = 98,
         BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event} = 99,
+        EVMSignatureCall: pallet_evm_signatures = 100,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,

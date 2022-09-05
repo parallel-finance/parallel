@@ -120,6 +120,11 @@ integration-test-sibling-transfer:
 test-pallet-evm-precompile-balances-erc20:
 	SKIP_WASM_BUILD= cargo test -p pallet-evm-precompile-balances-erc20 --lib --no-fail-fast -- --nocapture
 
+.PHONY: test-pallet-evm-signatures
+test-pallet-evm-signatures:
+	SKIP_WASM_BUILD= cargo test -p pallet-evm-signatures --lib --no-fail-fast -- --nocapture
+
+
 .PHONY: bench
 bench:build-release-if-not-exists
 	./scripts/benchmark.sh

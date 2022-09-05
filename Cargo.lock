@@ -6278,6 +6278,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-evm-signatures"
+version = "1.9.2"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "hex-literal",
+ "libsecp256k1",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-farming"
 version = "1.9.2"
 dependencies = [
@@ -13149,6 +13168,7 @@ dependencies = [
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
+ "pallet-evm-signatures",
  "pallet-farming",
  "pallet-identity",
  "pallet-liquid-staking",
