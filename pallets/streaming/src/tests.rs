@@ -787,3 +787,114 @@ fn create_with_minimum_deposit_works() {
         );
     })
 }
+
+#[test]
+fn create_with_lots_stream_works() {
+    new_test_ext().execute_with(|| {
+        // Set minimum deposit for DOT
+        assert_ok!(Streaming::set_minimum_deposit(
+            Origin::root(),
+            DOT,
+            dollar(100)
+        ));
+
+        // Alice creates stream 100 DOT to Bob, which is equal to minimum deposit
+        assert_err!(
+            <Streaming as StreamingTrait<mock::AccountId, CurrencyId, Balance>>::create(
+                ALICE,
+                BOB,
+                dollar(99),
+                DOT,
+                6,
+                10,
+                false
+            ),
+            Error::<Test>::DepositLowerThanMinimum
+        );
+
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(100 * 500)).unwrap();
+        let initial_stream_id = NextStreamId::<Test>::get();
+        let recipient_list = 100..500;
+        let stream_amount = dollar(101);
+        // create streams for lots of receiver
+        for recipient in recipient_list.clone() {
+            let stream_id = NextStreamId::<Test>::get();
+            assert_ok!(<Streaming as StreamingTrait<
+                mock::AccountId,
+                CurrencyId,
+                Balance,
+            >>::create(
+                ALICE, recipient, stream_amount, DOT, 6, 19, true
+            ));
+            let stream = Streams::<Test>::get(stream_id).unwrap();
+            assert_eq!(
+                stream,
+                Stream::new(
+                    stream_amount,
+                    DOT,
+                    7769230769230,
+                    ALICE,
+                    recipient,
+                    6,
+                    19,
+                    true,
+                )
+            );
+        }
+
+        assert_eq!(TimestampPallet::now(), 6000);
+        // passed 12 seconds
+        TimestampPallet::set_timestamp(18000);
+        let mut iter_stream_id = initial_stream_id;
+        for recipient in recipient_list.clone() {
+            let stream = Streams::<Test>::get(iter_stream_id).unwrap();
+            assert_eq!(stream.delta_of(), Ok(12));
+            assert_eq!(stream.sender_balance().unwrap(), 7769230769240);
+            assert_eq!(stream.recipient_balance().unwrap(), 93230769230760);
+
+            assert_ok!(Streaming::withdraw(
+                Origin::signed(recipient),
+                iter_stream_id,
+                93230769230760
+            ));
+
+            let stream = Streams::<Test>::get(iter_stream_id).unwrap();
+            assert_eq!(stream.sender_balance().unwrap(), 7769230769240);
+            assert_eq!(stream.recipient_balance().unwrap(), 0);
+
+            iter_stream_id += 1;
+        }
+
+        // passed 15 seconds
+        TimestampPallet::set_timestamp(21000);
+        let mut iter_stream_id = initial_stream_id;
+        for recipient in recipient_list.clone() {
+            let stream = Streams::<Test>::get(iter_stream_id).unwrap();
+            assert_eq!(stream.delta_of(), Ok(13));
+            assert_eq!(stream.sender_balance().unwrap(), 0);
+            assert_eq!(stream.recipient_balance().unwrap(), 7769230769240);
+
+            assert_ok!(Streaming::withdraw(
+                Origin::signed(recipient),
+                iter_stream_id,
+                7769230769240
+            ));
+
+            assert!(
+                StreamLibrary::<Test>::get(ALICE, StreamKind::Finish)
+                    .unwrap()
+                    .len()
+                    <= <Test as Config>::MaxFinishedStreamsCount::get()
+                        .try_into()
+                        .unwrap()
+            );
+
+            assert_eq!(
+                <Test as Config>::Assets::balance(DOT, &recipient),
+                stream_amount
+            );
+
+            iter_stream_id += 1;
+        }
+    })
+}

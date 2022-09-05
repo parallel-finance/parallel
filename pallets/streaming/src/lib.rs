@@ -30,7 +30,7 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
-use pallet_traits::Streaming;
+use pallet_traits::Streaming as StreamingTrait;
 use primitives::*;
 use sp_runtime::{
     traits::{AccountIdConversion, One, Zero},
@@ -465,9 +465,6 @@ impl<T: Config> Pallet<T> {
                 let mut r = registry.take().unwrap_or_default();
                 if let Some(index) = r.to_vec().iter().position(|&x| x == stream_id) {
                     r.remove(index);
-                }else {
-                    // TODO: replace registry.take() as as_mut()
-                    return Ok(())
                 }
 
                 r.as_mut().sort_unstable_by(|a, b| b.cmp(a));
@@ -543,7 +540,7 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-impl<T: Config> Streaming<AccountIdOf<T>, AssetIdOf<T>, BalanceOf<T>> for Pallet<T> {
+impl<T: Config> StreamingTrait<AccountOf<T>, AssetIdOf<T>, BalanceOf<T>> for Pallet<T> {
     fn create(
         sender: AccountOf<T>,
         recipient: AccountOf<T>,
@@ -562,9 +559,8 @@ impl<T: Config> Streaming<AccountIdOf<T>, AssetIdOf<T>, BalanceOf<T>> for Pallet
             end_time,
             cancellable,
         )?;
-        // Add the stream_id to stream_library for both the sender and receiver.
-        // Self::try_push_stream_library(&sender, stream_id, StreamKind::Send)?;
-        // Self::try_push_stream_library(&recipient, stream_id, StreamKind::Receive)?;
+        // Add the stream_id to stream_library for receiver.
+        Self::try_push_stream_library(&recipient, stream_id, StreamKind::Receive)?;
         Ok(())
     }
 }
