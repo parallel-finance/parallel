@@ -465,6 +465,9 @@ impl<T: Config> Pallet<T> {
                 let mut r = registry.take().unwrap_or_default();
                 if let Some(index) = r.to_vec().iter().position(|&x| x == stream_id) {
                     r.remove(index);
+                }else {
+                    // TODO: replace registry.take() as as_mut()
+                    return Ok(())
                 }
 
                 r.as_mut().sort_unstable_by(|a, b| b.cmp(a));
@@ -561,7 +564,7 @@ impl<T: Config> Streaming<AccountIdOf<T>, AssetIdOf<T>, BalanceOf<T>> for Pallet
         )?;
         // Add the stream_id to stream_library for both the sender and receiver.
         // Self::try_push_stream_library(&sender, stream_id, StreamKind::Send)?;
-        Self::try_push_stream_library(&recipient, stream_id, StreamKind::Receive)?;
+        // Self::try_push_stream_library(&recipient, stream_id, StreamKind::Receive)?;
         Ok(())
     }
 }
