@@ -1041,7 +1041,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     (pool.base_amount, pool.quote_amount)
                 };
 
-                //FIXME(Alan): Why do this check?
                 ensure!(
                     amount_in >= T::LpFee::get().saturating_reciprocal_mul_ceil(One::one()),
                     Error::<T, I>::InsufficientAmountIn
