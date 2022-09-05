@@ -493,9 +493,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         );
 
         Ok(base_amount
-            .checked_mul(quote_pool)
-            .and_then(|r| r.checked_div(base_pool))
-            .ok_or(ArithmeticError::Underflow)?)
+            .get_big_uint()
+            .checked_mul(&quote_pool.get_big_uint())
+            .and_then(|r| r.checked_div(&base_pool.get_big_uint()))
+            .ok_or(ArithmeticError::Overflow)?
+            .to_u128()
+            .ok_or(ArithmeticError::Overflow)?)
     }
 
     fn sort_assets(

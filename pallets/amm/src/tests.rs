@@ -1267,3 +1267,8 @@ fn can_only_all_if_non_native_should_work() {
         assert_eq!(Assets::balance(SDOT, BOB), 0);
     })
 }
+
+#[test]
+fn quote_should_not_overflow() {
+    assert_eq!(AMM::quote(u128::MAX, u128::MAX, u128::MAX), Ok(u128::MAX))
+}
