@@ -83,6 +83,10 @@ pub mod pallet {
         #[pallet::constant]
         type MaxFinishedStreamsCount: Get<u32>;
 
+        /// The essential balance for an existed account
+        #[pallet::constant]
+        type ExistentialDeposit: Get<Balance>;
+
         /// The Unix time
         type UnixTime: UnixTime;
 
@@ -348,6 +352,10 @@ pub mod pallet {
                 recipient_balance >= amount,
                 Error::<T>::InsufficientStreamBalance
             );
+
+            if amount.saturating_add(T::ExistentialDeposit::get()) >= recipient_balance {
+                amount = recipient_balance
+            }
 
             stream.try_deduct(amount)?;
             stream.try_complete()?;
