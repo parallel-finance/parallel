@@ -2176,6 +2176,7 @@ impl pallet_streaming::Config for Runtime {
     type UnixTime = Timestamp;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = weights::pallet_streaming::WeightInfo<Runtime>;
+    type ExistentialDeposit = ExistentialDeposit;
 }
 
 parameter_types! {
