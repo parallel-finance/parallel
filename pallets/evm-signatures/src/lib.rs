@@ -174,7 +174,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Verify custom signature and returns `true` if correct.
         pub fn valid_signature(
-            call: &Box<<T as Config>::Call>,
+            call: &<T as Config>::Call,
             signer: &T::AccountId,
             signature: &T::Signature,
             nonce: &T::Index,
