@@ -339,7 +339,7 @@ pub mod pallet {
         pub fn withdraw(
             origin: OriginFor<T>,
             stream_id: StreamId,
-            amount: BalanceOf<T>,
+            mut amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let recipient = ensure_signed(origin)?;
 

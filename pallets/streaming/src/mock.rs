@@ -90,7 +90,8 @@ impl pallet_timestamp::Config for Test {
 }
 
 parameter_types! {
-    pub const ExistentialDeposit: Balance = 1;
+    // pub const ExistentialDeposit: Balance = 100_000_000_000;
+    pub const ExistentialDeposit: Balance = 1_000;
     pub const MaxLocks: u32 = 50;
 }
 
@@ -154,6 +155,7 @@ impl Config for Test {
     type PalletId = StreamPalletId;
     type MaxStreamsCount = MaxStreamsCount;
     type MaxFinishedStreamsCount = MaxFinishedStreamsCount;
+    type ExistentialDeposit = ExistentialDeposit;
     type UnixTime = TimestampPallet;
     type Assets = CurrencyAdapter;
     type UpdateOrigin = EnsureRoot<AccountId>;
