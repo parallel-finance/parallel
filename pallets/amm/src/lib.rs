@@ -496,8 +496,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .get_big_uint()
             .checked_mul(&quote_pool.get_big_uint())
             .and_then(|r| r.checked_div(&base_pool.get_big_uint()))
-            .ok_or(ArithmeticError::Overflow)?
-            .to_u128()
+            .and_then(|r| r.to_u128())
             .ok_or(ArithmeticError::Overflow)?)
     }
 
