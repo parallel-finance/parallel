@@ -956,8 +956,7 @@ impl OnUnbalanced<NegativeImbalance> for ToStakingPot {
 }
 
 parameter_types! {
-    // Tells `pallet_base_fee` whether to calculate a new BaseFee `on_finalize` or not.
-    pub IsActive: bool = false;
+    pub DefaultElasticity: Permill = Permill::zero();
     pub DefaultBaseFeePerGas: U256 = (1_000_000_000).into();
 }
 
@@ -977,7 +976,7 @@ impl pallet_base_fee::BaseFeeThreshold for BaseFeeThreshold {
 impl pallet_base_fee::Config for Runtime {
     type Event = Event;
     type Threshold = BaseFeeThreshold;
-    type IsActive = IsActive;
+    type DefaultElasticity = DefaultElasticity;
     type DefaultBaseFeePerGas = DefaultBaseFeePerGas;
 }
 

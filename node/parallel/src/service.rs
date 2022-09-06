@@ -21,7 +21,9 @@ use cumulus_client_service::{
 use polkadot_service::{CollatorPair, ConstructRuntimeApi};
 use sc_client_api::call_executor::ExecutorProvider;
 use sc_executor::NativeElseWasmExecutor;
-use sc_service::{Configuration, PartialComponents, Role, TaskManager};
+use sc_network::NetworkService;
+use sc_network_common::service::NetworkBlock;
+use sc_service::{Configuration, PartialComponents, TFullBackend, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker, TelemetryWorkerHandle};
 
 use primitives::*;
@@ -31,7 +33,7 @@ use std::{sync::Arc, time::Duration};
 use cumulus_client_cli::CollatorOptions;
 use cumulus_relay_chain_inprocess_interface::build_inprocess_relay_chain;
 use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface, RelayChainResult};
-use cumulus_relay_chain_rpc_interface::RelayChainRPCInterface;
+use cumulus_relay_chain_rpc_interface::{create_client_and_start_worker, RelayChainRpcInterface};
 
 pub use sc_executor::NativeExecutionDispatch;
 
@@ -62,9 +64,9 @@ impl sc_executor::NativeExecutionDispatch for HeikoExecutor {
     }
 }
 
-pub type FullBackend = sc_service::TFullBackend<Block>;
-pub type FullClient<RuntimeApi, Executor> =
-    sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>;
+// pub type FullBackend = sc_service::TFullBackend<Block>;
+// pub type FullClient<RuntimeApi, Executor> =
+//     sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>;
 
 pub trait IdentifyVariant {
     fn is_parallel(&self) -> bool;
@@ -223,10 +225,13 @@ async fn build_relay_chain_interface(
     Option<CollatorPair>,
 )> {
     match collator_options.relay_chain_rpc_url {
-        Some(relay_chain_url) => Ok((
-            Arc::new(RelayChainRPCInterface::new(relay_chain_url).await?) as Arc<_>,
-            None,
-        )),
+        Some(relay_chain_url) => {
+            let client = create_client_and_start_worker(relay_chain_url, task_manager).await?;
+            Ok((
+                Arc::new(RelayChainRpcInterface::new(client)) as Arc<_>,
+                None,
+            ))
+        }
         None => build_inprocess_relay_chain(
             polkadot_config,
             parachain_config,
@@ -255,10 +260,6 @@ where
     >,
     Executor: NativeExecutionDispatch + 'static,
 {
-    if matches!(parachain_config.role, Role::Light) {
-        return Err("Light client not supported!".into());
-    }
-
     let parachain_config = prepare_node_config(parachain_config);
 
     let params = new_partial(&parachain_config)?;
