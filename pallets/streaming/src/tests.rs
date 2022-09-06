@@ -265,7 +265,12 @@ fn withdraw_with_slower_rate_works() {
 #[test]
 fn withdraw_under_ed_works() {
     new_test_ext().execute_with(|| {
-        let before_bob = <Test as Config>::Assets::balance(DOT, &BOB);
+        assert_ok!(Streaming::set_minimum_deposit(
+            Origin::root(),
+            HKO,
+            dollar(10)
+        ));
+        let before_bob = <Test as Config>::Assets::balance(HKO, &BOB);
         assert_eq!(TimestampPallet::now(), 6000);
         // Alice creates stream 101 dollars to Bob
         let stream_id_0 = NextStreamId::<Test>::get();
@@ -273,7 +278,7 @@ fn withdraw_under_ed_works() {
             Origin::signed(ALICE),
             BOB,
             dollar(101),
-            DOT,
+            HKO,
             6,
             19,
             true,
@@ -282,7 +287,7 @@ fn withdraw_under_ed_works() {
         let stream = Streams::<Test>::get(stream_id_0).unwrap();
         assert_eq!(
             stream,
-            Stream::new(dollar(101), DOT, 7769230769230, ALICE, BOB, 6, 19, true,)
+            Stream::new(dollar(101), HKO, 7769230769230, ALICE, BOB, 6, 19, true,)
         );
 
         // Dave cannot access
@@ -309,7 +314,7 @@ fn withdraw_under_ed_works() {
         assert_eq!(stream.recipient_balance().unwrap(), 93230769230760);
 
         // Bob withdraw balance
-        let ed = <Test as Config>::ExistentialDeposit::get();
+        let ed = <Test as Config>::NativeExistentialDeposit::get();
         assert_ok!(Streaming::withdraw(
             Origin::signed(BOB),
             stream_id_0,
@@ -337,7 +342,7 @@ fn withdraw_under_ed_works() {
         ));
         // Stream is removed as balance goes zero
         assert_eq!(
-            <Test as Config>::Assets::balance(DOT, &BOB) - before_bob,
+            <Test as Config>::Assets::balance(HKO, &BOB) - before_bob,
             dollar(101)
         );
     });

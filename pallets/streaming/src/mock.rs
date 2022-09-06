@@ -154,11 +154,12 @@ impl Config for Test {
     type PalletId = StreamPalletId;
     type MaxStreamsCount = MaxStreamsCount;
     type MaxFinishedStreamsCount = MaxFinishedStreamsCount;
-    type ExistentialDeposit = ExistentialDeposit;
     type UnixTime = TimestampPallet;
     type Assets = CurrencyAdapter;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
+    type NativeCurrencyId = NativeCurrencyId;
+    type NativeExistentialDeposit = ExistentialDeposit;
 }
 
 pub fn dollar(d: u128) -> u128 {
