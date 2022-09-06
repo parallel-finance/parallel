@@ -83,6 +83,14 @@ pub mod pallet {
         #[pallet::constant]
         type MaxFinishedStreamsCount: Get<u32>;
 
+        /// Currency id of the native token
+        #[pallet::constant]
+        type NativeCurrencyId: Get<AssetIdOf<Self>>;
+
+        /// The essential balance for an existed account
+        #[pallet::constant]
+        type NativeExistentialDeposit: Get<Balance>;
+
         /// The Unix time
         type UnixTime: UnixTime;
 
@@ -335,7 +343,7 @@ pub mod pallet {
         pub fn withdraw(
             origin: OriginFor<T>,
             stream_id: StreamId,
-            amount: BalanceOf<T>,
+            mut amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let recipient = ensure_signed(origin)?;
 
@@ -348,6 +356,12 @@ pub mod pallet {
                 recipient_balance >= amount,
                 Error::<T>::InsufficientStreamBalance
             );
+
+            if stream.asset_id == T::NativeCurrencyId::get()
+                && amount.saturating_add(T::NativeExistentialDeposit::get()) >= recipient_balance
+            {
+                amount = recipient_balance
+            }
 
             stream.try_deduct(amount)?;
             stream.try_complete()?;
