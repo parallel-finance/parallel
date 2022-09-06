@@ -50,7 +50,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
 
       const tx = api.tx.utility.batchAll([
         api.tx.democracy.notePreimage(encoded),
-        api.tx.generalCouncil.propose(2, external, external.length)
+        api.tx.generalCouncil.propose(3, external, external.length)
       ])
       if (dryRun) {
         return logger.info(`hex-encoded call: ${tx.toHex()}`)
