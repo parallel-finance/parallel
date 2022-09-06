@@ -960,8 +960,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     pub fn do_mint_protocol_fee(
         pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
-        // TODO: If we turn off protocol_fee later in runtime upgrade
-        // this will reset root_k_last to zero which may not be good
         let k_last = pool
             .base_amount_last
             .get_big_uint()
@@ -973,7 +971,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             if !k_last.is_zero() {
                 pool.base_amount_last = Zero::zero();
                 pool.quote_amount_last = Zero::zero();
-                return Ok(Zero::zero());
             }
 
             // if fees are off and k_last is zero return
@@ -1060,7 +1057,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     (pool.base_amount, pool.quote_amount)
                 };
 
-                //FIXME(Alan): Why do this check?
                 ensure!(
                     amount_in >= T::LpFee::get().saturating_reciprocal_mul_ceil(One::one()),
                     Error::<T, I>::InsufficientAmountIn
