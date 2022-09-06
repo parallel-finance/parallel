@@ -1272,3 +1272,42 @@ fn can_only_all_if_non_native_should_work() {
 fn quote_should_not_overflow() {
     assert_eq!(AMM::quote(u128::MAX, u128::MAX, u128::MAX), Ok(u128::MAX))
 }
+
+#[test]
+fn glmr_add_liquidity_should_work() {
+    new_test_ext().execute_with(|| {
+        Assets::force_create(Origin::root(), tokens::GLMR, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::PARA, ALICE, true, 1).unwrap();
+
+        Assets::mint(
+            Origin::signed(ALICE),
+            tokens::GLMR,
+            ALICE,
+            1000000000000000000000000,
+        )
+        .unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            tokens::PARA,
+            ALICE,
+            200000000000000000000,
+        )
+        .unwrap();
+
+        AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (tokens::GLMR, tokens::PARA),
+            (5978650946941927074614, 100290500000000000),
+            ALICE,
+            SAMPLE_LP_TOKEN,
+        )
+        .unwrap();
+
+        assert_ok!(AMM::add_liquidity(
+            Origin::signed(ALICE),
+            (tokens::GLMR, tokens::PARA),
+            (15000000000000000000000, 251621563685000000),
+            (14925000000000000000000, 250363455866575000),
+        ));
+    })
+}
