@@ -16,6 +16,7 @@ use crate as evm_signatures;
 use codec::Encode;
 use evm_signatures::*;
 use frame_support::{assert_err, assert_ok, parameter_types};
+use frame_system::EnsureRoot;
 use hex_literal::hex;
 use sp_core::{ecdsa, Pair};
 use sp_io::hashing::keccak_256;
@@ -32,6 +33,7 @@ pub const ECDSA_SEED: [u8; 32] =
 
 type Balance = u128;
 type BlockNumber = u64;
+type CurrencyId = u32;
 type Signature = MultiSignature;
 type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -45,6 +47,7 @@ frame_support::construct_runtime!(
     {
         Balances: pallet_balances,
         System: frame_system,
+        Assets: pallet_assets,
         EVMSignatures: evm_signatures,
     }
 );
@@ -97,9 +100,37 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
+    pub const AssetDeposit: u64 = 1;
+    pub const ApprovalDeposit: u64 = 1;
+    pub const AssetAccountDeposit: u64 = 1;
+    pub const StringLimit: u32 = 50;
+    pub const MetadataDepositBase: u64 = 1;
+    pub const MetadataDepositPerByte: u64 = 1;
+}
+
+impl pallet_assets::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type AssetId = CurrencyId;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = StringLimit;
+    type Freezer = ();
+    type Extra = ();
+    type WeightInfo = ();
+}
+
+parameter_types! {
     pub const Priority: TransactionPriority = TransactionPriority::MAX;
     pub const CallFee: Balance = 42;
     pub const CallMagicNumber: u16 = 0xff50;
+    pub const NativeCurrencyId: CurrencyId = 0;
+    pub const VerifySignature: bool = true;
 }
 
 impl Config for Runtime {
@@ -112,6 +143,12 @@ impl Config for Runtime {
     type CallFee = CallFee;
     type OnChargeTransaction = ();
     type UnsignedPriority = Priority;
+    type GetNativeCurrencyId = NativeCurrencyId;
+    type VerifySignature = VerifySignature;
+    type Assets = Assets;
+    type AddressMapping = pallet_evm::HashedAddressMapping<BlakeTwo256>;
+    type WithdrawOrigin = pallet_evm::EnsureAddressTruncated;
+    type WeightInfo = ();
 }
 
 fn new_test_ext() -> sp_io::TestExternalities {

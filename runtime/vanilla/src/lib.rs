@@ -1025,8 +1025,8 @@ pub type ParallelPrecompilesType = ParallelPrecompiles<Runtime, NativeErc20Metad
 
 parameter_types! {
     /// Ethereum-compatible chain_id:
-    /// * Vanilla:  592
-    pub EVMChainId: u64 = 0x250;
+    /// * Vanilla:  1592
+    pub EVMChainId: u64 = 1592;
     /// EVM gas limit
     pub BlockGasLimit: U256 = U256::from(
         NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT / WEIGHT_PER_GAS
@@ -1055,6 +1055,31 @@ impl pallet_evm::Config for Runtime {
 impl pallet_ethereum::Config for Runtime {
     type Event = Event;
     type StateRoot = pallet_ethereum::IntermediateStateRoot<Self>;
+}
+
+parameter_types! {
+    pub const EcdsaUnsignedPriority: TransactionPriority = TransactionPriority::MAX / 2;
+    pub const CallFee: Balance = 1 * DOLLARS / 10;
+    pub const CallMagicNumber: u16 = 1592;
+    pub const VerifySignature: bool = false;
+}
+
+impl pallet_evm_signatures::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type Signature = pallet_evm_signatures::ethereum::EthereumSignature;
+    type Signer = <Signature as Verify>::Signer;
+    type CallMagicNumber = CallMagicNumber;
+    type Currency = Balances;
+    type CallFee = CallFee;
+    type OnChargeTransaction = ToStakingPot;
+    type UnsignedPriority = EcdsaUnsignedPriority;
+    type WithdrawOrigin = pallet_evm::EnsureAddressTruncated;
+    type GetNativeCurrencyId = NativeCurrencyId;
+    type VerifySignature = VerifySignature;
+    type Assets = Assets;
+    type AddressMapping = pallet_evm::HashedAddressMapping<BlakeTwo256>;
+    type WeightInfo = pallet_evm_signatures::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -1169,7 +1194,13 @@ impl InstanceFilter<Call> for ProxyType {
                 )
             }
             ProxyType::EVM => {
-                matches!(c, Call::Ethereum(..) | Call::EVM(_) | Call::BaseFee(_))
+                matches!(
+                    c,
+                    Call::Ethereum(..)
+                        | Call::EVM(_)
+                        | Call::BaseFee(_)
+                        | Call::EVMSignatureCall(_)
+                )
             }
         }
     }
@@ -2248,24 +2279,6 @@ impl pallet_emergency_shutdown::Config for Runtime {
     type Call = Call;
 }
 
-parameter_types! {
-    pub const EcdsaUnsignedPriority: TransactionPriority = TransactionPriority::MAX / 2;
-    pub const CallFee: Balance = 1 * DOLLARS / 10;
-    pub const CallMagicNumber: u16 = 0x0250;
-}
-
-impl pallet_evm_signatures::Config for Runtime {
-    type Event = Event;
-    type Call = Call;
-    type Signature = pallet_evm_signatures::ethereum::EthereumSignature;
-    type Signer = <Signature as Verify>::Signer;
-    type CallMagicNumber = CallMagicNumber;
-    type Currency = Balances;
-    type CallFee = CallFee;
-    type OnChargeTransaction = ToStakingPot;
-    type UnsignedPriority = EcdsaUnsignedPriority;
-}
-
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -2347,7 +2360,7 @@ construct_runtime!(
         EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>} = 97,
         Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Origin, Config} = 98,
         BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event} = 99,
-        EVMSignatureCall: pallet_evm_signatures = 100,
+        EVMSignatureCall: pallet_evm_signatures::{Pallet, Call, Event<T>, ValidateUnsigned} = 100,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,

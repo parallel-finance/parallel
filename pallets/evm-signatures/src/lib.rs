@@ -18,23 +18,34 @@ pub use pallet::*;
 
 /// Ethereum-compatible signatures (eth_sign API call).
 pub mod ethereum;
+pub mod weights;
 
 #[cfg(test)]
 mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
+    use super::*;
     use frame_support::{
         pallet_prelude::*,
         traits::{
+            tokens::{
+                fungible::Transfer,
+                fungibles::{Inspect as Inspects, Mutate as Mutates, Transfer as Transfers},
+            },
             Currency, ExistenceRequirement, Get, OnUnbalanced, UnfilteredDispatchable,
             WithdrawReasons,
         },
+        transactional,
         weights::GetDispatchInfo,
     };
     use frame_system::{ensure_none, pallet_prelude::*};
+    use pallet_evm::{AddressMapping, EnsureAddressOrigin};
+    use primitives::{Balance, CurrencyId};
+    use sp_core::H160;
     use sp_runtime::traits::{IdentifyAccount, Verify};
     use sp_std::{convert::TryFrom, prelude::*};
+    use weights::WeightInfo;
 
     #[pallet::pallet]
     pub struct Pallet<T>(_);
@@ -42,6 +53,12 @@ pub mod pallet {
     /// The balance type of this pallet.
     pub type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
+    pub type AssetBalanceOf<T> =
+        <<T as Config>::Assets as Inspects<<T as frame_system::Config>::AccountId>>::Balance;
+
+    pub type AssetIdOf<T> =
+        <<T as Config>::Assets as Inspects<<T as frame_system::Config>::AccountId>>::AssetId;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -58,7 +75,7 @@ pub mod pallet {
         type Signer: IdentifyAccount<AccountId = Self::AccountId>;
 
         /// The currency trait.
-        type Currency: Currency<Self::AccountId>;
+        type Currency: Currency<Self::AccountId> + Transfer<Self::AccountId, Balance = Balance>;
 
         /// The call fee destination.
         type OnChargeTransaction: OnUnbalanced<
@@ -78,6 +95,26 @@ pub mod pallet {
         /// This is exposed so that it can be tuned for particular runtime, when
         /// multiple pallets send unsigned transactions.
         type UnsignedPriority: Get<TransactionPriority>;
+
+        /// Allow the origin to withdraw on behalf of given address.
+        type WithdrawOrigin: EnsureAddressOrigin<Self::Origin, Success = Self::AccountId>;
+
+        /// Enable signature verify or not
+        #[pallet::constant]
+        type VerifySignature: Get<bool>;
+
+        type Assets: Transfers<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Inspects<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Mutates<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+
+        #[pallet::constant]
+        type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
+
+        /// Mapping from address to account id.
+        type AddressMapping: AddressMapping<Self::AccountId>;
+
+        /// Weight information
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::error]
@@ -103,11 +140,11 @@ pub mod pallet {
         /// - O(1).
         /// - Limited storage reads.
         /// - One DB write (event).
-        /// - Weight of derivative `call` execution + 10,000.
+        /// - Weight of derivative `call` execution + 10_000_000.
         /// # </weight>
         #[pallet::weight({
             let dispatch_info = call.get_dispatch_info();
-            (dispatch_info.weight.saturating_add(10_000), dispatch_info.class)
+            (dispatch_info.weight.saturating_add(10_000_000), dispatch_info.class)
         })]
         pub fn call(
             origin: OriginFor<T>,
@@ -154,21 +191,21 @@ pub mod pallet {
             Ok(Pays::No.into())
         }
 
-        // #[pallet::weight(<T as Config>::WeightInfo::withdraw())]
-        // #[transactional]
-        // pub fn withdraw(
-        //     origin: OriginFor<T>,
-        //     asset: AssetIdOf<T>,
-        //     address: H160,
-        //     value: BalanceOf<T>,
-        // ) -> DispatchResult {
-        //     let destination = T::WithdrawOrigin::ensure_address_origin(&address, origin)?;
-        //     let address_account_id = T::AddressMapping::into_account_id(address);
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw())]
+        #[transactional]
+        pub fn withdraw(
+            origin: OriginFor<T>,
+            asset: AssetIdOf<T>,
+            address: H160,
+            value: AssetBalanceOf<T>,
+        ) -> DispatchResult {
+            let destination = T::WithdrawOrigin::ensure_address_origin(&address, origin)?;
+            let address_account_id = T::AddressMapping::into_account_id(address);
 
-        //     Self::transfer(asset, &address_account_id, &destination, value, true)?;
+            Self::transfer(asset, &address_account_id, &destination, value)?;
 
-        //     Ok(())
-        // }
+            Ok(())
+        }
     }
 
     impl<T: Config> Pallet<T> {
@@ -180,7 +217,27 @@ pub mod pallet {
             nonce: &T::Index,
         ) -> bool {
             let payload = (T::CallMagicNumber::get(), *nonce, call.clone());
-            signature.verify(&payload.encode()[..], signer)
+            //temporarily disable
+            if T::VerifySignature::get() {
+                signature.verify(&payload.encode()[..], signer)
+            } else {
+                true
+            }
+        }
+
+        fn transfer(
+            asset: AssetIdOf<T>,
+            source: &T::AccountId,
+            dest: &T::AccountId,
+            amount: AssetBalanceOf<T>,
+        ) -> Result<AssetBalanceOf<T>, DispatchError> {
+            if asset == T::GetNativeCurrencyId::get() {
+                <<T as pallet::Config>::Currency as Transfer<T::AccountId>>::transfer(
+                    source, dest, amount, true,
+                )
+            } else {
+                T::Assets::transfer(asset, source, dest, amount, true)
+            }
         }
     }
 
@@ -225,6 +282,10 @@ pub mod pallet {
                 // Signature encoding broken
                 InvalidTransaction::Custom(SIGNATURE_DECODE_FAILURE).into()
             }
+        }
+
+        fn pre_dispatch(_call: &Self::Call) -> Result<(), TransactionValidityError> {
+            Ok(())
         }
     }
 }

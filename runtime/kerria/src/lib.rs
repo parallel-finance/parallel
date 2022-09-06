@@ -1020,9 +1020,8 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
 pub type ParallelPrecompilesType = ParallelPrecompiles<Runtime, NativeErc20Metadata>;
 
 parameter_types! {
-    /// Ethereum-compatible chain_id:
-    /// * Vanilla:  592
-    pub EVMChainId: u64 = 0x250;
+    /// * Kerria:  1593
+    pub EVMChainId: u64 = 1593;
     /// EVM gas limit
     pub BlockGasLimit: U256 = U256::from(
         NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT / WEIGHT_PER_GAS
