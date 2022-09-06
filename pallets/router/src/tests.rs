@@ -441,6 +441,7 @@ fn get_all_routes_should_work() {
             input_amount, // input amount
             DOT,          // input token
             KSM,          // output token
+            false,
         )
         .unwrap();
 
@@ -487,6 +488,7 @@ fn get_best_route_should_work() {
             input_amount, // input amount
             DOT,          // input token
             KSM,          // output token
+            false,
         )
         .unwrap();
 
@@ -531,6 +533,7 @@ fn get_route_for_tokens_not_in_graph_should_not_work() {
                 input_amount, // input amount
                 SDOT,         // input token
                 USDT,         // output token (not in any pool)
+                false
             ),
             Error::<Runtime>::TokenDoesNotExists
         );
@@ -564,6 +567,7 @@ fn get_route_for_tokens_not_possible_should_not_work() {
                 input_amount, // input amount
                 SDOT,         // input token
                 USDT,         // output token
+                false
             ),
             Error::<Runtime>::NoPossibleRoute
         );
@@ -585,6 +589,7 @@ fn get_routes_for_non_existing_pair_should_not_work() {
                 10000, // input amount
                 USDT,  // input token
                 SDOT,  // output token
+                false,
             ),
             Error::<Runtime>::TokenDoesNotExists
         );
@@ -626,9 +631,144 @@ fn get_best_route_same_tokens_should_work() {
             input_amount, // input amount
             DOT,          // input token
             DOT,          // output token
+            false,
         )
         .unwrap();
 
         assert_eq!(best_route, (vec![101], 1000));
+    })
+}
+
+#[test]
+fn get_best_route_same_tokens_reversed_should_work() {
+    new_test_ext().execute_with(|| {
+        let input_amount = 1_000;
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, SDOT),
+            (100_000_000, 90_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (SDOT, KSM),
+            (100_000_000, 100_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_2
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, KSM),
+            (100_000_000, 70_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_3
+        ));
+
+        let best_route = AMMRoute::get_best_route(
+            input_amount, // input amount
+            DOT,          // input token
+            DOT,          // output token
+            true,
+        )
+        .unwrap();
+
+        assert_eq!(best_route, (vec![101], 1000));
+    })
+}
+
+#[test]
+fn get_all_routes_reversed_should_work() {
+    new_test_ext().execute_with(|| {
+        let input_amount = 1_000;
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, SDOT),
+            (100_000_000, 90_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (SDOT, KSM),
+            (100_000_000, 100_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_2
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, KSM),
+            (100_000_000, 70_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_3
+        ));
+
+        let routes = AMMRoute::get_all_routes(
+            input_amount, // input amount
+            DOT,          // input token
+            KSM,          // output token
+            true,
+        )
+        .unwrap();
+
+        // Returns descending order `highest` value first.
+        assert_eq!(
+            routes,
+            vec![(vec![101, 100], 1433), (vec![101, 1001, 100], 1119)]
+        );
+    })
+}
+
+#[test]
+fn get_best_route_reversed_should_work() {
+    new_test_ext().execute_with(|| {
+        let input_amount = 1_000;
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, SDOT),
+            (100_000_000, 90_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (SDOT, KSM),
+            (100_000_000, 100_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_2
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, KSM),
+            (100_000_000, 70_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_3
+        ));
+
+        let best_route = AMMRoute::get_best_route(
+            input_amount, // input amount
+            DOT,          // input token
+            KSM,          // output token
+            true,
+        )
+        .unwrap();
+
+        // Returns descending order `highest` value first.
+        assert_eq!(best_route, (vec![101, 1001, 100], 1119));
     })
 }
