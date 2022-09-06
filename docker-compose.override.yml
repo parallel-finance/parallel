@@ -30,6 +30,10 @@ services:
     image: parallelfinance/stake-client:latest
     command: sync ledger --relay-ws=ws://relaychain-bob:9944 --para-ws=ws://parachain-${PARA_ID}-0:9944 --derivative-index 1
     restart: always
+  stake-client-fast-match-unstake:
+    image: parallelfinance/stake-client:latest
+    command: fast-match-unstake --para-ws=ws://parachain-${PARA_ID}-0:9944 --batch-size 30
+    restart: always
   liquidation-client:
     image: parallelfinance/liquidation-client:latest
     command: --endpoint ws://parachain-${PARA_ID}-0:9944
