@@ -36,7 +36,7 @@ use cumulus_client_service::{
 use cumulus_primitives_core::ParaId;
 use cumulus_relay_chain_inprocess_interface::build_inprocess_relay_chain;
 use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface, RelayChainResult};
-use cumulus_relay_chain_rpc_interface::RelayChainRPCInterface;
+use cumulus_relay_chain_rpc_interface::{create_client_and_start_worker, RelayChainRpcInterface};
 use fc_consensus::FrontierBlockImport;
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use futures::StreamExt;
@@ -46,8 +46,9 @@ use sc_consensus::import_queue::BasicQueue;
 use sc_consensus_manual_seal::{self as manual_seal};
 use sc_executor::NativeElseWasmExecutor;
 use sc_network::NetworkService;
+use sc_network_common::service::NetworkBlock;
 use sc_service::error::Error as ServiceError;
-use sc_service::{Configuration, PartialComponents, Role, TFullBackend, TFullClient, TaskManager};
+use sc_service::{Configuration, PartialComponents, TFullBackend, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker, TelemetryWorkerHandle};
 use sp_api::ConstructRuntimeApi;
 use sp_blockchain::HeaderBackend;
@@ -366,10 +367,13 @@ async fn build_relay_chain_interface(
     Option<CollatorPair>,
 )> {
     match collator_options.relay_chain_rpc_url {
-        Some(relay_chain_url) => Ok((
-            Arc::new(RelayChainRPCInterface::new(relay_chain_url).await?) as Arc<_>,
-            None,
-        )),
+        Some(relay_chain_url) => {
+            let client = create_client_and_start_worker(relay_chain_url, task_manager).await?;
+            Ok((
+                Arc::new(RelayChainRpcInterface::new(client)) as Arc<_>,
+                None,
+            ))
+        }
         None => build_inprocess_relay_chain(
             polkadot_config,
             parachain_config,
@@ -453,10 +457,6 @@ where
         bool,
     ) -> Result<Box<dyn ParachainConsensus<Block>>, sc_service::Error>,
 {
-    if matches!(parachain_config.role, Role::Light) {
-        return Err("Light client not supported!".into());
-    }
-
     let parachain_config = prepare_node_config(parachain_config);
 
     let params = new_partial::<RuntimeApi, Executor, BIQ>(&parachain_config, build_import_queue)?;

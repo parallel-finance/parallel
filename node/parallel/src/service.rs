@@ -21,9 +21,8 @@ use cumulus_client_service::{
 use polkadot_service::{CollatorPair, ConstructRuntimeApi};
 use sc_client_api::call_executor::ExecutorProvider;
 use sc_executor::NativeElseWasmExecutor;
-use sc_network::NetworkService;
 use sc_network_common::service::NetworkBlock;
-use sc_service::{Configuration, PartialComponents, TFullBackend, TFullClient, TaskManager};
+use sc_service::{Configuration, PartialComponents, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker, TelemetryWorkerHandle};
 
 use primitives::*;
@@ -64,9 +63,9 @@ impl sc_executor::NativeExecutionDispatch for HeikoExecutor {
     }
 }
 
-// pub type FullBackend = sc_service::TFullBackend<Block>;
-// pub type FullClient<RuntimeApi, Executor> =
-//     sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>;
+pub type FullBackend = sc_service::TFullBackend<Block>;
+pub type FullClient<RuntimeApi, Executor> =
+    sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>;
 
 pub trait IdentifyVariant {
     fn is_parallel(&self) -> bool;

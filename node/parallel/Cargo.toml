@@ -97,10 +97,10 @@ cumulus-relay-chain-rpc-interface       = { git = 'https://github.com/paritytech
 cumulus-client-consensus-common         = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
 cumulus-client-consensus-relay-chain    = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
 
-polkadot-cli        = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26', features = ['kusama-native'] }
-polkadot-parachain  = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
-polkadot-primitives = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
-polkadot-service    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
+polkadot-cli        = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28', features = ['kusama-native'] }
+polkadot-parachain  = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28' }
+polkadot-primitives = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28' }
+polkadot-service    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28' }
 
 # Frontier dependencies
 fc-consensus = { version='2.0.0-dev' }

@@ -84,4 +84,4 @@ sp-io                                 = { git = 'https://github.com/paritytech/s
 sp-trie                               = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.28' }
 statemine-runtime                     = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
 statemint-runtime                     = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
-xcm-emulator                          = { git = 'https://github.com/mrpai/xcm-simulator.git', rev = '7d4eec3c50d77b82f88f9c831c5b553633ca245f' }
+xcm-emulator                          = { git = 'https://github.com/shaunxw/xcm-simulator.git', rev = '6c02911a3eeb04c342e4eb273d2ffbedd45dabff' }
