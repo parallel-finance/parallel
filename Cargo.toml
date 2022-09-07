@@ -15,14 +15,14 @@ members = ['node/*', 'pallets/*', 'runtime/*', 'support', 'precompiles/*','integ
 
 [patch.crates-io]
 #orml
-orml-oracle                 = { git = 'https://github.com/MrPai/open-runtime-module-library.git', rev = '83faa6354e894ad52a0b97c847f77b37318231e2' }
-orml-oracle-rpc             = { git = 'https://github.com/MrPai/open-runtime-module-library.git', rev = '83faa6354e894ad52a0b97c847f77b37318231e2' }
-orml-oracle-rpc-runtime-api = { git = 'https://github.com/MrPai/open-runtime-module-library.git', rev = '83faa6354e894ad52a0b97c847f77b37318231e2' }
-orml-traits                 = { git = 'https://github.com/MrPai/open-runtime-module-library.git', rev = '83faa6354e894ad52a0b97c847f77b37318231e2' }
-orml-vesting                = { git = 'https://github.com/MrPai/open-runtime-module-library.git', rev = '83faa6354e894ad52a0b97c847f77b37318231e2' }
-orml-xcm                    = { git = 'https://github.com/MrPai/open-runtime-module-library.git', rev = '83faa6354e894ad52a0b97c847f77b37318231e2' }
-orml-xcm-support            = { git = 'https://github.com/MrPai/open-runtime-module-library.git', rev = '83faa6354e894ad52a0b97c847f77b37318231e2' }
-orml-xtokens                = { git = 'https://github.com/MrPai/open-runtime-module-library.git', rev = '83faa6354e894ad52a0b97c847f77b37318231e2' }
+orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '20969f385bf77e41386e8d8aa9626b003a306204' }
+orml-oracle-rpc             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '20969f385bf77e41386e8d8aa9626b003a306204' }
+orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '20969f385bf77e41386e8d8aa9626b003a306204' }
+orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '20969f385bf77e41386e8d8aa9626b003a306204' }
+orml-vesting                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '20969f385bf77e41386e8d8aa9626b003a306204' }
+orml-xcm                    = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '20969f385bf77e41386e8d8aa9626b003a306204' }
+orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '20969f385bf77e41386e8d8aa9626b003a306204' }
+orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = '20969f385bf77e41386e8d8aa9626b003a306204' }
 #evm
 fc-consensus                =  { git = 'https://github.com/parallel-finance/frontier.git', rev = '2e09cac89ef57f688a73dccff72d88c1003c786a' }
 fc-db                       = { git = 'https://github.com/parallel-finance/frontier.git', rev = '2e09cac89ef57f688a73dccff72d88c1003c786a' }
