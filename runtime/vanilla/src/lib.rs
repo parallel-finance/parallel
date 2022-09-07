@@ -301,6 +301,7 @@ impl Contains<Call> for BaseCallFilter {
             || matches!(
                 call,
                 // System, Currencies
+                Call::System(_) |
                 Call::Balances(_) |
                 Call::Assets(pallet_assets::Call::mint { .. }) |
                 Call::Assets(pallet_assets::Call::transfer { .. }) |
@@ -333,7 +334,8 @@ impl Contains<Call> for BaseCallFilter {
                 // EVM
                 Call::EVM(_) |
                 Call::Ethereum(_) |
-                Call::BaseFee(_)
+                Call::BaseFee(_) |
+                Call::EVMSignatureCall(_)
             ))
             && EmergencyShutdown::contains(call)
     }
