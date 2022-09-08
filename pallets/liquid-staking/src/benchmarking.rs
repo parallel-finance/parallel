@@ -405,7 +405,7 @@ benchmarks! {
         let n in 1 .. 50;
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
-        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
 
         let mut unstaker_list: Vec<T::AccountId> = vec![];
         let fast_unstake_amount = 50_000_000_000;
@@ -422,7 +422,7 @@ benchmarks! {
             assert_eq!(FastUnstakeRequests::<T>::get(&unstaker), fast_unstake_amount);
             unstaker_list.push(unstaker);
         }
-    }: _(SystemOrigin::Signed(alice.clone()), unstaker_list)
+    }: _(SystemOrigin::Root, unstaker_list)
     verify {
         let xcm_fee = T::XcmFees::get();
         let reserve = ReserveFactor::<T>::get().mul_floor(STAKE_AMOUNT);
