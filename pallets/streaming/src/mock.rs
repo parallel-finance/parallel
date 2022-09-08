@@ -90,7 +90,7 @@ impl pallet_timestamp::Config for Test {
 }
 
 parameter_types! {
-    pub const ExistentialDeposit: Balance = 1_000;
+    pub const ExistentialDeposit: Balance = 10_000;
     pub const MaxLocks: u32 = 50;
 }
 
