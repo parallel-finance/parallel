@@ -1018,7 +1018,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             unstaker_list: Vec<T::AccountId>,
         ) -> DispatchResult {
-            let _ = ensure_signed(origin)?;
+            Self::ensure_origin(origin)?;
             for unstaker in unstaker_list {
                 Self::do_fast_match_unstake(&unstaker)?;
             }

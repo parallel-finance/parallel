@@ -1157,7 +1157,7 @@ fn test_complete_fast_match_unstake_work() {
             UnstakeProvider::MatchingPool
         ));
         assert_ok!(LiquidStaking::fast_match_unstake(
-            Origin::signed(ALICE),
+            Origin::signed(BOB),
             [BOB].to_vec(),
         ));
 
@@ -1213,7 +1213,7 @@ fn test_partial_fast_match_unstake_work() {
             UnstakeProvider::MatchingPool
         ));
         assert_ok!(LiquidStaking::fast_match_unstake(
-            Origin::signed(ALICE),
+            Origin::signed(BOB),
             [BOB, ALICE].to_vec(),
         ));
 
