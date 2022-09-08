@@ -88,6 +88,10 @@ check-helper:
 test:
 	SKIP_WASM_BUILD= cargo test --workspace --features runtime-benchmarks --exclude runtime-integration-tests --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude kerria-runtime --exclude heiko-runtime --exclude pallet-loans-rpc --exclude pallet-loans-rpc-runtime-api --exclude parallel-primitives -- --nocapture
 
+.PHONY: test-with-evm
+test-with-evm:
+	SKIP_WASM_BUILD= cargo test --workspace --features with-evm-runtime --features runtime-benchmarks --exclude runtime-integration-tests --exclude pallet-loans-rpc --exclude pallet-loans-rpc-runtime-api --exclude parallel-primitives -- --nocapture
+
 .PHONY: test-loans
 test-loans:
 	SKIP_WASM_BUILD= cargo test -p pallet-loans --lib --no-fail-fast -- --nocapture
@@ -116,6 +120,10 @@ integration-test-kusama-call:
 integration-test-sibling-transfer:
 	RUST_LOG="xcm=trace,xcm-executor=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- sibling_transfer --nocapture
 
+.PHONY: test-pallet-evm-precompile-assets-erc20
+test-pallet-evm-precompile-assets-erc20:
+	SKIP_WASM_BUILD= cargo test -p pallet-evm-precompile-assets-erc20 --lib --no-fail-fast -- --nocapture
+
 .PHONY: test-pallet-evm-precompile-balances-erc20
 test-pallet-evm-precompile-balances-erc20:
 	SKIP_WASM_BUILD= cargo test -p pallet-evm-precompile-balances-erc20 --lib --no-fail-fast -- --nocapture
@@ -123,7 +131,6 @@ test-pallet-evm-precompile-balances-erc20:
 .PHONY: test-pallet-evm-signatures
 test-pallet-evm-signatures:
 	SKIP_WASM_BUILD= cargo test -p pallet-evm-signatures --lib --no-fail-fast -- --nocapture
-
 
 .PHONY: bench
 bench:build-release-if-not-exists

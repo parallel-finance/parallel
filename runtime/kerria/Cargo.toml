@@ -122,6 +122,7 @@ pallet-streaming                     = { path = '../../pallets/streaming', defau
 pallet-traits                        = { path = '../../pallets/traits', default-features = false }
 pallet-xcm-helper                    = { path = '../../pallets/xcm-helper', default-features = false }
 primitives                           = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+pallet-evm-signatures                = { path = '../../pallets/evm-signatures', default-features = false }
 
 [build-dependencies.substrate-wasm-builder]
 branch = 'polkadot-v0.9.26'
@@ -248,6 +249,7 @@ std                = [
   'pallet-evm-precompile-sha3fips/std',
   'pallet-evm-precompile-assets-erc20/std',
   'pallet-evm-precompile-balances-erc20/std',
+  'pallet-evm-signatures/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',
