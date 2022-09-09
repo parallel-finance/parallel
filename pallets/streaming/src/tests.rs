@@ -17,7 +17,7 @@ use crate::types::StreamStatus;
 use super::*;
 use frame_support::{assert_err, assert_ok};
 use mock::*;
-use sp_runtime::traits::Zero;
+use sp_runtime::{traits::Zero, ArithmeticError};
 
 #[test]
 fn create_works() {
@@ -318,12 +318,12 @@ fn withdraw_under_ed_works() {
         assert_ok!(Streaming::withdraw(
             Origin::signed(BOB),
             stream_id_0,
-            93230769230760 - ed + 1
+            93230769230760 - ed
         ));
 
         stream = Streams::<Test>::get(stream_id_0).unwrap();
         assert_eq!(stream.sender_balance().unwrap(), 7769230769240);
-        assert_eq!(stream.recipient_balance().unwrap(), 0);
+        assert_eq!(stream.recipient_balance().unwrap(), ed);
 
         // passed 14 seconds
         TimestampPallet::set_timestamp(20000);
@@ -332,18 +332,61 @@ fn withdraw_under_ed_works() {
         assert_eq!(stream.sender_balance().unwrap(), 0);
         // Reaches the end_time, returned amount should contains the accuracy loss(10)
         // recipient_balance = 7769230769230 + 10
-        assert_eq!(stream.recipient_balance().unwrap(), 7769230769240);
+        assert_eq!(stream.recipient_balance().unwrap(), 7769230769240 + ed);
 
         // Bob withdraw remaining_balance
         assert_ok!(Streaming::withdraw(
             Origin::signed(BOB),
             stream_id_0,
-            7769230769240 - ed + 1
+            7769230769240 + 1
         ));
+        stream = Streams::<Test>::get(stream_id_0).unwrap();
+        assert_eq!(stream.recipient_balance().unwrap(), 0);
         // Stream is removed as balance goes zero
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &BOB) - before_bob,
             dollar(101)
+        );
+    });
+}
+
+#[test]
+fn create_ed_and_withdraw_all_works() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Streaming::set_minimum_deposit(Origin::root(), HKO, 0));
+        let before_bob = <Test as Config>::Assets::balance(HKO, &BOB);
+        assert_eq!(TimestampPallet::now(), 6000);
+        let ed = <Test as Config>::NativeExistentialDeposit::get();
+        // Alice creates stream 101 dollars to Bob
+        let stream_id_0 = NextStreamId::<Test>::get();
+        assert_ok!(Streaming::create(
+            Origin::signed(ALICE),
+            BOB,
+            ed,
+            HKO,
+            7,
+            12,
+            true,
+        ));
+        let stream = Streams::<Test>::get(stream_id_0).unwrap();
+        let new_stream = Stream::new(ed, HKO, 2000, ALICE, BOB, 7, 12, true);
+        assert_eq!(stream, new_stream);
+        TimestampPallet::set_timestamp(8000);
+        // Bob withdraw balance
+        assert_ok!(Streaming::withdraw(Origin::signed(BOB), stream_id_0, 0));
+
+        let stream = Streams::<Test>::get(stream_id_0).unwrap();
+        let mut new_stream = new_stream;
+        new_stream.try_deduct(ed).unwrap();
+        new_stream.try_complete().unwrap();
+        assert_eq!(stream, new_stream);
+        assert_err!(stream.sender_balance(), ArithmeticError::Underflow);
+        assert_err!(stream.recipient_balance(), ArithmeticError::Underflow);
+
+        // Stream is removed as balance goes zero
+        assert_eq!(
+            <Test as Config>::Assets::balance(HKO, &BOB) - before_bob,
+            ed
         );
     });
 }

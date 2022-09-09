@@ -343,7 +343,7 @@ pub mod pallet {
         pub fn withdraw(
             origin: OriginFor<T>,
             stream_id: StreamId,
-            mut amount: BalanceOf<T>,
+            amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let recipient = ensure_signed(origin)?;
 
@@ -357,10 +357,12 @@ pub mod pallet {
                 Error::<T>::InsufficientStreamBalance
             );
 
+            let mut amount = amount;
             if stream.asset_id == T::NativeCurrencyId::get()
-                && amount.saturating_add(T::NativeExistentialDeposit::get()) >= recipient_balance
+                && amount.saturating_add(T::NativeExistentialDeposit::get())
+                    >= stream.remaining_balance
             {
-                amount = recipient_balance
+                amount = stream.remaining_balance
             }
 
             stream.try_deduct(amount)?;
