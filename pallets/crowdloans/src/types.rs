@@ -19,7 +19,7 @@ use super::{AccountIdOf, AssetIdOf, BalanceOf, Config};
 use codec::{Decode, Encode};
 
 use frame_system::pallet_prelude::BlockNumberFor;
-use primitives::{LeasePeriod, ParaId, TrieIndex, VaultId};
+use primitives::{LeasePeriod, ParaId, Timestamp, TrieIndex, VaultId};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 use sp_std::vec::Vec;
@@ -142,5 +142,29 @@ pub enum Releases {
 impl Default for Releases {
     fn default() -> Self {
         Releases::V0_0_0
+    }
+}
+
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct BonusConfig<T: Config> {
+    // The bonus per-value of the contribute
+    pub bonus_per_token: BalanceOf<T>,
+    // The start time of the stream
+    pub start_time: Timestamp,
+    // The end time of the stream
+    pub end_time: Timestamp,
+    // Whether the stream can be cancelled
+    pub cancellable: bool,
+}
+
+impl<T: Config> Default for BonusConfig<T> {
+    fn default() -> Self {
+        BonusConfig {
+            bonus_per_token: Default::default(),
+            start_time: Default::default(),
+            end_time: Default::default(),
+            cancellable: Default::default(),
+        }
     }
 }

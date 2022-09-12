@@ -56,7 +56,8 @@ pub mod pallet {
     };
     use pallet_xcm::ensure_response;
     use primitives::{
-        ArithmeticKind, Balance, CurrencyId, LeasePeriod, ParaId, Rate, TrieIndex, VaultId,
+        ArithmeticKind, Balance, CurrencyId, LeasePeriod, ParaId, Rate, Timestamp, TrieIndex,
+        VaultId,
     };
     use sp_runtime::{
         traits::{
@@ -67,7 +68,7 @@ pub mod pallet {
     use sp_std::{boxed::Box, vec::Vec};
     use xcm::latest::prelude::*;
 
-    use pallet_traits::{VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider};
+    use pallet_traits::{Streaming, VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider};
 
     use parallel_support::math_helper::f64::{
         fixed_u128_from_float, fixed_u128_to_float, power_float,
@@ -288,6 +289,8 @@ pub mod pallet {
         /// Update proxy address
         /// [account]
         ProxyUpdated(T::AccountId),
+        /// Update leases bonus
+        LeasesBonusUpdated(BalanceOf<T>, Timestamp, Timestamp, bool),
     }
 
     #[pallet::error]
@@ -379,6 +382,18 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn proxy_address)]
     pub type ProxyAddress<T: Config> = StorageValue<_, AccountIdOf<T>, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn leases_bonus)]
+    pub type LeasesBonus<T: Config> = StorageNMap<
+        _,
+        (
+            NMapKey<Blake2_128Concat, LeasePeriod>,
+            NMapKey<Blake2_128Concat, LeasePeriod>,
+        ),
+        BonusConfig<T>,
+        ValueQuery,
+    >;
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -1147,6 +1162,35 @@ pub mod pallet {
 
             Ok(())
         }
+
+        /// Update crowdloans proxy address in relaychain
+        #[pallet::weight(<T as Config>::WeightInfo::update_leases_bonus())]
+        #[transactional]
+        pub fn update_leases_bonus(
+            origin: OriginFor<T>,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+            bonus_per_token: BalanceOf<T>,
+            start_time: Timestamp,
+            end_time: Timestamp,
+            cancellable: bool,
+        ) -> DispatchResult {
+            ensure_origin!(UpdateOrigin, origin)?;
+            let bonus_config = BonusConfig {
+                bonus_per_token,
+                start_time,
+                end_time,
+                cancellable,
+            };
+            LeasesBonus::<T>::insert((&lease_start, &lease_end), bonus_config);
+            Self::deposit_event(Event::<T>::LeasesBonusUpdated(
+                bonus_per_token,
+                start_time,
+                end_time,
+                cancellable,
+            ));
+            Ok(())
+        }
     }
 
     impl<T: Config> Pallet<T> {
@@ -1598,16 +1642,22 @@ pub mod pallet {
             T::Assets::mint_into(ctoken, &who, amount)?;
 
             Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
-            //TODO:
-            T::Streaming::create(
-                Self::account_id(),
-                who.clone(),
-                amount,
-                T::GetNativeCurrencyId::get(),
-                0,
-                0,
-                false,
-            )?;
+
+            // Bonus for PARA, Not applicable for HKO
+            let bonus_config = Self::leases_bonus((&lease_start, &lease_end));
+            let bonus_amount = amount.saturating_mul(bonus_config.bonus_per_token);
+            if !bonus_amount.is_zero() {
+                T::Streaming::create(
+                    Self::account_id(),
+                    who.clone(),
+                    bonus_amount,
+                    T::GetNativeCurrencyId::get(),
+                    bonus_config.start_time,
+                    bonus_config.end_time,
+                    bonus_config.cancellable,
+                )?;
+            }
+
             Self::deposit_event(Event::<T>::VaultClaimed(
                 crowdloan,
                 (lease_start, lease_end),
