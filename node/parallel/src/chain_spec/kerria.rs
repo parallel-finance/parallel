@@ -35,6 +35,55 @@ use crate::chain_spec::{
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
+fn evm_accounts() -> Vec<AccountId> {
+    vec![
+        // the mapping SS58 of Alice
+        // Secret seed: 0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a
+        // H160: 0x8097c3C354652CB1EEed3E5B65fBa2576470678A
+        "hJGTRJgAGeMy9515iQ56VtfGKiGmejMkXmjKDRrxA46b7Z2So"
+            .parse()
+            .unwrap(),
+        // others are all from ganache with MNEMONIC:
+        //'into treat head shock search rule sheriff sword problem carpet exercise useful'
+        "hJGGzG3onkMCMZbPMpLWe3jo3NQeDLtdHRedes6FtPjwEBjnk"
+            .parse()
+            .unwrap(),
+        "hJJAtKQkAFTJKTgPQoMjAqafQeFWuNQujNUjC7xmtjguQLY8z"
+            .parse()
+            .unwrap(),
+        "hJHkTHBNs2UbaLTYyNdRtGqKJfEt1g6qJTsoFSmnSwCMB1GiH"
+            .parse()
+            .unwrap(),
+        "hJGRnsnw7JMJkbc4Jsa2AJyrEkdtBNLFFSpYgNiwpvsgsGS3s"
+            .parse()
+            .unwrap(),
+        "hJJYGraYTku7dcvPY5eeGoXYDZC6ujRboQosFwMuNSMD9bEok"
+            .parse()
+            .unwrap(),
+    ]
+}
+
+fn substrate_accounts() -> Vec<AccountId> {
+    vec![
+        // Faucet accounts
+        "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+            .parse()
+            .unwrap(),
+        get_account_id_from_seed::<sr25519::Public>("Alice"),
+        get_account_id_from_seed::<sr25519::Public>("Bob"),
+        get_account_id_from_seed::<sr25519::Public>("Charlie"),
+        get_account_id_from_seed::<sr25519::Public>("Dave"),
+        get_account_id_from_seed::<sr25519::Public>("Eve"),
+        get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+        get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+    ]
+}
+
 pub fn kerria_dev_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         // Name
@@ -50,35 +99,19 @@ pub fn kerria_dev_config(id: ParaId) -> ChainSpec {
             let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
             let crowdloans_automators = vec![get_account_id_from_seed::<sr25519::Public>("Bob")];
             let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
-                vec![
-                    // Faucet accounts
-                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap(),
-                    get_account_id_from_seed::<sr25519::Public>("Alice"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-                ]
-                .iter()
-                .flat_map(|x| {
-                    if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap()
-                    {
-                        vec![(x.clone(), 10_u128.pow(20))]
-                    } else {
-                        vec![(x.clone(), 10_u128.pow(16))]
-                    }
-                }),
+                [substrate_accounts(), evm_accounts()]
+                    .concat()
+                    .iter()
+                    .flat_map(|x| {
+                        if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                            .parse()
+                            .unwrap()
+                        {
+                            vec![(x.clone(), 10_u128.pow(20))]
+                        } else {
+                            vec![(x.clone(), 10_u128.pow(16))]
+                        }
+                    }),
             );
             let vesting_list = vec![];
             let council = vec![
