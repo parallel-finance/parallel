@@ -1849,3 +1849,21 @@ fn xcm_proxy_contribute_should_work() {
         // assert_eq!(ctoken_balance, amount);
     });
 }
+
+#[test]
+fn update_leases_bonus_should_work() {
+    new_test_ext().execute_with(|| {
+        let start_lease = 6;
+        let end_lease = 13;
+
+        let mut config = BonusConfig::default();
+        config.bonus_per_token = 5;
+        assert_ok!(Crowdloans::update_leases_bonus(
+            frame_system::RawOrigin::Root.into(),
+            start_lease,
+            end_lease,
+            config,
+        ));
+        assert_eq!(Crowdloans::leases_bonus((&start_lease, &end_lease)), config,);
+    })
+}

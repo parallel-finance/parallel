@@ -146,25 +146,21 @@ impl Default for Releases {
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-#[scale_info(skip_type_params(T))]
-pub struct BonusConfig<T: Config> {
+pub struct BonusConfig<Balance> {
     // The bonus per-value of the contribute
-    pub bonus_per_token: BalanceOf<T>,
+    pub bonus_per_token: Balance,
     // The start time of the stream
     pub start_time: Timestamp,
     // The end time of the stream
     pub end_time: Timestamp,
-    // Whether the stream can be cancelled
-    pub cancellable: bool,
 }
 
-impl<T: Config> Default for BonusConfig<T> {
+impl<Balance: Default> Default for BonusConfig<Balance> {
     fn default() -> Self {
         BonusConfig {
             bonus_per_token: Default::default(),
             start_time: Default::default(),
             end_time: Default::default(),
-            cancellable: Default::default(),
         }
     }
 }

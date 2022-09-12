@@ -56,8 +56,7 @@ pub mod pallet {
     };
     use pallet_xcm::ensure_response;
     use primitives::{
-        ArithmeticKind, Balance, CurrencyId, LeasePeriod, ParaId, Rate, Timestamp, TrieIndex,
-        VaultId,
+        ArithmeticKind, Balance, CurrencyId, LeasePeriod, ParaId, Rate, TrieIndex, VaultId,
     };
     use sp_runtime::{
         traits::{
@@ -290,7 +289,7 @@ pub mod pallet {
         /// [account]
         ProxyUpdated(T::AccountId),
         /// Update leases bonus
-        LeasesBonusUpdated(BalanceOf<T>, Timestamp, Timestamp, bool),
+        LeasesBonusUpdated(VaultId, BonusConfig<BalanceOf<T>>),
     }
 
     #[pallet::error]
@@ -391,7 +390,7 @@ pub mod pallet {
             NMapKey<Blake2_128Concat, LeasePeriod>,
             NMapKey<Blake2_128Concat, LeasePeriod>,
         ),
-        BonusConfig<T>,
+        BonusConfig<BalanceOf<T>>,
         ValueQuery,
     >;
 
@@ -1170,24 +1169,13 @@ pub mod pallet {
             origin: OriginFor<T>,
             lease_start: LeasePeriod,
             lease_end: LeasePeriod,
-            bonus_per_token: BalanceOf<T>,
-            start_time: Timestamp,
-            end_time: Timestamp,
-            cancellable: bool,
+            bonus_config: BonusConfig<BalanceOf<T>>,
         ) -> DispatchResult {
             ensure_origin!(UpdateOrigin, origin)?;
-            let bonus_config = BonusConfig {
-                bonus_per_token,
-                start_time,
-                end_time,
-                cancellable,
-            };
             LeasesBonus::<T>::insert((&lease_start, &lease_end), bonus_config);
             Self::deposit_event(Event::<T>::LeasesBonusUpdated(
-                bonus_per_token,
-                start_time,
-                end_time,
-                cancellable,
+                (lease_start, lease_end),
+                bonus_config,
             ));
             Ok(())
         }
@@ -1654,7 +1642,7 @@ pub mod pallet {
                     T::GetNativeCurrencyId::get(),
                     bonus_config.start_time,
                     bonus_config.end_time,
-                    bonus_config.cancellable,
+                    false,
                 )?;
             }
 

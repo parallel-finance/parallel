@@ -236,3 +236,17 @@ pub trait Streaming<AccountId, CurrencyId, Balance> {
         cancellable: bool,
     ) -> Result<(), DispatchError>;
 }
+
+impl<AccountId, CurrencyId, Balance> Streaming<AccountId, CurrencyId, Balance> for () {
+    fn create(
+        _sender: AccountId,
+        _recipient: AccountId,
+        _deposit: Balance,
+        _asset_id: CurrencyId,
+        _start_time: Timestamp,
+        _end_time: Timestamp,
+        _cancellable: bool,
+    ) -> Result<(), DispatchError> {
+        Ok(())
+    }
+}

@@ -222,14 +222,19 @@ benchmarks! {
     }
 
     update_leases_bonus {
-        let mut bonus_config = BonusConfig::default();
-        bonus_config.bonus_per_token = 5;
+        let bonus_config = BonusConfig {
+            bonus_per_token: 5,
+            start_time: Default::default(),
+            end_time: Default::default(),
+        };
     }: _(
         SystemOrigin::Root,
-        bonus_config.clone()
+        6,
+        13,
+        bonus_config
     )
     verify {
-        assert_last_event::<T>(Event::LeasesBonusUpdated(bonus_config.bonus_per_token,bonus_config.start_time,bonus_config.end_time,bonus_config.cancellable).into())
+        assert_last_event::<T>(Event::LeasesBonusUpdated((6,13),bonus_config).into())
     }
 
     reopen {
