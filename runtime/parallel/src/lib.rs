@@ -1439,7 +1439,7 @@ impl Config for XcmConfig {
     type Call = Call;
     type XcmSender = XcmRouter;
     // How to withdraw and deposit an asset.
-    type AssetTransactor = LocalAssetTransactor;
+    type AssetTransactor = AssetTransactors;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
     // Teleporting is disabled.
