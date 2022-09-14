@@ -15,7 +15,7 @@
 //! Cross-chain transfer tests within Polkadot network.
 
 use cumulus_primitives_core::ParaId;
-use frame_support::assert_ok;
+use frame_support::{assert_ok, traits::ConstU32, WeakBoundedVec};
 use parallel_runtime::Assets;
 use primitives::{tokens::*, AccountId};
 use sp_runtime::traits::AccountIdConversion;
@@ -73,6 +73,76 @@ fn transfer_to_relay_chain() {
         assert_eq!(
             polkadot_runtime::Balances::free_balance(&AccountId::from(BOB)),
             995_305_825_48
+        );
+    });
+}
+
+#[test]
+fn transfer_sibling_chain_asset() {
+    let _ = env_logger::builder().is_test(true).try_init();
+    TestNet::reset();
+
+    //since not easy to introduce runtime from other chain,just use heiko's
+    use parallel_runtime::{Assets, Balances, Origin, PolkadotXcm, XTokens};
+
+    MockSibling::execute_with(|| {
+        assert_ok!(PolkadotXcm::reserve_transfer_assets(
+            Origin::signed(ALICE.into()).clone(),
+            Box::new(MultiLocation::new(1, X1(Parachain(2012))).into()),
+            Box::new(
+                Junction::AccountId32 {
+                    id: BOB,
+                    network: NetworkId::Any
+                }
+                .into()
+                .into()
+            ),
+            //just use para to mock clv here
+            Box::new(
+                (
+                    X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        b"PARA".to_vec(),
+                        None
+                    ))),
+                    para(10)
+                )
+                    .into()
+            ),
+            0
+        ));
+    });
+
+    // Rerun execute to actually send the egress message via XCM
+    MockSibling::execute_with(|| {});
+
+    Parallel::execute_with(|| {
+        assert_eq!(Assets::balance(CLV, &AccountId::from(BOB)), 9400000000000);
+    });
+
+    Parallel::execute_with(|| {
+        assert_ok!(XTokens::transfer(
+            Origin::signed(ALICE.into()),
+            PARA,
+            10_000_000_000_000,
+            Box::new(
+                MultiLocation::new(
+                    1,
+                    X2(
+                        Parachain(2002), //Sibling chain
+                        Junction::AccountId32 {
+                            network: NetworkId::Any,
+                            id: BOB.into(),
+                        }
+                    )
+                )
+                .into()
+            ),
+            4_000_000_000,
+        ));
+
+        assert_eq!(
+            Balances::free_balance(&AccountId::from(ALICE)),
+            90_000_000_000_000
         );
     });
 }
