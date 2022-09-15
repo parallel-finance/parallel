@@ -51,12 +51,23 @@ decl_test_parachain! {
     }
 }
 
+decl_test_parachain! {
+    pub struct MockSibling {
+        Runtime = parallel_runtime::Runtime,
+        Origin = parallel_runtime::Origin,
+        XcmpMessageHandler = parallel_runtime::XcmpQueue,
+        DmpMessageHandler = parallel_runtime::DmpQueue,
+        new_ext = para_ext(2002),
+    }
+}
+
 decl_test_network! {
     pub struct TestNet {
         relay_chain = PolkadotNet,
         parachains = vec![
             (1000, Statemint),
             (2012, Parallel),
+            (2002, MockSibling),
         ],
     }
 }

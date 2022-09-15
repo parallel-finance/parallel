@@ -37,7 +37,9 @@ pub const DOT_DECIMAL: u32 = 10;
 pub const RMRK_DECIMAL: u8 = 10;
 pub const USDT_DECIMAL: u8 = 6;
 pub const HEIKO_DECIMAL: u8 = 12;
+pub const PARA_DECIMAL: u8 = 12;
 pub const KAR_DECIMAL: u8 = 12;
+pub const CLV_DECIMAL: u8 = 18;
 
 pub const RMRK_ASSET_ID: u32 = 8;
 pub const USDT_ASSET_ID: u32 = 1984;
@@ -46,6 +48,7 @@ pub const RMRK: CurrencyId = 126;
 pub const RMRK_WEIGHT_PER_SEC: u128 = 20_000_000_000;
 pub const USDT_WEIGHT_PER_SEC: u128 = 30_000_000;
 pub const KAR_WEIGHT_PER_SEC: u128 = 30_000_000_000;
+pub const CLV_WEIGHT_PER_SEC: u128 = 1_000_000_000_000_000;
 
 pub const FEE_IN_STATEMINE: u128 = 15_540_916;
 pub const WEIGHT_IN_STATEMINE: u64 = 4_000_000_000;
@@ -68,6 +71,10 @@ pub fn usdt(n: u128) -> Balance {
 
 pub fn heiko(n: u128) -> Balance {
     n * 10u128.pow(HEIKO_DECIMAL.into())
+}
+
+pub fn para(n: u128) -> Balance {
+    n * 10u128.pow(PARA_DECIMAL.into())
 }
 
 pub const fn market_mock(ptoken_id: u32) -> Market<Balance> {
@@ -344,7 +351,7 @@ impl ExtBuilder {
     }
 
     pub fn parallel_build(self) -> sp_io::TestExternalities {
-        use parallel_runtime::{Assets, Origin, Runtime, System};
+        use parallel_runtime::{AssetRegistry, Assets, Origin, Runtime, System};
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
             .unwrap();
@@ -363,6 +370,15 @@ impl ExtBuilder {
             },
             &mut t,
         )
+        .unwrap();
+
+        pallet_balances::GenesisConfig::<Runtime> {
+            balances: vec![
+                (AccountId::from(ALICE), para(100)),
+                (AccountId::from(BOB), para(100)),
+            ],
+        }
+        .assimilate_storage(&mut t)
         .unwrap();
 
         let mut ext = sp_io::TestExternalities::new(t);
@@ -390,6 +406,44 @@ impl ExtBuilder {
                 DOT,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 dot(100f64),
+            )
+            .unwrap();
+
+            //initialize for clv as mock sibling
+            Assets::force_create(
+                Origin::root(),
+                CLV,
+                MultiAddress::Id(AccountId::from(ALICE)),
+                true,
+                1,
+            )
+            .unwrap();
+            Assets::force_set_metadata(
+                Origin::root(),
+                CLV,
+                b"CLV".to_vec(),
+                b"CLV".to_vec(),
+                CLV_DECIMAL,
+                false,
+            )
+            .unwrap();
+            let clv_asset_location = MultiLocation::new(
+                1,
+                X2(
+                    Parachain(2002),
+                    //since we use para to mock clv,just use para location here
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        b"PARA".to_vec(),
+                        None,
+                    )),
+                ),
+            );
+            let clv_asset_type = AssetType::Xcm(clv_asset_location);
+            AssetRegistry::register_asset(Origin::root(), CLV, clv_asset_type.clone()).unwrap();
+            AssetRegistry::update_asset_units_per_second(
+                Origin::root(),
+                clv_asset_type,
+                CLV_WEIGHT_PER_SEC,
             )
             .unwrap();
         });
