@@ -157,7 +157,7 @@ pub type NoncesStorage<Instance> = StorageMap<
 >;
 
 #[generate_function_selector]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Action {
     TotalSupply = "totalSupply()",
     BalanceOf = "balanceOf(address)",
