@@ -111,6 +111,7 @@ pallet-currency-adapter              = { path = '../../pallets/currency-adapter'
 pallet-emergency-shutdown            = { path = '../../pallets/emergency-shutdown', default-features = false }
 pallet-evm-precompile-assets-erc20   = { path = '../../precompiles/assets-erc20', default-features = false }
 pallet-evm-precompile-balances-erc20 = { path = '../../precompiles/balances-erc20', default-features = false }
+pallet-evm-signatures                = { path = '../../pallets/evm-signatures', default-features = false }
 pallet-farming                       = { path = '../../pallets/farming', default-features = false }
 pallet-liquid-staking                = { path = '../../pallets/liquid-staking', default-features = false }
 pallet-loans                         = { path = '../../pallets/loans', default-features = false }
@@ -175,6 +176,7 @@ std                = [
   'pallet-evm-precompile-ed25519/std',
   'pallet-evm-precompile-modexp/std',
   'pallet-evm-precompile-sha3fips/std',
+  'pallet-evm-signatures/std',
   'sp-api/std',
   'sp-std/std',
   'sp-core/std',

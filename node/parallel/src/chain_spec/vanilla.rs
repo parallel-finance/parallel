@@ -16,8 +16,9 @@ use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::sr25519;
+use sp_core::{sr25519, H160, U256};
 use sp_runtime::{traits::Zero, FixedPointNumber};
+use std::{collections::BTreeMap, str::FromStr};
 use vanilla_runtime::{
     opaque::SessionKeys, BalancesConfig, BaseFeeConfig, BridgeMembershipConfig,
     CollatorSelectionConfig, CrowdloansAutomatorsMembershipConfig, DemocracyConfig, EVMConfig,
@@ -35,6 +36,55 @@ use crate::chain_spec::{
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
+fn evm_accounts() -> Vec<AccountId> {
+    vec![
+        // the mapping SS58 of Alice
+        // Secret seed: 0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a
+        // H160: 0x8097c3C354652CB1EEed3E5B65fBa2576470678A
+        "hJGTRJgAGeMy9515iQ56VtfGKiGmejMkXmjKDRrxA46b7Z2So"
+            .parse()
+            .unwrap(),
+        // others are all from ganache with MNEMONIC:
+        //'into treat head shock search rule sheriff sword problem carpet exercise useful'
+        "hJGGzG3onkMCMZbPMpLWe3jo3NQeDLtdHRedes6FtPjwEBjnk"
+            .parse()
+            .unwrap(),
+        "hJJAtKQkAFTJKTgPQoMjAqafQeFWuNQujNUjC7xmtjguQLY8z"
+            .parse()
+            .unwrap(),
+        "hJHkTHBNs2UbaLTYyNdRtGqKJfEt1g6qJTsoFSmnSwCMB1GiH"
+            .parse()
+            .unwrap(),
+        "hJGRnsnw7JMJkbc4Jsa2AJyrEkdtBNLFFSpYgNiwpvsgsGS3s"
+            .parse()
+            .unwrap(),
+        "hJJYGraYTku7dcvPY5eeGoXYDZC6ujRboQosFwMuNSMD9bEok"
+            .parse()
+            .unwrap(),
+    ]
+}
+
+fn substrate_accounts() -> Vec<AccountId> {
+    vec![
+        // Faucet accounts
+        "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+            .parse()
+            .unwrap(),
+        get_account_id_from_seed::<sr25519::Public>("Alice"),
+        get_account_id_from_seed::<sr25519::Public>("Bob"),
+        get_account_id_from_seed::<sr25519::Public>("Charlie"),
+        get_account_id_from_seed::<sr25519::Public>("Dave"),
+        get_account_id_from_seed::<sr25519::Public>("Eve"),
+        get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+        get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+        get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+    ]
+}
+
 pub fn local_development_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         // Name
@@ -50,26 +100,10 @@ pub fn local_development_config(id: ParaId) -> ChainSpec {
             let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
             let crowdloans_automators = vec![get_account_id_from_seed::<sr25519::Public>("Bob")];
             let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
-                vec![
-                    // Faucet accounts
-                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap(),
-                    get_account_id_from_seed::<sr25519::Public>("Alice"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-                ]
-                .iter()
-                .flat_map(|x| vec![(x.clone(), 10_u128.pow(24))]),
+                [substrate_accounts(), evm_accounts()]
+                    .concat()
+                    .iter()
+                    .flat_map(|x| vec![(x.clone(), 10_u128.pow(24))]),
             );
             let vesting_list = vec![];
             let council = vec![
@@ -124,26 +158,10 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
             let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
             let crowdloans_automators = vec![get_account_id_from_seed::<sr25519::Public>("Bob")];
             let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
-                vec![
-                    // Faucet accounts
-                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap(),
-                    get_account_id_from_seed::<sr25519::Public>("Alice"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-                ]
-                .iter()
-                .flat_map(|x| vec![(x.clone(), 10_u128.pow(24))]),
+                [substrate_accounts(), evm_accounts()]
+                    .concat()
+                    .iter()
+                    .flat_map(|x| vec![(x.clone(), 10_u128.pow(24))]),
             );
             let vesting_list = vec![];
             let council = vec![
@@ -276,19 +294,39 @@ fn vanilla_genesis(
         evm: EVMConfig {
             // We need _some_ code inserted at the precompile address so that
             // the evm will actually call the address.
-            accounts: ParallelPrecompilesType::used_addresses()
-                .map(|addr| {
-                    (
-                        addr,
-                        fp_evm::GenesisAccount {
-                            nonce: Default::default(),
-                            balance: Default::default(),
-                            storage: Default::default(),
-                            code: revert_bytecode.clone(),
-                        },
-                    )
-                })
-                .collect(),
+            accounts: {
+                let mut map: BTreeMap<H160, fp_evm::GenesisAccount> =
+                    ParallelPrecompilesType::used_addresses()
+                        .map(|addr| {
+                            (
+                                addr,
+                                fp_evm::GenesisAccount {
+                                    nonce: Default::default(),
+                                    balance: Default::default(),
+                                    storage: Default::default(),
+                                    code: revert_bytecode.clone(),
+                                },
+                            )
+                        })
+                        .collect();
+                map.insert(
+                    // the mapping H160 of Alice
+                    // Secret seed: 0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a
+                    // SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+                    // hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
+                    // Truncating to the first 20 bytes (the first 40 hex chars)
+                    H160::from_str("d43593c715fdd31c61141abd04a99fd6822c8558")
+                        .expect("internal H160 is valid; qed"),
+                    fp_evm::GenesisAccount {
+                        balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+                            .expect("internal U256 is valid; qed"),
+                        code: Default::default(),
+                        nonce: Default::default(),
+                        storage: Default::default(),
+                    },
+                );
+                map
+            },
         },
         base_fee: BaseFeeConfig::new(
             sp_core::U256::from(1_000_000_000),

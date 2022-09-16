@@ -18,10 +18,11 @@ CUMULUS_DOCKER_TAG									:= v0.9.24
 init: submodules
 	git config advice.ignoredHook false
 	git config core.hooksPath .githooks
-	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly-2022-05-11 --component rust-src --component rustfmt --component clippy --target wasm32-unknown-unknown
+	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly-2022-07-24 --component rust-src --component rustfmt --component clippy --target wasm32-unknown-unknown
 	cargo install cargo-udeps --locked
 	cd scripts/helper && yarn
 	cd scripts/polkadot-launch && yarn
+	cd scripts/evm && npm install
 
 .PHONY: submodules
 submodules:
@@ -87,6 +88,10 @@ check-helper:
 test:
 	SKIP_WASM_BUILD= cargo test --workspace --features runtime-benchmarks --exclude runtime-integration-tests --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude kerria-runtime --exclude heiko-runtime --exclude pallet-loans-rpc --exclude pallet-loans-rpc-runtime-api --exclude parallel-primitives -- --nocapture
 
+.PHONY: test-with-evm
+test-with-evm:
+	SKIP_WASM_BUILD= cargo test --workspace --features with-evm-runtime --features runtime-benchmarks --exclude runtime-integration-tests --exclude pallet-loans-rpc --exclude pallet-loans-rpc-runtime-api --exclude parallel-primitives -- --nocapture
+
 .PHONY: test-loans
 test-loans:
 	SKIP_WASM_BUILD= cargo test -p pallet-loans --lib --no-fail-fast -- --nocapture
@@ -115,9 +120,17 @@ integration-test-kusama-call:
 integration-test-sibling-transfer:
 	RUST_LOG="xcm=trace,xcm-executor=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- polkadot_transfer --nocapture
 
-.PHONY: test-pallet-evm-precompile-balances-erc20
-test-pallet-evm-precompile-balances-erc20:
+.PHONY: test-evm-precompile-assets-erc20
+test-evm-precompile-assets-erc20:
+	SKIP_WASM_BUILD= cargo test -p pallet-evm-precompile-assets-erc20 --lib --no-fail-fast -- --nocapture
+
+.PHONY: test-evm-precompile-balances-erc20
+test-evm-precompile-balances-erc20:
 	SKIP_WASM_BUILD= cargo test -p pallet-evm-precompile-balances-erc20 --lib --no-fail-fast -- --nocapture
+
+.PHONY: test-evm-signatures
+test-evm-signatures:
+	SKIP_WASM_BUILD= cargo test -p pallet-evm-signatures --lib --no-fail-fast -- --nocapture
 
 .PHONY: bench
 bench:build-release-if-not-exists
@@ -240,9 +253,17 @@ dev-launch: shutdown
 dev-launch-vanilla:
 	make PARA_ID=2085 CHAIN=vanilla-dev RELAY_CHAIN=kusama-local dev-launch
 
-.PHONY: local-dev-launch
-local-dev-launch:
-	cargo run --locked --bin parallel --features with-evm-runtime --features runtime-benchmarks --features try-runtime -- --tmp --alice --dev --rpc-cors all --unsafe-ws-external --unsafe-rpc-external --ws-port 19944 --rpc-port 29933
+.PHONY: launch-evm
+launch-evm:
+	cargo run --locked --bin parallel --features with-evm-runtime --features runtime-benchmarks --features try-runtime -- --tmp --alice --dev --rpc-cors all --unsafe-ws-external --rpc-methods unsafe --unsafe-rpc-external --ws-port 19944 --rpc-port 29933
+
+.PHONY: provisioning-evm
+provisioning-evm:
+	cd scripts/evm && yarn build && yarn init-chain && yarn provisioning-chain
+
+.PHONY: test-evm
+test-evm:
+	cd scripts/evm && yarn test-chain
 
 .PHONY: logs
 logs:

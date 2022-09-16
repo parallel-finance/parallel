@@ -46,6 +46,7 @@ Click the following guides for more details:
 - [DEVELOPER GUIDE](https://github.com/parallel-finance/parallel/blob/master/docs/DEVELOPER-GUIDE.md)
 - [LAUNCH GUIDE](https://github.com/parallel-finance/parallel/blob/master/docs/LAUNCH.md)
 - [COLLATOR GUIDE](https://github.com/parallel-finance/parallel/blob/master/docs/COLLATOR.md)
+- [EVM GUIDE](https://github.com/parallel-finance/parallel/blob/master/docs/EVM.md)
 
 ## Open Source Credits
 

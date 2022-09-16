@@ -1,5 +1,5 @@
 [files]
-extend-exclude = ["scripts/polkadot-launch/*", "resources/specs/*"]
+extend-exclude = ["scripts/polkadot-launch/*", "resources/specs/*", "scripts/evm/*"]
 
 [default.extend-words]
 accured = "accured"

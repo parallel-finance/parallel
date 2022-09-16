@@ -1,7 +1,7 @@
 # Editor
 .idea/
-.vscode/
 .vim/
+.vscode/
 
 # will have compiled files and executables
 **/target/
@@ -62,3 +62,6 @@ snapshot.bin
 !**/.yarn/versions
 
 scripts/helper/.env
+soljson*
+
+info/
