@@ -120,16 +120,16 @@ integration-test-kusama-call:
 integration-test-sibling-transfer:
 	RUST_LOG="xcm=trace,xcm-executor=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- polkadot_transfer --nocapture
 
-.PHONY: test-evm-pallet-precompile-assets-erc20
-test-evm-pallet-precompile-assets-erc20:
+.PHONY: test-evm-precompile-assets-erc20
+test-evm-precompile-assets-erc20:
 	SKIP_WASM_BUILD= cargo test -p pallet-evm-precompile-assets-erc20 --lib --no-fail-fast -- --nocapture
 
-.PHONY: test-evm-pallet-precompile-balances-erc20
-test-evm-pallet-precompile-balances-erc20:
+.PHONY: test-evm-precompile-balances-erc20
+test-evm-precompile-balances-erc20:
 	SKIP_WASM_BUILD= cargo test -p pallet-evm-precompile-balances-erc20 --lib --no-fail-fast -- --nocapture
 
-.PHONY: test-evm-pallet-signatures
-test-evm-pallet-signatures:
+.PHONY: test-evm-signatures
+test-evm-signatures:
 	SKIP_WASM_BUILD= cargo test -p pallet-evm-signatures --lib --no-fail-fast -- --nocapture
 
 .PHONY: bench
