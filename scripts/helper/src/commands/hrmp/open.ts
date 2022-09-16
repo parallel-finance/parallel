@@ -60,7 +60,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         },
         createXcm(`0x${encoded.slice(6)}`, sovereignRelayOf(source.valueOf() as number))
       )
-      const tx = api.tx.generalCouncil.propose(2, proposal, proposal.length)
+      const tx = api.tx.generalCouncil.propose(3, proposal, proposal.length)
 
       if (dryRun) {
         return logger.info(`hex-encoded call: ${tx.toHex()}`)

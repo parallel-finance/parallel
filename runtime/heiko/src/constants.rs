@@ -87,7 +87,7 @@ pub mod fee {
         let base_weight = Balance::from(ExtrinsicBaseWeight::get());
         let base_tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
         let hko_per_second = base_tx_per_second * super::currency::CENTS / 10;
-        hko_per_second / 50 //almost 250_000_000_000~=1/4 WEIGHT_PER_SECOND in polkadot-v0.9.26
+        hko_per_second / 50 //almost 250_000_000_000~=1/4 WEIGHT_PER_SECOND in polkadot-v0.9.28
     }
 }
 

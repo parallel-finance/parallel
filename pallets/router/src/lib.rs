@@ -158,9 +158,10 @@ pub mod pallet {
         /// Returns a sorted list of all routes and their output amounts from a
         /// start token to end token by traversing a graph.
         pub fn get_all_routes(
-            amount_in: BalanceOf<T, I>,
+            amount: BalanceOf<T, I>,
             token_in: AssetIdOf<T, I>,
             token_out: AssetIdOf<T, I>,
+            reversed: bool,
         ) -> Result<Vec<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>)>, DispatchError> {
             // get all the pool asset pairs from the AMM
             let pools = T::AMM::get_pools()?;
@@ -219,7 +220,7 @@ pub mod pallet {
             }
 
             // get output amounts for all routes
-            let mut output_routes = Self::get_output_routes(amount_in, paths).unwrap();
+            let mut output_routes = Self::get_output_routes(amount, paths, reversed).unwrap();
 
             // sort values greatest to least
             output_routes.sort_by_key(|k| Reverse(k.1));
@@ -229,20 +230,26 @@ pub mod pallet {
 
         /// Returns the route that results in the largest amount out for amount in
         pub fn get_best_route(
-            amount_in: BalanceOf<T, I>,
+            amount: BalanceOf<T, I>,
             token_in: AssetIdOf<T, I>,
             token_out: AssetIdOf<T, I>,
+            reversed: bool,
         ) -> Result<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>), DispatchError> {
-            let mut all_routes = Self::get_all_routes(amount_in, token_in, token_out)?;
+            let mut all_routes = Self::get_all_routes(amount, token_in, token_out, reversed)?;
             ensure!(!all_routes.is_empty(), Error::<T, I>::NoPossibleRoute);
-            let best_route = all_routes.remove(0);
+            let best_route = if reversed {
+                all_routes.remove(all_routes.len() - 1)
+            } else {
+                all_routes.remove(0)
+            };
 
             log::trace!(
                 target: "router::get_best_route",
-                "amount in :{:?}, token_in: {:?}, token_out: {:?}, best_route: {:?}",
-                amount_in,
+                "amount: {:?}, token_in: {:?}, token_out: {:?}, reversed: {:?}, best_route: {:?}",
+                amount,
                 token_in,
                 token_out,
+                reversed,
                 best_route
             );
 
@@ -251,14 +258,22 @@ pub mod pallet {
 
         ///  Returns output routes for given amount from all available routes
         pub fn get_output_routes(
-            amount_in: BalanceOf<T, I>,
+            amount: BalanceOf<T, I>,
             routes: Vec<Vec<AssetIdOf<T, I>>>,
+            reversed: bool,
         ) -> Result<Vec<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>)>, DispatchError> {
             let mut output_routes = Vec::new();
 
-            for route in routes {
-                let amounts = T::AMM::get_amounts_out(amount_in, route.clone())?;
-                output_routes.push((route, amounts[amounts.len() - 1]));
+            if reversed {
+                for route in routes {
+                    let amounts = T::AMM::get_amounts_in(amount, route.clone())?;
+                    output_routes.push((route, amounts[0]));
+                }
+            } else {
+                for route in routes {
+                    let amounts = T::AMM::get_amounts_out(amount, route.clone())?;
+                    output_routes.push((route, amounts[amounts.len() - 1]));
+                }
             }
 
             Ok(output_routes)

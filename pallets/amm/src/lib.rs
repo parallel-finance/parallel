@@ -493,9 +493,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         );
 
         Ok(base_amount
-            .checked_mul(quote_pool)
-            .and_then(|r| r.checked_div(base_pool))
-            .ok_or(ArithmeticError::Underflow)?)
+            .get_big_uint()
+            .checked_mul(&quote_pool.get_big_uint())
+            .and_then(|r| r.checked_div(&base_pool.get_big_uint()))
+            .and_then(|r| r.to_u128())
+            .ok_or(ArithmeticError::Overflow)?)
     }
 
     fn sort_assets(
@@ -625,16 +627,23 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         let amount_in = amount_in
             .checked_sub(fees)
             .ok_or(ArithmeticError::Underflow)?;
+
+        let (amount_in, reserve_in, reserve_out) = (
+            amount_in.get_big_uint(),
+            reserve_in.get_big_uint(),
+            reserve_out.get_big_uint(),
+        );
+
         let numerator = amount_in
-            .checked_mul(reserve_out)
+            .checked_mul(&reserve_out)
             .ok_or(ArithmeticError::Overflow)?;
 
         let denominator = reserve_in
-            .checked_add(amount_in)
+            .checked_add(&amount_in)
             .ok_or(ArithmeticError::Overflow)?;
 
         let amount_out = numerator
-            .checked_div(denominator)
+            .checked_div(&denominator)
             .ok_or(ArithmeticError::Underflow)?;
 
         log::trace!(
@@ -650,7 +659,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             &amount_out
         );
 
-        Ok(amount_out)
+        Ok(amount_out.to_u128().ok_or(ArithmeticError::Overflow)?)
     }
 
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
@@ -660,6 +669,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     // amountOut * reserveIn = amountIn * (reserveOut - amountOut)
     //
     // amountIn = amountOut * reserveIn / (reserveOut - amountOut)
+    //
     // Note: To make sure it greater than expected amount_out.
     // amountIn = (amountIn / (1 - fee_percent)) + **1**
     fn get_amount_in(
@@ -671,17 +681,26 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             amount_out < reserve_out,
             Error::<T, I>::InsufficientSupplyOut
         );
+
+        let (amount_out, reserve_in, reserve_out) = (
+            amount_out.get_big_uint(),
+            reserve_in.get_big_uint(),
+            reserve_out.get_big_uint(),
+        );
+
         let numerator = reserve_in
-            .checked_mul(amount_out)
+            .checked_mul(&amount_out)
             .ok_or(ArithmeticError::Overflow)?;
 
         let denominator = reserve_out
-            .checked_sub(amount_out)
+            .checked_sub(&amount_out)
             .ok_or(ArithmeticError::Underflow)?;
 
         let amount_in = numerator
-            .checked_div(denominator)
-            .ok_or(ArithmeticError::Underflow)?;
+            .checked_div(&denominator)
+            .ok_or(ArithmeticError::Underflow)?
+            .to_u128()
+            .ok_or(ArithmeticError::Overflow)?;
 
         let fee_percent = Ratio::from_percent(100)
             .checked_sub(&T::LpFee::get())
@@ -941,8 +960,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     pub fn do_mint_protocol_fee(
         pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
-        // TODO: If we turn off protocol_fee later in runtime upgrade
-        // this will reset root_k_last to zero which may not be good
         let k_last = pool
             .base_amount_last
             .get_big_uint()
@@ -954,7 +971,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             if !k_last.is_zero() {
                 pool.base_amount_last = Zero::zero();
                 pool.quote_amount_last = Zero::zero();
-                return Ok(Zero::zero());
             }
 
             // if fees are off and k_last is zero return
@@ -1041,7 +1057,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     (pool.base_amount, pool.quote_amount)
                 };
 
-                //FIXME(Alan): Why do this check?
                 ensure!(
                     amount_in >= T::LpFee::get().saturating_reciprocal_mul_ceil(One::one()),
                     Error::<T, I>::InsufficientAmountIn

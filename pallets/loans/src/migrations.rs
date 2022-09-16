@@ -23,7 +23,7 @@ pub mod v3 {
     pub const DEFAULT_LIQUIDATION_OFFSET: Ratio = Ratio::from_percent(10);
 
     #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-    #[derive(Clone, PartialEq, codec::Decode, codec::Encode, RuntimeDebug, TypeInfo)]
+    #[derive(Clone, PartialEq, Eq, codec::Decode, codec::Encode, RuntimeDebug, TypeInfo)]
     pub struct V2Market<Balance> {
         /// The collateral utilization ratio
         pub collateral_factor: Ratio,

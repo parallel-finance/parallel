@@ -90,7 +90,7 @@ impl pallet_timestamp::Config for Test {
 }
 
 parameter_types! {
-    pub const ExistentialDeposit: Balance = 1;
+    pub const ExistentialDeposit: Balance = 10_000;
     pub const MaxLocks: u32 = 50;
 }
 
@@ -158,6 +158,8 @@ impl Config for Test {
     type Assets = CurrencyAdapter;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
+    type NativeCurrencyId = NativeCurrencyId;
+    type NativeExistentialDeposit = ExistentialDeposit;
 }
 
 pub fn dollar(d: u128) -> u128 {

@@ -27,7 +27,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         `${process.env.PARA_CHAIN_SUDO_KEY || '//Dave'}`
       )
 
-      const rewards = (await readFile(input.toString(), 'utf8'))
+      const markets = (await readFile(input.toString(), 'utf8'))
         .split(/\r\n/)
         .slice(1)
         .map(row => row.split(',').filter(Boolean))
@@ -69,7 +69,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         )
 
       const proposal = api.tx.utility.batchAll(
-        rewards.map(
+        markets.map(
           ([
             assetId,
             collateralFactor,
@@ -115,7 +115,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         )
       )
 
-      const tx = api.tx.generalCouncil.propose(2, proposal, proposal.length)
+      const tx = api.tx.generalCouncil.propose(3, proposal, proposal.length)
 
       if (dryRun) {
         return logger.info(`hex-encoded call: ${tx.toHex()}`)

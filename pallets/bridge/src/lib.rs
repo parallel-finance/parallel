@@ -643,7 +643,7 @@ pub mod pallet {
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_initialize(block_number: T::BlockNumber) -> u64 {
             let expired =
-                ProposalVotes::<T>::iter().filter(|x| (*x).2.can_be_cleaned_up(block_number));
+                ProposalVotes::<T>::iter().filter(|x| (x).2.can_be_cleaned_up(block_number));
             expired.for_each(|x| {
                 let chain_id = x.0;
                 let chain_nonce = x.1;
@@ -813,7 +813,7 @@ impl<T: Config> Pallet<T> {
                     if r.0 > last_merged.1 {
                         merged.push(r);
                     } else {
-                        (*last_merged).1 = r.1.max(last_merged.1);
+                        (last_merged).1 = r.1.max(last_merged.1);
                     }
                 }
             }

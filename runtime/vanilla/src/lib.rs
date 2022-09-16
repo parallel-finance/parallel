@@ -182,7 +182,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 192,
+    spec_version: 193,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -962,8 +962,7 @@ impl pallet_transaction_payment::Config for Runtime {
 }
 
 parameter_types! {
-    // Tells `pallet_base_fee` whether to calculate a new BaseFee `on_finalize` or not.
-    pub IsActive: bool = false;
+    pub DefaultElasticity: Permill = Permill::zero();
     pub DefaultBaseFeePerGas: U256 = (1_000_000_000).into();
 }
 
@@ -983,7 +982,7 @@ impl pallet_base_fee::BaseFeeThreshold for BaseFeeThreshold {
 impl pallet_base_fee::Config for Runtime {
     type Event = Event;
     type Threshold = BaseFeeThreshold;
-    type IsActive = IsActive;
+    type DefaultElasticity = DefaultElasticity;
     type DefaultBaseFeePerGas = DefaultBaseFeePerGas;
 }
 
@@ -2211,6 +2210,8 @@ impl pallet_streaming::Config for Runtime {
     type UnixTime = Timestamp;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = weights::pallet_streaming::WeightInfo<Runtime>;
+    type NativeCurrencyId = NativeCurrencyId;
+    type NativeExistentialDeposit = ExistentialDeposit;
 }
 
 parameter_types! {
@@ -2602,8 +2603,8 @@ impl_runtime_apis! {
     }
 
     impl pallet_router_rpc_runtime_api::RouterApi<Block, Balance> for Runtime {
-        fn get_best_route(amount_in: Balance, token_in: CurrencyId, token_out: CurrencyId) -> Result<(Vec<CurrencyId>, Balance), DispatchError> {
-            let (route, amount) = AMMRoute::get_best_route(amount_in, token_in, token_out)?;
+        fn get_best_route(amount: Balance, token_in: CurrencyId, token_out: CurrencyId, reversed: bool) -> Result<(Vec<CurrencyId>, Balance), DispatchError> {
+            let (route, amount) = AMMRoute::get_best_route(amount, token_in, token_out, reversed)?;
             Ok((route, amount))
         }
     }

@@ -5,7 +5,7 @@ homepage   = 'https://parallel.fi'
 license    = 'Apache'
 name       = 'runtime-integration-tests'
 repository = 'https://github.com/parallel-finance/parallel'
-version    = '1.9.2'
+version    = '1.9.3'
 
 [dependencies]
 codec             = { package = 'parity-scale-codec', version = '3.1.5', default-features = false, features = ['derive'] }
@@ -17,31 +17,31 @@ smallvec          = '1.6.1'
 static_assertions = '1.1.0'
 
 # Substrate
-frame-support   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
-frame-system    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
-pallet-balances = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
-pallet-staking  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
-sp-runtime      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
-sp-std          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
+frame-support   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.28' }
+frame-system    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.28' }
+pallet-balances = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.28' }
+pallet-staking  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.28' }
+sp-runtime      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.28' }
+sp-std          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.28' }
 
 # Polkadot dependencies
-pallet-xcm              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
-polkadot-parachain      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
-polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
-xcm                     = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
-xcm-builder             = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
-xcm-executor            = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
+pallet-xcm              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28' }
+polkadot-parachain      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28' }
+polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28' }
+xcm                     = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28' }
+xcm-builder             = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28' }
+xcm-executor            = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28' }
 
 # Cumulus dependencies
-cumulus-pallet-dmp-queue        = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.26' }
-cumulus-pallet-parachain-system = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.26' }
-cumulus-pallet-xcm              = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.26' }
-cumulus-pallet-xcmp-queue       = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.26' }
-cumulus-primitives-core         = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.26' }
-cumulus-primitives-timestamp    = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.26' }
-cumulus-primitives-utility      = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.26' }
-pallet-collator-selection       = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.26' }
-parachain-info                  = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.26' }
+cumulus-pallet-dmp-queue        = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
+cumulus-pallet-parachain-system = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
+cumulus-pallet-xcm              = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
+cumulus-pallet-xcmp-queue       = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
+cumulus-primitives-core         = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
+cumulus-primitives-timestamp    = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
+cumulus-primitives-utility      = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
+pallet-collator-selection       = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
+parachain-info                  = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
 
 # ORML dependencies
 orml-oracle      = { version = '0.4.1-dev' }
@@ -72,16 +72,16 @@ parallel-runtime              = { path = '../runtime/parallel' }
 primitives                    = { package = 'parallel-primitives', path = '../primitives' }
 
 [dev-dependencies]
-cumulus-primitives-parachain-inherent = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.26' }
-cumulus-test-relay-sproof-builder     = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.26' }
+cumulus-primitives-parachain-inherent = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
+cumulus-test-relay-sproof-builder     = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
 env_logger                            = '0.9.0'
-kusama-runtime                        = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
+kusama-runtime                        = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28' }
 log                                   = '0.4.14'
-polkadot-primitives                   = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
-polkadot-runtime                      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
-polkadot-runtime-parachains           = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.26' }
-sp-io                                 = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
-sp-trie                               = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.26' }
-statemine-runtime                     = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.26' }
-statemint-runtime                     = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.26' }
-xcm-emulator                          = { git = 'https://github.com/shaunxw/xcm-simulator.git', rev = 'ab5cd6c5fabe6ddda52ed6803ee1bf54c258fefe' }
+polkadot-primitives                   = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28' }
+polkadot-runtime                      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28' }
+polkadot-runtime-parachains           = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.28' }
+sp-io                                 = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.28' }
+sp-trie                               = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.28' }
+statemine-runtime                     = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
+statemint-runtime                     = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.28' }
+xcm-emulator                          = { git = 'https://github.com/shaunxw/xcm-simulator.git', rev = '6c02911a3eeb04c342e4eb273d2ffbedd45dabff' }

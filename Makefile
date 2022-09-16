@@ -118,7 +118,7 @@ integration-test-kusama-call:
 
 .PHONY: integration-test-sibling-transfer
 integration-test-sibling-transfer:
-	RUST_LOG="xcm=trace,xcm-executor=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- sibling_transfer --nocapture
+	RUST_LOG="xcm=trace,xcm-executor=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- polkadot_transfer --nocapture
 
 .PHONY: test-pallet-evm-precompile-assets-erc20
 test-pallet-evm-precompile-assets-erc20:

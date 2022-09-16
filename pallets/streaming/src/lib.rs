@@ -83,6 +83,14 @@ pub mod pallet {
         #[pallet::constant]
         type MaxFinishedStreamsCount: Get<u32>;
 
+        /// Currency id of the native token
+        #[pallet::constant]
+        type NativeCurrencyId: Get<AssetIdOf<Self>>;
+
+        /// The essential balance for an existed account
+        #[pallet::constant]
+        type NativeExistentialDeposit: Get<Balance>;
+
         /// The Unix time
         type UnixTime: UnixTime;
 
@@ -348,6 +356,14 @@ pub mod pallet {
                 recipient_balance >= amount,
                 Error::<T>::InsufficientStreamBalance
             );
+
+            let mut amount = amount;
+            if stream.asset_id == T::NativeCurrencyId::get()
+                && amount.saturating_add(T::NativeExistentialDeposit::get())
+                    >= stream.remaining_balance
+            {
+                amount = stream.remaining_balance
+            }
 
             stream.try_deduct(amount)?;
             stream.try_complete()?;

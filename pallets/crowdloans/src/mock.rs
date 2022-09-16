@@ -72,7 +72,8 @@ impl BlockNumberProvider for MockBlockNumberProvider {
 
     fn current_block_number() -> Self::BlockNumber {
         // gets a local mock storage value
-        let value = sp_io::storage::get(&RELAY_BLOCK_KEY).unwrap_or(0_u32.encode());
+        let value =
+            sp_io::storage::get(&RELAY_BLOCK_KEY).unwrap_or(bytes::Bytes::from(0_u32.encode()));
         u32::decode(&mut &value[..]).unwrap()
     }
 }
