@@ -299,7 +299,6 @@ impl Contains<Call> for BaseCallFilter {
             || matches!(
                 call,
                 // System, Currencies
-                Call::System(_) |
                 Call::Balances(_) |
                 Call::Assets(pallet_assets::Call::mint { .. }) |
                 Call::Assets(pallet_assets::Call::transfer { .. }) |
@@ -1025,6 +1024,7 @@ pub type ParallelPrecompilesType = ParallelPrecompiles<Runtime, NativeErc20Metad
 parameter_types! {
     /// * Kerria:  1593
     pub EVMChainId: u64 = 1593;
+    pub CallMagicNumber: u16 = EVMChainId::get() as u16;
     /// EVM gas limit
     pub BlockGasLimit: U256 = U256::from(
         NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT / WEIGHT_PER_GAS
@@ -1058,7 +1058,6 @@ impl pallet_ethereum::Config for Runtime {
 parameter_types! {
     pub const EcdsaUnsignedPriority: TransactionPriority = TransactionPriority::MAX / 2;
     pub const CallFee: Balance = 1 * DOLLARS / 10;
-    pub const CallMagicNumber: u16 = 1593;
     pub const VerifySignature: bool = true;
 }
 

@@ -120,16 +120,16 @@ integration-test-kusama-call:
 integration-test-sibling-transfer:
 	RUST_LOG="xcm=trace,xcm-executor=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- polkadot_transfer --nocapture
 
-.PHONY: test-pallet-evm-precompile-assets-erc20
-test-pallet-evm-precompile-assets-erc20:
+.PHONY: test-evm-pallet-precompile-assets-erc20
+test-evm-pallet-precompile-assets-erc20:
 	SKIP_WASM_BUILD= cargo test -p pallet-evm-precompile-assets-erc20 --lib --no-fail-fast -- --nocapture
 
-.PHONY: test-pallet-evm-precompile-balances-erc20
-test-pallet-evm-precompile-balances-erc20:
+.PHONY: test-evm-pallet-precompile-balances-erc20
+test-evm-pallet-precompile-balances-erc20:
 	SKIP_WASM_BUILD= cargo test -p pallet-evm-precompile-balances-erc20 --lib --no-fail-fast -- --nocapture
 
-.PHONY: test-pallet-evm-signatures
-test-pallet-evm-signatures:
+.PHONY: test-evm-pallet-signatures
+test-evm-pallet-signatures:
 	SKIP_WASM_BUILD= cargo test -p pallet-evm-signatures --lib --no-fail-fast -- --nocapture
 
 .PHONY: bench
@@ -259,11 +259,11 @@ launch-evm:
 
 .PHONY: provisioning-evm
 provisioning-evm:
-	cd scripts/evm && npm run build && npm run init-chain && npm run provisioning-chain
+	cd scripts/evm && yarn build && yarn init-chain && yarn provisioning-chain
 
 .PHONY: test-evm
 test-evm:
-	cd scripts/evm && npm run test-chain
+	cd scripts/evm && yarn test-chain
 
 .PHONY: logs
 logs:
