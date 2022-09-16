@@ -67,7 +67,7 @@ pub mod pallet {
     use sp_std::{boxed::Box, vec::Vec};
     use xcm::latest::prelude::*;
 
-    use pallet_traits::{VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider};
+    use pallet_traits::{Streaming, VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider};
 
     use parallel_support::math_helper::f64::{
         fixed_u128_from_float, fixed_u128_to_float, power_float,
@@ -188,6 +188,12 @@ pub mod pallet {
 
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, Self::AccountId>;
+
+        /// To expose Streaming related functions
+        type Streaming: Streaming<Self::AccountId, AssetIdOf<Self>, BalanceOf<Self>>;
+
+        #[pallet::constant]
+        type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
     }
 
     #[pallet::event]
@@ -282,6 +288,8 @@ pub mod pallet {
         /// Update proxy address
         /// [account]
         ProxyUpdated(T::AccountId),
+        /// Update leases bonus
+        LeasesBonusUpdated(VaultId, BonusConfig<BalanceOf<T>>),
     }
 
     #[pallet::error]
@@ -373,6 +381,18 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn proxy_address)]
     pub type ProxyAddress<T: Config> = StorageValue<_, AccountIdOf<T>, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn leases_bonus)]
+    pub type LeasesBonus<T: Config> = StorageNMap<
+        _,
+        (
+            NMapKey<Blake2_128Concat, LeasePeriod>,
+            NMapKey<Blake2_128Concat, LeasePeriod>,
+        ),
+        BonusConfig<BalanceOf<T>>,
+        ValueQuery,
+    >;
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -1141,6 +1161,24 @@ pub mod pallet {
 
             Ok(())
         }
+
+        /// Update crowdloans proxy address in relaychain
+        #[pallet::weight(<T as Config>::WeightInfo::update_leases_bonus())]
+        #[transactional]
+        pub fn update_leases_bonus(
+            origin: OriginFor<T>,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+            bonus_config: BonusConfig<BalanceOf<T>>,
+        ) -> DispatchResult {
+            ensure_origin!(UpdateOrigin, origin)?;
+            LeasesBonus::<T>::insert((&lease_start, &lease_end), bonus_config);
+            Self::deposit_event(Event::<T>::LeasesBonusUpdated(
+                (lease_start, lease_end),
+                bonus_config,
+            ));
+            Ok(())
+        }
     }
 
     impl<T: Config> Pallet<T> {
@@ -1592,6 +1630,21 @@ pub mod pallet {
             T::Assets::mint_into(ctoken, &who, amount)?;
 
             Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
+
+            // Bonus for PARA, Not applicable for HKO
+            let bonus_config = Self::leases_bonus((&lease_start, &lease_end));
+            let bonus_amount = amount.saturating_mul(bonus_config.bonus_per_token);
+            if !bonus_amount.is_zero() {
+                T::Streaming::create(
+                    Self::account_id(),
+                    who.clone(),
+                    bonus_amount,
+                    T::GetNativeCurrencyId::get(),
+                    bonus_config.start_time,
+                    bonus_config.end_time,
+                    false,
+                )?;
+            }
 
             Self::deposit_event(Event::<T>::VaultClaimed(
                 crowdloan,

@@ -6943,6 +6943,7 @@ dependencies = [
  "pallet-balances",
  "pallet-currency-adapter",
  "pallet-timestamp",
+ "pallet-traits",
  "parallel-primitives",
  "parity-scale-codec",
  "scale-info",

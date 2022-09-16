@@ -21,6 +21,7 @@ scale-info         = { version = '2.1', default-features = false, features = ['d
 serde              = { version = '1.0.136', features = ['derive'], optional = true }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.28', default-features = false }
 sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.28', default-features = false }
+pallet-traits      = { path = '../traits', default-features = false }
 
 [dev-dependencies]
 orml-oracle             = { version = '0.4.1-dev' }
@@ -47,6 +48,7 @@ std                = [
   'pallet-timestamp/std',
   'serde',
   'scale-info/std',
+  'pallet-traits/std',
 ]
 try-runtime        = ['frame-support/try-runtime']
 

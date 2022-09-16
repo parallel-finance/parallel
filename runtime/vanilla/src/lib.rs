@@ -2192,6 +2192,8 @@ impl pallet_crowdloans::Config for Runtime {
     type LeasePeriod = LeasePeriod;
     type LeaseOffset = LeaseOffset;
     type LeasePerYear = LeasePerYear;
+    type Streaming = ();
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 parameter_types! {

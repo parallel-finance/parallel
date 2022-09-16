@@ -64,6 +64,7 @@ pub trait WeightInfo {
 	fn dissolve_vault() -> Weight;
 	fn refund_for() -> Weight;
 	fn update_proxy() -> Weight;
+	fn update_leases_bonus() -> Weight;
 }
 
 /// Weights for pallet_crowdloans using the Substrate node and recommended hardware.
@@ -291,6 +292,12 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
+
+	fn update_leases_bonus() -> Weight {
+		(31_127_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+	}
 }
 
 // For backwards compatibility and tests
@@ -513,6 +520,11 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().writes(7 as Weight))
 	}
 	fn update_proxy() -> Weight {
+		(31_127_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
+	}
+	fn update_leases_bonus() -> Weight {
 		(31_127_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(2 as Weight))

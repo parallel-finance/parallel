@@ -7,7 +7,9 @@ use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 use sp_std::prelude::*;
 
-use primitives::{CurrencyId, DerivativeIndex, PersistedValidationData, PriceDetail, Rate};
+use primitives::{
+    CurrencyId, DerivativeIndex, PersistedValidationData, PriceDetail, Rate, Timestamp,
+};
 
 pub mod loans;
 pub mod ump;
@@ -221,4 +223,30 @@ pub trait DistributionStrategy<Balance> {
         unbonding_amounts: Vec<(DerivativeIndex, Balance)>,
         input: Balance,
     ) -> Vec<(DerivativeIndex, Balance)>;
+}
+
+pub trait Streaming<AccountId, CurrencyId, Balance> {
+    fn create(
+        sender: AccountId,
+        recipient: AccountId,
+        deposit: Balance,
+        asset_id: CurrencyId,
+        start_time: Timestamp,
+        end_time: Timestamp,
+        cancellable: bool,
+    ) -> Result<(), DispatchError>;
+}
+
+impl<AccountId, CurrencyId, Balance> Streaming<AccountId, CurrencyId, Balance> for () {
+    fn create(
+        _sender: AccountId,
+        _recipient: AccountId,
+        _deposit: Balance,
+        _asset_id: CurrencyId,
+        _start_time: Timestamp,
+        _end_time: Timestamp,
+        _cancellable: bool,
+    ) -> Result<(), DispatchError> {
+        Ok(())
+    }
 }

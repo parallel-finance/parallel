@@ -221,6 +221,22 @@ benchmarks! {
         assert_last_event::<T>(Event::ProxyUpdated(caller).into())
     }
 
+    update_leases_bonus {
+        let bonus_config = BonusConfig {
+            bonus_per_token: 5,
+            start_time: Default::default(),
+            end_time: Default::default(),
+        };
+    }: _(
+        SystemOrigin::Root,
+        6,
+        13,
+        bonus_config
+    )
+    verify {
+        assert_last_event::<T>(Event::LeasesBonusUpdated((6,13),bonus_config).into())
+    }
+
     reopen {
         let ctoken = 13;
         let caller: T::AccountId = whitelisted_caller();
