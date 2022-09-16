@@ -798,19 +798,16 @@ fn create_with_lots_stream_works() {
             dollar(100)
         ));
 
-        // Alice creates stream 100 DOT to Bob, which is equal to minimum deposit
         assert_err!(
-            <Streaming as StreamingTrait<mock::AccountId, CurrencyId, Balance>>::create(
-                ALICE,
-                BOB,
-                dollar(99),
-                DOT,
-                6,
-                10,
-                false
-            ),
+            Streaming::create(Origin::signed(ALICE), BOB, dollar(99), DOT, 6, 10, false),
             Error::<Test>::DepositLowerThanMinimum
         );
+
+        assert_ok!(<Streaming as StreamingTrait<
+            mock::AccountId,
+            CurrencyId,
+            Balance,
+        >>::create(ALICE, BOB, dollar(99), DOT, 6, 10, false));
 
         Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(100 * 500)).unwrap();
         let initial_stream_id = NextStreamId::<Test>::get();

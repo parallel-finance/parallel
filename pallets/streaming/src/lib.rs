@@ -228,6 +228,12 @@ pub mod pallet {
             cancellable: bool,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
+            let minimum_deposit =
+                Self::minimum_deposit(asset_id).ok_or(Error::<T>::InvalidAssetId)?;
+            ensure!(
+                deposit >= minimum_deposit,
+                Error::<T>::DepositLowerThanMinimum
+            );
             let stream_id = Self::do_create(
                 sender.clone(),
                 recipient.clone(),
@@ -494,12 +500,6 @@ impl<T: Config> Pallet<T> {
     ) -> Result<StreamId, DispatchError> {
         ensure!(sender != recipient, Error::<T>::RecipientIsAlsoSender);
 
-        let minimum_deposit = Self::minimum_deposit(asset_id).ok_or(Error::<T>::InvalidAssetId)?;
-        ensure!(
-            deposit >= minimum_deposit,
-            Error::<T>::DepositLowerThanMinimum
-        );
-
         let duration = Self::ensure_valid_duration(start_time, end_time)?;
         let rate_per_sec = deposit
             .checked_div(duration as u128)
@@ -550,6 +550,10 @@ impl<T: Config> StreamingTrait<AccountOf<T>, AssetIdOf<T>, BalanceOf<T>> for Pal
         end_time: Timestamp,
         cancellable: bool,
     ) -> Result<(), DispatchError> {
+        ensure!(
+            Self::minimum_deposit(asset_id).is_some(),
+            Error::<T>::InvalidAssetId
+        );
         let stream_id = Self::do_create(
             sender,
             recipient.clone(),
