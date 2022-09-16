@@ -36,7 +36,7 @@ RUN apt update -y \
 
 USER parallel
 WORKDIR /parallel
-EXPOSE 30333 9933 9944
+EXPOSE 30333 9933 9944 29933
 VOLUME ["/data"]
 
 RUN echo '#!/bin/bash\n$BIN_PATH $@' > .entrypoint.sh

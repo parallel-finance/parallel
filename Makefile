@@ -18,7 +18,7 @@ CUMULUS_DOCKER_TAG									:= v0.9.24
 init: submodules
 	git config advice.ignoredHook false
 	git config core.hooksPath .githooks
-	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly-2022-05-11 --component rust-src --component rustfmt --component clippy --target wasm32-unknown-unknown
+	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly-2022-07-24 --component rust-src --component rustfmt --component clippy --target wasm32-unknown-unknown
 	cargo install cargo-udeps --locked
 	cd scripts/helper && yarn
 	cd scripts/polkadot-launch && yarn
@@ -255,7 +255,7 @@ dev-launch-vanilla:
 
 .PHONY: launch-evm
 launch-evm:
-	cargo run --locked --bin parallel --features with-evm-runtime --features runtime-benchmarks --features try-runtime -- --tmp --alice --dev --rpc-cors all --unsafe-ws-external --unsafe-rpc-external --ws-port 19944 --rpc-port 29933
+	cargo run --locked --bin parallel --features with-evm-runtime --features runtime-benchmarks --features try-runtime -- --tmp --alice --dev --rpc-cors all --unsafe-ws-external --rpc-methods unsafe --unsafe-rpc-external --ws-port 19944 --rpc-port 29933
 
 .PHONY: provisioning-evm
 provisioning-evm:
