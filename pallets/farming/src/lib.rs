@@ -421,7 +421,7 @@ pub mod pallet {
 
                     ensure!(pool_info.is_active, Error::<T>::PoolIsNotActive);
 
-                    T::Assets::transfer(asset, &who, &asset_pool_account, amount, true)?;
+                    T::Assets::transfer(asset, &who, &asset_pool_account, amount, false)?;
 
                     pool_info.total_deposited = pool_info
                         .total_deposited
@@ -514,7 +514,7 @@ pub mod pallet {
                                     &asset_pool_account,
                                     &who,
                                     amount,
-                                    true,
+                                    false,
                                 )?;
                             } else {
                                 user_position
@@ -579,7 +579,7 @@ pub mod pallet {
 
                     if total_amount > 0 {
                         let asset_pool_account = Self::pool_account_id(asset)?;
-                        T::Assets::transfer(asset, &asset_pool_account, &who, total_amount, true)?;
+                        T::Assets::transfer(asset, &asset_pool_account, &who, total_amount, false)?;
                     }
 
                     Self::deposit_event(Event::<T>::AssetsRedeem(
@@ -629,7 +629,7 @@ pub mod pallet {
                             &asset_pool_account,
                             &who,
                             reward_amount,
-                            true,
+                            false,
                         )?;
                         user_position.reward_amount = 0;
                     }
@@ -720,7 +720,7 @@ pub mod pallet {
                             &payer,
                             &asset_pool_account,
                             amount,
-                            true,
+                            false,
                         )?;
                     }
 
