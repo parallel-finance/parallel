@@ -3,7 +3,7 @@ name: Srtool build
 on:
   push:
     branches:
-      - master
+      - try-to-fix-ci
     tags:
       - "v*"
 
@@ -50,6 +50,7 @@ jobs:
         run: |
           echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
           echo "HOME=/home/ubuntu" >> ${GITHUB_ENV}
+          sudo chmod 777 /var/run/docker.sock
       - uses: actions/checkout@v3
       - name: Srtool build
         id: srtool_build
