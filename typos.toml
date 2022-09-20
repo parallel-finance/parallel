@@ -3,3 +3,4 @@ extend-exclude = ["scripts/polkadot-launch/*", "resources/specs/*", "scripts/evm
 
 [default.extend-words]
 accured = "accured"
+Nd = "Nd"

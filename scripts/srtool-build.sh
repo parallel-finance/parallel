@@ -15,5 +15,6 @@ docker run --rm -it \
   -e BUILD_OPTS="$BUILD_OPTS" \
   -v $PWD:/build \
   -v $TMPDIR/cargo:/cargo-home \
+  --user root \
   --network=host \
   paritytech/srtool:$RUSTC_VERSION

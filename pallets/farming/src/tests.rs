@@ -1018,3 +1018,57 @@ fn edge_case_reward_token_decimal_too_big() {
         ));
     })
 }
+
+#[test]
+fn pool_failed() {
+    new_test_ext().execute_with(|| {
+        let deposit_balance = 100_000_000;
+        assert_ok!(Farming::deposit(
+            RawOrigin::Signed(ALICE).into(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+            LOCK_DURATION,
+            deposit_balance,
+        ));
+
+        assert_ok!(Farming::deposit(
+            RawOrigin::Signed(BOB).into(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+            LOCK_DURATION,
+            deposit_balance,
+        ));
+
+        assert_ok!(Farming::withdraw(
+            RawOrigin::Signed(ALICE).into(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+            LOCK_DURATION,
+            deposit_balance,
+        ));
+
+        assert_ok!(Farming::withdraw(
+            RawOrigin::Signed(BOB).into(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+            LOCK_DURATION,
+            deposit_balance,
+        ));
+
+        run_to_block(200);
+
+        assert_ok!(Farming::redeem(
+            RawOrigin::Signed(ALICE).into(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+            LOCK_DURATION,
+        ));
+
+        assert_ok!(Farming::redeem(
+            RawOrigin::Signed(BOB).into(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+            LOCK_DURATION,
+        ));
+    })
+}
