@@ -220,7 +220,7 @@ pub mod pallet {
             }
 
             // get output amounts for all routes
-            let mut output_routes = Self::get_output_routes(amount, paths, reversed).unwrap();
+            let mut output_routes = Self::get_output_routes(amount, paths, reversed);
 
             // sort values greatest to least
             output_routes.sort_by_key(|k| Reverse(k.1));
@@ -261,22 +261,26 @@ pub mod pallet {
             amount: BalanceOf<T, I>,
             routes: Vec<Vec<AssetIdOf<T, I>>>,
             reversed: bool,
-        ) -> Result<Vec<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>)>, DispatchError> {
+        ) -> Vec<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>)> {
             let mut output_routes = Vec::new();
 
             if reversed {
                 for route in routes {
-                    let amounts = T::AMM::get_amounts_in(amount, route.clone())?;
-                    output_routes.push((route, amounts[0]));
+                    let amounts = T::AMM::get_amounts_in(amount, route.clone());
+                    if let Ok(amounts) = amounts {
+                        output_routes.push((route, amounts[0]));
+                    }
                 }
             } else {
                 for route in routes {
-                    let amounts = T::AMM::get_amounts_out(amount, route.clone())?;
-                    output_routes.push((route, amounts[amounts.len() - 1]));
+                    let amounts = T::AMM::get_amounts_out(amount, route.clone());
+                    if let Ok(amounts) = amounts {
+                        output_routes.push((route, amounts[amounts.len() - 1]));
+                    }
                 }
             }
 
-            Ok(output_routes)
+            output_routes
         }
     }
 
