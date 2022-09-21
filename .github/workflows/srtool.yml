@@ -3,7 +3,7 @@ name: Srtool build
 on:
   push:
     branches:
-      - master
+      - BTE-889-fix-parallel-ci-srtool-error
     tags:
       - "v*"
 
