@@ -3,7 +3,7 @@ name: Srtool build
 on:
   push:
     branches:
-      - BTE-889-fix-parallel-ci-srtool-error
+      - master
     tags:
       - "v*"
 
@@ -45,10 +45,6 @@ jobs:
     strategy:
       matrix:
         chain: ["heiko", "parallel", "vanilla", "kerria"]
-        srtool_image:
-          - parallelfinance/srtool
-        srtool_image_tag:
-          - 1.62.0
     steps:
       - name: cleaning up
         run: |
