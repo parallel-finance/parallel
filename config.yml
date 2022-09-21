@@ -36,7 +36,6 @@ parachains:
     flags:
       - --rpc-methods=unsafe
       - --unsafe-rpc-external
-      - --rpc-port=29933
       - --force-authoring
       - --wasm-execution=compiled
       - --execution=wasm
