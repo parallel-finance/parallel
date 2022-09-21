@@ -10,7 +10,7 @@ RUSTC_VERSION=1.62.0;
 PACKAGE=${PACKAGE:-vanilla-runtime};
 BUILD_OPTS=$BUILD_OPTS;
 
-docker run --rm -it \
+docker run --rm -i \
   -e PACKAGE=$PACKAGE \
   -e BUILD_OPTS="$BUILD_OPTS" \
   -v $PWD:/build \
