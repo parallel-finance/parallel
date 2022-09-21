@@ -83,13 +83,6 @@ jobs:
           GH_WORKFLOW_MATRIX_SRTOOL_IMAGE: ${{ matrix.srtool_image }}
           GH_WORKFLOW_MATRIX_SRTOOL_IMAGE_TAG: ${{ matrix.srtool_image_tag }}
         run: ./scripts/build-runtime-srtool.sh
-      # - name: Srtool build
-      #   id: srtool_build
-      #   uses: chevdor/srtool-actions@v0.5.0
-      #   with:
-      #     chain: ${{ matrix.chain }}
-      #     tag: 1.62.0
-      #     runtime_dir: runtime/${{ matrix.chain }}
       - name: Summary
         run: |
           echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.chain }}-srtool-digest.json
