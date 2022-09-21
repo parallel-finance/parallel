@@ -1638,14 +1638,14 @@ pub mod pallet {
             Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
 
             // Bonus for PARA, Not applicable for HKO
-            let normalized_amount = Self::get_normalized(amount).unwrap_or_default();
             let bonus_config = Self::leases_bonus((&lease_start, &lease_end));
-            let bonus_amount = normalized_amount.saturating_mul(bonus_config.bonus_per_token);
-            if !bonus_amount.is_zero() {
+            let bonus_amount = amount.saturating_mul(bonus_config.bonus_per_token);
+            let normalized_amount = Self::normalized_amount(bonus_amount).unwrap_or_default();
+            if !normalized_amount.is_zero() {
                 T::Streaming::create(
                     Self::account_id(),
                     who.clone(),
-                    bonus_amount,
+                    normalized_amount,
                     T::GetNativeCurrencyId::get(),
                     bonus_config.start_time,
                     bonus_config.end_time,
@@ -1665,7 +1665,7 @@ pub mod pallet {
             Ok(())
         }
 
-        pub(crate) fn get_normalized(amount: BalanceOf<T>) -> Option<BalanceOf<T>> {
+        pub(crate) fn normalized_amount(amount: BalanceOf<T>) -> Option<BalanceOf<T>> {
             use Ordering::*;
             let relay_decimal = T::Decimal::get_decimal(&T::RelayCurrency::get())?;
             let native_decimal = T::Decimal::get_decimal(&T::GetNativeCurrencyId::get())?;
