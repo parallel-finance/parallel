@@ -55,27 +55,6 @@ jobs:
           echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
           echo "HOME=/home/ubuntu" >> ${GITHUB_ENV}
       - uses: actions/checkout@v3
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
-        if: github.repository == 'parallel-finance/parallel'
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build & Push parallel-finance/srtool image
-        if: github.repository == 'parallel-finance/parallel'
-        run: |
-          docker pull "${{ matrix.srtool_image }}:${{ matrix.srtool_image_tag }}" && image_exists=true || image_exists=false
-          if [[ $image_exists = "false" ]]; then
-            echo building "${{ matrix.srtool_image }}:${{ matrix.srtool_image_tag }}"
-            docker build --pull --no-cache . \
-              -f Dockerfile.srtool \
-              --build-arg SRTOOL_IMAGE_TAG=${{ matrix.srtool_image_tag }} \
-              -t ${{ matrix.srtool_image }}:${{ matrix.srtool_image_tag }}
-            echo pushing "${{ matrix.srtool_image }}:${{ matrix.srtool_image_tag }}"
-            docker push "${{ matrix.srtool_image }}:${{ matrix.srtool_image_tag }}"
-          else
-            echo skiping build "${{ matrix.srtool_image }}:${{ matrix.srtool_image_tag }}", image already exists
-          fi
       - name: Build runtime using "${{ matrix.srtool_image }}:${{ matrix.srtool_image_tag }}"
         id: srtool_build
         env:
@@ -83,18 +62,7 @@ jobs:
           GH_WORKFLOW_MATRIX_SRTOOL_IMAGE: ${{ matrix.srtool_image }}
           GH_WORKFLOW_MATRIX_SRTOOL_IMAGE_TAG: ${{ matrix.srtool_image_tag }}
         run: |
-          docker run \
-            -i \
-            --rm \
-            -e CARGO_NET_GIT_FETCH_WITH_CLI=true \
-            -e PACKAGE=parallel-runtime \
-            -e RUNTIME_DIR=runtime/parallel \
-            -v ${PWD}:/build \
-            -v /home/${USER}/srtool/.ssh:/home/builder/.ssh \
-            -v /home/${USER}/srtool/entrypoint.sh:/srtool/entrypoint.sh \
-            --entrypoint /srtool/entrypoint.sh \
-            ${{ matrix.srtool_image }}:${{ matrix.srtool_image_tag }} \
-              build --app --json -cM
+          make wasm
       - name: Summary
         run: |
           echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.chain }}-srtool-digest.json
