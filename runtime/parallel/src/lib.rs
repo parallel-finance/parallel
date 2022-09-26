@@ -898,7 +898,7 @@ impl pallet_balances::Config for Runtime {
     type Balance = Balance;
     /// The ubiquitous event type.
     type Event = Event;
-    type DustRemoval = ();
+    type DustRemoval = Treasury;
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
     type ExistentialDeposit = ExistentialDeposit;
