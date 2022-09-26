@@ -906,14 +906,6 @@ impl pallet_collator_selection::Config for Runtime {
 
 type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
 
-pub struct ToStakingPot;
-impl OnUnbalanced<NegativeImbalance> for ToStakingPot {
-    fn on_nonzero_unbalanced(amount: NegativeImbalance) {
-        let staking_pot = PotId::get().into_account_truncating();
-        Balances::resolve_creating(&staking_pot, amount);
-    }
-}
-
 parameter_types! {
     pub const MaxAuthorities: u32 = 100_000;
 }
@@ -1048,7 +1040,7 @@ impl pallet_evm::Config for Runtime {
     type PrecompilesType = ParallelPrecompilesType;
     type PrecompilesValue = ParallelPrecompilesValue;
     type ChainId = EVMChainId;
-    type OnChargeTransaction = pallet_evm::EVMCurrencyAdapter<Balances, ToStakingPot>;
+    type OnChargeTransaction = pallet_evm::EVMCurrencyAdapter<Balances, Treasury>;
     type BlockGasLimit = BlockGasLimit;
     type FindAuthor = FindAuthorTruncated<Aura>;
 }
@@ -1072,7 +1064,7 @@ impl pallet_evm_signatures::Config for Runtime {
     type CallMagicNumber = CallMagicNumber;
     type Currency = Balances;
     type CallFee = CallFee;
-    type OnChargeTransaction = ToStakingPot;
+    type OnChargeTransaction = Treasury;
     type UnsignedPriority = EcdsaUnsignedPriority;
     type WithdrawOrigin = pallet_evm::EnsureAddressTruncated;
     type GetNativeCurrencyId = NativeCurrencyId;
