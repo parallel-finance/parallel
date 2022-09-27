@@ -80,12 +80,10 @@ use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 mod weights;
 
 pub mod constants;
-pub mod impls;
 
 use constants::{currency, fee, paras, time};
 use currency::*;
 use fee::*;
-use impls::*;
 use time::*;
 
 pub use pallet_amm;
@@ -892,8 +890,7 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-    type OnChargeTransaction =
-        pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
+    type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, Treasury>;
     type WeightToFee = WeightToFee;
     type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;

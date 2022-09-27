@@ -24,8 +24,8 @@ use frame_support::{
     traits::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
-        ChangeMembers, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly,
-        Everything, FindAuthor, InstanceFilter, Nothing, OnUnbalanced,
+        ChangeMembers, ConstU32, Contains, EitherOfDiverse, EqualPrivilegeOnly, Everything,
+        FindAuthor, InstanceFilter, Nothing,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -84,12 +84,10 @@ use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 mod weights;
 
 pub mod constants;
-pub mod impls;
 
 use constants::{currency, fee, paras, time};
 use currency::*;
 use fee::*;
-use impls::*;
 use time::*;
 
 pub use pallet_amm;
@@ -939,16 +937,13 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-    type OnChargeTransaction =
-        pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
+    type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, Treasury>;
     type WeightToFee = WeightToFee;
     type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
     type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
     type Event = Event;
 }
-
-type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
 
 parameter_types! {
     pub DefaultElasticity: Permill = Permill::zero();
