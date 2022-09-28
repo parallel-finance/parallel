@@ -100,8 +100,7 @@ pub use pallet_streaming;
 
 use pallet_traits::{
     xcm::{
-        AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdtoMultiLocation,
-        FirstAssetTrader, MultiCurrencyAdapter,
+        AccountIdToMultiLocation, AsAssetType, AssetType, FirstAssetTrader, MultiCurrencyAdapter,
     },
     DecimalProvider, EmergencyCallFilter, ValidationDataProvider,
 };
@@ -370,6 +369,17 @@ parameter_types! {
 pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
+        let multi_location =
+            AsAssetType::<CurrencyId, AssetType, AssetRegistry>::reverse_ref(&id).ok();
+        log::trace!(
+            target: "xcm::convert",
+            "currency_id: {:?}, multi_location: {:?}",
+            id,
+            multi_location.clone(),
+        );
+        if multi_location.is_some() {
+            return multi_location;
+        }
         match id {
             DOT => Some(MultiLocation::parent()),
             SDOT => Some(MultiLocation::new(
@@ -472,6 +482,18 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 
 impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(location: MultiLocation) -> Option<CurrencyId> {
+        let currency_id =
+            AsAssetType::<CurrencyId, AssetType, AssetRegistry>::convert_ref(&location).ok();
+        log::trace!(
+            target: "xcm::convert",
+            "multi_location: {:?}. currency_id: {:?}",
+            location.clone(),
+            currency_id,
+        );
+        if currency_id.is_some() {
+            return currency_id;
+        }
+
         match location {
             MultiLocation {
                 parents: 1,
@@ -600,10 +622,7 @@ impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type CurrencyId = CurrencyId;
-    type CurrencyIdConvert = CurrencyIdtoMultiLocation<
-        CurrencyIdConvert,
-        AsAssetType<CurrencyId, AssetType, AssetRegistry>,
-    >;
+    type CurrencyIdConvert = CurrencyIdConvert;
     type AccountIdToMultiLocation = AccountIdToMultiLocation<AccountId>;
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
@@ -1358,6 +1377,9 @@ impl TakeRevenue for ToTreasury {
 }
 
 pub type Trader = (
+    // Foreign Assets registered in AssetRegistry
+    // TODO: replace all above except local reserved asset later
+    FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
     FixedRateOfFungible<DotPerSecond, ToTreasury>,
     FixedRateOfFungible<SDOTPerSecond, ToTreasury>,
     FixedRateOfFungible<SDOTPerSecondOfCanonicalLocation, ToTreasury>,
@@ -1377,9 +1399,6 @@ pub type Trader = (
     FixedRateOfFungible<IbtcPerSecond, ToTreasury>,
     // Equilibrium
     FixedRateOfFungible<EqPerSecond, ToTreasury>,
-    // Foreign Assets registered in AssetRegistry
-    // TODO: replace all above except local reserved asset later
-    FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
 );
 
 parameter_types! {

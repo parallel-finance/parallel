@@ -1,5 +1,5 @@
 relaychain:
-  image: parallelfinance/polkadot:v0.9.24
+  image: parallelfinance/polkadot:v0.9.28
   chain: polkadot-local
   runtimeGenesisConfig:
     hrmp:
@@ -50,9 +50,9 @@ parachains:
     nodes:
       - flags:
           - --alice
-  - image: parallelfinance/cumulus:v0.9.24
+  - image: parallelfinance/cumulus:v0.9.28
     chain:
-      base: statemint-dev
+      base: statemint-local
       collators:
         - alice
       sudo: dave
