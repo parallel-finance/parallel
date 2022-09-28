@@ -24,8 +24,8 @@ use frame_support::{
     traits::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
-        ChangeMembers, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly,
-        Everything, FindAuthor, InstanceFilter, Nothing, OnUnbalanced,
+        ChangeMembers, ConstU32, Contains, EitherOfDiverse, EqualPrivilegeOnly, Everything,
+        FindAuthor, InstanceFilter, Nothing,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -82,12 +82,10 @@ use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 mod weights;
 
 pub mod constants;
-pub mod impls;
 
 use constants::{currency, fee, paras, time};
 use currency::*;
 use fee::*;
-use impls::*;
 use time::*;
 
 pub use pallet_amm;
@@ -904,16 +902,6 @@ impl pallet_collator_selection::Config for Runtime {
     type WeightInfo = ();
 }
 
-type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
-
-pub struct ToStakingPot;
-impl OnUnbalanced<NegativeImbalance> for ToStakingPot {
-    fn on_nonzero_unbalanced(amount: NegativeImbalance) {
-        let staking_pot = PotId::get().into_account_truncating();
-        Balances::resolve_creating(&staking_pot, amount);
-    }
-}
-
 parameter_types! {
     pub const MaxAuthorities: u32 = 100_000;
 }
@@ -937,7 +925,7 @@ impl pallet_balances::Config for Runtime {
     type Balance = Balance;
     /// The ubiquitous event type.
     type Event = Event;
-    type DustRemoval = ();
+    type DustRemoval = Treasury;
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
     type ExistentialDeposit = ExistentialDeposit;
@@ -951,8 +939,7 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-    type OnChargeTransaction =
-        pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
+    type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, Treasury>;
     type WeightToFee = WeightToFee;
     type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
@@ -1048,7 +1035,7 @@ impl pallet_evm::Config for Runtime {
     type PrecompilesType = ParallelPrecompilesType;
     type PrecompilesValue = ParallelPrecompilesValue;
     type ChainId = EVMChainId;
-    type OnChargeTransaction = pallet_evm::EVMCurrencyAdapter<Balances, ToStakingPot>;
+    type OnChargeTransaction = pallet_evm::EVMCurrencyAdapter<Balances, Treasury>;
     type BlockGasLimit = BlockGasLimit;
     type FindAuthor = FindAuthorTruncated<Aura>;
 }
@@ -1072,7 +1059,7 @@ impl pallet_evm_signatures::Config for Runtime {
     type CallMagicNumber = CallMagicNumber;
     type Currency = Balances;
     type CallFee = CallFee;
-    type OnChargeTransaction = ToStakingPot;
+    type OnChargeTransaction = Treasury;
     type UnsignedPriority = EcdsaUnsignedPriority;
     type WithdrawOrigin = pallet_evm::EnsureAddressTruncated;
     type GetNativeCurrencyId = NativeCurrencyId;
