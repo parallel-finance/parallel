@@ -64,10 +64,12 @@ pub mod pallet {
         },
         ArithmeticError, DispatchError, FixedPointNumber, SaturatedConversion,
     };
-    use sp_std::{boxed::Box, vec::Vec};
+    use sp_std::{boxed::Box, cmp::Ordering, vec::Vec};
     use xcm::latest::prelude::*;
 
-    use pallet_traits::{Streaming, VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider};
+    use pallet_traits::{
+        DecimalProvider, Streaming, VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider,
+    };
 
     use parallel_support::math_helper::f64::{
         fixed_u128_from_float, fixed_u128_to_float, power_float,
@@ -192,8 +194,12 @@ pub mod pallet {
         /// To expose Streaming related functions
         type Streaming: Streaming<Self::AccountId, AssetIdOf<Self>, BalanceOf<Self>>;
 
+        /// The asset id for native currency.
         #[pallet::constant]
         type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
+
+        /// Decimal provider.
+        type Decimal: DecimalProvider<CurrencyId>;
     }
 
     #[pallet::event]
@@ -1634,11 +1640,12 @@ pub mod pallet {
             // Bonus for PARA, Not applicable for HKO
             let bonus_config = Self::leases_bonus((&lease_start, &lease_end));
             let bonus_amount = amount.saturating_mul(bonus_config.bonus_per_token);
-            if !bonus_amount.is_zero() {
+            let normalized_amount = Self::normalized_amount(bonus_amount).unwrap_or_default();
+            if !normalized_amount.is_zero() {
                 T::Streaming::create(
                     Self::account_id(),
                     who.clone(),
-                    bonus_amount,
+                    normalized_amount,
                     T::GetNativeCurrencyId::get(),
                     bonus_config.start_time,
                     bonus_config.end_time,
@@ -1656,6 +1663,21 @@ pub mod pallet {
             ));
 
             Ok(())
+        }
+
+        pub(crate) fn normalized_amount(amount: BalanceOf<T>) -> Option<BalanceOf<T>> {
+            use Ordering::*;
+            let relay_decimal = T::Decimal::get_decimal(&T::RelayCurrency::get())?;
+            let native_decimal = T::Decimal::get_decimal(&T::GetNativeCurrencyId::get())?;
+            match relay_decimal.cmp(&native_decimal) {
+                Less => {
+                    amount.checked_mul(10u128.checked_pow((native_decimal - relay_decimal).into())?)
+                }
+                Equal => Some(amount),
+                Greater => {
+                    amount.checked_div(10u128.checked_pow((relay_decimal - native_decimal).into())?)
+                }
+            }
         }
 
         #[require_transactional]

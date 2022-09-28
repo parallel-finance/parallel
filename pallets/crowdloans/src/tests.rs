@@ -1867,3 +1867,12 @@ fn update_leases_bonus_should_work() {
         assert_eq!(Crowdloans::leases_bonus((&start_lease, &end_lease)), config,);
     })
 }
+
+#[test]
+fn normalized_amount_should_work() {
+    new_test_ext().execute_with(|| {
+        let amount = 1_000_000;
+        let normalized_amount = Crowdloans::normalized_amount(amount).unwrap();
+        assert_eq!(normalized_amount, amount * 100);
+    })
+}

@@ -1020,7 +1020,7 @@ fn edge_case_reward_token_decimal_too_big() {
 }
 
 #[test]
-fn pool_failed() {
+fn pool_withdraw_without_keep_alive_work() {
     new_test_ext().execute_with(|| {
         let deposit_balance = 100_000_000;
         assert_ok!(Farming::deposit(

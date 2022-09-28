@@ -46,6 +46,7 @@ pub use kusama_runtime;
 use pallet_traits::{
     ump::{XcmCall, XcmWeightFeeMisc},
     xcm::MultiCurrencyAdapter,
+    DecimalProvider,
 };
 
 pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
@@ -516,6 +517,23 @@ impl crate::Config for Test {
     type LeasePerYear = LeasePerYear;
     type Streaming = ();
     type GetNativeCurrencyId = NativeCurrencyId;
+    type Decimal = Decimal;
+}
+
+pub struct Decimal;
+#[allow(non_upper_case_globals)]
+impl DecimalProvider<CurrencyId> for Decimal {
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
+        match *asset_id {
+            DOT => Some(10),
+            KSM => Some(12),
+            PARA => Some(12),
+            HKO => Some(12),
+            USDT => Some(6),
+            CLV => Some(18),
+            _ => None,
+        }
+    }
 }
 
 parameter_types! {
