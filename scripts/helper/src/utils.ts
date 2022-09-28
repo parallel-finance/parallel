@@ -162,9 +162,7 @@ export const calcWeightPerSecond = (precision: number, price: number): number =>
   /// max_fee = (weight_per_second * weight)/WEIGHT_PER_SECOND/(10**precision) * price
   /// so weight_per_second = max_fee*WEIGHT_PER_SECOND*(10**precision)/weight/price
   const weight_per_second = (((max_fee * WEIGHT_PER_SECOND) / weight) * 10 ** precision) / price
-  /// to avoid price sharply increased later so that we charge too much
-  /// just add some soft limit here
-  return Math.min(1000 * WEIGHT_PER_SECOND, Math.floor(weight_per_second))
+  return Math.floor(weight_per_second)
 }
 
 export const getDefaultRelayChainWsUrl = (): string => {

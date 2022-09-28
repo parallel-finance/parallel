@@ -46,6 +46,8 @@ pub const EQ: CurrencyId = 124;
 pub const TUR: CurrencyId = 125;
 pub const LIT: CurrencyId = 127;
 pub const CLV: CurrencyId = 130;
+//local asset from moonbeam
+pub const POOP: CurrencyId = 132;
 
 // Ethereum ecosystem
 pub const EUSDT: CurrencyId = 201;

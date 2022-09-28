@@ -257,11 +257,20 @@ impl<
         match Matcher::matches_fungibles(&revenue) {
             Ok((asset_id, amount)) => {
                 if !amount.is_zero() {
-                    let ok = Assets::mint_into(asset_id, &ReceiverAccount::get(), amount).is_ok();
-                    debug_assert!(ok, "`mint_into` cannot generally fail; qed");
+                    Assets::mint_into(asset_id, &ReceiverAccount::get(), amount).unwrap_or_else(
+                        |e| {
+                            log::error!(
+                                target: "xcm::take_revenue",
+                                "currency_id: {:?}, amount: {:?}, err: {:?}",
+                                asset_id,
+                                amount,
+                                e
+                            )
+                        },
+                    );
                 }
             }
-            Err(_) => log::debug!(
+            Err(_) => log::error!(
                 target: "xcm",
                 "take revenue failed matching fungible"
             ),
@@ -457,8 +466,17 @@ impl<
                     }
                 }
 
-                MultiCurrency::mint_into(currency_id, &who, amount)
-                    .map_err(|e| XcmError::FailedToTransactAsset(e.into()))
+                MultiCurrency::mint_into(currency_id, &who, amount).map_err(|e| {
+                    log::error!(
+                        target: "xcm::deposit_asset",
+                        "who: {:?}, currency_id: {:?}, amount: {:?}, err: {:?}",
+                        who,
+                        currency_id,
+                        amount,
+                        e
+                    );
+                    XcmError::FailedToTransactAsset(e.into())
+                })
             }
             _ => Err(XcmError::AssetNotFound),
         }
@@ -476,8 +494,17 @@ impl<
             .map_err(|_| XcmError::from(Error::AccountIdConversionFailed))?;
         let currency_id = CurrencyIdConvert::convert(asset.clone())
             .ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
-        MultiCurrency::burn_from(currency_id, &who, amount)
-            .map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+        MultiCurrency::burn_from(currency_id, &who, amount).map_err(|e| {
+            log::error!(
+                target: "xcm::withdraw_asset",
+                "who: {:?}, currency_id: {:?}, amount: {:?}, err: {:?}",
+                who,
+                currency_id,
+                amount,
+                e
+            );
+            XcmError::FailedToTransactAsset(e.into())
+        })?;
 
         Ok(asset.clone().into())
     }
@@ -496,8 +523,20 @@ impl<
         let amount: MultiCurrency::Balance = Match::matches_fungible(asset)
             .ok_or(XcmError::AssetNotFound)?
             .saturated_into();
-        MultiCurrency::transfer(currency_id, &from_account, &to_account, amount, true)
-            .map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+        MultiCurrency::transfer(currency_id, &from_account, &to_account, amount, true).map_err(
+            |e| {
+                log::error!(
+                    target: "xcm::internal_transfer_asset",
+                    "currency_id: {:?}, source: {:?}, dest: {:?}, amount: {:?}, err: {:?}",
+                    currency_id,
+                    from_account,
+                    to_account,
+                    amount,
+                    e
+                );
+                XcmError::FailedToTransactAsset(e.into())
+            },
+        )?;
 
         Ok(asset.clone().into())
     }
