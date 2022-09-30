@@ -148,7 +148,7 @@ impl<
                     log::trace!(
                         target: "xcm::buy_weight::payment",
                         "asset_type: {:?}",
-                        asset_type.clone(),
+                        id,
                     );
                     return Ok(payment);
                 }
@@ -170,6 +170,11 @@ impl<
 
                 // In short, we only refund on the asset the trader first successfully was able
                 // to pay for an execution
+                log::trace!(
+                    target: "xcm::buy_weight::unused",
+                    "asset_type: {:?}",
+                    id,
+                );
                 let new_asset = match self.1.clone() {
                     Some((prev_id, prev_amount, units_per_second)) => {
                         if prev_id == id {
@@ -186,13 +191,6 @@ impl<
                     self.0 = self.0.saturating_add(weight);
                     self.1 = Some(new_asset);
                 };
-
-                log::trace!(
-                    target: "xcm::buy_weight::unused",
-                    "asset_type: {:?}",
-                    asset_type.clone(),
-                );
-
                 Ok(unused)
             }
             _ => Err(XcmError::TooExpensive),
@@ -212,7 +210,7 @@ impl<
             log::trace!(
                 target: "xcm::refund_weight",
                 "id: {:?}",
-                id.clone(),
+                id,
             );
             Some(MultiAsset {
                 fun: Fungibility::Fungible(amount),

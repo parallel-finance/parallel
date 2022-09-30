@@ -74,7 +74,10 @@ use xcm_builder::{
     SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
     TakeWeightCredit,
 };
-use xcm_executor::{traits::JustTry, Config, XcmExecutor};
+use xcm_executor::{
+    traits::{Convert as XcmConvert, JustTry},
+    Config, XcmExecutor,
+};
 
 // A few exports that help ease life for downstream crates.
 // re-exports
@@ -375,7 +378,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
             target: "xcm::convert",
             "currency_id: {:?}, multi_location: {:?}",
             id,
-            multi_location.clone(),
+            multi_location,
         );
         if multi_location.is_some() {
             return multi_location;
@@ -487,7 +490,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
         log::trace!(
             target: "xcm::convert",
             "multi_location: {:?}. currency_id: {:?}",
-            location.clone(),
+            location,
             currency_id,
         );
         if currency_id.is_some() {
