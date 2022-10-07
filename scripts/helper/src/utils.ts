@@ -6,8 +6,9 @@ import { blake2AsU8a } from '@polkadot/util-crypto'
 import { stringToU8a, bnToU8a, u8aConcat, u8aToHex } from '@polkadot/util'
 import { decodeAddress, encodeAddress } from '@polkadot/keyring'
 import { KeyringPair } from '@polkadot/keyring/types'
-import { Index } from '@polkadot/types/interfaces'
+import { AccountId, Index } from '@polkadot/types/interfaces'
 import { promisify } from 'util'
+import { Vec } from '@polkadot/types'
 
 const EMPTY_U8A_32 = new Uint8Array(32)
 
@@ -151,6 +152,11 @@ export const getRelayApi = async (endpoint: string): Promise<ApiPromise> => {
   return ApiPromise.create({
     provider: new WsProvider(endpoint)
   })
+}
+
+export const getCouncilThreshold = async (api: ApiPromise): Promise<number> => {
+  const members = (await api.query.generalCouncilMembership.members()) as unknown as Vec<AccountId>
+  return Math.ceil(members.length / 2)
 }
 
 export const calcWeightPerSecond = (precision: number, price: number): number => {

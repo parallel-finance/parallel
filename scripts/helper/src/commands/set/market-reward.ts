@@ -1,4 +1,4 @@
-import { getApi, nextNonce } from '../../utils'
+import { getApi, getCouncilThreshold, nextNonce } from '../../utils'
 import { Command, CreateCommandParameters, program } from '@caporal/core'
 import { Keyring } from '@polkadot/api'
 import { readFile } from '../../utils'
@@ -48,7 +48,11 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         })
       )
 
-      const tx = api.tx.generalCouncil.propose(3, proposal, proposal.length)
+      const tx = api.tx.generalCouncil.propose(
+        await getCouncilThreshold(api),
+        proposal,
+        proposal.length
+      )
 
       if (dryRun) {
         return logger.info(`hex-encoded call: ${tx.toHex()}`)

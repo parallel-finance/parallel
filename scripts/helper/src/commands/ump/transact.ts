@@ -1,4 +1,4 @@
-import { createXcm, getApi, nextNonce, sovereignRelayOf } from '../../utils'
+import { createXcm, getApi, getCouncilThreshold, nextNonce, sovereignRelayOf } from '../../utils'
 import { Command, CreateCommandParameters, program } from '@caporal/core'
 import { Keyring } from '@polkadot/api'
 import { u32 } from '@polkadot/types'
@@ -38,7 +38,11 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
           'SovereignAccount'
         )
       )
-      const tx = api.tx.generalCouncil.propose(3, proposal, proposal.length)
+      const tx = api.tx.generalCouncil.propose(
+        await getCouncilThreshold(api),
+        proposal,
+        proposal.length
+      )
 
       if (dryRun) {
         return logger.info(`hex-encoded call: ${tx.toHex()}`)
