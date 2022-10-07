@@ -263,7 +263,7 @@
     {
       "paraId": 2013,
       "derivativeIndex": 0,
-      "image": "parallelfinance/cumulus:v0.9.24",
+      "image": "parallelfinance/cumulus:v0.9.28",
       "chain": "shell",
       "ctokenId": 4000,
       "cap": "100000000000000",
@@ -275,7 +275,7 @@
     {
       "paraId": 2016,
       "derivativeIndex": 1,
-      "image": "parallelfinance/cumulus:v0.9.24",
+      "image": "parallelfinance/cumulus:v0.9.28",
       "chain": "shell",
       "ctokenId": 4000,
       "cap": "1000000000000000",
@@ -287,7 +287,7 @@
     {
       "paraId": 2100,
       "derivativeIndex": 2,
-      "image": "parallelfinance/cumulus:v0.9.24",
+      "image": "parallelfinance/cumulus:v0.9.28",
       "chain": "shell",
       "ctokenId": 4000,
       "cap": "10000000000000000",

@@ -145,6 +145,11 @@ impl<
                 // For cases (specially tests) where the asset is very cheap with respect
                 // to the weight needed
                 if amount.is_zero() {
+                    log::trace!(
+                        target: "xcm::buy_weight::payment",
+                        "asset_type: {:?}",
+                        id,
+                    );
                     return Ok(payment);
                 }
 
@@ -165,6 +170,11 @@ impl<
 
                 // In short, we only refund on the asset the trader first successfully was able
                 // to pay for an execution
+                log::trace!(
+                    target: "xcm::buy_weight::unused",
+                    "asset_type: {:?}",
+                    id,
+                );
                 let new_asset = match self.1.clone() {
                     Some((prev_id, prev_amount, units_per_second)) => {
                         if prev_id == id {
@@ -181,7 +191,6 @@ impl<
                     self.0 = self.0.saturating_add(weight);
                     self.1 = Some(new_asset);
                 };
-
                 Ok(unused)
             }
             _ => Err(XcmError::TooExpensive),
@@ -198,6 +207,11 @@ impl<
                 prev_amount.saturating_sub(amount),
                 units_per_second,
             ));
+            log::trace!(
+                target: "xcm::refund_weight",
+                "id: {:?}",
+                id,
+            );
             Some(MultiAsset {
                 fun: Fungibility::Fungible(amount),
                 id: xcmAssetId::Concrete(id),
@@ -316,27 +330,6 @@ impl From<AssetType> for CurrencyId {
                 u32::from_le_bytes(result)
             }
         }
-    }
-}
-
-// How to convert from CurrencyId to MultiLocation
-pub struct CurrencyIdtoMultiLocation<LegacyAssetConverter, ForeignAssetConverter>(
-    sp_std::marker::PhantomData<(LegacyAssetConverter, ForeignAssetConverter)>,
-);
-impl<LegacyAssetConverter, ForeignAssetConverter>
-    sp_runtime::traits::Convert<CurrencyId, Option<MultiLocation>>
-    for CurrencyIdtoMultiLocation<LegacyAssetConverter, ForeignAssetConverter>
-where
-    LegacyAssetConverter: Convert<CurrencyId, Option<MultiLocation>>,
-    ForeignAssetConverter: xcm_executor::traits::Convert<MultiLocation, CurrencyId>,
-{
-    fn convert(currency_id: CurrencyId) -> Option<MultiLocation> {
-        let mut multi_location = LegacyAssetConverter::convert(currency_id);
-        multi_location = match multi_location {
-            Some(_) => multi_location,
-            None => ForeignAssetConverter::reverse_ref(&currency_id).ok(),
-        };
-        multi_location
     }
 }
 
