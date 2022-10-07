@@ -3,7 +3,7 @@ import https from 'https'
 import { Command, CreateCommandParameters, program } from '@caporal/core'
 import { Keyring } from '@polkadot/api'
 import { blake2AsHex } from '@polkadot/util-crypto'
-import { getApi, nextNonce } from '../../utils'
+import { getApi, getCouncilThreshold, nextNonce } from '../../utils'
 
 export default function ({ createCommand }: CreateCommandParameters): Command {
   return createCommand('runtime upgrade via democracy')
@@ -50,7 +50,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
 
       const tx = api.tx.utility.batchAll([
         api.tx.democracy.notePreimage(encoded),
-        api.tx.generalCouncil.propose(3, external, external.length)
+        api.tx.generalCouncil.propose(await getCouncilThreshold(api), external, external.length)
       ])
       if (dryRun) {
         return logger.info(`hex-encoded call: ${tx.toHex()}`)
