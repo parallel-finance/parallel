@@ -110,12 +110,9 @@ use pallet_traits::{
 };
 use primitives::{
     network::PARALLEL_PREFIX,
-    tokens::{
-        ACA, AUSD, DOT, DOT_U, EQ, EUSDC, EUSDT, GLMR, IBTC, INTR, LC_DOT, LDOT, PARA, PHA, SDOT,
-    },
+    tokens::{DOT, DOT_U, EUSDC, EUSDT, PARA, SDOT},
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
-    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
-    Signature,
+    Index, Liquidity, Moment, PersistedValidationData, Price, Rate, Ratio, Shortfall, Signature,
 };
 
 // Make the WASM binary available.

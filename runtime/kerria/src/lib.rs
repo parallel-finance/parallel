@@ -113,10 +113,10 @@ use pallet_traits::{
 };
 use primitives::{
     network::PARALLEL_PREFIX,
-    tokens::{ACA, AUSD, DOT, EQ, EUSDC, EUSDT, GLMR, IBTC, INTR, LC_DOT, LDOT, PARA, PHA, SDOT},
+    tokens::{DOT, EUSDC, EUSDT, PARA, SDOT},
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
-    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
-    Signature, DOT_U,
+    Index, Liquidity, Moment, PersistedValidationData, Price, Rate, Ratio, Shortfall, Signature,
+    DOT_U,
 };
 
 use pallet_evm_precompile_balances_erc20::Erc20Metadata;

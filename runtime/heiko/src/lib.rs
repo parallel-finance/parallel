@@ -109,12 +109,10 @@ use pallet_traits::{
 };
 use primitives::{
     network::HEIKO_PREFIX,
-    tokens::{
-        EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KMA, KSM, KUSD, LKSM, MOVR, PHA, SKSM, TUR,
-    },
+    tokens::{EUSDC, EUSDT, HKO, KSM, SKSM},
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
-    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
-    Signature, KSM_U,
+    Index, Liquidity, Moment, PersistedValidationData, Price, Rate, Ratio, Shortfall, Signature,
+    KSM_U,
 };
 
 // Make the WASM binary available.
