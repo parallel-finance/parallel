@@ -71,11 +71,10 @@ use sp_version::RuntimeVersion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-    AllowTopLevelPaidExecutionFrom, ConvertedConcreteAssetId, EnsureXcmOrigin, FixedRateOfFungible,
-    FixedWeightBounds, FungiblesAdapter, LocationInverter, ParentAsSuperuser, ParentIsPreset,
-    RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
-    TakeWeightCredit,
+    AllowTopLevelPaidExecutionFrom, ConvertedConcreteAssetId, EnsureXcmOrigin, FixedWeightBounds,
+    FungiblesAdapter, LocationInverter, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
+    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
 };
 use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 
@@ -1193,106 +1192,6 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<Origin>,
 );
 
-parameter_types! {
-    pub DotPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), dot_per_second());
-    pub SDOTPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"sDOT".to_vec(), None))),
-        ).into(),
-        dot_per_second()
-    );
-    pub SDOTPerSecondOfCanonicalLocation: (AssetId, u128) = (
-        MultiLocation::new(
-            0,
-            X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"sDOT".to_vec(), None))),
-        ).into(),
-        dot_per_second()
-    );
-    pub ParaPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"PARA".to_vec(), None))),
-        ).into(),
-        dot_per_second() * 100
-    );
-    pub ParaPerSecondOfCanonicalLocation: (AssetId, u128) = (
-        MultiLocation::new(
-            0,
-            X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"PARA".to_vec(), None))),
-        ).into(),
-        dot_per_second() * 100
-    );
-    // Acala
-    pub AusdPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::acala::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::acala::AUSD_KEY.to_vec(), None)))
-        ).into(),
-        dot_per_second() * 30
-    );
-    pub AcaPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::acala::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::acala::ACA_KEY.to_vec(), None)))
-        ).into(),
-        dot_per_second() * 20
-    );
-    pub LDOTPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::acala::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::acala::LDOT_KEY.to_vec(), None)))
-        ).into(),
-        dot_per_second()
-    );
-    pub LCDOTPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::acala::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::acala::LCDOT_KEY.to_vec(), None)))
-        ).into(),
-        dot_per_second()
-    );
-    // Moonbeam
-    pub GlmrPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::moonbeam::ID), PalletInstance(paras::moonbeam::GLMR_KEY)),
-        ).into(),
-        dot_per_second() * 50
-    );
-    // Phala
-    pub PhaPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X1(Parachain(paras::phala::ID)),
-        ).into(),
-        dot_per_second() * 400
-    );
-    // Interlay
-    pub IntrPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::interlay::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::interlay::INTR_KEY.to_vec(), None))),
-        ).into(),
-        dot_per_second() * 400
-    );
-    pub IbtcPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::interlay::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::interlay::IBTC_KEY.to_vec(), None))),
-        ).into(),
-        dot_per_second() / 1_500_000
-    );
-    // Equilibrium
-    pub EqPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X1(Parachain(paras::equilibrium::ID)),
-        ).into(),
-        dot_per_second() * 5000
-    );
-}
-
 match_types! {
     pub type ParentOrSiblings: impl Contains<MultiLocation> = {
         MultiLocation { parents: 1, interior: Here } |
@@ -1321,31 +1220,6 @@ impl TakeRevenue for ToTreasury {
         }
     }
 }
-
-pub type Trader = (
-    // Foreign Assets registered in AssetRegistry
-    // TODO: replace all above except local reserved asset later
-    FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
-    FixedRateOfFungible<DotPerSecond, ToTreasury>,
-    FixedRateOfFungible<SDOTPerSecond, ToTreasury>,
-    FixedRateOfFungible<SDOTPerSecondOfCanonicalLocation, ToTreasury>,
-    FixedRateOfFungible<ParaPerSecond, ToTreasury>,
-    FixedRateOfFungible<ParaPerSecondOfCanonicalLocation, ToTreasury>,
-    // Acala
-    FixedRateOfFungible<AusdPerSecond, ToTreasury>,
-    FixedRateOfFungible<AcaPerSecond, ToTreasury>,
-    FixedRateOfFungible<LDOTPerSecond, ToTreasury>,
-    FixedRateOfFungible<LCDOTPerSecond, ToTreasury>,
-    // Moonbeam
-    FixedRateOfFungible<GlmrPerSecond, ToTreasury>,
-    // Phala
-    FixedRateOfFungible<PhaPerSecond, ToTreasury>,
-    // Interlay
-    FixedRateOfFungible<IntrPerSecond, ToTreasury>,
-    FixedRateOfFungible<IbtcPerSecond, ToTreasury>,
-    // Equilibrium
-    FixedRateOfFungible<EqPerSecond, ToTreasury>,
-);
 
 // Min fee required when transferring non-reserve asset back to sibling chain
 // It will use another asset(e.g Relaychain's asset) as fee
@@ -1421,7 +1295,7 @@ impl Config for XcmConfig {
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
-    type Trader = Trader;
+    type Trader = FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>;
     type ResponseHandler = PolkadotXcm;
     type SubscriptionService = PolkadotXcm;
     type AssetTrap = PolkadotXcm;

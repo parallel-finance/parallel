@@ -67,11 +67,10 @@ use sp_version::RuntimeVersion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-    AllowTopLevelPaidExecutionFrom, ConvertedConcreteAssetId, EnsureXcmOrigin, FixedRateOfFungible,
-    FixedWeightBounds, FungiblesAdapter, LocationInverter, ParentAsSuperuser, ParentIsPreset,
-    RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
-    TakeWeightCredit,
+    AllowTopLevelPaidExecutionFrom, ConvertedConcreteAssetId, EnsureXcmOrigin, FixedWeightBounds,
+    FungiblesAdapter, LocationInverter, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
+    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
 };
 use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 
@@ -1013,130 +1012,6 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<Origin>,
 );
 
-parameter_types! {
-    pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
-    pub SKSMPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"sKSM".to_vec(), None))),
-        ).into(),
-        ksm_per_second()
-    );
-    pub SKSMPerSecondOfCanonicalLocation: (AssetId, u128) = (
-        MultiLocation::new(
-            0,
-            X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"sKSM".to_vec(), None))),
-        ).into(),
-        ksm_per_second()
-    );
-    pub HkoPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"HKO".to_vec(), None))),
-        ).into(),
-        ksm_per_second() * 30
-    );
-    pub HkoPerSecondOfCanonicalLocation: (AssetId, u128) = (
-        MultiLocation::new(
-            0,
-            X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"HKO".to_vec(), None))),
-        ).into(),
-        ksm_per_second() * 30
-    );
-    // Karura
-    pub KusdPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::karura::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::karura::KUSD_KEY.to_vec(), None))),
-        ).into(),
-        ksm_per_second() * 400
-    );
-    pub KarPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::karura::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::karura::KAR_KEY.to_vec(), None))),
-        ).into(),
-        ksm_per_second() * 50
-    );
-    pub LKSMPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::karura::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::karura::LKSM_KEY.to_vec(), None))),
-        ).into(),
-        ksm_per_second()
-    );
-    // Moonriver
-    pub MovrPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::moonriver::ID), PalletInstance(paras::moonriver::MOVR_KEY)),
-        ).into(),
-        ksm_per_second() * 3
-    );
-    // Khala
-    pub PhaPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X1(Parachain(paras::khala::ID)),
-        ).into(),
-        ksm_per_second() * 400
-    );
-    //Kintsugi:(1,X2(2092,0x000C))
-    pub KintPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::kintsugi::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::kintsugi::KINT_KEY.to_vec(), None))),
-        ).into(),
-        //~100
-        ksm_per_second() * 400
-    );
-    //Kbtc:(1,X2(2092,0x000B))
-    pub KbtcPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::kintsugi::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::kintsugi::KBTC_KEY.to_vec(), None))),
-        ).into(),
-        ksm_per_second() / 1_500_000
-    );
-    // Genshiro
-    pub GensPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X1(Parachain(paras::genshiro::ID)),
-        ).into(),
-        ksm_per_second() * 5000
-    );
-    // Turing
-    pub TurPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X1(Parachain(paras::turing::ID)),
-        ).into(),
-        ksm_per_second() * 260
-    );
-    // Calamari(1,2084)
-    pub KmaPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X1(Parachain(paras::calamari::ID)),
-        ).into(),
-        ksm_per_second() * 5000
-    );
-    // For statemine we do not use it,just keep param here as reference
-    // guide to set asset-registry
-    pub UsdtPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X3(
-                Parachain(paras::statemine::ID),
-                PalletInstance(paras::statemine::PALLET_INSTANCE),
-                GeneralIndex(paras::statemine::USDT_KEY),
-            ),
-        ).into(),
-        ksm_per_second() * 150 / 1_000_000 //consider usdt decimal as 6 we need div by 1_000_000 here
-    );
-}
-
 match_types! {
     pub type ParentOrSiblings: impl Contains<MultiLocation> = {
         MultiLocation { parents: 1, interior: Here } |
@@ -1165,34 +1040,6 @@ impl TakeRevenue for ToTreasury {
         }
     }
 }
-
-pub type Trader = (
-    // we can try use asset-registry for statemine asset first,just comment following
-    // FixedRateOfFungible<UsdtPerSecond, ToTreasury>,
-    FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
-    FixedRateOfFungible<KsmPerSecond, ToTreasury>,
-    FixedRateOfFungible<SKSMPerSecond, ToTreasury>,
-    FixedRateOfFungible<SKSMPerSecondOfCanonicalLocation, ToTreasury>,
-    FixedRateOfFungible<HkoPerSecond, ToTreasury>,
-    FixedRateOfFungible<HkoPerSecondOfCanonicalLocation, ToTreasury>,
-    // Karura
-    FixedRateOfFungible<KusdPerSecond, ToTreasury>,
-    FixedRateOfFungible<KarPerSecond, ToTreasury>,
-    FixedRateOfFungible<LKSMPerSecond, ToTreasury>,
-    // Moonriver
-    FixedRateOfFungible<MovrPerSecond, ToTreasury>,
-    // Khala
-    FixedRateOfFungible<PhaPerSecond, ToTreasury>,
-    // Kintsugi
-    FixedRateOfFungible<KintPerSecond, ToTreasury>,
-    FixedRateOfFungible<KbtcPerSecond, ToTreasury>,
-    // Genshiro
-    FixedRateOfFungible<GensPerSecond, ToTreasury>,
-    // Turing
-    FixedRateOfFungible<TurPerSecond, ToTreasury>,
-    // Calamari
-    FixedRateOfFungible<KmaPerSecond, ToTreasury>,
-);
 
 parameter_types! {
     pub CheckingAccount: AccountId = PolkadotXcm::check_account();
@@ -1256,7 +1103,7 @@ impl Config for XcmConfig {
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
-    type Trader = Trader;
+    type Trader = FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>;
     type ResponseHandler = PolkadotXcm;
     type SubscriptionService = PolkadotXcm;
     type AssetTrap = PolkadotXcm;
