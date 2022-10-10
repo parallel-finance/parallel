@@ -73,10 +73,7 @@ use xcm_builder::{
     SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
     TakeWeightCredit,
 };
-use xcm_executor::{
-    traits::{Convert as XcmConvert, JustTry},
-    Config, XcmExecutor,
-};
+use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 
 // A few exports that help ease life for downstream crates.
 // re-exports
