@@ -103,7 +103,8 @@ pub use pallet_streaming;
 
 use pallet_traits::{
     xcm::{
-        AccountIdToMultiLocation, AsAssetType, AssetType, FirstAssetTrader, MultiCurrencyAdapter,
+        AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdConvert, FirstAssetTrader,
+        MultiCurrencyAdapter,
     },
     DecimalProvider, EmergencyCallFilter, ValidationDataProvider,
 };
@@ -369,49 +370,6 @@ parameter_types! {
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
 
-pub struct CurrencyIdConvert;
-impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
-    fn convert(id: CurrencyId) -> Option<MultiLocation> {
-        let multi_location =
-            AsAssetType::<CurrencyId, AssetType, AssetRegistry>::reverse_ref(&id).ok();
-        log::trace!(
-            target: "xcm::convert",
-            "currency_id: {:?}, multi_location: {:?}",
-            id,
-            multi_location,
-        );
-        multi_location
-    }
-}
-
-impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(location: MultiLocation) -> Option<CurrencyId> {
-        let currency_id =
-            AsAssetType::<CurrencyId, AssetType, AssetRegistry>::convert_ref(&location).ok();
-        log::trace!(
-            target: "xcm::convert",
-            "multi_location: {:?}. currency_id: {:?}",
-            location,
-            currency_id,
-        );
-        currency_id
-    }
-}
-
-impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(a: MultiAsset) -> Option<CurrencyId> {
-        if let MultiAsset {
-            id: AssetId::Concrete(id),
-            fun: _,
-        } = a
-        {
-            Self::convert(id)
-        } else {
-            None
-        }
-    }
-}
-
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 150_000_000;
@@ -435,7 +393,7 @@ impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type CurrencyId = CurrencyId;
-    type CurrencyIdConvert = CurrencyIdConvert;
+    type CurrencyIdConvert = CurrencyIdConvert<AssetRegistry>;
     type AccountIdToMultiLocation = AccountIdToMultiLocation<AccountId>;
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
@@ -1024,13 +982,13 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
     CurrencyAdapter,
     // Use this currency when it is a fungible asset matching the given location or name:
-    IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
+    IsNativeConcrete<CurrencyId, CurrencyIdConvert<AssetRegistry>>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
     Balance,
     // Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
     LocationToAccountId,
-    CurrencyIdConvert,
+    CurrencyIdConvert<AssetRegistry>,
     NativeCurrencyId,
     ExistentialDeposit,
     GiftAccount,
@@ -1182,7 +1140,7 @@ impl TakeRevenue for ToTreasury {
             fun: Fungibility::Fungible(amount),
         } = revenue
         {
-            if let Some(currency_id) = CurrencyIdConvert::convert(id) {
+            if let Some(currency_id) = CurrencyIdConvert::<AssetRegistry>::convert(id) {
                 let _ = Assets::mint_into(currency_id, &TreasuryAccount::get(), amount);
             }
         }
