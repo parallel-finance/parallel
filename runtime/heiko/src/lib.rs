@@ -146,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("heiko"),
     impl_name: create_runtime_str!("heiko"),
     authoring_version: 1,
-    spec_version: 193,
+    spec_version: 194,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
