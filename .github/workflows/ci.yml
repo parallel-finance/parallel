@@ -58,6 +58,20 @@ jobs:
           echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
           echo "HOME=/home/ubuntu" >> ${GITHUB_ENV}
           apt update -y && apt install git-lfs -y
+      - name: Install Dependencies
+        run: | 
+          echo "update apt packge ..."
+          sudo apt update -y
+          sudo apt install apt-transport-https curl ca-certificates software-properties-common -y
+          echo "add apt-get nodejs16.x and PGP"
+          curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+          echo "install nodejs and npm...."
+          sudo apt-get install -y nodejs
+          node -v && npm -v
+          npm install --global yarn
+          yarn --version
+          apt install docker docker.io -y
+          curl -L "https://github.com/docker/compose/releases/download/1.25.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/bin/docker-compose && chmod +x /usr/bin/docker-compose
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
