@@ -31,7 +31,7 @@ jobs:
         with:
           mode: start
           github-token: ${{ secrets.PAT_RUNNER }}
-          ec2-image-id: ${{ secrets.EC2_IMAGE_ID }}
+          ec2-image-id: ${{ secrets.EC2_IMAGE_ID_CI }}
           ec2-instance-type: ${{ secrets.EC2_INSTANCE_TYPE }}
           subnet-id: ${{ secrets.SUBNET_ID }}
           security-group-id: ${{ secrets.SECURITY_GROUP_ID }}
@@ -71,6 +71,7 @@ jobs:
           node -v && npm -v
           npm install --global yarn
           yarn --version
+          sudo apt install ubuntu-make
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
