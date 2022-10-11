@@ -102,7 +102,7 @@ pub mod paras {
         pub const ACA_KEY: &[u8] = &[0, 0];
         pub const AUSD_KEY: &[u8] = &[0, 1];
         pub const LDOT_KEY: &[u8] = &[0, 3];
-        pub const LCDOT_KEY: &[u8] = &[4, 13];
+        pub const LCDOT_KEY: &[u8] = &[4, 13, 0, 0, 0];
     }
 
     pub mod moonbeam {
