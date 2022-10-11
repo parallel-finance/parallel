@@ -14,10 +14,38 @@
 
 use crate::{kusama_test_net::*, setup::*};
 
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{assert_ok, traits::ConstU32, WeakBoundedVec};
-use primitives::{AccountId, KAR};
+use primitives::{AccountId, BlockNumber, KAR};
+use scale_info::TypeInfo;
+use sp_core::{hexdisplay::HexDisplay, RuntimeDebug};
 use xcm::latest::prelude::*;
 use xcm_emulator::TestExt;
+
+pub type Lease = BlockNumber;
+#[derive(
+    Encode,
+    Decode,
+    Eq,
+    PartialEq,
+    Copy,
+    Clone,
+    RuntimeDebug,
+    PartialOrd,
+    Ord,
+    TypeInfo,
+    MaxEncodedLen,
+)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "std", serde(rename_all = "camelCase"))]
+pub enum CurrencyId {
+    Token(),
+    DexShare(),
+    Erc20(),
+    StableAssetPoolToken(),
+    LiquidCrowdloan(Lease),
+    ForeignAsset(),
+}
 
 #[test]
 fn transfer_sibling_chain_asset() {
@@ -27,6 +55,21 @@ fn transfer_sibling_chain_asset() {
     use heiko_runtime::{Assets, Balances, Origin, PolkadotXcm, XTokens};
 
     MockSibling::execute_with(|| {
+        let mut general_key =
+            WeakBoundedVec::<u8, ConstU32<32>>::force_from([4, 13].to_vec(), None).to_vec();
+        assert_eq!(general_key, vec![4, 13]);
+        let mut general_key_hex = format!("0x{:?}", HexDisplay::from(&general_key));
+        assert_eq!(general_key_hex, "0x040d");
+
+        general_key = WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+            CurrencyId::LiquidCrowdloan(13).encode(),
+            None,
+        )
+        .to_vec();
+        assert_eq!(general_key, vec![4, 13, 0, 0, 0]);
+        general_key_hex = format!("0x{:?}", HexDisplay::from(&general_key));
+        assert_eq!(general_key_hex, "0x040d000000");
+
         assert_ok!(PolkadotXcm::reserve_transfer_assets(
             Origin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2085))).into()),
