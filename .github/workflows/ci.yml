@@ -58,16 +58,9 @@ jobs:
           echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
           echo "HOME=/home/ubuntu" >> ${GITHUB_ENV}
           apt update -y && apt install git-lfs -y
-          echo "Listing 100 largest packages"
-          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 100
-          df -h
-          echo "Removing large packages"
-          sudo apt-get remove -y php.*
-          sudo apt-get remove -y azure-cli google-cloud-sdk hhvm google-chrome-stable firefox powershell mono-devel
-          sudo apt-get autoremove -y
-          sudo apt-get autoclean -y
-          sudo apt-get clean -y
-          sudo dpkg -l |grep ^rc|awk '{print $2}' |sudo xargs dpkg -P
+          sudo apt-get autoremove
+          sudo apt-get autoclean
+          sudo dpkg -l |grep ^rc|awk ‘{print $2}’ |sudo xargs dpkg -P
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
