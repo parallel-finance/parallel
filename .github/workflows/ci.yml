@@ -11,37 +11,67 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  start-runner:
+    name: start self-hosted EC2 runner
+    runs-on: ubuntu-latest
+    outputs:
+      label: ${{ steps.start-ec2-runner.outputs.label }}
+      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Start EC2 runner
+        id: start-ec2-runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: start
+          github-token: ${{ secrets.PAT_RUNNER }}
+          ec2-image-id: ${{ secrets.EC2_IMAGE_ID_CI }}
+          ec2-instance-type: ${{ secrets.EC2_INSTANCE_TYPE }}
+          subnet-id: ${{ secrets.SUBNET_ID }}
+          security-group-id: ${{ secrets.SECURITY_GROUP_ID }}
+          aws-resource-tags: >
+            [
+              {"Key": "Name", "Value": "${{ github.workflow }}"},
+              {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
+            ]
+
   check:
     if: github.repository == 'parallel-finance/parallel'
     name: Auto Build CI
-    runs-on: ${{ matrix.os }}
+    needs: start-runner
+    runs-on: ${{ needs.start-runner.outputs.label }}
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [self-hosted]
         rust: [nightly-2022-05-11]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: Additional free space
+      - name: cleaning up
         run: |
-          # Workaround to provide additional free space for testing.
-          #   https://github.com/actions/virtual-environments/issues/2840
-          echo "Listing 100 largest packages"
-          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 100
-          df -h
-          echo "Removing large packages"
-          sudo apt-get remove -y php.*
-          sudo apt-get remove -y azure-cli google-cloud-sdk hhvm google-chrome-stable firefox powershell mono-devel
-          sudo apt-get autoremove -y
-          sudo apt-get autoclean -y
-          sudo apt-get clean -y
-          sudo dpkg -l |grep ^rc|awk '{print $2}' |sudo xargs dpkg -P
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          echo '${{ secrets.RUNNER_PASSWORD }}' | sudo -S chown -R $USER:$USER $GITHUB_WORKSPACE
+          echo "HOME=/home/ubuntu" >> ${GITHUB_ENV}
+          apt update -y && apt install git-lfs -y
           df -hT
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Install Dependencies
+        run: | 
+          echo "update apt packge ..."
+          sudo apt update -y
+          sudo apt install apt-transport-https curl ca-certificates software-properties-common -y
+          echo "add apt-get nodejs16.x and PGP"
+          curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+          echo "install nodejs and npm...."
+          sudo apt-get install -y nodejs
+          node -v && npm -v
+          npm install --global yarn
+          yarn --version
+          sudo apt install build-essential make cmake -y
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
@@ -111,3 +141,25 @@ jobs:
       - name: Check Integration Test
         run: |
           make integration-test
+  stop-runner:
+    name: stop self-hosted EC2 runner
+    needs:
+      - start-runner
+      - check
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Stop EC2 runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: stop
+          github-token: ${{ secrets.PAT_RUNNER }}
+          label: ${{ needs.start-runner.outputs.label }}
+          ec2-instance-id: ${{ needs.start-runner.outputs.ec2-instance-id }}
