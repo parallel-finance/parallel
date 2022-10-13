@@ -123,45 +123,7 @@ impl ExtBuilder {
             AssetRegistry, Assets, LiquidStaking, Loans, Origin, Runtime, System, XcmHelper,
         };
         use paras::statemine::{ID as StatemineChainId, PALLET_INSTANCE as StatemineAssetInstance};
-        let mut t = frame_system::GenesisConfig::default()
-            .build_storage::<Runtime>()
-            .unwrap();
-
-        <parachain_info::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
-            &parachain_info::GenesisConfig {
-                parachain_id: self.parachain_id.into(),
-            },
-            &mut t,
-        )
-        .unwrap();
-
-        <pallet_xcm::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
-            &pallet_xcm::GenesisConfig {
-                safe_xcm_version: Some(2),
-            },
-            &mut t,
-        )
-        .unwrap();
-
-        pallet_balances::GenesisConfig::<Runtime> {
-            balances: vec![
-                (AccountId::from(ALICE), heiko(100)),
-                (AccountId::from(BOB), heiko(100)),
-            ],
-        }
-        .assimilate_storage(&mut t)
-        .unwrap();
-
-        <pallet_liquid_staking::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
-            &pallet_liquid_staking::GenesisConfig {
-                exchange_rate: Rate::one(),
-                reserve_factor: Ratio::from_perthousand(5),
-            },
-            &mut t,
-        )
-        .unwrap();
-
-        let mut ext = sp_io::TestExternalities::new(t);
+        let mut ext = sp_io::TestExternalities::new(self.init());
         ext.execute_with(|| {
             System::set_block_number(1);
             Assets::force_create(
@@ -597,8 +559,56 @@ impl ExtBuilder {
         ext
     }
 
-    pub fn sibling_build(self) -> sp_io::TestExternalities {
-        use heiko_runtime::{AssetRegistry, Origin, Runtime, System};
+    pub fn karura_build(self) -> sp_io::TestExternalities {
+        use heiko_runtime::{AssetRegistry, Origin, System};
+        let mut ext = sp_io::TestExternalities::new(self.init());
+        ext.execute_with(|| {
+            System::set_block_number(1);
+            let hko_asset_location = MultiLocation::new(
+                0,
+                X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                    b"HKO".to_vec(),
+                    None,
+                ))),
+            );
+            let hko_asset_type = AssetType::Xcm(hko_asset_location);
+            AssetRegistry::register_asset(Origin::root(), HKO, hko_asset_type.clone()).unwrap();
+            AssetRegistry::update_asset_units_per_second(
+                Origin::root(),
+                hko_asset_type,
+                HKO_WEIGHT_PER_SEC,
+            )
+            .unwrap();
+        });
+        ext
+    }
+
+    pub fn clv_build(self) -> sp_io::TestExternalities {
+        use heiko_runtime::{AssetRegistry, Origin, System};
+        let mut ext = sp_io::TestExternalities::new(self.init());
+        ext.execute_with(|| {
+            System::set_block_number(1);
+            let para_asset_location = MultiLocation::new(
+                0,
+                X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                    b"PARA".to_vec(),
+                    None,
+                ))),
+            );
+            let para_asset_type = AssetType::Xcm(para_asset_location);
+            AssetRegistry::register_asset(Origin::root(), PARA, para_asset_type.clone()).unwrap();
+            AssetRegistry::update_asset_units_per_second(
+                Origin::root(),
+                para_asset_type,
+                PARA_WEIGHT_PER_SEC,
+            )
+            .unwrap();
+        });
+        ext
+    }
+
+    fn init(self) -> sp_runtime::Storage {
+        use heiko_runtime::Runtime;
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
             .unwrap();
@@ -636,42 +646,6 @@ impl ExtBuilder {
             &mut t,
         )
         .unwrap();
-
-        let mut ext = sp_io::TestExternalities::new(t);
-        ext.execute_with(|| {
-            System::set_block_number(1);
-            let hko_asset_location = MultiLocation::new(
-                0,
-                X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                    b"HKO".to_vec(),
-                    None,
-                ))),
-            );
-            let hko_asset_type = AssetType::Xcm(hko_asset_location);
-            AssetRegistry::register_asset(Origin::root(), HKO, hko_asset_type.clone()).unwrap();
-            AssetRegistry::update_asset_units_per_second(
-                Origin::root(),
-                hko_asset_type,
-                HKO_WEIGHT_PER_SEC,
-            )
-            .unwrap();
-
-            let para_asset_location = MultiLocation::new(
-                0,
-                X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                    b"PARA".to_vec(),
-                    None,
-                ))),
-            );
-            let para_asset_type = AssetType::Xcm(para_asset_location);
-            AssetRegistry::register_asset(Origin::root(), PARA, para_asset_type.clone()).unwrap();
-            AssetRegistry::update_asset_units_per_second(
-                Origin::root(),
-                para_asset_type,
-                PARA_WEIGHT_PER_SEC,
-            )
-            .unwrap();
-        });
-        ext
+        t
     }
 }

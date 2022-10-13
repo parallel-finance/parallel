@@ -155,5 +155,5 @@ pub fn para_ext(parachain_id: u32) -> sp_io::TestExternalities {
 
 pub fn sibling_ext(parachain_id: u32) -> sp_io::TestExternalities {
     let ext = ExtBuilder { parachain_id };
-    ext.parachain_id(parachain_id).sibling_build()
+    ext.parachain_id(parachain_id).clv_build()
 }
