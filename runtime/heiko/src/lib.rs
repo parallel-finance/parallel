@@ -80,7 +80,7 @@ mod weights;
 
 pub mod constants;
 
-use constants::{currency, fee, paras, time};
+use constants::{currency, fee, time};
 use currency::*;
 use fee::*;
 use time::*;
@@ -105,6 +105,7 @@ use pallet_traits::{
 };
 use primitives::{
     network::HEIKO_PREFIX,
+    paras,
     tokens::{EUSDC, EUSDT, HKO, KSM, SKSM},
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, PersistedValidationData, Price, Rate, Ratio, Shortfall, Signature,

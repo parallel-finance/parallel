@@ -23,7 +23,7 @@ use pallet_traits::{
     xcm::AssetType,
 };
 use polkadot_parachain::primitives::Sibling;
-use primitives::{tokens::*, AccountId, Balance, CurrencyId, Rate, Ratio};
+use primitives::{paras, tokens::*, AccountId, Balance, CurrencyId, Rate, Ratio};
 use sp_runtime::{
     traits::{AccountIdConversion, One},
     FixedPointNumber, MultiAddress,
@@ -116,11 +116,9 @@ impl ExtBuilder {
 
     pub fn heiko_build(self) -> sp_io::TestExternalities {
         use heiko_runtime::{
-            constants::paras::statemine::{
-                ID as StatemineChainId, PALLET_INSTANCE as StatemineAssetInstance,
-            },
             AssetRegistry, Assets, LiquidStaking, Loans, Origin, Runtime, System, XcmHelper,
         };
+        use paras::statemine::{ID as StatemineChainId, PALLET_INSTANCE as StatemineAssetInstance};
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
             .unwrap();

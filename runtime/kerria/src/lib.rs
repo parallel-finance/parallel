@@ -84,7 +84,7 @@ mod weights;
 
 pub mod constants;
 
-use constants::{currency, fee, paras, time};
+use constants::{currency, fee, time};
 use currency::*;
 use fee::*;
 use time::*;
@@ -109,6 +109,7 @@ use pallet_traits::{
 };
 use primitives::{
     network::PARALLEL_PREFIX,
+    paras,
     tokens::{DOT, EUSDC, EUSDT, PARA, SDOT},
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
     Index, Liquidity, Moment, PersistedValidationData, Price, Rate, Ratio, Shortfall, Signature,
