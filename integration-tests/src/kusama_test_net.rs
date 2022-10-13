@@ -58,7 +58,7 @@ decl_test_parachain! {
         Origin = heiko_runtime::Origin,
         XcmpMessageHandler = heiko_runtime::XcmpQueue,
         DmpMessageHandler = heiko_runtime::DmpQueue,
-        new_ext = para_ext(2000),
+        new_ext = sibling_ext(2000),
     }
 }
 
@@ -154,6 +154,11 @@ pub fn kusama_ext() -> sp_io::TestExternalities {
 pub fn para_ext(parachain_id: u32) -> sp_io::TestExternalities {
     let ext = ExtBuilder { parachain_id };
     ext.parachain_id(parachain_id).heiko_build()
+}
+
+pub fn sibling_ext(parachain_id: u32) -> sp_io::TestExternalities {
+    let ext = ExtBuilder { parachain_id };
+    ext.parachain_id(parachain_id).sibling_build()
 }
 
 pub fn stamine_ext() -> sp_io::TestExternalities {
