@@ -45,6 +45,8 @@ pub const RMRK_ASSET_ID: u32 = 8;
 pub const USDT_ASSET_ID: u32 = 1984;
 pub const RMRK: CurrencyId = 126;
 
+pub const DOT_WEIGHT_PER_SEC: u128 = 231_740_000_000;
+pub const KSM_WEIGHT_PER_SEC: u128 = 231_740_000_000;
 pub const RMRK_WEIGHT_PER_SEC: u128 = 20_000_000_000;
 pub const USDT_WEIGHT_PER_SEC: u128 = 30_000_000;
 pub const KAR_WEIGHT_PER_SEC: u128 = 30_000_000_000;
@@ -201,6 +203,16 @@ impl ExtBuilder {
                 b"RMRK".to_vec(),
                 RMRK_DECIMAL,
                 false,
+            )
+            .unwrap();
+
+            let ksm_asset_location = MultiLocation::parent();
+            let ksm_asset_type = AssetType::Xcm(ksm_asset_location);
+            AssetRegistry::register_asset(Origin::root(), KSM, ksm_asset_type.clone()).unwrap();
+            AssetRegistry::update_asset_units_per_second(
+                Origin::root(),
+                ksm_asset_type,
+                KSM_WEIGHT_PER_SEC,
             )
             .unwrap();
 
@@ -423,6 +435,15 @@ impl ExtBuilder {
                 b"CLV".to_vec(),
                 CLV_DECIMAL,
                 false,
+            )
+            .unwrap();
+            let dot_asset_location = MultiLocation::parent();
+            let dot_asset_type = AssetType::Xcm(dot_asset_location);
+            AssetRegistry::register_asset(Origin::root(), DOT, dot_asset_type.clone()).unwrap();
+            AssetRegistry::update_asset_units_per_second(
+                Origin::root(),
+                dot_asset_type,
+                DOT_WEIGHT_PER_SEC,
             )
             .unwrap();
             let clv_asset_location = MultiLocation::new(
