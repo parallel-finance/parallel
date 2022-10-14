@@ -126,6 +126,14 @@ async function para({ logger, options: { paraWs, network } }: ActionParameters) 
     )
   }
 
+  for (const { assetId, assetType, unitsPerSecond } of config.assetsRegistry) {
+    logger.info(`Register ${assetId} assetType`)
+    call.push(
+      api.tx.sudo.sudo(api.tx.assetRegistry.registerAsset(assetId, assetType)),
+      api.tx.sudo.sudo(api.tx.assetRegistry.updateAssetUnitsPerSecond(assetType, unitsPerSecond))
+    )
+  }
+
   logger.info('Submit parachain batches.')
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextNonce(api, signer) })
 }

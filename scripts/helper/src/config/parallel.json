@@ -410,5 +410,27 @@
       "rewardAmount": "2000000000000000",
       "rewardDuration": "50400"
     }
+  ],
+  "assetsRegistry":[
+    {
+      "assetId": 1,
+      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2012},{"GeneralKey": "PARA"}]}}},
+      "unitsPerSecond":"1883239171374764"
+    },
+    {
+      "assetId": 101,
+      "assetType": {"Xcm":{"parents":1, "interior":"Here"}},
+      "unitsPerSecond":"53711462025"
+    },
+    {
+      "assetId": 102,
+      "assetType": {"Xcm":{"parents":1, "interior":{"X3":[{"Parachain": 1000},{"PalletInstance": 50},{"GeneralIndex": 1984}]}}},
+      "unitsPerSecond":"33333333"
+    },
+    {
+      "assetId": 108,
+      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2000},{"GeneralKey": "0x0000"}]}}},
+      "unitsPerSecond":"196078431372549"
+    }
   ]
 }
