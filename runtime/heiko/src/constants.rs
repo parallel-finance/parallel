@@ -47,8 +47,8 @@ pub mod time {
 /// Fee-related.
 pub mod fee {
     use frame_support::weights::{
-        constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
-        WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+        constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
+        WeightToFeePolynomial,
     };
     use primitives::Balance;
     use smallvec::smallvec;
@@ -81,59 +81,5 @@ pub mod fee {
                 coeff_integer: p / q,
             }]
         }
-    }
-
-    pub fn ksm_per_second() -> u128 {
-        let base_weight = Balance::from(ExtrinsicBaseWeight::get());
-        let base_tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
-        let hko_per_second = base_tx_per_second * super::currency::CENTS / 10;
-        hko_per_second / 50 //almost 250_000_000_000~=1/4 WEIGHT_PER_SECOND in polkadot-v0.9.28
-    }
-}
-
-/// Parachains-related
-pub mod paras {
-    pub mod statemine {
-        pub const ID: u32 = 1000;
-        pub const PALLET_INSTANCE: u8 = 50;
-        pub const USDT_KEY: u128 = 1984;
-    }
-
-    pub mod karura {
-        pub const ID: u32 = 2000;
-        pub const KAR_KEY: &[u8] = &[0, 128];
-        pub const KUSD_KEY: &[u8] = &[0, 129];
-        pub const LKSM_KEY: &[u8] = &[0, 131];
-    }
-
-    pub mod moonriver {
-        pub const ID: u32 = 2023;
-        pub const MOVR_KEY: u8 = 10;
-    }
-
-    pub mod khala {
-        pub const ID: u32 = 2004;
-    }
-
-    pub mod shiden {
-        pub const ID: u32 = 2007;
-    }
-
-    pub mod calamari {
-        pub const ID: u32 = 2084;
-    }
-
-    pub mod kintsugi {
-        pub const ID: u32 = 2092;
-        pub const KBTC_KEY: &[u8] = &[0, 11];
-        pub const KINT_KEY: &[u8] = &[0, 12];
-    }
-
-    pub mod genshiro {
-        pub const ID: u32 = 2024;
-    }
-
-    pub mod turing {
-        pub const ID: u32 = 2114;
     }
 }

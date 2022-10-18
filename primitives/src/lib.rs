@@ -28,6 +28,7 @@ use sp_runtime::{
 use sp_std::prelude::*;
 
 pub mod network;
+pub mod paras;
 pub mod tokens;
 pub use tokens::*;
 

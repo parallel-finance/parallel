@@ -68,16 +68,12 @@ use sp_version::RuntimeVersion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-    AllowTopLevelPaidExecutionFrom, ConvertedConcreteAssetId, EnsureXcmOrigin, FixedRateOfFungible,
-    FixedWeightBounds, FungiblesAdapter, LocationInverter, ParentAsSuperuser, ParentIsPreset,
-    RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
-    TakeWeightCredit,
+    AllowTopLevelPaidExecutionFrom, ConvertedConcreteAssetId, EnsureXcmOrigin, FixedWeightBounds,
+    FungiblesAdapter, LocationInverter, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
+    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
 };
-use xcm_executor::{
-    traits::{Convert as XcmConvert, JustTry},
-    Config, XcmExecutor,
-};
+use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 
 // A few exports that help ease life for downstream crates.
 // re-exports
@@ -85,7 +81,7 @@ mod weights;
 
 pub mod constants;
 
-use constants::{currency, fee, paras, time};
+use constants::{currency, fee, time};
 use currency::*;
 use fee::*;
 use time::*;
@@ -103,18 +99,17 @@ pub use pallet_streaming;
 
 use pallet_traits::{
     xcm::{
-        AccountIdToMultiLocation, AsAssetType, AssetType, FirstAssetTrader, MultiCurrencyAdapter,
+        AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdConvert, FirstAssetTrader,
+        MultiCurrencyAdapter,
     },
     DecimalProvider, EmergencyCallFilter, ValidationDataProvider,
 };
 use primitives::{
     network::PARALLEL_PREFIX,
-    tokens::{
-        ACA, AUSD, DOT, DOT_U, EQ, EUSDC, EUSDT, GLMR, IBTC, INTR, LC_DOT, LDOT, PARA, PHA, SDOT,
-    },
+    paras,
+    tokens::{DOT, DOT_U, EUSDC, EUSDT, PARA, SDOT},
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
-    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
-    Signature,
+    Index, Liquidity, Moment, PersistedValidationData, Price, Rate, Ratio, Shortfall, Signature,
 };
 
 // Make the WASM binary available.
@@ -374,239 +369,6 @@ parameter_types! {
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
 
-pub struct CurrencyIdConvert;
-impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
-    fn convert(id: CurrencyId) -> Option<MultiLocation> {
-        let multi_location =
-            AsAssetType::<CurrencyId, AssetType, AssetRegistry>::reverse_ref(&id).ok();
-        log::trace!(
-            target: "xcm::convert",
-            "currency_id: {:?}, multi_location: {:?}",
-            id,
-            multi_location,
-        );
-        if multi_location.is_some() {
-            return multi_location;
-        }
-        match id {
-            DOT => Some(MultiLocation::parent()),
-            SDOT => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"sDOT".to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            PARA => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"PARA".to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            ACA => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(paras::acala::ID),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        paras::acala::ACA_KEY.to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            AUSD => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(paras::acala::ID),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        paras::acala::AUSD_KEY.to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            LDOT => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(paras::acala::ID),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        paras::acala::LDOT_KEY.to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            LC_DOT => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(paras::acala::ID),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        paras::acala::LCDOT_KEY.to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            // Moonbeam
-            GLMR => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(paras::moonbeam::ID),
-                    PalletInstance(paras::moonbeam::GLMR_KEY),
-                ),
-            )),
-            // Phala
-            PHA => Some(MultiLocation::new(1, X1(Parachain(paras::phala::ID)))),
-            // Interlay
-            INTR => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(paras::interlay::ID),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        paras::interlay::INTR_KEY.to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            IBTC => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(paras::interlay::ID),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        paras::interlay::IBTC_KEY.to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            // Equilibrium
-            EQ => Some(MultiLocation::new(1, X1(Parachain(paras::equilibrium::ID)))),
-            _ => None,
-        }
-    }
-}
-
-impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(location: MultiLocation) -> Option<CurrencyId> {
-        let currency_id =
-            AsAssetType::<CurrencyId, AssetType, AssetRegistry>::convert_ref(&location).ok();
-        log::trace!(
-            target: "xcm::convert",
-            "multi_location: {:?}. currency_id: {:?}",
-            location,
-            currency_id,
-        );
-        if currency_id.is_some() {
-            return currency_id;
-        }
-
-        match location {
-            MultiLocation {
-                parents: 1,
-                interior: Here,
-            } => Some(DOT),
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"sDOT".to_vec() => {
-                Some(SDOT)
-            }
-            MultiLocation {
-                parents: 0,
-                interior: X1(GeneralKey(key)),
-            } if key == b"sDOT".to_vec() => Some(SDOT),
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"PARA".to_vec() => {
-                Some(PARA)
-            }
-            MultiLocation {
-                parents: 0,
-                interior: X1(GeneralKey(key)),
-            } if key == b"PARA".to_vec() => Some(PARA),
-            // Acala
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == paras::acala::ID.into()
-                && key == paras::acala::ACA_KEY.to_vec() =>
-            {
-                Some(ACA)
-            }
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == paras::acala::ID.into()
-                && key == paras::acala::AUSD_KEY.to_vec() =>
-            {
-                Some(AUSD)
-            }
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == paras::acala::ID.into()
-                && key == paras::acala::LDOT_KEY.to_vec() =>
-            {
-                Some(LDOT)
-            }
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == paras::acala::ID.into()
-                && key == paras::acala::LCDOT_KEY.to_vec() =>
-            {
-                Some(LC_DOT)
-            }
-            // Moonbeam
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), PalletInstance(key)),
-            } if id == paras::moonbeam::ID && key == paras::moonbeam::GLMR_KEY => Some(GLMR),
-            // Phala
-            MultiLocation {
-                parents: 1,
-                interior: X1(Parachain(id)),
-            } if id == paras::phala::ID => Some(PHA),
-            // Interlay
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if id == paras::interlay::ID && key == paras::interlay::INTR_KEY.to_vec() => {
-                Some(INTR)
-            }
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if id == paras::interlay::ID && key == paras::interlay::IBTC_KEY.to_vec() => {
-                Some(IBTC)
-            }
-            // Equilibrium
-            MultiLocation {
-                parents: 1,
-                interior: X1(Parachain(id)),
-            } if id == paras::equilibrium::ID => Some(EQ),
-            _ => None,
-        }
-    }
-}
-
-impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(a: MultiAsset) -> Option<CurrencyId> {
-        if let MultiAsset {
-            id: AssetId::Concrete(id),
-            fun: _,
-        } = a
-        {
-            Self::convert(id)
-        } else {
-            None
-        }
-    }
-}
-
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 150_000_000;
@@ -630,7 +392,7 @@ impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type CurrencyId = CurrencyId;
-    type CurrencyIdConvert = CurrencyIdConvert;
+    type CurrencyIdConvert = CurrencyIdConvert<AssetRegistry>;
     type AccountIdToMultiLocation = AccountIdToMultiLocation<AccountId>;
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
@@ -1219,13 +981,13 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
     CurrencyAdapter,
     // Use this currency when it is a fungible asset matching the given location or name:
-    IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
+    IsNativeConcrete<CurrencyId, CurrencyIdConvert<AssetRegistry>>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
     Balance,
     // Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
     LocationToAccountId,
-    CurrencyIdConvert,
+    CurrencyIdConvert<AssetRegistry>,
     NativeCurrencyId,
     ExistentialDeposit,
     GiftAccount,
@@ -1256,105 +1018,6 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<Origin>,
 );
 
-parameter_types! {
-    pub DotPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), dot_per_second());
-    pub SDOTPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"sDOT".to_vec(), None))),
-        ).into(),
-        dot_per_second()
-    );
-    pub SDOTPerSecondOfCanonicalLocation: (AssetId, u128) = (
-        MultiLocation::new(
-            0,
-            X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"sDOT".to_vec(), None))),
-        ).into(),
-        dot_per_second()
-    );
-    pub ParaPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"PARA".to_vec(), None))),
-        ).into(),
-        dot_per_second() * 100
-    );
-    pub ParaPerSecondOfCanonicalLocation: (AssetId, u128) = (
-        MultiLocation::new(
-            0,
-            X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"PARA".to_vec(), None))),
-        ).into(),
-        dot_per_second() * 100
-    );
-    pub AusdPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::acala::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::acala::AUSD_KEY.to_vec(), None)))
-        ).into(),
-        dot_per_second() * 30
-    );
-    pub AcaPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::acala::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::acala::ACA_KEY.to_vec(), None)))
-        ).into(),
-        dot_per_second() * 20
-    );
-    pub LDOTPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::acala::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::acala::LDOT_KEY.to_vec(), None)))
-        ).into(),
-        dot_per_second()
-    );
-    pub LCDOTPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::acala::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::acala::LCDOT_KEY.to_vec(), None)))
-        ).into(),
-        dot_per_second()
-    );
-    // Moonbeam
-    pub GlmrPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::moonbeam::ID), PalletInstance(paras::moonbeam::GLMR_KEY)),
-        ).into(),
-        dot_per_second() * 50
-    );
-    // Phala
-    pub PhaPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X1(Parachain(paras::phala::ID)),
-        ).into(),
-        dot_per_second() * 400
-    );
-    // Interlay
-    pub IntrPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::interlay::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::interlay::INTR_KEY.to_vec(), None))),
-        ).into(),
-        dot_per_second() * 400
-    );
-    pub IbtcPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::interlay::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::interlay::IBTC_KEY.to_vec(), None))),
-        ).into(),
-        dot_per_second() / 1_500_000
-    );
-    // Equilibrium
-    pub EqPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X1(Parachain(paras::equilibrium::ID)),
-        ).into(),
-        dot_per_second() * 5000
-    );
-}
-
 match_types! {
     pub type ParentOrSiblings: impl Contains<MultiLocation> = {
         MultiLocation { parents: 1, interior: Here } |
@@ -1377,37 +1040,12 @@ impl TakeRevenue for ToTreasury {
             fun: Fungibility::Fungible(amount),
         } = revenue
         {
-            if let Some(currency_id) = CurrencyIdConvert::convert(id) {
+            if let Some(currency_id) = CurrencyIdConvert::<AssetRegistry>::convert(id) {
                 let _ = Assets::mint_into(currency_id, &TreasuryAccount::get(), amount);
             }
         }
     }
 }
-
-pub type Trader = (
-    // Foreign Assets registered in AssetRegistry
-    // TODO: replace all above except local reserved asset later
-    FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
-    FixedRateOfFungible<DotPerSecond, ToTreasury>,
-    FixedRateOfFungible<SDOTPerSecond, ToTreasury>,
-    FixedRateOfFungible<SDOTPerSecondOfCanonicalLocation, ToTreasury>,
-    FixedRateOfFungible<ParaPerSecond, ToTreasury>,
-    FixedRateOfFungible<ParaPerSecondOfCanonicalLocation, ToTreasury>,
-    // Acala
-    FixedRateOfFungible<AusdPerSecond, ToTreasury>,
-    FixedRateOfFungible<AcaPerSecond, ToTreasury>,
-    FixedRateOfFungible<LDOTPerSecond, ToTreasury>,
-    FixedRateOfFungible<LCDOTPerSecond, ToTreasury>,
-    // Moonbeam
-    FixedRateOfFungible<GlmrPerSecond, ToTreasury>,
-    // Phala
-    FixedRateOfFungible<PhaPerSecond, ToTreasury>,
-    // Interlay
-    FixedRateOfFungible<IntrPerSecond, ToTreasury>,
-    FixedRateOfFungible<IbtcPerSecond, ToTreasury>,
-    // Equilibrium
-    FixedRateOfFungible<EqPerSecond, ToTreasury>,
-);
 
 parameter_types! {
     pub CheckingAccount: AccountId = PolkadotXcm::check_account();
@@ -1471,7 +1109,7 @@ impl Config for XcmConfig {
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
-    type Trader = Trader;
+    type Trader = FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>;
     type ResponseHandler = PolkadotXcm;
     type SubscriptionService = PolkadotXcm;
     type AssetTrap = PolkadotXcm;

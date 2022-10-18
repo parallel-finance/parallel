@@ -47,8 +47,8 @@ pub mod time {
 /// Fee-related.
 pub mod fee {
     use frame_support::weights::{
-        constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
-        WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+        constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
+        WeightToFeePolynomial,
     };
     use primitives::Balance;
     use smallvec::smallvec;
@@ -81,50 +81,5 @@ pub mod fee {
                 coeff_integer: p / q,
             }]
         }
-    }
-
-    pub fn dot_per_second() -> u128 {
-        let base_weight = Balance::from(ExtrinsicBaseWeight::get());
-        let base_tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
-        let para_per_second = base_tx_per_second * super::currency::CENTS / 10;
-        para_per_second / 50
-    }
-}
-
-/// Parachains-related
-pub mod paras {
-    pub mod statemint {
-        pub const ID: u32 = 1000;
-    }
-
-    pub mod acala {
-        pub const ID: u32 = 2000;
-        pub const ACA_KEY: &[u8] = &[0, 0];
-        pub const AUSD_KEY: &[u8] = &[0, 1];
-        pub const LDOT_KEY: &[u8] = &[0, 3];
-        pub const LCDOT_KEY: &[u8] = &[4, 13, 0, 0, 0];
-    }
-
-    pub mod moonbeam {
-        pub const ID: u32 = 2004;
-        pub const GLMR_KEY: u8 = 10;
-    }
-
-    pub mod astar {
-        pub const ID: u32 = 2006;
-    }
-
-    pub mod phala {
-        pub const ID: u32 = 2035;
-    }
-
-    pub mod interlay {
-        pub const ID: u32 = 2032;
-        pub const IBTC_KEY: &[u8] = &[0, 1];
-        pub const INTR_KEY: &[u8] = &[0, 2];
-    }
-
-    pub mod equilibrium {
-        pub const ID: u32 = 2011;
     }
 }

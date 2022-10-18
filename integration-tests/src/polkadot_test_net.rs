@@ -57,7 +57,7 @@ decl_test_parachain! {
         Origin = parallel_runtime::Origin,
         XcmpMessageHandler = parallel_runtime::XcmpQueue,
         DmpMessageHandler = parallel_runtime::DmpQueue,
-        new_ext = para_ext(2002),
+        new_ext = sibling_ext(2002),
     }
 }
 
@@ -151,4 +151,9 @@ pub fn polkadot_ext() -> sp_io::TestExternalities {
 pub fn para_ext(parachain_id: u32) -> sp_io::TestExternalities {
     let ext = ExtBuilder { parachain_id };
     ext.parachain_id(parachain_id).parallel_build()
+}
+
+pub fn sibling_ext(parachain_id: u32) -> sp_io::TestExternalities {
+    let ext = ExtBuilder { parachain_id };
+    ext.parachain_id(parachain_id).clv_build()
 }

@@ -534,3 +534,52 @@ impl<
         Ok(asset.clone().into())
     }
 }
+
+pub struct CurrencyIdConvert<AssetIdInfoGetter>(PhantomData<AssetIdInfoGetter>);
+impl<AssetIdInfoGetter: AssetTypeGetter<CurrencyId, AssetType>>
+    Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert<AssetIdInfoGetter>
+{
+    fn convert(id: CurrencyId) -> Option<MultiLocation> {
+        let multi_location =
+            AsAssetType::<CurrencyId, AssetType, AssetIdInfoGetter>::reverse_ref(&id).ok();
+        log::trace!(
+            target: "xcm::convert",
+            "currency_id: {:?}, multi_location: {:?}",
+            id,
+            multi_location,
+        );
+        multi_location
+    }
+}
+
+impl<AssetIdInfoGetter: AssetTypeGetter<CurrencyId, AssetType>>
+    Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert<AssetIdInfoGetter>
+{
+    fn convert(location: MultiLocation) -> Option<CurrencyId> {
+        let currency_id =
+            AsAssetType::<CurrencyId, AssetType, AssetIdInfoGetter>::convert_ref(&location).ok();
+        log::trace!(
+            target: "xcm::convert",
+            "multi_location: {:?}. currency_id: {:?}",
+            location,
+            currency_id,
+        );
+        currency_id
+    }
+}
+
+impl<AssetIdInfoGetter: AssetTypeGetter<CurrencyId, AssetType>>
+    Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert<AssetIdInfoGetter>
+{
+    fn convert(a: MultiAsset) -> Option<CurrencyId> {
+        if let MultiAsset {
+            id: xcmAssetId::Concrete(id),
+            fun: _,
+        } = a
+        {
+            Self::convert(id)
+        } else {
+            None
+        }
+    }
+}

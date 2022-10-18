@@ -68,16 +68,12 @@ use sp_version::RuntimeVersion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-    AllowTopLevelPaidExecutionFrom, ConvertedConcreteAssetId, EnsureXcmOrigin, FixedRateOfFungible,
-    FixedWeightBounds, FungiblesAdapter, LocationInverter, ParentAsSuperuser, ParentIsPreset,
-    RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
-    TakeWeightCredit,
+    AllowTopLevelPaidExecutionFrom, ConvertedConcreteAssetId, EnsureXcmOrigin, FixedWeightBounds,
+    FungiblesAdapter, LocationInverter, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
+    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
 };
-use xcm_executor::{
-    traits::{Convert as XcmConvert, JustTry},
-    Config, XcmExecutor,
-};
+use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 
 // A few exports that help ease life for downstream crates.
 // re-exports
@@ -86,7 +82,7 @@ mod weights;
 
 pub mod constants;
 
-use constants::{currency, fee, paras, time};
+use constants::{currency, fee, time};
 use currency::*;
 use fee::*;
 use time::*;
@@ -106,18 +102,18 @@ pub use pallet_streaming;
 use pallet_evm::{FeeCalculator, Runner};
 use pallet_traits::{
     xcm::{
-        AccountIdToMultiLocation, AsAssetType, AssetType, FirstAssetTrader, MultiCurrencyAdapter,
+        AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdConvert, FirstAssetTrader,
+        MultiCurrencyAdapter,
     },
     DecimalProvider, EmergencyCallFilter, ValidationDataProvider,
 };
 use primitives::{
     network::HEIKO_PREFIX,
-    tokens::{
-        EUSDC, EUSDT, GENS, HKO, KAR, KBTC, KINT, KMA, KSM, KUSD, LKSM, MOVR, PHA, SKSM, TUR,
-    },
+    paras,
+    tokens::{EUSDC, EUSDT, HKO, KSM, SKSM},
     AccountId, AuraId, Balance, BlockNumber, ChainId, CurrencyId, DataProviderId, EraIndex, Hash,
-    Index, Liquidity, Moment, ParaId, PersistedValidationData, Price, Rate, Ratio, Shortfall,
-    Signature, KSM_U,
+    Index, Liquidity, Moment, PersistedValidationData, Price, Rate, Ratio, Shortfall, Signature,
+    KSM_U,
 };
 
 use pallet_evm_precompile_balances_erc20::Erc20Metadata;
@@ -410,223 +406,6 @@ parameter_types! {
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
 
-pub struct CurrencyIdConvert;
-impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
-    fn convert(id: CurrencyId) -> Option<MultiLocation> {
-        let multi_location =
-            AsAssetType::<CurrencyId, AssetType, AssetRegistry>::reverse_ref(&id).ok();
-        log::trace!(
-            target: "xcm::convert",
-            "currency_id: {:?}, multi_location: {:?}",
-            id,
-            multi_location,
-        );
-        if multi_location.is_some() {
-            return multi_location;
-        }
-        match id {
-            KSM => Some(MultiLocation::parent()),
-            SKSM => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"sKSM".to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            HKO => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"HKO".to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            // Karura
-            KAR => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(paras::karura::ID),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        paras::karura::KAR_KEY.to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            KUSD => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(paras::karura::ID),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        paras::karura::KUSD_KEY.to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            LKSM => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(paras::karura::ID),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        paras::karura::LKSM_KEY.to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            // Moonriver
-            MOVR => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(paras::moonriver::ID),
-                    PalletInstance(paras::moonriver::MOVR_KEY),
-                ),
-            )),
-            // Khala
-            PHA => Some(MultiLocation::new(1, X1(Parachain(paras::khala::ID)))),
-            // Kintsugi
-            KINT => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(paras::kintsugi::ID),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        paras::kintsugi::KINT_KEY.to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            KBTC => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(paras::kintsugi::ID),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        paras::kintsugi::KBTC_KEY.to_vec(),
-                        None,
-                    )),
-                ),
-            )),
-            // Genshiro
-            GENS => Some(MultiLocation::new(1, X1(Parachain(paras::genshiro::ID)))),
-            // Turing
-            TUR => Some(MultiLocation::new(1, X1(Parachain(paras::turing::ID)))),
-            // Calamari
-            KMA => Some(MultiLocation::new(1, X1(Parachain(paras::calamari::ID)))),
-            _ => None,
-        }
-    }
-}
-
-impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(location: MultiLocation) -> Option<CurrencyId> {
-        let currency_id =
-            AsAssetType::<CurrencyId, AssetType, AssetRegistry>::convert_ref(&location).ok();
-        log::trace!(
-            target: "xcm::convert",
-            "multi_location: {:?}. currency_id: {:?}",
-            location,
-            currency_id,
-        );
-        if currency_id.is_some() {
-            return currency_id;
-        }
-        match location {
-            MultiLocation {
-                parents: 1,
-                interior: Here,
-            } => Some(KSM),
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"sKSM".to_vec() => {
-                Some(SKSM)
-            }
-            MultiLocation {
-                parents: 0,
-                interior: X1(GeneralKey(key)),
-            } if key == b"sKSM".to_vec() => Some(SKSM),
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"HKO".to_vec() => {
-                Some(HKO)
-            }
-            MultiLocation {
-                parents: 0,
-                interior: X1(GeneralKey(key)),
-            } if key == b"HKO".to_vec() => Some(HKO),
-            // Karura
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if id == paras::karura::ID && key == paras::karura::KUSD_KEY.to_vec() => Some(KUSD),
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if id == paras::karura::ID && key == paras::karura::KAR_KEY.to_vec() => Some(KAR),
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if id == paras::karura::ID && key == paras::karura::LKSM_KEY.to_vec() => Some(LKSM),
-            // Moonriver
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), PalletInstance(key)),
-            } if id == paras::moonriver::ID && key == paras::moonriver::MOVR_KEY => Some(MOVR),
-            // Khala
-            MultiLocation {
-                parents: 1,
-                interior: X1(Parachain(id)),
-            } if id == paras::khala::ID => Some(PHA),
-            // Kintsugi
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if id == paras::kintsugi::ID && key == paras::kintsugi::KINT_KEY.to_vec() => {
-                Some(KINT)
-            }
-            MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if id == paras::kintsugi::ID && key == paras::kintsugi::KBTC_KEY.to_vec() => {
-                Some(KBTC)
-            }
-            // Genshiro
-            MultiLocation {
-                parents: 1,
-                interior: X1(Parachain(id)),
-            } if id == paras::genshiro::ID => Some(GENS),
-            // Turing
-            MultiLocation {
-                parents: 1,
-                interior: X1(Parachain(id)),
-            } if id == paras::turing::ID => Some(TUR),
-            // Calamari
-            MultiLocation {
-                parents: 1,
-                interior: X1(Parachain(id)),
-            } if id == paras::calamari::ID => Some(KMA),
-            _ => None,
-        }
-    }
-}
-
-impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(a: MultiAsset) -> Option<CurrencyId> {
-        if let MultiAsset {
-            id: AssetId::Concrete(id),
-            fun: _,
-        } = a
-        {
-            Self::convert(id)
-        } else {
-            None
-        }
-    }
-}
-
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 150_000_000;
@@ -638,7 +417,7 @@ impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type CurrencyId = CurrencyId;
-    type CurrencyIdConvert = CurrencyIdConvert;
+    type CurrencyIdConvert = CurrencyIdConvert<AssetRegistry>;
     type AccountIdToMultiLocation = AccountIdToMultiLocation<AccountId>;
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
@@ -1388,13 +1167,13 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
     CurrencyAdapter,
     // Use this currency when it is a fungible asset matching the given location or name:
-    IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
+    IsNativeConcrete<CurrencyId, CurrencyIdConvert<AssetRegistry>>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
     Balance,
     // Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
     LocationToAccountId,
-    CurrencyIdConvert,
+    CurrencyIdConvert<AssetRegistry>,
     NativeCurrencyId,
     ExistentialDeposit,
     GiftAccount,
@@ -1425,115 +1204,6 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<Origin>,
 );
 
-parameter_types! {
-    pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
-    pub SKSMPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"sKSM".to_vec(), None))),
-        ).into(),
-        ksm_per_second()
-    );
-    pub SKSMPerSecondOfCanonicalLocation: (AssetId, u128) = (
-        MultiLocation::new(
-            0,
-            X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"sKSM".to_vec(), None))),
-        ).into(),
-        ksm_per_second()
-    );
-    pub HkoPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"HKO".to_vec(), None))),
-        ).into(),
-        ksm_per_second() * 30
-    );
-    pub HkoPerSecondOfCanonicalLocation: (AssetId, u128) = (
-        MultiLocation::new(
-            0,
-            X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(b"HKO".to_vec(), None))),
-        ).into(),
-        ksm_per_second() * 30
-    );
-    pub KusdPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::karura::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::karura::KUSD_KEY.to_vec(), None))),
-        ).into(),
-        ksm_per_second() * 400
-    );
-    // Karura
-    pub KarPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::karura::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::karura::KAR_KEY.to_vec(), None))),
-        ).into(),
-        ksm_per_second() * 50
-    );
-    pub LKSMPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::karura::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::karura::LKSM_KEY.to_vec(), None))),
-        ).into(),
-        ksm_per_second()
-    );
-    // Moonriver
-    pub MovrPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::moonriver::ID), PalletInstance(paras::moonriver::MOVR_KEY)),
-        ).into(),
-        ksm_per_second() * 3
-    );
-    // Khala
-    pub PhaPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X1(Parachain(paras::khala::ID)),
-        ).into(),
-        ksm_per_second() * 400
-    );
-    // Kintsugi
-    pub KintPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::kintsugi::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::kintsugi::KINT_KEY.to_vec(), None))),
-        ).into(),
-        ksm_per_second() * 400
-    );
-    pub KbtcPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(paras::kintsugi::ID), GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(paras::kintsugi::KBTC_KEY.to_vec(), None))),
-        ).into(),
-        ksm_per_second() / 1_500_000
-    );
-    // Genshiro
-    pub GensPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X1(Parachain(paras::genshiro::ID)),
-        ).into(),
-        ksm_per_second() * 5000
-    );
-    // Turing
-    pub TurPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X1(Parachain(paras::turing::ID)),
-        ).into(),
-        ksm_per_second() * 260
-    );
-    // Calamari
-    pub KmaPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X1(Parachain(paras::calamari::ID)),
-        ).into(),
-        ksm_per_second() * 5000
-    );
-}
-
 match_types! {
     pub type ParentOrSiblings: impl Contains<MultiLocation> = {
         MultiLocation { parents: 1, interior: Here } |
@@ -1556,38 +1226,12 @@ impl TakeRevenue for ToTreasury {
             fun: Fungibility::Fungible(amount),
         } = revenue
         {
-            if let Some(currency_id) = CurrencyIdConvert::convert(id) {
+            if let Some(currency_id) = CurrencyIdConvert::<AssetRegistry>::convert(id) {
                 let _ = Assets::mint_into(currency_id, &TreasuryAccount::get(), amount);
             }
         }
     }
 }
-
-pub type Trader = (
-    FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>,
-    FixedRateOfFungible<KsmPerSecond, ToTreasury>,
-    FixedRateOfFungible<SKSMPerSecond, ToTreasury>,
-    FixedRateOfFungible<SKSMPerSecondOfCanonicalLocation, ToTreasury>,
-    FixedRateOfFungible<HkoPerSecond, ToTreasury>,
-    FixedRateOfFungible<HkoPerSecondOfCanonicalLocation, ToTreasury>,
-    // Karura
-    FixedRateOfFungible<KusdPerSecond, ToTreasury>,
-    FixedRateOfFungible<KarPerSecond, ToTreasury>,
-    FixedRateOfFungible<LKSMPerSecond, ToTreasury>,
-    // Moonriver
-    FixedRateOfFungible<MovrPerSecond, ToTreasury>,
-    // Khala
-    FixedRateOfFungible<PhaPerSecond, ToTreasury>,
-    // Kintsugi
-    FixedRateOfFungible<KintPerSecond, ToTreasury>,
-    FixedRateOfFungible<KbtcPerSecond, ToTreasury>,
-    // Genshiro
-    FixedRateOfFungible<GensPerSecond, ToTreasury>,
-    // Turing
-    FixedRateOfFungible<TurPerSecond, ToTreasury>,
-    // Calamari
-    FixedRateOfFungible<KmaPerSecond, ToTreasury>,
-);
 
 // Min fee required when transferring asset back to reserve sibling chain
 // which use another asset(e.g Relaychain's asset) as fee
@@ -1663,7 +1307,7 @@ impl Config for XcmConfig {
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
-    type Trader = Trader;
+    type Trader = FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>;
     type ResponseHandler = PolkadotXcm;
     type SubscriptionService = PolkadotXcm;
     type AssetTrap = PolkadotXcm;
