@@ -268,6 +268,11 @@ impl Contains<Call> for BaseCallFilter {
                 Call::Balances(_) |
                 Call::Assets(pallet_assets::Call::mint { .. }) |
                 Call::Assets(pallet_assets::Call::transfer { .. }) |
+                Call::Assets(pallet_assets::Call::transfer_keep_alive { .. }) |
+                Call::Assets(pallet_assets::Call::freeze { .. }) |
+                Call::Assets(pallet_assets::Call::thaw { .. }) |
+                Call::Assets(pallet_assets::Call::freeze_asset { .. }) |
+                Call::Assets(pallet_assets::Call::thaw_asset { .. }) |
                 Call::Assets(pallet_assets::Call::burn { .. }) |
                 Call::Assets(pallet_assets::Call::destroy { .. }) |
                 Call::CurrencyAdapter(_) |
