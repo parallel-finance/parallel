@@ -2019,7 +2019,6 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_asset_registry, AssetRegistry);
             list_benchmark!(list, extra, pallet_streaming, Streaming);
             list_benchmark!(list, extra, pallet_assets, Assets);
-            list_benchmark!(list, extra, pallet_session, Session);
             list_benchmark!(list, extra, pallet_collator_selection, CollatorSelection);
             list_benchmark!(list, extra, pallet_proxy, Proxy);
             list_benchmark!(list, extra, pallet_utility, Utility);
@@ -2079,7 +2078,6 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_asset_registry, AssetRegistry);
             add_benchmark!(params, batches, pallet_streaming, Streaming);
             add_benchmark!(params, batches, pallet_assets, Assets);
-            add_benchmark!(params, batches, pallet_session, Session);
             add_benchmark!(params, batches, pallet_collator_selection, CollatorSelection);
             add_benchmark!(params, batches, pallet_proxy, Proxy);
             add_benchmark!(params, batches, pallet_utility, Utility);
