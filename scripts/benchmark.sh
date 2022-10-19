@@ -30,7 +30,6 @@ pallets=(
   pallet_streaming
   pallet_liquid_staking
   pallet_assets
-  pallet_session
   pallet_collator_selection
   pallet_proxy
   pallet_utility
