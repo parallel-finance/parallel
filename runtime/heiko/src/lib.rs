@@ -2015,6 +2015,18 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_farming, Farming);
             list_benchmark!(list, extra, pallet_asset_registry, AssetRegistry);
             list_benchmark!(list, extra, pallet_streaming, Streaming);
+            list_benchmark!(list, extra, pallet_assets, Assets);
+            list_benchmark!(list, extra, pallet_session, Session);
+            list_benchmark!(list, extra, pallet_collator_selection, CollatorSelection);
+            list_benchmark!(list, extra, pallet_proxy, Proxy);
+            list_benchmark!(list, extra, pallet_utility, Utility);
+            list_benchmark!(list, extra, cumulus_pallet_xcmp_queue, XcmpQueue);
+            list_benchmark!(list, extra, pallet_identity, Identity);
+            list_benchmark!(list, extra, pallet_democracy, Democracy);
+            list_benchmark!(list, extra, pallet_collective, TechnicalCommittee);
+            list_benchmark!(list, extra, pallet_preimage, Preimage);
+            list_benchmark!(list, extra, pallet_scheduler, Scheduler);
+            list_benchmark!(list, extra, pallet_treasury, Treasury);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -2063,6 +2075,18 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_farming, Farming);
             add_benchmark!(params, batches, pallet_asset_registry, AssetRegistry);
             add_benchmark!(params, batches, pallet_streaming, Streaming);
+            add_benchmark!(params, batches, pallet_assets, Assets);
+            add_benchmark!(params, batches, pallet_session, Session);
+            add_benchmark!(params, batches, pallet_collator_selection, CollatorSelection);
+            add_benchmark!(params, batches, pallet_proxy, Proxy);
+            add_benchmark!(params, batches, pallet_utility, Utility);
+            add_benchmark!(params, batches, cumulus_pallet_xcmp_queue, XcmpQueue);
+            add_benchmark!(params, batches, pallet_identity, Identity);
+            add_benchmark!(params, batches, pallet_democracy, Democracy);
+            add_benchmark!(params, batches, pallet_collective, TechnicalCommittee);
+            add_benchmark!(params, batches, pallet_preimage, Preimage);
+            add_benchmark!(params, batches, pallet_scheduler, Scheduler);
+            add_benchmark!(params, batches, pallet_treasury, Treasury);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)
