@@ -30,14 +30,11 @@ pallets=(
   pallet_streaming
   pallet_liquid_staking
   pallet_assets
-  pallet_collator_selection
   pallet_proxy
   pallet_utility
   cumulus_pallet_xcmp_queue
-  pallet_prices
   pallet_identity
   pallet_democracy
-  pallet_collective
   pallet_preimage
   pallet_scheduler
   pallet_treasury
