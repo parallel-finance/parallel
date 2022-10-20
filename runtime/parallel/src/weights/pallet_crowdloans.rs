@@ -3,7 +3,7 @@
 //!
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 4.0.0-dev
 //! DATE: 2022-10-19, STEPS: `50`, REPEAT: 20, LOW RANGE: `[]`, HIGH RANGE: `[]`
-//! HOSTNAME: `ip-172-31-27-78`, CPU: `AMD EPYC 7R13 Processor`
+//! HOSTNAME: `ip-172-88-3-164`, CPU: `Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz`
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("parallel-dev"), DB CACHE: 1024
 
 // Executed Command:
@@ -35,7 +35,7 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: ParachainSystem ValidationData (r:1 w:0)
 	// Storage: Crowdloans NextTrieIndex (r:1 w:1)
 	fn create_vault() -> Weight {
-		(50_291_000 as Weight)
+		(60_609_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
@@ -43,7 +43,7 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Crowdloans Vaults (r:1 w:1)
 	// Storage: ParachainSystem ValidationData (r:1 w:0)
 	fn update_vault() -> Weight {
-		(39_521_000 as Weight)
+		(48_311_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -66,50 +66,50 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:1 w:1)
 	fn contribute() -> Weight {
-		(168_644_000 as Weight)
+		(208_356_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(18 as Weight))
 			.saturating_add(T::DbWeight::get().writes(12 as Weight))
 	}
 	// Storage: Crowdloans LeasesRegistry (r:1 w:0)
 	// Storage: Crowdloans Vaults (r:1 w:1)
 	fn open() -> Weight {
-		(36_191_000 as Weight)
+		(45_322_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Crowdloans LeasesRegistry (r:1 w:0)
 	// Storage: Crowdloans Vaults (r:1 w:1)
 	fn close() -> Weight {
-		(35_771_000 as Weight)
+		(45_765_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Crowdloans IsVrf (r:0 w:1)
 	fn set_vrf() -> Weight {
-		(19_571_000 as Weight)
+		(24_277_000 as Weight)
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Crowdloans ProxyAddress (r:0 w:1)
 	fn update_proxy() -> Weight {
-		(20_520_000 as Weight)
+		(25_419_000 as Weight)
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Crowdloans LeasesBonus (r:0 w:1)
 	fn update_leases_bonus() -> Weight {
-		(23_001_000 as Weight)
+		(28_219_000 as Weight)
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Crowdloans LeasesRegistry (r:1 w:0)
 	// Storage: Crowdloans Vaults (r:1 w:1)
 	fn reopen() -> Weight {
-		(36_241_000 as Weight)
+		(45_739_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Crowdloans LeasesRegistry (r:1 w:0)
 	// Storage: Crowdloans Vaults (r:1 w:1)
 	fn auction_succeeded() -> Weight {
-		(35_561_000 as Weight)
+		(45_728_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -128,7 +128,7 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Crowdloans XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn auction_failed() -> Weight {
-		(112_033_000 as Weight)
+		(140_986_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(12 as Weight))
 			.saturating_add(T::DbWeight::get().writes(8 as Weight))
 	}
@@ -140,7 +140,7 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Metadata (r:1 w:0)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:1 w:1)
 	fn claim() -> Weight {
-		(81_892_000 as Weight)
+		(103_090_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(7 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
@@ -149,7 +149,7 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:1 w:1)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:1 w:1)
 	fn withdraw() -> Weight {
-		(67_581_000 as Weight)
+		(85_772_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(4 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
@@ -158,7 +158,7 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:2 w:2)
 	// Storage: Assets Account (r:2 w:2)
 	fn redeem() -> Weight {
-		(96_112_000 as Weight)
+		(120_121_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(6 as Weight))
 			.saturating_add(T::DbWeight::get().writes(5 as Weight))
 	}
@@ -177,7 +177,7 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Crowdloans XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn slot_expired() -> Weight {
-		(112_233_000 as Weight)
+		(141_281_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(12 as Weight))
 			.saturating_add(T::DbWeight::get().writes(8 as Weight))
 	}
@@ -199,7 +199,7 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: unknown [0x] (r:1 w:0)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:2 w:2)
 	fn migrate_pending() -> Weight {
-		(186_924_000 as Weight)
+		(219_249_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(16 as Weight))
 			.saturating_add(T::DbWeight::get().writes(10 as Weight))
 	}
@@ -210,7 +210,7 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:2 w:2)
 	fn notification_received() -> Weight {
-		(101_082_000 as Weight)
+		(127_399_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(7 as Weight))
 			.saturating_add(T::DbWeight::get().writes(7 as Weight))
 	}
@@ -220,7 +220,7 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: unknown [0x] (r:3 w:0)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:1 w:1)
 	fn refund() -> Weight {
-		(163_354_000 as Weight)
+		(168_793_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(7 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
@@ -228,7 +228,7 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Crowdloans LeasesRegistry (r:1 w:1)
 	// Storage: unknown [0x] (r:3 w:0)
 	fn dissolve_vault() -> Weight {
-		(117_103_000 as Weight)
+		(111_191_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -238,7 +238,7 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:1 w:1)
 	fn refund_for() -> Weight {
-		(97_102_000 as Weight)
+		(119_875_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(6 as Weight))
 			.saturating_add(T::DbWeight::get().writes(6 as Weight))
 	}

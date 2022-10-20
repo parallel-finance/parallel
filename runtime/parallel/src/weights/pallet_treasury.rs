@@ -3,7 +3,7 @@
 //!
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 4.0.0-dev
 //! DATE: 2022-10-19, STEPS: `50`, REPEAT: 20, LOW RANGE: `[]`, HIGH RANGE: `[]`
-//! HOSTNAME: `ip-172-31-27-78`, CPU: `AMD EPYC 7R13 Processor`
+//! HOSTNAME: `ip-172-88-3-164`, CPU: `Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz`
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("parallel-dev"), DB CACHE: 1024
 
 // Executed Command:
@@ -30,19 +30,19 @@ use sp_std::marker::PhantomData;
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 	fn spend() -> Weight {
-		(260_000 as Weight)
+		(313_000 as Weight)
 	}
 	// Storage: Treasury ProposalCount (r:1 w:1)
 	// Storage: Treasury Proposals (r:0 w:1)
 	fn propose_spend() -> Weight {
-		(37_631_000 as Weight)
+		(48_394_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	// Storage: Treasury Proposals (r:1 w:1)
 	// Storage: System Account (r:1 w:1)
 	fn reject_proposal() -> Weight {
-		(41_531_000 as Weight)
+		(53_545_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -50,15 +50,15 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 	// Storage: Treasury Approvals (r:1 w:1)
 	/// The range of component `p` is `[0, 99]`.
 	fn approve_proposal(p: u32, ) -> Weight {
-		(15_377_000 as Weight)
-			// Standard Error: 1_000
-			.saturating_add((159_000 as Weight).saturating_mul(p as Weight))
+		(19_373_000 as Weight)
+			// Standard Error: 0
+			.saturating_add((187_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Treasury Approvals (r:1 w:1)
 	fn remove_approval() -> Weight {
-		(9_301_000 as Weight)
+		(12_549_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -67,9 +67,9 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 	// Storage: Treasury Proposals (r:2 w:2)
 	/// The range of component `p` is `[0, 100]`.
 	fn on_initialize_proposals(p: u32, ) -> Weight {
-		(838_738_000 as Weight)
-			// Standard Error: 2_445_000
-			.saturating_add((40_596_000 as Weight).saturating_mul(p as Weight))
+		(36_497_000 as Weight)
+			// Standard Error: 25_000
+			.saturating_add((58_638_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().reads((3 as Weight).saturating_mul(p as Weight)))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))

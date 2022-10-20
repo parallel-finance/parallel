@@ -3,7 +3,7 @@
 //!
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 4.0.0-dev
 //! DATE: 2022-10-19, STEPS: `50`, REPEAT: 20, LOW RANGE: `[]`, HIGH RANGE: `[]`
-//! HOSTNAME: `ip-172-31-27-78`, CPU: `AMD EPYC 7R13 Processor`
+//! HOSTNAME: `ip-172-88-3-164`, CPU: `Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz`
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("heiko-dev"), DB CACHE: 1024
 
 // Executed Command:
@@ -34,44 +34,44 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans ExchangeRate (r:0 w:1)
 	// Storage: Loans BorrowIndex (r:0 w:1)
 	fn add_market() -> Weight {
-		(35_921_000 as Weight)
+		(44_186_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
 	// Storage: Loans Markets (r:1 w:1)
 	fn activate_market() -> Weight {
-		(24_191_000 as Weight)
+		(30_552_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Loans Markets (r:1 w:1)
 	fn update_rate_model() -> Weight {
-		(25_731_000 as Weight)
+		(31_971_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Loans Markets (r:1 w:1)
 	fn update_market() -> Weight {
-		(27_750_000 as Weight)
+		(34_016_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Loans UnderlyingAssetId (r:1 w:1)
 	// Storage: Loans Markets (r:1 w:1)
 	fn force_update_market() -> Weight {
-		(32_171_000 as Weight)
+		(40_663_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	// Storage: System Account (r:1 w:1)
 	fn add_reward() -> Weight {
-		(56_602_000 as Weight)
+		(72_254_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: System Account (r:1 w:1)
 	fn withdraw_missing_reward() -> Weight {
-		(45_851_000 as Weight)
+		(58_509_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -81,7 +81,7 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans RewardSupplyState (r:1 w:1)
 	// Storage: Loans RewardBorrowState (r:1 w:1)
 	fn update_market_reward_speed() -> Weight {
-		(50_331_000 as Weight)
+		(63_937_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(6 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
@@ -100,7 +100,7 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans AccountBorrows (r:1 w:0)
 	// Storage: System Account (r:1 w:1)
 	fn claim_reward() -> Weight {
-		(136_523_000 as Weight)
+		(174_138_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(15 as Weight))
 			.saturating_add(T::DbWeight::get().writes(6 as Weight))
 	}
@@ -118,7 +118,7 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans AccountBorrows (r:1 w:0)
 	// Storage: System Account (r:1 w:1)
 	fn claim_reward_for_market() -> Weight {
-		(126_783_000 as Weight)
+		(159_672_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(13 as Weight))
 			.saturating_add(T::DbWeight::get().writes(6 as Weight))
 	}
@@ -138,7 +138,7 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans AccountEarned (r:1 w:1)
 	// Storage: System Account (r:1 w:1)
 	fn mint() -> Weight {
-		(147_183_000 as Weight)
+		(186_943_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(17 as Weight))
 			.saturating_add(T::DbWeight::get().writes(11 as Weight))
 	}
@@ -161,7 +161,7 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans RewardAccured (r:1 w:1)
 	// Storage: Loans BorrowIndex (r:1 w:0)
 	fn borrow() -> Weight {
-		(206_775_000 as Weight)
+		(260_353_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(23 as Weight))
 			.saturating_add(T::DbWeight::get().writes(9 as Weight))
 	}
@@ -180,7 +180,7 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans RewardSupplierIndex (r:1 w:1)
 	// Storage: Loans RewardAccured (r:1 w:1)
 	fn redeem() -> Weight {
-		(164_444_000 as Weight)
+		(207_430_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(16 as Weight))
 			.saturating_add(T::DbWeight::get().writes(10 as Weight))
 	}
@@ -200,7 +200,7 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans RewardAccured (r:1 w:1)
 	// Storage: System Account (r:1 w:1)
 	fn redeem_all() -> Weight {
-		(178_414_000 as Weight)
+		(221_141_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(17 as Weight))
 			.saturating_add(T::DbWeight::get().writes(11 as Weight))
 	}
@@ -217,7 +217,7 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: Loans TotalBorrows (r:1 w:1)
 	fn repay_borrow() -> Weight {
-		(131_763_000 as Weight)
+		(167_615_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(14 as Weight))
 			.saturating_add(T::DbWeight::get().writes(9 as Weight))
 	}
@@ -234,14 +234,14 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: Loans TotalBorrows (r:1 w:1)
 	fn repay_borrow_all() -> Weight {
-		(144_574_000 as Weight)
+		(181_531_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(14 as Weight))
 			.saturating_add(T::DbWeight::get().writes(9 as Weight))
 	}
 	// Storage: Loans Markets (r:2 w:0)
 	// Storage: Loans AccountDeposits (r:1 w:1)
 	fn collateral_asset() -> Weight {
-		(51_071_000 as Weight)
+		(64_626_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -267,7 +267,7 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans RewardSupplySpeed (r:1 w:0)
 	// Storage: Loans RewardSupplierIndex (r:3 w:3)
 	fn liquidate_borrow() -> Weight {
-		(410_870_000 as Weight)
+		(509_387_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(39 as Weight))
 			.saturating_add(T::DbWeight::get().writes(19 as Weight))
 	}
@@ -277,7 +277,7 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	// Storage: Loans TotalReserves (r:1 w:1)
 	fn add_reserves() -> Weight {
-		(84_673_000 as Weight)
+		(105_996_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(7 as Weight))
 			.saturating_add(T::DbWeight::get().writes(5 as Weight))
 	}
@@ -286,13 +286,13 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Account (r:2 w:2)
 	fn reduce_reserves() -> Weight {
-		(74_342_000 as Weight)
+		(94_887_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(6 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
 	// Storage: Loans LiquidationFreeCollaterals (r:1 w:1)
 	fn update_liquidation_free_collateral() -> Weight {
-		(22_301_000 as Weight)
+		(27_228_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}

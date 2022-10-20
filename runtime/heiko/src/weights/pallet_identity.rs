@@ -3,7 +3,7 @@
 //!
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 4.0.0-dev
 //! DATE: 2022-10-19, STEPS: `50`, REPEAT: 20, LOW RANGE: `[]`, HIGH RANGE: `[]`
-//! HOSTNAME: `ip-172-31-27-78`, CPU: `AMD EPYC 7R13 Processor`
+//! HOSTNAME: `ip-172-88-3-164`, CPU: `Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz`
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("heiko-dev"), DB CACHE: 1024
 
 // Executed Command:
@@ -32,9 +32,9 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	// Storage: Identity Registrars (r:1 w:1)
 	/// The range of component `r` is `[1, 19]`.
 	fn add_registrar(r: u32, ) -> Weight {
-		(17_821_000 as Weight)
-			// Standard Error: 81_000
-			.saturating_add((1_378_000 as Weight).saturating_mul(r as Weight))
+		(28_396_000 as Weight)
+			// Standard Error: 3_000
+			.saturating_add((291_000 as Weight).saturating_mul(r as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -42,11 +42,11 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	/// The range of component `r` is `[1, 20]`.
 	/// The range of component `x` is `[1, 100]`.
 	fn set_identity(r: u32, x: u32, ) -> Weight {
-		(0 as Weight)
-			// Standard Error: 411_000
-			.saturating_add((3_645_000 as Weight).saturating_mul(r as Weight))
-			// Standard Error: 81_000
-			.saturating_add((1_219_000 as Weight).saturating_mul(x as Weight))
+		(55_910_000 as Weight)
+			// Standard Error: 13_000
+			.saturating_add((364_000 as Weight).saturating_mul(r as Weight))
+			// Standard Error: 2_000
+			.saturating_add((669_000 as Weight).saturating_mul(x as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -55,9 +55,9 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	// Storage: Identity SuperOf (r:1 w:1)
 	/// The range of component `s` is `[1, 100]`.
 	fn set_subs_new(s: u32, ) -> Weight {
-		(548_813_000 as Weight)
-			// Standard Error: 169_000
-			.saturating_add((11_000 as Weight).saturating_mul(s as Weight))
+		(50_974_000 as Weight)
+			// Standard Error: 4_000
+			.saturating_add((6_194_000 as Weight).saturating_mul(s as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().reads((1 as Weight).saturating_mul(s as Weight)))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
@@ -68,9 +68,9 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	// Storage: Identity SuperOf (r:0 w:1)
 	/// The range of component `p` is `[1, 100]`.
 	fn set_subs_old(p: u32, ) -> Weight {
-		(37_969_000 as Weight)
-			// Standard Error: 2_000
-			.saturating_add((1_675_000 as Weight).saturating_mul(p as Weight))
+		(50_108_000 as Weight)
+			// Standard Error: 3_000
+			.saturating_add((2_023_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes((1 as Weight).saturating_mul(p as Weight)))
@@ -81,12 +81,14 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	/// The range of component `r` is `[1, 20]`.
 	/// The range of component `s` is `[1, 100]`.
 	/// The range of component `x` is `[1, 100]`.
-	fn clear_identity(r: u32, s: u32, _x: u32, ) -> Weight {
-		(158_531_000 as Weight)
-			// Standard Error: 687_000
-			.saturating_add((612_000 as Weight).saturating_mul(r as Weight))
-			// Standard Error: 135_000
-			.saturating_add((1_624_000 as Weight).saturating_mul(s as Weight))
+	fn clear_identity(r: u32, s: u32, x: u32, ) -> Weight {
+		(58_557_000 as Weight)
+			// Standard Error: 12_000
+			.saturating_add((276_000 as Weight).saturating_mul(r as Weight))
+			// Standard Error: 2_000
+			.saturating_add((2_043_000 as Weight).saturating_mul(s as Weight))
+			// Standard Error: 2_000
+			.saturating_add((342_000 as Weight).saturating_mul(x as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes((1 as Weight).saturating_mul(s as Weight)))
@@ -95,10 +97,12 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	// Storage: Identity IdentityOf (r:1 w:1)
 	/// The range of component `r` is `[1, 20]`.
 	/// The range of component `x` is `[1, 100]`.
-	fn request_judgement(_r: u32, x: u32, ) -> Weight {
-		(88_574_000 as Weight)
-			// Standard Error: 36_000
-			.saturating_add((502_000 as Weight).saturating_mul(x as Weight))
+	fn request_judgement(r: u32, x: u32, ) -> Weight {
+		(60_058_000 as Weight)
+			// Standard Error: 5_000
+			.saturating_add((361_000 as Weight).saturating_mul(r as Weight))
+			// Standard Error: 1_000
+			.saturating_add((686_000 as Weight).saturating_mul(x as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -106,38 +110,38 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	/// The range of component `r` is `[1, 20]`.
 	/// The range of component `x` is `[1, 100]`.
 	fn cancel_request(r: u32, x: u32, ) -> Weight {
-		(21_961_000 as Weight)
-			// Standard Error: 137_000
-			.saturating_add((1_278_000 as Weight).saturating_mul(r as Weight))
-			// Standard Error: 27_000
-			.saturating_add((730_000 as Weight).saturating_mul(x as Weight))
+		(57_105_000 as Weight)
+			// Standard Error: 4_000
+			.saturating_add((220_000 as Weight).saturating_mul(r as Weight))
+			// Standard Error: 0
+			.saturating_add((674_000 as Weight).saturating_mul(x as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Identity Registrars (r:1 w:1)
 	/// The range of component `r` is `[1, 19]`.
 	fn set_fee(r: u32, ) -> Weight {
-		(10_396_000 as Weight)
-			// Standard Error: 3_000
-			.saturating_add((183_000 as Weight).saturating_mul(r as Weight))
+		(13_303_000 as Weight)
+			// Standard Error: 2_000
+			.saturating_add((240_000 as Weight).saturating_mul(r as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Identity Registrars (r:1 w:1)
 	/// The range of component `r` is `[1, 19]`.
 	fn set_account_id(r: u32, ) -> Weight {
-		(10_213_000 as Weight)
-			// Standard Error: 1_000
-			.saturating_add((217_000 as Weight).saturating_mul(r as Weight))
+		(13_684_000 as Weight)
+			// Standard Error: 2_000
+			.saturating_add((238_000 as Weight).saturating_mul(r as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Identity Registrars (r:1 w:1)
 	/// The range of component `r` is `[1, 19]`.
 	fn set_fields(r: u32, ) -> Weight {
-		(9_933_000 as Weight)
-			// Standard Error: 1_000
-			.saturating_add((226_000 as Weight).saturating_mul(r as Weight))
+		(13_482_000 as Weight)
+			// Standard Error: 2_000
+			.saturating_add((227_000 as Weight).saturating_mul(r as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -146,11 +150,11 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	/// The range of component `r` is `[1, 19]`.
 	/// The range of component `x` is `[1, 100]`.
 	fn provide_judgement(r: u32, x: u32, ) -> Weight {
-		(22_072_000 as Weight)
-			// Standard Error: 99_000
-			.saturating_add((796_000 as Weight).saturating_mul(r as Weight))
-			// Standard Error: 18_000
-			.saturating_add((661_000 as Weight).saturating_mul(x as Weight))
+		(41_939_000 as Weight)
+			// Standard Error: 4_000
+			.saturating_add((290_000 as Weight).saturating_mul(r as Weight))
+			// Standard Error: 0
+			.saturating_add((672_000 as Weight).saturating_mul(x as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -161,12 +165,14 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	/// The range of component `r` is `[1, 20]`.
 	/// The range of component `s` is `[1, 100]`.
 	/// The range of component `x` is `[1, 100]`.
-	fn kill_identity(_r: u32, s: u32, x: u32, ) -> Weight {
-		(123_301_000 as Weight)
-			// Standard Error: 158_000
-			.saturating_add((2_114_000 as Weight).saturating_mul(s as Weight))
-			// Standard Error: 158_000
-			.saturating_add((204_000 as Weight).saturating_mul(x as Weight))
+	fn kill_identity(r: u32, s: u32, x: u32, ) -> Weight {
+		(82_514_000 as Weight)
+			// Standard Error: 8_000
+			.saturating_add((155_000 as Weight).saturating_mul(r as Weight))
+			// Standard Error: 1_000
+			.saturating_add((2_047_000 as Weight).saturating_mul(s as Weight))
+			// Standard Error: 1_000
+			.saturating_add((15_000 as Weight).saturating_mul(x as Weight))
 			.saturating_add(T::DbWeight::get().reads(4 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 			.saturating_add(T::DbWeight::get().writes((1 as Weight).saturating_mul(s as Weight)))
@@ -175,8 +181,10 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	// Storage: Identity SuperOf (r:1 w:1)
 	// Storage: Identity SubsOf (r:1 w:1)
 	/// The range of component `s` is `[1, 99]`.
-	fn add_sub(_s: u32, ) -> Weight {
-		(83_397_000 as Weight)
+	fn add_sub(s: u32, ) -> Weight {
+		(64_039_000 as Weight)
+			// Standard Error: 2_000
+			.saturating_add((155_000 as Weight).saturating_mul(s as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -184,9 +192,9 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	// Storage: Identity SuperOf (r:1 w:1)
 	/// The range of component `s` is `[1, 100]`.
 	fn rename_sub(s: u32, ) -> Weight {
-		(18_683_000 as Weight)
-			// Standard Error: 6_000
-			.saturating_add((61_000 as Weight).saturating_mul(s as Weight))
+		(23_531_000 as Weight)
+			// Standard Error: 1_000
+			.saturating_add((82_000 as Weight).saturating_mul(s as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -195,17 +203,19 @@ impl<T: frame_system::Config> pallet_identity::WeightInfo for WeightInfo<T> {
 	// Storage: Identity SubsOf (r:1 w:1)
 	/// The range of component `s` is `[1, 100]`.
 	fn remove_sub(s: u32, ) -> Weight {
-		(43_247_000 as Weight)
-			// Standard Error: 24_000
-			.saturating_add((351_000 as Weight).saturating_mul(s as Weight))
+		(64_832_000 as Weight)
+			// Standard Error: 1_000
+			.saturating_add((152_000 as Weight).saturating_mul(s as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	// Storage: Identity SuperOf (r:1 w:1)
 	// Storage: Identity SubsOf (r:1 w:1)
 	/// The range of component `s` is `[1, 99]`.
-	fn quit_sub(_s: u32, ) -> Weight {
-		(52_562_000 as Weight)
+	fn quit_sub(s: u32, ) -> Weight {
+		(45_583_000 as Weight)
+			// Standard Error: 2_000
+			.saturating_add((139_000 as Weight).saturating_mul(s as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}

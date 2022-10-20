@@ -3,7 +3,7 @@
 //!
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 4.0.0-dev
 //! DATE: 2022-10-19, STEPS: `50`, REPEAT: 20, LOW RANGE: `[]`, HIGH RANGE: `[]`
-//! HOSTNAME: `ip-172-31-27-78`, CPU: `AMD EPYC 7R13 Processor`
+//! HOSTNAME: `ip-172-88-3-164`, CPU: `Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz`
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("parallel-dev"), DB CACHE: 1024
 
 // Executed Command:
@@ -32,56 +32,56 @@ impl<T: frame_system::Config> pallet_bridge::WeightInfo for WeightInfo<T> {
 	// Storage: Bridge ChainNonces (r:1 w:1)
 	// Storage: Bridge BridgeRegistry (r:0 w:1)
 	fn register_chain() -> Weight {
-		(24_390_000 as Weight)
+		(32_266_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	// Storage: Bridge ChainNonces (r:1 w:1)
 	// Storage: Bridge BridgeRegistry (r:0 w:1)
 	fn unregister_chain() -> Weight {
-		(24_490_000 as Weight)
+		(32_310_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	// Storage: Bridge BridgeTokens (r:1 w:1)
 	// Storage: Bridge AssetIds (r:1 w:1)
 	fn register_bridge_token() -> Weight {
-		(28_151_000 as Weight)
+		(36_160_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	// Storage: Bridge AssetIds (r:1 w:1)
 	// Storage: Bridge BridgeTokens (r:0 w:1)
 	fn unregister_bridge_token() -> Weight {
-		(26_341_000 as Weight)
+		(33_696_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	// Storage: Bridge AssetIds (r:1 w:0)
 	// Storage: Bridge BridgeTokens (r:1 w:1)
 	fn set_bridge_token_fee() -> Weight {
-		(29_360_000 as Weight)
+		(38_594_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Bridge AssetIds (r:1 w:0)
 	// Storage: Bridge BridgeTokens (r:1 w:1)
 	fn set_bridge_token_status() -> Weight {
-		(29_160_000 as Weight)
+		(38_155_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Bridge AssetIds (r:1 w:0)
 	// Storage: Bridge BridgeTokens (r:1 w:1)
 	fn set_bridge_token_cap() -> Weight {
-		(29_421_000 as Weight)
+		(38_329_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Bridge AssetIds (r:1 w:0)
 	// Storage: Bridge BridgeTokens (r:1 w:1)
 	fn clean_cap_accumulated_value() -> Weight {
-		(29_001_000 as Weight)
+		(37_996_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -90,7 +90,7 @@ impl<T: frame_system::Config> pallet_bridge::WeightInfo for WeightInfo<T> {
 	// Storage: Bridge BridgeTokens (r:1 w:1)
 	// Storage: System Account (r:1 w:1)
 	fn teleport() -> Weight {
-		(75_382_000 as Weight)
+		(99_411_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(4 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
@@ -104,7 +104,7 @@ impl<T: frame_system::Config> pallet_bridge::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:2 w:1)
 	// Storage: Assets Metadata (r:1 w:0)
 	fn materialize() -> Weight {
-		(121_483_000 as Weight)
+		(158_110_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(10 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}

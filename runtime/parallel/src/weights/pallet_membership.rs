@@ -3,7 +3,7 @@
 //!
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 4.0.0-dev
 //! DATE: 2022-10-19, STEPS: `50`, REPEAT: 20, LOW RANGE: `[]`, HIGH RANGE: `[]`
-//! HOSTNAME: `ip-172-31-27-78`, CPU: `AMD EPYC 7R13 Processor`
+//! HOSTNAME: `ip-172-88-3-164`, CPU: `Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz`
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("parallel-dev"), DB CACHE: 1024
 
 // Executed Command:
@@ -35,9 +35,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 99]`.
 	fn add_member(m: u32, ) -> Weight {
-		(26_236_000 as Weight)
+		(33_695_000 as Weight)
 			// Standard Error: 0
-			.saturating_add((58_000 as Weight).saturating_mul(m as Weight))
+			.saturating_add((75_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
@@ -48,9 +48,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[2, 100]`.
 	fn remove_member(m: u32, ) -> Weight {
-		(29_912_000 as Weight)
+		(38_418_000 as Weight)
 			// Standard Error: 0
-			.saturating_add((57_000 as Weight).saturating_mul(m as Weight))
+			.saturating_add((65_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
@@ -61,9 +61,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[2, 100]`.
 	fn swap_member(m: u32, ) -> Weight {
-		(30_248_000 as Weight)
+		(38_422_000 as Weight)
 			// Standard Error: 0
-			.saturating_add((63_000 as Weight).saturating_mul(m as Weight))
+			.saturating_add((84_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
@@ -74,9 +74,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 100]`.
 	fn reset_member(m: u32, ) -> Weight {
-		(31_668_000 as Weight)
-			// Standard Error: 14_000
-			.saturating_add((193_000 as Weight).saturating_mul(m as Weight))
+		(38_750_000 as Weight)
+			// Standard Error: 1_000
+			.saturating_add((230_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
@@ -87,9 +87,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 100]`.
 	fn change_key(m: u32, ) -> Weight {
-		(31_071_000 as Weight)
-			// Standard Error: 4_000
-			.saturating_add((85_000 as Weight).saturating_mul(m as Weight))
+		(40_132_000 as Weight)
+			// Standard Error: 1_000
+			.saturating_add((77_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
@@ -98,9 +98,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 100]`.
 	fn set_prime(m: u32, ) -> Weight {
-		(9_781_000 as Weight)
+		(13_150_000 as Weight)
 			// Standard Error: 0
-			.saturating_add((20_000 as Weight).saturating_mul(m as Weight))
+			.saturating_add((24_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -108,9 +108,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 100]`.
 	fn clear_prime(m: u32, ) -> Weight {
-		(3_657_000 as Weight)
-			// Standard Error: 4_000
-			.saturating_add((91_000 as Weight).saturating_mul(m as Weight))
+		(8_303_000 as Weight)
+			// Standard Error: 0
+			.saturating_add((3_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 }

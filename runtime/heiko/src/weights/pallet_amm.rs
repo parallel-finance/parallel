@@ -3,7 +3,7 @@
 //!
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 4.0.0-dev
 //! DATE: 2022-10-19, STEPS: `50`, REPEAT: 20, LOW RANGE: `[]`, HIGH RANGE: `[]`
-//! HOSTNAME: `ip-172-31-27-78`, CPU: `AMD EPYC 7R13 Processor`
+//! HOSTNAME: `ip-172-88-3-164`, CPU: `Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz`
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("heiko-dev"), DB CACHE: 1024
 
 // Executed Command:
@@ -34,7 +34,7 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:3 w:3)
 	// Storage: Assets Account (r:5 w:5)
 	fn add_liquidity() -> Weight {
-		(128_054_000 as Weight)
+		(162_017_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(10 as Weight))
 			.saturating_add(T::DbWeight::get().writes(9 as Weight))
 	}
@@ -43,7 +43,7 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:3 w:3)
 	// Storage: Assets Account (r:5 w:5)
 	fn remove_liquidity() -> Weight {
-		(136_043_000 as Weight)
+		(173_662_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(10 as Weight))
 			.saturating_add(T::DbWeight::get().writes(9 as Weight))
 	}
@@ -53,18 +53,18 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:2 w:2)
 	// Storage: AMM ProtocolFee (r:1 w:0)
 	fn create_pool() -> Weight {
-		(169_074_000 as Weight)
+		(216_781_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(13 as Weight))
 			.saturating_add(T::DbWeight::get().writes(12 as Weight))
 	}
 	// Storage: AMM ProtocolFee (r:0 w:1)
 	fn update_protocol_fee() -> Weight {
-		(18_930_000 as Weight)
+		(23_037_000 as Weight)
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: AMM ProtocolFeeReceiver (r:0 w:1)
 	fn update_protocol_fee_receiver() -> Weight {
-		(19_801_000 as Weight)
+		(24_415_000 as Weight)
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 }

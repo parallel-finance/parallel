@@ -3,7 +3,7 @@
 //!
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 4.0.0-dev
 //! DATE: 2022-10-19, STEPS: `50`, REPEAT: 20, LOW RANGE: `[]`, HIGH RANGE: `[]`
-//! HOSTNAME: `ip-172-31-27-78`, CPU: `AMD EPYC 7R13 Processor`
+//! HOSTNAME: `ip-172-88-3-164`, CPU: `Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz`
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("heiko-dev"), DB CACHE: 1024
 
 // Executed Command:
@@ -38,7 +38,7 @@ impl<T: frame_system::Config> pallet_streaming::WeightInfo for WeightInfo<T> {
 	// Storage: Streaming StreamLibrary (r:4 w:4)
 	// Storage: Streaming Streams (r:0 w:1)
 	fn create() -> Weight {
-		(96_643_000 as Weight)
+		(123_368_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(11 as Weight))
 			.saturating_add(T::DbWeight::get().writes(10 as Weight))
 	}
@@ -49,7 +49,7 @@ impl<T: frame_system::Config> pallet_streaming::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	// Storage: Streaming StreamLibrary (r:2 w:2)
 	fn cancel() -> Weight {
-		(97_232_000 as Weight)
+		(123_903_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(8 as Weight))
 			.saturating_add(T::DbWeight::get().writes(7 as Weight))
 	}
@@ -59,13 +59,13 @@ impl<T: frame_system::Config> pallet_streaming::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn withdraw() -> Weight {
-		(76_662_000 as Weight)
+		(99_212_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(6 as Weight))
 			.saturating_add(T::DbWeight::get().writes(5 as Weight))
 	}
 	// Storage: Streaming MinimumDeposits (r:0 w:1)
 	fn set_minimum_deposit() -> Weight {
-		(20_270_000 as Weight)
+		(24_841_000 as Weight)
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 }

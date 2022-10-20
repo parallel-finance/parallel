@@ -3,7 +3,7 @@
 //!
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 4.0.0-dev
 //! DATE: 2022-10-19, STEPS: `50`, REPEAT: 20, LOW RANGE: `[]`, HIGH RANGE: `[]`
-//! HOSTNAME: `ip-172-31-27-78`, CPU: `AMD EPYC 7R13 Processor`
+//! HOSTNAME: `ip-172-88-3-164`, CPU: `Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz`
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("parallel-dev"), DB CACHE: 1024
 
 // Executed Command:
@@ -31,26 +31,26 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_utility::WeightInfo for WeightInfo<T> {
 	/// The range of component `c` is `[0, 1000]`.
 	fn batch(c: u32, ) -> Weight {
-		(144_467_000 as Weight)
-			// Standard Error: 91_000
-			.saturating_add((6_896_000 as Weight).saturating_mul(c as Weight))
+		(32_706_000 as Weight)
+			// Standard Error: 2_000
+			.saturating_add((8_810_000 as Weight).saturating_mul(c as Weight))
 	}
 	fn as_derivative() -> Weight {
-		(9_100_000 as Weight)
+		(11_644_000 as Weight)
 	}
 	/// The range of component `c` is `[0, 1000]`.
 	fn batch_all(c: u32, ) -> Weight {
-		(881_709_000 as Weight)
-			// Standard Error: 294_000
-			.saturating_add((6_659_000 as Weight).saturating_mul(c as Weight))
+		(30_812_000 as Weight)
+			// Standard Error: 2_000
+			.saturating_add((9_211_000 as Weight).saturating_mul(c as Weight))
 	}
 	fn dispatch_as() -> Weight {
-		(20_300_000 as Weight)
+		(25_082_000 as Weight)
 	}
 	/// The range of component `c` is `[0, 1000]`.
 	fn force_batch(c: u32, ) -> Weight {
-		(0 as Weight)
-			// Standard Error: 124_000
-			.saturating_add((7_742_000 as Weight).saturating_mul(c as Weight))
+		(33_738_000 as Weight)
+			// Standard Error: 2_000
+			.saturating_add((8_723_000 as Weight).saturating_mul(c as Weight))
 	}
 }

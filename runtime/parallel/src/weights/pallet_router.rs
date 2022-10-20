@@ -3,7 +3,7 @@
 //!
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 4.0.0-dev
 //! DATE: 2022-10-19, STEPS: `50`, REPEAT: 20, LOW RANGE: `[]`, HIGH RANGE: `[]`
-//! HOSTNAME: `ip-172-31-27-78`, CPU: `AMD EPYC 7R13 Processor`
+//! HOSTNAME: `ip-172-88-3-164`, CPU: `Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz`
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("parallel-dev"), DB CACHE: 1024
 
 // Executed Command:
@@ -33,7 +33,7 @@ impl<T: frame_system::Config> pallet_router::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:4 w:4)
 	// Storage: AMM Pools (r:1 w:1)
 	fn swap_exact_tokens_for_tokens() -> Weight {
-		(151_354_000 as Weight)
+		(154_905_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(7 as Weight))
 			.saturating_add(T::DbWeight::get().writes(7 as Weight))
 	}
@@ -41,7 +41,7 @@ impl<T: frame_system::Config> pallet_router::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:2 w:2)
 	// Storage: Assets Account (r:4 w:4)
 	fn swap_tokens_for_exact_tokens() -> Weight {
-		(129_973_000 as Weight)
+		(155_124_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(7 as Weight))
 			.saturating_add(T::DbWeight::get().writes(7 as Weight))
 	}
