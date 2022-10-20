@@ -29,7 +29,6 @@ pallets=(
   pallet_xcm_helper
   pallet_streaming
   pallet_liquid_staking
-  pallet_assets
   pallet_proxy
   pallet_utility
   cumulus_pallet_xcmp_queue

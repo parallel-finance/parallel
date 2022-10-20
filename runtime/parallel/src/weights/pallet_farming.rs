@@ -31,25 +31,25 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_farming::WeightInfo for WeightInfo<T> {
 	// Storage: Farming Pools (r:1 w:1)
 	fn create() -> Weight {
-		(37_083_000 as Weight)
+		(36_558_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Farming Pools (r:1 w:1)
 	fn set_pool_status() -> Weight {
-		(35_956_000 as Weight)
+		(36_132_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Farming Pools (r:1 w:1)
 	fn set_pool_cool_down_duration() -> Weight {
-		(35_872_000 as Weight)
+		(36_106_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Farming Pools (r:1 w:1)
 	fn reset_pool_unlock_height() -> Weight {
-		(37_064_000 as Weight)
+		(37_044_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -59,14 +59,14 @@ impl<T: frame_system::Config> pallet_farming::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn deposit() -> Weight {
-		(124_897_000 as Weight)
+		(124_253_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(6 as Weight))
 			.saturating_add(T::DbWeight::get().writes(6 as Weight))
 	}
 	// Storage: Farming Pools (r:1 w:1)
 	// Storage: Farming Positions (r:1 w:1)
 	fn withdraw() -> Weight {
-		(77_023_000 as Weight)
+		(76_477_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -75,7 +75,7 @@ impl<T: frame_system::Config> pallet_farming::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Account (r:2 w:2)
 	fn redeem() -> Weight {
-		(93_505_000 as Weight)
+		(93_230_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
@@ -84,7 +84,7 @@ impl<T: frame_system::Config> pallet_farming::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Account (r:2 w:2)
 	fn claim() -> Weight {
-		(112_522_000 as Weight)
+		(112_411_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(5 as Weight))
 	}
@@ -93,7 +93,7 @@ impl<T: frame_system::Config> pallet_farming::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn dispatch_reward() -> Weight {
-		(106_510_000 as Weight)
+		(105_775_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(5 as Weight))
 	}

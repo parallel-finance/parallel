@@ -31,11 +31,11 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_timestamp::WeightInfo for WeightInfo<T> {
 	// Storage: Timestamp Now (r:1 w:1)
 	fn set() -> Weight {
-		(12_815_000 as Weight)
+		(12_648_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn on_finalize() -> Weight {
-		(4_783_000 as Weight)
+		(4_694_000 as Weight)
 	}
 }

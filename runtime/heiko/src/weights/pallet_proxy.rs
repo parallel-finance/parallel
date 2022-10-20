@@ -32,9 +32,9 @@ impl<T: frame_system::Config> pallet_proxy::WeightInfo for WeightInfo<T> {
 	// Storage: Proxy Proxies (r:1 w:0)
 	/// The range of component `p` is `[1, 31]`.
 	fn proxy(p: u32, ) -> Weight {
-		(33_267_000 as Weight)
+		(32_947_000 as Weight)
 			// Standard Error: 2_000
-			.saturating_add((84_000 as Weight).saturating_mul(p as Weight))
+			.saturating_add((82_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 	}
 	// Storage: Proxy Proxies (r:1 w:0)
@@ -43,11 +43,11 @@ impl<T: frame_system::Config> pallet_proxy::WeightInfo for WeightInfo<T> {
 	/// The range of component `a` is `[0, 31]`.
 	/// The range of component `p` is `[1, 31]`.
 	fn proxy_announced(a: u32, p: u32, ) -> Weight {
-		(63_723_000 as Weight)
-			// Standard Error: 3_000
-			.saturating_add((291_000 as Weight).saturating_mul(a as Weight))
-			// Standard Error: 3_000
-			.saturating_add((97_000 as Weight).saturating_mul(p as Weight))
+		(63_372_000 as Weight)
+			// Standard Error: 2_000
+			.saturating_add((286_000 as Weight).saturating_mul(a as Weight))
+			// Standard Error: 2_000
+			.saturating_add((91_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -56,11 +56,11 @@ impl<T: frame_system::Config> pallet_proxy::WeightInfo for WeightInfo<T> {
 	/// The range of component `a` is `[0, 31]`.
 	/// The range of component `p` is `[1, 31]`.
 	fn remove_announcement(a: u32, p: u32, ) -> Weight {
-		(43_143_000 as Weight)
+		(42_828_000 as Weight)
 			// Standard Error: 2_000
-			.saturating_add((293_000 as Weight).saturating_mul(a as Weight))
+			.saturating_add((294_000 as Weight).saturating_mul(a as Weight))
 			// Standard Error: 2_000
-			.saturating_add((28_000 as Weight).saturating_mul(p as Weight))
+			.saturating_add((25_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -69,11 +69,11 @@ impl<T: frame_system::Config> pallet_proxy::WeightInfo for WeightInfo<T> {
 	/// The range of component `a` is `[0, 31]`.
 	/// The range of component `p` is `[1, 31]`.
 	fn reject_announcement(a: u32, p: u32, ) -> Weight {
-		(43_042_000 as Weight)
+		(42_805_000 as Weight)
 			// Standard Error: 2_000
-			.saturating_add((291_000 as Weight).saturating_mul(a as Weight))
+			.saturating_add((290_000 as Weight).saturating_mul(a as Weight))
 			// Standard Error: 2_000
-			.saturating_add((29_000 as Weight).saturating_mul(p as Weight))
+			.saturating_add((27_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -83,38 +83,38 @@ impl<T: frame_system::Config> pallet_proxy::WeightInfo for WeightInfo<T> {
 	/// The range of component `a` is `[0, 31]`.
 	/// The range of component `p` is `[1, 31]`.
 	fn announce(a: u32, p: u32, ) -> Weight {
-		(57_888_000 as Weight)
-			// Standard Error: 2_000
-			.saturating_add((262_000 as Weight).saturating_mul(a as Weight))
-			// Standard Error: 2_000
-			.saturating_add((82_000 as Weight).saturating_mul(p as Weight))
+		(57_609_000 as Weight)
+			// Standard Error: 3_000
+			.saturating_add((259_000 as Weight).saturating_mul(a as Weight))
+			// Standard Error: 3_000
+			.saturating_add((68_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	// Storage: Proxy Proxies (r:1 w:1)
 	/// The range of component `p` is `[1, 31]`.
 	fn add_proxy(p: u32, ) -> Weight {
-		(48_130_000 as Weight)
+		(47_536_000 as Weight)
 			// Standard Error: 2_000
-			.saturating_add((151_000 as Weight).saturating_mul(p as Weight))
+			.saturating_add((150_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Proxy Proxies (r:1 w:1)
 	/// The range of component `p` is `[1, 31]`.
 	fn remove_proxy(p: u32, ) -> Weight {
-		(48_013_000 as Weight)
-			// Standard Error: 3_000
-			.saturating_add((165_000 as Weight).saturating_mul(p as Weight))
+		(47_539_000 as Weight)
+			// Standard Error: 2_000
+			.saturating_add((160_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Proxy Proxies (r:1 w:1)
 	/// The range of component `p` is `[1, 31]`.
 	fn remove_proxies(p: u32, ) -> Weight {
-		(40_395_000 as Weight)
+		(39_876_000 as Weight)
 			// Standard Error: 2_000
-			.saturating_add((110_000 as Weight).saturating_mul(p as Weight))
+			.saturating_add((98_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -122,18 +122,18 @@ impl<T: frame_system::Config> pallet_proxy::WeightInfo for WeightInfo<T> {
 	// Storage: Proxy Proxies (r:1 w:1)
 	/// The range of component `p` is `[1, 31]`.
 	fn anonymous(p: u32, ) -> Weight {
-		(53_913_000 as Weight)
-			// Standard Error: 1_000
-			.saturating_add((50_000 as Weight).saturating_mul(p as Weight))
+		(53_302_000 as Weight)
+			// Standard Error: 2_000
+			.saturating_add((59_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: Proxy Proxies (r:1 w:1)
 	/// The range of component `p` is `[0, 30]`.
 	fn kill_anonymous(p: u32, ) -> Weight {
-		(42_476_000 as Weight)
+		(41_855_000 as Weight)
 			// Standard Error: 2_000
-			.saturating_add((87_000 as Weight).saturating_mul(p as Weight))
+			.saturating_add((78_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}

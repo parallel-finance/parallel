@@ -31,20 +31,20 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
 	/// The range of component `b` is `[0, 3932160]`.
 	fn remark(b: u32, ) -> Weight {
-		(6_881_000 as Weight)
+		(3_703_000 as Weight)
 			// Standard Error: 0
 			.saturating_add((1_000 as Weight).saturating_mul(b as Weight))
 	}
 	/// The range of component `b` is `[0, 3932160]`.
 	fn remark_with_event(b: u32, ) -> Weight {
-		(1_694_000 as Weight)
+		(0 as Weight)
 			// Standard Error: 0
 			.saturating_add((2_000 as Weight).saturating_mul(b as Weight))
 	}
 	// Storage: System Digest (r:1 w:1)
 	// Storage: unknown [0x3a686561707061676573] (r:0 w:1)
 	fn set_heap_pages() -> Weight {
-		(9_866_000 as Weight)
+		(9_860_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -61,7 +61,7 @@ impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
 	fn kill_storage(i: u32, ) -> Weight {
 		(0 as Weight)
 			// Standard Error: 2_000
-			.saturating_add((812_000 as Weight).saturating_mul(i as Weight))
+			.saturating_add((799_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(T::DbWeight::get().writes((1 as Weight).saturating_mul(i as Weight)))
 	}
 	// Storage: Skipped Metadata (r:0 w:0)
@@ -69,7 +69,7 @@ impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
 	fn kill_prefix(p: u32, ) -> Weight {
 		(0 as Weight)
 			// Standard Error: 2_000
-			.saturating_add((1_566_000 as Weight).saturating_mul(p as Weight))
+			.saturating_add((1_572_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().writes((1 as Weight).saturating_mul(p as Weight)))
 	}
 }

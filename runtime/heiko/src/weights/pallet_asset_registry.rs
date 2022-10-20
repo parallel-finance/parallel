@@ -32,7 +32,7 @@ impl<T: frame_system::Config> pallet_asset_registry::WeightInfo for WeightInfo<T
 	// Storage: AssetRegistry AssetIdType (r:1 w:1)
 	// Storage: AssetRegistry AssetTypeId (r:0 w:1)
 	fn register_asset() -> Weight {
-		(29_767_000 as Weight)
+		(30_282_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -40,7 +40,7 @@ impl<T: frame_system::Config> pallet_asset_registry::WeightInfo for WeightInfo<T
 	// Storage: AssetRegistry SupportedFeePaymentAssets (r:1 w:1)
 	// Storage: AssetRegistry AssetTypeUnitsPerSecond (r:0 w:1)
 	fn update_asset_units_per_second() -> Weight {
-		(36_418_000 as Weight)
+		(37_353_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -49,14 +49,14 @@ impl<T: frame_system::Config> pallet_asset_registry::WeightInfo for WeightInfo<T
 	// Storage: AssetRegistry AssetTypeUnitsPerSecond (r:1 w:2)
 	// Storage: AssetRegistry AssetTypeId (r:0 w:2)
 	fn update_asset_type() -> Weight {
-		(50_444_000 as Weight)
+		(51_300_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(6 as Weight))
 	}
 	// Storage: AssetRegistry SupportedFeePaymentAssets (r:1 w:1)
 	// Storage: AssetRegistry AssetTypeUnitsPerSecond (r:0 w:1)
 	fn remove_fee_payment_asset() -> Weight {
-		(31_010_000 as Weight)
+		(31_517_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -65,7 +65,7 @@ impl<T: frame_system::Config> pallet_asset_registry::WeightInfo for WeightInfo<T
 	// Storage: AssetRegistry AssetTypeUnitsPerSecond (r:0 w:1)
 	// Storage: AssetRegistry AssetTypeId (r:0 w:1)
 	fn deregister_asset() -> Weight {
-		(39_368_000 as Weight)
+		(40_159_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}

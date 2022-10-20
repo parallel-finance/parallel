@@ -40,7 +40,7 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking MatchingPool (r:1 w:1)
 	// Storage: LiquidStaking TotalReserves (r:1 w:1)
 	fn stake() -> Weight {
-		(191_635_000 as Weight)
+		(191_939_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(16 as Weight))
 			.saturating_add(T::DbWeight::get().writes(10 as Weight))
 	}
@@ -52,7 +52,7 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: Assets Account (r:1 w:1)
 	// Storage: LiquidStaking MatchingPool (r:1 w:1)
 	fn unstake() -> Weight {
-		(84_302_000 as Weight)
+		(84_517_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(7 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
@@ -72,7 +72,7 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn bond() -> Weight {
-		(137_260_000 as Weight)
+		(137_884_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(13 as Weight))
 			.saturating_add(T::DbWeight::get().writes(8 as Weight))
 	}
@@ -90,7 +90,7 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn nominate() -> Weight {
-		(126_038_000 as Weight)
+		(126_180_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(11 as Weight))
 			.saturating_add(T::DbWeight::get().writes(7 as Weight))
 	}
@@ -110,7 +110,7 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn bond_extra() -> Weight {
-		(140_097_000 as Weight)
+		(140_667_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(13 as Weight))
 			.saturating_add(T::DbWeight::get().writes(8 as Weight))
 	}
@@ -118,7 +118,7 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking IsUpdated (r:1 w:1)
 	// Storage: LiquidStaking XcmRequests (r:1 w:0)
 	fn force_set_staking_ledger() -> Weight {
-		(52_045_000 as Weight)
+		(51_741_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
@@ -137,7 +137,7 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn unbond() -> Weight {
-		(131_790_000 as Weight)
+		(131_196_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(12 as Weight))
 			.saturating_add(T::DbWeight::get().writes(8 as Weight))
 	}
@@ -156,7 +156,7 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn rebond() -> Weight {
-		(130_922_000 as Weight)
+		(130_325_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(12 as Weight))
 			.saturating_add(T::DbWeight::get().writes(8 as Weight))
 	}
@@ -175,24 +175,24 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn withdraw_unbonded() -> Weight {
-		(133_518_000 as Weight)
+		(132_311_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(12 as Weight))
 			.saturating_add(T::DbWeight::get().writes(7 as Weight))
 	}
 	// Storage: LiquidStaking ReserveFactor (r:1 w:1)
 	fn update_reserve_factor() -> Weight {
-		(26_636_000 as Weight)
+		(26_745_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: LiquidStaking CommissionRate (r:0 w:1)
 	fn update_commission_rate() -> Weight {
-		(23_738_000 as Weight)
+		(23_681_000 as Weight)
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: LiquidStaking StakingLedgerCap (r:1 w:1)
 	fn update_staking_ledger_cap() -> Weight {
-		(26_520_000 as Weight)
+		(26_846_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -204,7 +204,7 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Account (r:1 w:1)
 	fn notification_received() -> Weight {
-		(95_781_000 as Weight)
+		(94_750_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(7 as Weight))
 			.saturating_add(T::DbWeight::get().writes(5 as Weight))
 	}
@@ -216,26 +216,26 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking TotalReserves (r:1 w:0)
 	// Storage: LiquidStaking MatchingPool (r:1 w:0)
 	fn claim_for() -> Weight {
-		(109_779_000 as Weight)
+		(109_068_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(8 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
 	// Storage: LiquidStaking EraStartBlock (r:0 w:1)
 	fn force_set_era_start_block() -> Weight {
-		(8_474_000 as Weight)
+		(8_488_000 as Weight)
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	// Storage: LiquidStaking CurrentEra (r:0 w:1)
 	// Storage: LiquidStaking IsMatched (r:0 w:1)
 	fn force_set_current_era() -> Weight {
-		(9_885_000 as Weight)
+		(9_685_000 as Weight)
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	// Storage: ParachainSystem ValidationData (r:1 w:0)
 	// Storage: LiquidStaking IsMatched (r:1 w:0)
 	// Storage: LiquidStaking EraStartBlock (r:1 w:0)
 	fn on_initialize() -> Weight {
-		(12_665_000 as Weight)
+		(12_624_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 	}
 	// Storage: LiquidStaking StakingLedgers (r:10 w:0)
@@ -260,7 +260,7 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:2)
 	// Storage: PolkadotXcm Queries (r:0 w:2)
 	fn force_advance_era() -> Weight {
-		(355_893_000 as Weight)
+		(358_801_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(28 as Weight))
 			.saturating_add(T::DbWeight::get().writes(14 as Weight))
 	}
@@ -282,7 +282,7 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:2)
 	// Storage: PolkadotXcm Queries (r:0 w:2)
 	fn force_matching() -> Weight {
-		(304_343_000 as Weight)
+		(304_997_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(24 as Weight))
 			.saturating_add(T::DbWeight::get().writes(11 as Weight))
 	}
@@ -291,7 +291,7 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Account (r:2 w:2)
 	fn reduce_reserves() -> Weight {
-		(85_781_000 as Weight)
+		(85_536_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
@@ -300,7 +300,7 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: Assets Asset (r:1 w:0)
 	// Storage: Assets Account (r:1 w:0)
 	fn cancel_unstake() -> Weight {
-		(52_169_000 as Weight)
+		(52_267_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(4 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -313,9 +313,9 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: System Account (r:2 w:2)
 	/// The range of component `n` is `[1, 50]`.
 	fn fast_match_unstake(n: u32, ) -> Weight {
-		(59_690_000 as Weight)
-			// Standard Error: 49_000
-			.saturating_add((128_219_000 as Weight).saturating_mul(n as Weight))
+		(62_681_000 as Weight)
+			// Standard Error: 40_000
+			.saturating_add((128_519_000 as Weight).saturating_mul(n as Weight))
 			.saturating_add(T::DbWeight::get().reads(9 as Weight))
 			.saturating_add(T::DbWeight::get().reads((4 as Weight).saturating_mul(n as Weight)))
 			.saturating_add(T::DbWeight::get().writes(6 as Weight))

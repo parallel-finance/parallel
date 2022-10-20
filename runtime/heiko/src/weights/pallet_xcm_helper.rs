@@ -31,7 +31,7 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_xcm_helper::WeightInfo for WeightInfo<T> {
 	// Storage: XcmHelper XcmWeightFee (r:1 w:1)
 	fn update_xcm_weight_fee() -> Weight {
-		(27_985_000 as Weight)
+		(28_291_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
