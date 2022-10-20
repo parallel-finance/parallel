@@ -425,7 +425,7 @@ impl pallet_assets::Config for Runtime {
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = AssetsStringLimit;
     type Freezer = ();
-    type WeightInfo = ();
+    type WeightInfo = weights::pallet_assets::WeightInfo<Runtime>;
     type Extra = ();
 }
 
@@ -839,7 +839,7 @@ impl pallet_proxy::Config for Runtime {
     type ProxyDepositBase = ProxyDepositBase;
     type ProxyDepositFactor = ProxyDepositFactor;
     type MaxProxies = MaxProxies;
-    type WeightInfo = pallet_proxy::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_proxy::WeightInfo<Runtime>;
     type MaxPending = MaxPending;
     type CallHasher = BlakeTwo256;
     type AnnouncementDepositBase = AnnouncementDepositBase;
@@ -850,7 +850,7 @@ impl pallet_utility::Config for Runtime {
     type Event = Event;
     type Call = Call;
     type PalletsOrigin = OriginCaller;
-    type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_utility::WeightInfo<Runtime>;
 }
 
 /// Local origins on this chain are allowed to dispatch XCM sends/executions. However, we later
@@ -898,7 +898,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
     type VersionWrapper = PolkadotXcm;
     type ControllerOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
-    type WeightInfo = cumulus_pallet_xcmp_queue::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::cumulus_pallet_xcmp_queue::WeightInfo<Runtime>;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
@@ -1143,7 +1143,7 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type OracleValue = Price;
     type RootOperatorAccountId = OneAccount;
     type MaxHasDispatchedSize = MaxHasDispatchedSize;
-    type WeightInfo = ();
+    type WeightInfo = weights::orml_oracle::WeightInfo<Runtime>;
     type Members = OracleMembership;
 }
 
@@ -1244,7 +1244,7 @@ impl pallet_identity::Config for Runtime {
     type Slashed = Treasury;
     type ForceOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type RegistrarOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_identity::WeightInfo<Runtime>;
 }
 
 type EnsureRootOrMoreThanHalfGeneralCouncil = EitherOfDiverse<
@@ -1313,7 +1313,7 @@ impl pallet_democracy::Config for Runtime {
     type Scheduler = Scheduler;
     type PalletsOrigin = OriginCaller;
     type MaxVotes = MaxVotes;
-    type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_democracy::WeightInfo<Runtime>;
     type MaxProposals = MaxProposals;
     type VoteLockingPeriod = EnactmentPeriod;
 }
@@ -1347,7 +1347,7 @@ impl pallet_membership::Config<GeneralCouncilMembershipInstance> for Runtime {
     type MembershipInitialized = GeneralCouncil;
     type MembershipChanged = GeneralCouncil;
     type MaxMembers = GeneralCouncilMaxMembers;
-    type WeightInfo = pallet_membership::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1379,7 +1379,7 @@ impl pallet_membership::Config<TechnicalCommitteeMembershipInstance> for Runtime
     type MembershipInitialized = TechnicalCommittee;
     type MembershipChanged = TechnicalCommittee;
     type MaxMembers = TechnicalMaxMembers;
-    type WeightInfo = pallet_membership::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1389,7 +1389,7 @@ parameter_types! {
 }
 
 impl pallet_preimage::Config for Runtime {
-    type WeightInfo = pallet_preimage::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_preimage::WeightInfo<Runtime>;
     type Event = Event;
     type Currency = Balances;
     type ManagerOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -1413,7 +1413,7 @@ impl pallet_scheduler::Config for Runtime {
     type ScheduleOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
-    type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
     type PreimageProvider = Preimage;
     type NoPreimagePostponement = NoPreimagePostponement;
 }
@@ -1442,7 +1442,7 @@ impl pallet_treasury::Config for Runtime {
     type Burn = Burn;
     type BurnDestination = ();
     type SpendFunds = ();
-    type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
     type MaxApprovals = MaxApprovals;
     type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
 }
@@ -1539,7 +1539,7 @@ impl orml_vesting::Config for Runtime {
     type Currency = Balances;
     type MinVestedTransfer = MinVestedTransfer;
     type VestedTransferOrigin = frame_system::EnsureSigned<AccountId>;
-    type WeightInfo = ();
+    type WeightInfo = weights::orml_vesting::WeightInfo<Runtime>;
     type MaxVestingSchedules = MaxVestingSchedules;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
 }
