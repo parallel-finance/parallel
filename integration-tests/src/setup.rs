@@ -120,7 +120,7 @@ impl ExtBuilder {
 
     pub fn heiko_build(self) -> sp_io::TestExternalities {
         use heiko_runtime::{
-            AssetRegistry, Assets, LiquidStaking, Loans, Origin, Runtime, System, XcmHelper,
+            AssetRegistry, Assets, LiquidStaking, Loans, Origin, System, XcmHelper,
         };
         use paras::statemine::{ID as StatemineChainId, PALLET_INSTANCE as StatemineAssetInstance};
         let mut ext = sp_io::TestExternalities::new(self.init());

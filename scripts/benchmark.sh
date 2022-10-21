@@ -29,6 +29,14 @@ pallets=(
   pallet_xcm_helper
   pallet_streaming
   pallet_liquid_staking
+  pallet_proxy
+  pallet_utility
+  cumulus_pallet_xcmp_queue
+  pallet_identity
+  pallet_democracy
+  pallet_preimage
+  pallet_scheduler
+  pallet_treasury
 )
 
 for p in ${pallets[@]}
