@@ -46,7 +46,7 @@ pub mod pallet {
         storage::{child, ChildTriePrefixIterator},
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
-            Get, SortedMembers, UnixTime,
+            Get, SortedMembers,
         },
         transactional, Blake2_128Concat, PalletId,
     };
@@ -200,9 +200,6 @@ pub mod pallet {
 
         /// Decimal provider.
         type Decimal: DecimalProvider<CurrencyId>;
-
-        /// The Unix time
-        type UnixTime: UnixTime;
     }
 
     #[pallet::event]
@@ -1187,10 +1184,7 @@ pub mod pallet {
                 lease_start <= lease_end,
                 Error::<T>::LastPeriodBeforeFirstPeriod
             );
-            ensure!(
-                bonus_config.check(T::UnixTime::now().as_secs()),
-                Error::<T>::WrongBonusConfig
-            );
+            ensure!(bonus_config.check(), Error::<T>::WrongBonusConfig);
 
             LeasesBonus::<T>::insert((&lease_start, &lease_end), bonus_config);
             Self::deposit_event(Event::<T>::LeasesBonusUpdated(
