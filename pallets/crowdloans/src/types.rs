@@ -163,4 +163,7 @@ impl<Balance: Default> Default for BonusConfig<Balance> {
             end_time: Default::default(),
         }
     }
+    fn check(&self, now: Timestamp) -> bool {
+        return self.start_time >= now && self.end_time > self.start_time;
+    }
 }

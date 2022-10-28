@@ -46,7 +46,7 @@ pub mod pallet {
         storage::{child, ChildTriePrefixIterator},
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
-            Get, SortedMembers,
+            Get, SortedMembers, UnixTime,
         },
         transactional, Blake2_128Concat, PalletId,
     };
@@ -200,6 +200,9 @@ pub mod pallet {
 
         /// Decimal provider.
         type Decimal: DecimalProvider<CurrencyId>;
+
+        /// The Unix time
+        type UnixTime: UnixTime;
     }
 
     #[pallet::event]
@@ -336,6 +339,8 @@ pub mod pallet {
         NotReadyToDissolve,
         /// Proxy address is empty
         EmptyProxyAddress,
+        /// BonusConfig is wrong
+        WrongBonusConfig,
     }
 
     #[pallet::storage]
@@ -1178,6 +1183,15 @@ pub mod pallet {
             bonus_config: BonusConfig<BalanceOf<T>>,
         ) -> DispatchResult {
             ensure_origin!(UpdateOrigin, origin)?;
+            ensure!(
+                lease_start <= lease_end,
+                Error::<T>::LastPeriodBeforeFirstPeriod
+            );
+            ensure!(
+                bonus_config.check(T::UnixTime::now().as_secs()),
+                Error::<T>::WrongBonusConfig
+            );
+
             LeasesBonus::<T>::insert((&lease_start, &lease_end), bonus_config);
             Self::deposit_event(Event::<T>::LeasesBonusUpdated(
                 (lease_start, lease_end),

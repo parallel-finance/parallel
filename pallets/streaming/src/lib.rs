@@ -234,6 +234,7 @@ pub mod pallet {
                 deposit >= minimum_deposit,
                 Error::<T>::DepositLowerThanMinimum
             );
+            Self::ensure_valid_duration(start_time, end_time)?;
             let stream_id = Self::do_create(
                 sender.clone(),
                 recipient.clone(),
@@ -393,18 +394,13 @@ impl<T: Config> Pallet<T> {
     pub fn ensure_valid_duration(
         start_time: Timestamp,
         end_time: Timestamp,
-    ) -> Result<Timestamp, DispatchError> {
+    ) -> Result<(), DispatchError> {
         ensure!(
             start_time >= T::UnixTime::now().as_secs(),
             Error::<T>::StartTimeBeforeCurrentTime
         );
         ensure!(end_time > start_time, Error::<T>::EndTimeBeforeStartTime);
-
-        let duration = end_time
-            .checked_sub(start_time)
-            .ok_or(Error::<T>::InvalidDuration)?;
-
-        Ok(duration)
+        Ok(())
     }
 
     pub fn update_finished_stream_library(
@@ -500,7 +496,9 @@ impl<T: Config> Pallet<T> {
     ) -> Result<StreamId, DispatchError> {
         ensure!(sender != recipient, Error::<T>::RecipientIsAlsoSender);
 
-        let duration = Self::ensure_valid_duration(start_time, end_time)?;
+        let duration = end_time
+            .checked_sub(start_time)
+            .ok_or(Error::<T>::InvalidDuration)?;
         let rate_per_sec = deposit
             .checked_div(duration as u128)
             .ok_or(Error::<T>::InvalidRatePerSecond)?;
