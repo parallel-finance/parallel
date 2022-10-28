@@ -163,7 +163,10 @@ impl<Balance: Default> Default for BonusConfig<Balance> {
             end_time: Default::default(),
         }
     }
-    fn check(&self) -> bool {
+}
+
+impl<Balance> BonusConfig<Balance> {
+    pub fn check(&self) -> bool {
         return self.end_time > self.start_time;
     }
 }
