@@ -224,8 +224,8 @@ benchmarks! {
     update_leases_bonus {
         let bonus_config = BonusConfig {
             bonus_per_token: 5,
-            start_time: Default::default(),
-            end_time: Default::default(),
+            start_time: 1,
+            end_time: 2,
         };
     }: _(
         SystemOrigin::Root,

@@ -1858,6 +1858,8 @@ fn update_leases_bonus_should_work() {
 
         let mut config = BonusConfig::default();
         config.bonus_per_token = 5;
+        config.start_time = 1;
+        config.end_time = 2;
         assert_ok!(Crowdloans::update_leases_bonus(
             frame_system::RawOrigin::Root.into(),
             start_lease,
@@ -1865,6 +1867,39 @@ fn update_leases_bonus_should_work() {
             config,
         ));
         assert_eq!(Crowdloans::leases_bonus((&start_lease, &end_lease)), config,);
+    })
+}
+
+#[test]
+fn update_leases_bonus_should_fail_when_wrong_bonus_config() {
+    new_test_ext().execute_with(|| {
+        let start_lease = 7;
+        let end_lease = 6;
+
+        let mut config = BonusConfig::default();
+        config.bonus_per_token = 5;
+        assert_err!(
+            Crowdloans::update_leases_bonus(
+                frame_system::RawOrigin::Root.into(),
+                start_lease,
+                end_lease,
+                config,
+            ),
+            Error::<Test>::LastPeriodBeforeFirstPeriod,
+        );
+        let start_lease = 6;
+        let end_lease = 7;
+        config.start_time = 11;
+        config.end_time = 2;
+        assert_err!(
+            Crowdloans::update_leases_bonus(
+                frame_system::RawOrigin::Root.into(),
+                start_lease,
+                end_lease,
+                config,
+            ),
+            Error::<Test>::WrongBonusConfig,
+        );
     })
 }
 

@@ -336,6 +336,8 @@ pub mod pallet {
         NotReadyToDissolve,
         /// Proxy address is empty
         EmptyProxyAddress,
+        /// BonusConfig is wrong
+        WrongBonusConfig,
     }
 
     #[pallet::storage]
@@ -1178,6 +1180,12 @@ pub mod pallet {
             bonus_config: BonusConfig<BalanceOf<T>>,
         ) -> DispatchResult {
             ensure_origin!(UpdateOrigin, origin)?;
+            ensure!(
+                lease_start <= lease_end,
+                Error::<T>::LastPeriodBeforeFirstPeriod
+            );
+            ensure!(bonus_config.check(), Error::<T>::WrongBonusConfig);
+
             LeasesBonus::<T>::insert((&lease_start, &lease_end), bonus_config);
             Self::deposit_event(Event::<T>::LeasesBonusUpdated(
                 (lease_start, lease_end),
