@@ -112,7 +112,7 @@ pub mod pallet {
         type Origin: IsType<<Self as frame_system::Config>::Origin>
             + Into<Result<pallet_xcm::Origin, <Self as Config>::Origin>>;
 
-        type Call: IsType<<Self as pallet_xcm::Config>::Call> + From<Call<Self>>;
+        type Call: IsType<<Self as pallet_xcm::Config>::RuntimeCall> + From<Call<Self>>;
 
         /// Returns the parachain ID we are running with.
         #[pallet::constant]
@@ -1222,8 +1222,8 @@ pub mod pallet {
                 .ok_or(ArithmeticError::Overflow)
         }
 
-        fn notify_placeholder() -> <T as Config>::Call {
-            <T as Config>::Call::from(Call::<T>::notification_received {
+        fn notify_placeholder() -> <T as Config>::RuntimeCall {
+            <T as Config>::RuntimeCall::from(Call::<T>::notification_received {
                 query_id: Default::default(),
                 response: Default::default(),
             })

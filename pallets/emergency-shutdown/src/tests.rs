@@ -6,7 +6,7 @@ use frame_support::{assert_noop, assert_ok, dispatch::*};
 fn toggle_call_works() {
     new_test_ext().execute_with(|| {
         let remark = "test".as_bytes().to_vec();
-        let call = Call::System(frame_system::Call::remark { remark });
+        let call = Call::System(frame_system::RuntimeCall::remark { remark });
 
         let (pallet_idx, call_idx): (u8, u8) = call
             .using_encoded(|mut bytes| Decode::decode(&mut bytes))
@@ -78,7 +78,7 @@ fn call_filter_works() {
         ));
 
         let remark = "test".as_bytes().to_vec();
-        let call = Call::System(frame_system::Call::remark { remark });
+        let call = Call::System(frame_system::RuntimeCall::remark { remark });
         // When emergency shutdown toggle is on
         assert_eq!(
             EmergencyShutdown::disabled_pallets(pallet_idx.clone()),
@@ -86,7 +86,7 @@ fn call_filter_works() {
         );
         assert_noop!(
             call.clone().dispatch(Origin::signed(1)),
-            frame_system::Error::<Test>::CallFiltered,
+            frame_system::Error::<Test>::RuntimeCallFiltered,
         );
 
         // When emergency shutdown toggle is off

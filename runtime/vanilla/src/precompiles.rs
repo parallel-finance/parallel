@@ -64,9 +64,9 @@ where
         + AddressToAssetId<<R as pallet_assets::Config>::AssetId>
         + pallet_assets::Config
         + pallet_balances::Config,
-    R::Call: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
-    <R as frame_system::Config>::Call: From<polkadot_runtime_common::BalancesCall<R>>,
-    <<R as frame_system::Config>::Call as Dispatchable>::Origin:
+    R::RuntimeCall: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
+    <R as frame_system::Config>::RuntimeCall: From<polkadot_runtime_common::BalancesCall<R>>,
+    <<R as frame_system::Config>::RuntimeCall as Dispatchable>::Origin:
         From<Option<<R as frame_system::Config>::AccountId>>,
     <R as pallet_balances::Config>::Balance: TryFrom<sp_core::U256>,
     <R as pallet_balances::Config>::Balance: Into<sp_core::U256>,

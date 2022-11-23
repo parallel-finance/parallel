@@ -117,7 +117,7 @@ pub mod pallet {
         type Origin: IsType<<Self as frame_system::Config>::Origin>
             + Into<Result<pallet_xcm::Origin, <Self as Config>::Origin>>;
 
-        type Call: IsType<<Self as pallet_xcm::Config>::Call> + From<Call<Self>>;
+        type Call: IsType<<Self as pallet_xcm::Config>::RuntimeCall> + From<Call<Self>>;
 
         /// Assets for deposit/withdraw assets to/from pallet account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId>
@@ -1922,8 +1922,8 @@ pub mod pallet {
             Ok(())
         }
 
-        fn notify_placeholder() -> <T as Config>::Call {
-            <T as Config>::Call::from(Call::<T>::notification_received {
+        fn notify_placeholder() -> <T as Config>::RuntimeCall {
+            <T as Config>::RuntimeCall::from(Call::<T>::notification_received {
                 query_id: Default::default(),
                 response: Default::default(),
             })

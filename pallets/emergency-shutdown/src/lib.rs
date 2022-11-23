@@ -44,7 +44,7 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// This can be used by the runtime to define which calls should be allowed in an emergency shutdown state.
-        type Whitelist: Contains<<Self as Config>::Call>;
+        type Whitelist: Contains<<Self as Config>::RuntimeCall>;
 
         /// The origin which can shutdown.
         type ShutdownOrigin: EnsureOrigin<Self::Origin>;
@@ -53,7 +53,7 @@ pub mod pallet {
         type Call: Parameter
             + Dispatchable<Origin = Self::Origin, PostInfo = PostDispatchInfo>
             + GetDispatchInfo
-            + From<frame_system::Call<Self>>;
+            + From<frame_system::RuntimeCall<Self>>;
     }
 
     #[pallet::event]
@@ -110,8 +110,8 @@ pub mod pallet {
     }
 }
 
-impl<T: Config> EmergencyCallFilter<<T as Config>::Call> for Pallet<T> {
-    fn contains(call: &<T as Config>::Call) -> bool {
+impl<T: Config> EmergencyCallFilter<<T as Config>::RuntimeCall> for Pallet<T> {
+    fn contains(call: &<T as Config>::RuntimeCall) -> bool {
         let (pallet_idx, call_idx): (u8, u8) = call
             .using_encoded(|mut bytes| Decode::decode(&mut bytes))
             .expect(

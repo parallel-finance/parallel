@@ -216,9 +216,9 @@ impl Contains<Call> for WhiteListFilter {
             // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
-            Call::Assets(pallet_assets::Call::force_create { .. }) |
-            Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
-            Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
+            Call::Assets(pallet_assets::RuntimeCall::force_create { .. }) |
+            Call::Assets(pallet_assets::RuntimeCall::force_set_metadata { .. }) |
+            Call::Assets(pallet_assets::RuntimeCall::force_asset_status { .. }) |
             // Governance
             // Call::Sudo(_) |
             Call::Democracy(_) |
@@ -231,10 +231,10 @@ impl Contains<Call> for WhiteListFilter {
             Call::ParachainSystem(_) |
             Call::XcmpQueue(_) |
             Call::DmpQueue(_) |
-            Call::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) |
-            Call::PolkadotXcm(pallet_xcm::Call::force_default_xcm_version { .. }) |
-            Call::PolkadotXcm(pallet_xcm::Call::force_subscribe_version_notify { .. }) |
-            Call::PolkadotXcm(pallet_xcm::Call::force_unsubscribe_version_notify { .. }) |
+            Call::PolkadotXcm(pallet_xcm::RuntimeCall::force_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::RuntimeCall::force_default_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::RuntimeCall::force_subscribe_version_notify { .. }) |
+            Call::PolkadotXcm(pallet_xcm::RuntimeCall::force_unsubscribe_version_notify { .. }) |
             Call::CumulusXcm(_) |
             // Consensus
             Call::Authorship(_) |
@@ -266,15 +266,15 @@ impl Contains<Call> for BaseCallFilter {
                 call,
                 // System, Currencies
                 Call::Balances(_) |
-                Call::Assets(pallet_assets::Call::mint { .. }) |
-                Call::Assets(pallet_assets::Call::transfer { .. }) |
-                Call::Assets(pallet_assets::Call::transfer_keep_alive { .. }) |
-                Call::Assets(pallet_assets::Call::freeze { .. }) |
-                Call::Assets(pallet_assets::Call::thaw { .. }) |
-                Call::Assets(pallet_assets::Call::freeze_asset { .. }) |
-                Call::Assets(pallet_assets::Call::thaw_asset { .. }) |
-                Call::Assets(pallet_assets::Call::burn { .. }) |
-                Call::Assets(pallet_assets::Call::destroy { .. }) |
+                Call::Assets(pallet_assets::RuntimeCall::mint { .. }) |
+                Call::Assets(pallet_assets::RuntimeCall::transfer { .. }) |
+                Call::Assets(pallet_assets::RuntimeCall::transfer_keep_alive { .. }) |
+                Call::Assets(pallet_assets::RuntimeCall::freeze { .. }) |
+                Call::Assets(pallet_assets::RuntimeCall::thaw { .. }) |
+                Call::Assets(pallet_assets::RuntimeCall::freeze_asset { .. }) |
+                Call::Assets(pallet_assets::RuntimeCall::thaw_asset { .. }) |
+                Call::Assets(pallet_assets::RuntimeCall::burn { .. }) |
+                Call::Assets(pallet_assets::RuntimeCall::destroy { .. }) |
                 Call::CurrencyAdapter(_) |
                 // 3rd Party
                 Call::Vesting(_) |
@@ -743,53 +743,55 @@ impl InstanceFilter<Call> for ProxyType {
             ProxyType::Loans => {
                 matches!(
                     c,
-                    Call::Loans(pallet_loans::Call::mint { .. })
-                        | Call::Loans(pallet_loans::Call::redeem { .. })
-                        | Call::Loans(pallet_loans::Call::redeem_all { .. })
-                        | Call::Loans(pallet_loans::Call::borrow { .. })
-                        | Call::Loans(pallet_loans::Call::repay_borrow { .. })
-                        | Call::Loans(pallet_loans::Call::repay_borrow_all { .. })
-                        | Call::Loans(pallet_loans::Call::collateral_asset { .. })
-                        | Call::Loans(pallet_loans::Call::liquidate_borrow { .. })
-                        | Call::Loans(pallet_loans::Call::add_reward { .. })
-                        | Call::Loans(pallet_loans::Call::claim_reward { .. })
-                        | Call::Loans(pallet_loans::Call::claim_reward_for_market { .. })
+                    Call::Loans(pallet_loans::RuntimeCall::mint { .. })
+                        | Call::Loans(pallet_loans::RuntimeCall::redeem { .. })
+                        | Call::Loans(pallet_loans::RuntimeCall::redeem_all { .. })
+                        | Call::Loans(pallet_loans::RuntimeCall::borrow { .. })
+                        | Call::Loans(pallet_loans::RuntimeCall::repay_borrow { .. })
+                        | Call::Loans(pallet_loans::RuntimeCall::repay_borrow_all { .. })
+                        | Call::Loans(pallet_loans::RuntimeCall::collateral_asset { .. })
+                        | Call::Loans(pallet_loans::RuntimeCall::liquidate_borrow { .. })
+                        | Call::Loans(pallet_loans::RuntimeCall::add_reward { .. })
+                        | Call::Loans(pallet_loans::RuntimeCall::claim_reward { .. })
+                        | Call::Loans(pallet_loans::RuntimeCall::claim_reward_for_market { .. })
                 )
             }
             ProxyType::Staking => {
                 matches!(
                     c,
-                    Call::LiquidStaking(pallet_liquid_staking::Call::stake { .. })
-                        | Call::LiquidStaking(pallet_liquid_staking::Call::unstake { .. })
-                        | Call::LiquidStaking(pallet_liquid_staking::Call::cancel_unstake { .. })
+                    Call::LiquidStaking(pallet_liquid_staking::RuntimeCall::stake { .. })
+                        | Call::LiquidStaking(pallet_liquid_staking::RuntimeCall::unstake { .. })
+                        | Call::LiquidStaking(
+                            pallet_liquid_staking::RuntimeCall::cancel_unstake { .. }
+                        )
                 )
             }
             ProxyType::Crowdloans => {
                 matches!(
                     c,
-                    Call::Crowdloans(pallet_crowdloans::Call::contribute { .. },)
-                        | Call::Crowdloans(pallet_crowdloans::Call::claim { .. })
-                        | Call::Crowdloans(pallet_crowdloans::Call::claim_for { .. })
-                        | Call::Crowdloans(pallet_crowdloans::Call::withdraw { .. })
-                        | Call::Crowdloans(pallet_crowdloans::Call::withdraw_for { .. })
-                        | Call::Crowdloans(pallet_crowdloans::Call::redeem { .. })
+                    Call::Crowdloans(pallet_crowdloans::RuntimeCall::contribute { .. },)
+                        | Call::Crowdloans(pallet_crowdloans::RuntimeCall::claim { .. })
+                        | Call::Crowdloans(pallet_crowdloans::RuntimeCall::claim_for { .. })
+                        | Call::Crowdloans(pallet_crowdloans::RuntimeCall::withdraw { .. })
+                        | Call::Crowdloans(pallet_crowdloans::RuntimeCall::withdraw_for { .. })
+                        | Call::Crowdloans(pallet_crowdloans::RuntimeCall::redeem { .. })
                 )
             }
             ProxyType::Farming => {
                 matches!(
                     c,
-                    Call::Farming(pallet_farming::Call::deposit { .. })
-                        | Call::Farming(pallet_farming::Call::claim { .. })
-                        | Call::Farming(pallet_farming::Call::withdraw { .. })
-                        | Call::Farming(pallet_farming::Call::redeem { .. })
+                    Call::Farming(pallet_farming::RuntimeCall::deposit { .. })
+                        | Call::Farming(pallet_farming::RuntimeCall::claim { .. })
+                        | Call::Farming(pallet_farming::RuntimeCall::withdraw { .. })
+                        | Call::Farming(pallet_farming::RuntimeCall::redeem { .. })
                 )
             }
             ProxyType::Streaming => {
                 matches!(
                     c,
-                    Call::Streaming(pallet_streaming::Call::create { .. })
-                        | Call::Streaming(pallet_streaming::Call::cancel { .. })
-                        | Call::Streaming(pallet_streaming::Call::withdraw { .. })
+                    Call::Streaming(pallet_streaming::RuntimeCall::create { .. })
+                        | Call::Streaming(pallet_streaming::RuntimeCall::cancel { .. })
+                        | Call::Streaming(pallet_streaming::RuntimeCall::withdraw { .. })
                 )
             }
             ProxyType::Governance => {
@@ -806,10 +808,14 @@ impl InstanceFilter<Call> for ProxyType {
             ProxyType::AMM => {
                 matches!(
                     c,
-                    Call::AMM(pallet_amm::Call::add_liquidity { .. })
-                        | Call::AMM(pallet_amm::Call::remove_liquidity { .. })
-                        | Call::AMMRoute(pallet_router::Call::swap_tokens_for_exact_tokens { .. })
-                        | Call::AMMRoute(pallet_router::Call::swap_exact_tokens_for_tokens { .. })
+                    Call::AMM(pallet_amm::RuntimeCall::add_liquidity { .. })
+                        | Call::AMM(pallet_amm::RuntimeCall::remove_liquidity { .. })
+                        | Call::AMMRoute(
+                            pallet_router::RuntimeCall::swap_tokens_for_exact_tokens { .. }
+                        )
+                        | Call::AMMRoute(
+                            pallet_router::RuntimeCall::swap_exact_tokens_for_tokens { .. }
+                        )
                 )
             }
         }

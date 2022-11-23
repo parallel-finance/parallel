@@ -185,7 +185,7 @@ type KusamaXcmOriginToCallOrigin = (
     ChildSystemParachainAsSuperuser<ParaId, kusama_runtime::Origin>,
 );
 
-pub type KusamaCall = kusama_runtime::Call;
+pub type KusamaCall = kusama_runtime::RuntimeCall;
 pub type KusamaLocalAssetTransactor = kusama_runtime::xcm_config::LocalAssetTransactor;
 // pub type KusamaXcmOriginToCallOrigin = kusama_runtime::LocalOriginConverter;
 // pub type KusamaLocationInverter = kusama_runtime::LocationInverter;

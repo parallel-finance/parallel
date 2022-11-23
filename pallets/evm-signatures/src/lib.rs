@@ -148,7 +148,7 @@ pub mod pallet {
         })]
         pub fn call(
             origin: OriginFor<T>,
-            call: Box<<T as Config>::Call>,
+            call: Box<<T as Config>::RuntimeCall>,
             signer: T::AccountId,
             signature: Vec<u8>,
             #[pallet::compact] nonce: T::Index,
@@ -176,7 +176,7 @@ pub mod pallet {
             // Processing fee
             let tx_fee = T::Currency::withdraw(
                 &signer,
-                T::CallFee::get(),
+                T::RuntimeCallFee::get(),
                 WithdrawReasons::FEE,
                 ExistenceRequirement::AllowDeath,
             )?;
@@ -211,12 +211,12 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Verify custom signature and returns `true` if correct.
         pub fn valid_signature(
-            call: &<T as Config>::Call,
+            call: &<T as Config>::RuntimeCall,
             signer: &T::AccountId,
             signature: &T::Signature,
             nonce: &T::Index,
         ) -> bool {
-            let payload = (T::CallMagicNumber::get(), *nonce, call.clone());
+            let payload = (T::RuntimeCallMagicNumber::get(), *nonce, call.clone());
             //temporarily disable
             if T::VerifySignature::get() {
                 signature.verify(&payload.encode()[..], signer)
@@ -247,7 +247,10 @@ pub mod pallet {
     impl<T: Config> frame_support::unsigned::ValidateUnsigned for Pallet<T> {
         type Call = Call<T>;
 
-        fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
+        fn validate_unsigned(
+            _source: TransactionSource,
+            call: &Self::RuntimeCall,
+        ) -> TransactionValidity {
             // Call decomposition (we have only one possible value here)
             let (call, signer, signature, nonce) = match call {
                 Call::call {
@@ -256,7 +259,7 @@ pub mod pallet {
                     signature,
                     nonce,
                 } => (call, signer, signature, nonce),
-                _ => return InvalidTransaction::Call.into(),
+                _ => return InvalidTransaction::RuntimeCall.into(),
             };
 
             // Check that tx isn't stale
@@ -284,7 +287,7 @@ pub mod pallet {
             }
         }
 
-        fn pre_dispatch(_call: &Self::Call) -> Result<(), TransactionValidityError> {
+        fn pre_dispatch(_call: &Self::RuntimeCall) -> Result<(), TransactionValidityError> {
             Ok(())
         }
     }
