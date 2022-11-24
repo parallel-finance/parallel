@@ -176,7 +176,9 @@ const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
 /// by  Operational  extrinsics.
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 /// We allow for 500 ms of compute with parachain block.
-const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND / 2;
+const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND
+    .saturating_div(2)
+    .set_proof_size(cumulus_primitives_core::relay_chain::v2::MAX_POV_SIZE as u64);
 
 parameter_types! {
     pub const BlockHashCount: BlockNumber = 250;
@@ -914,8 +916,8 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 }
 
 parameter_types! {
-    pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
-    pub const ReservedDmpWeight: Weight =  MAXIMUM_BLOCK_WEIGHT / 4;
+    pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
+    pub const ReservedDmpWeight: Weight =  MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
@@ -1276,7 +1278,6 @@ parameter_types! {
 }
 
 impl pallet_democracy::Config for Runtime {
-    type Proposal = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type EnactmentPeriod = EnactmentPeriod;
@@ -1312,9 +1313,6 @@ impl pallet_democracy::Config for Runtime {
     // only do it once and it lasts only for the cool-off period.
     type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCollective>;
     type CooloffPeriod = CooloffPeriod;
-    type PreimageByteDeposit = PreimageByteDeposit;
-    type OperationalPreimageOrigin =
-        pallet_collective::EnsureMember<AccountId, GeneralCouncilCollective>;
     type Slash = Treasury;
     type Scheduler = Scheduler;
     type PalletsOrigin = OriginCaller;
@@ -1322,6 +1320,9 @@ impl pallet_democracy::Config for Runtime {
     type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
     type MaxProposals = MaxProposals;
     type VoteLockingPeriod = EnactmentPeriod;
+    type Preimages = Preimage;
+    type MaxDeposits = ConstU32<100>;
+    type MaxBlacklisted = ConstU32<100>;
 }
 
 parameter_types! {
@@ -1389,7 +1390,6 @@ impl pallet_membership::Config<TechnicalCommitteeMembershipInstance> for Runtime
 }
 
 parameter_types! {
-    pub const PreimageMaxSize: u32 = 4096 * 1024;
     pub const PreimageBaseDeposit: Balance = deposit(2, 64);
     pub const PreimageByteDeposit: Balance = deposit(0, 1);
 }
@@ -1399,7 +1399,6 @@ impl pallet_preimage::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type ManagerOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type MaxSize = PreimageMaxSize;
     type BaseDeposit = PreimageBaseDeposit;
     type ByteDeposit = PreimageByteDeposit;
 }
@@ -1420,8 +1419,7 @@ impl pallet_scheduler::Config for Runtime {
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
-    type PreimageProvider = Preimage;
-    type NoPreimagePostponement = NoPreimagePostponement;
+    type Preimages = Preimage;
 }
 
 parameter_types! {
