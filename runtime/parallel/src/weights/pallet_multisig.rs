@@ -31,7 +31,7 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// The range of component `z` is `[0, 10000]`.
 	fn as_multi_threshold_1(z: u32, ) -> Weight {
-		(31_651_000 as u64)
+		Weight::from_ref_time(31_651_000 as u64)
 			// Standard Error: 0
 			.saturating_add((1_000 as u64).saturating_mul(z as u64))
 	}
@@ -40,7 +40,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// The range of component `s` is `[2, 100]`.
 	/// The range of component `z` is `[0, 10000]`.
 	fn as_multi_create(s: u32, z: u32, ) -> Weight {
-		(62_322_000 as u64)
+		Weight::from_ref_time(62_322_000 as u64)
 			// Standard Error: 1_000
 			.saturating_add((189_000 as u64).saturating_mul(s as u64))
 			// Standard Error: 0
@@ -54,7 +54,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// The range of component `s` is `[2, 100]`.
 	/// The range of component `z` is `[0, 10000]`.
 	fn as_multi_create_store(s: u32, z: u32, ) -> Weight {
-		(69_770_000 as u64)
+		Weight::from_ref_time(69_770_000 as u64)
 			// Standard Error: 2_000
 			.saturating_add((176_000 as u64).saturating_mul(s as u64))
 			// Standard Error: 0
@@ -66,7 +66,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// The range of component `s` is `[3, 100]`.
 	/// The range of component `z` is `[0, 10000]`.
 	fn as_multi_approve(s: u32, z: u32, ) -> Weight {
-		(42_106_000 as u64)
+		Weight::from_ref_time(42_106_000 as u64)
 			// Standard Error: 1_000
 			.saturating_add((154_000 as u64).saturating_mul(s as u64))
 			// Standard Error: 0
@@ -79,7 +79,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// The range of component `s` is `[3, 100]`.
 	/// The range of component `z` is `[0, 10000]`.
 	fn as_multi_approve_store(s: u32, z: u32, ) -> Weight {
-		(66_683_000 as u64)
+		Weight::from_ref_time(66_683_000 as u64)
 			// Standard Error: 2_000
 			.saturating_add((173_000 as u64).saturating_mul(s as u64))
 			// Standard Error: 0
@@ -93,7 +93,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// The range of component `s` is `[2, 100]`.
 	/// The range of component `z` is `[0, 10000]`.
 	fn as_multi_complete(s: u32, z: u32, ) -> Weight {
-		(83_608_000 as u64)
+		Weight::from_ref_time(83_608_000 as u64)
 			// Standard Error: 1_000
 			.saturating_add((220_000 as u64).saturating_mul(s as u64))
 			// Standard Error: 0
@@ -105,7 +105,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	// Storage: unknown [0x3a65787472696e7369635f696e646578] (r:1 w:0)
 	/// The range of component `s` is `[2, 100]`.
 	fn approve_as_multi_create(s: u32, ) -> Weight {
-		(58_915_000 as u64)
+		Weight::from_ref_time(58_915_000 as u64)
 			// Standard Error: 2_000
 			.saturating_add((193_000 as u64).saturating_mul(s as u64))
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
@@ -115,7 +115,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	// Storage: Multisig Calls (r:1 w:0)
 	/// The range of component `s` is `[2, 100]`.
 	fn approve_as_multi_approve(s: u32, ) -> Weight {
-		(37_822_000 as u64)
+		Weight::from_ref_time(37_822_000 as u64)
 			// Standard Error: 1_000
 			.saturating_add((181_000 as u64).saturating_mul(s as u64))
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
@@ -126,7 +126,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	/// The range of component `s` is `[2, 100]`.
 	fn approve_as_multi_complete(s: u32, ) -> Weight {
-		(105_264_000 as u64)
+		Weight::from_ref_time(105_264_000 as u64)
 			// Standard Error: 2_000
 			.saturating_add((229_000 as u64).saturating_mul(s as u64))
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
@@ -136,7 +136,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	// Storage: Multisig Calls (r:1 w:1)
 	/// The range of component `s` is `[2, 100]`.
 	fn cancel_as_multi(s: u32, ) -> Weight {
-		(82_816_000 as u64)
+		Weight::from_ref_time(82_816_000 as u64)
 			// Standard Error: 1_000
 			.saturating_add((190_000 as u64).saturating_mul(s as u64))
 			.saturating_add(T::DbWeight::get().reads(2 as u64))

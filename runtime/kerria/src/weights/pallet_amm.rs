@@ -33,7 +33,7 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:3 w:3)
 	// Storage: Assets Account (r:5 w:5)
 	fn add_liquidity() -> Weight {
-		(214_746_000 as u64)
+		Weight::from_ref_time(214_746_000 as u64)
 			.saturating_add(T::DbWeight::get().reads(10 as u64))
 			.saturating_add(T::DbWeight::get().writes(10 as u64))
 	}
@@ -42,7 +42,7 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:3 w:3)
 	// Storage: Assets Account (r:5 w:5)
 	fn remove_liquidity() -> Weight {
-		(233_479_000 as u64)
+		Weight::from_ref_time(233_479_000 as u64)
 			.saturating_add(T::DbWeight::get().reads(10 as u64))
 			.saturating_add(T::DbWeight::get().writes(10 as u64))
 	}
@@ -52,7 +52,7 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:6 w:6)
 	// Storage: System Account (r:2 w:2)
 	fn create_pool() -> Weight {
-		(286_985_000 as u64)
+		Weight::from_ref_time(286_985_000 as u64)
 			.saturating_add(T::DbWeight::get().reads(13 as u64))
 			.saturating_add(T::DbWeight::get().writes(13 as u64))
 	}

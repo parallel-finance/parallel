@@ -33,7 +33,7 @@ impl<T: frame_system::Config> pallet_router::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:4 w:4)
 	// Storage: AMM Pools (r:1 w:1)
 	fn swap_exact_tokens_for_tokens() -> Weight {
-		(204_503_000 as u64)
+		Weight::from_ref_time(204_503_000 as u64)
 			.saturating_add(T::DbWeight::get().reads(8 as u64))
 			.saturating_add(T::DbWeight::get().writes(8 as u64))
 	}
@@ -42,7 +42,7 @@ impl<T: frame_system::Config> pallet_router::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:4 w:4)
 	// Storage: Assets Asset (r:2 w:2)
 	fn swap_tokens_for_exact_tokens() -> Weight {
-		(202_029_000 as u64)
+		Weight::from_ref_time(202_029_000 as u64)
 			.saturating_add(T::DbWeight::get().reads(8 as u64))
 			.saturating_add(T::DbWeight::get().writes(8 as u64))
 	}

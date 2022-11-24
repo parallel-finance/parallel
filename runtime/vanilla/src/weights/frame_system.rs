@@ -29,37 +29,37 @@ use sp_std::marker::PhantomData;
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> frame_system::WeightInfo for WeightInfo<T> {
 	fn remark(_b: u32, ) -> Weight {
-		(0 as u64)
+		Weight::from_ref_time(0 as u64)
 	}
 	fn remark_with_event(b: u32, ) -> Weight {
-		(17_860_000 as u64)
+		Weight::from_ref_time(17_860_000 as u64)
 			// Standard Error: 0
 			.saturating_add((2_000 as u64).saturating_mul(b as u64))
 	}
 	// Storage: System Digest (r:1 w:1)
 	// Storage: unknown [0x3a686561707061676573] (r:0 w:1)
 	fn set_heap_pages() -> Weight {
-		(9_241_000 as u64)
+		Weight::from_ref_time(9_241_000 as u64)
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	// Storage: Skipped Metadata (r:0 w:0)
 	fn set_storage(i: u32, ) -> Weight {
-		(0 as u64)
+		Weight::from_ref_time(0 as u64)
 			// Standard Error: 1_000
 			.saturating_add((1_058_000 as u64).saturating_mul(i as u64))
 			.saturating_add(T::DbWeight::get().writes((1 as u64).saturating_mul(i as u64)))
 	}
 	// Storage: Skipped Metadata (r:0 w:0)
 	fn kill_storage(i: u32, ) -> Weight {
-		(0 as u64)
+		Weight::from_ref_time(0 as u64)
 			// Standard Error: 1_000
 			.saturating_add((752_000 as u64).saturating_mul(i as u64))
 			.saturating_add(T::DbWeight::get().writes((1 as u64).saturating_mul(i as u64)))
 	}
 	// Storage: Skipped Metadata (r:0 w:0)
 	fn kill_prefix(p: u32, ) -> Weight {
-		(1_225_000 as u64)
+		Weight::from_ref_time(1_225_000 as u64)
 			// Standard Error: 1_000
 			.saturating_add((1_483_000 as u64).saturating_mul(p as u64))
 			.saturating_add(T::DbWeight::get().writes((1 as u64).saturating_mul(p as u64)))
