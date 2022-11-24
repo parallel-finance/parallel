@@ -3,20 +3,20 @@
 //!
 //! THIS FILE WAS AUTO-GENERATED USING THE SUBSTRATE BENCHMARK CLI VERSION 4.0.0-dev
 //! DATE: 2022-05-30, STEPS: `50`, REPEAT: 20, LOW RANGE: `[]`, HIGH RANGE: `[]`
-//! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("vanilla-dev"), DB CACHE: 1024
+//! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("kerria-dev"), DB CACHE: 1024
 
 // Executed Command:
 // ./target/release/parallel
 // benchmark
 // pallet
-// --chain=vanilla-dev
+// --chain=kerria-dev
 // --execution=wasm
 // --wasm-execution=compiled
 // --pallet=pallet_amm
 // --extrinsic=*
 // --steps=50
 // --repeat=20
-// --output=./runtime/vanilla/src/weights/pallet_amm.rs
+// --output=./runtime/kerria/src/weights/pallet_amm.rs
 
 #![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(unused_parens)]
@@ -33,7 +33,7 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:3 w:3)
 	// Storage: Assets Account (r:5 w:5)
 	fn add_liquidity() -> Weight {
-		Weight::from_ref_time(209_348_000 as u64)
+		Weight::from_ref_time(214_746_000 as u64)
 			.saturating_add(T::DbWeight::get().reads(10 as u64))
 			.saturating_add(T::DbWeight::get().writes(10 as u64))
 	}
@@ -42,7 +42,7 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:3 w:3)
 	// Storage: Assets Account (r:5 w:5)
 	fn remove_liquidity() -> Weight {
-		Weight::from_ref_time(226_453_000 as u64)
+		Weight::from_ref_time(233_479_000 as u64)
 			.saturating_add(T::DbWeight::get().reads(10 as u64))
 			.saturating_add(T::DbWeight::get().writes(10 as u64))
 	}
@@ -52,16 +52,16 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:6 w:6)
 	// Storage: System Account (r:2 w:2)
 	fn create_pool() -> Weight {
-		Weight::from_ref_time(278_326_000 as u64)
+		Weight::from_ref_time(286_985_000 as u64)
 			.saturating_add(T::DbWeight::get().reads(13 as u64))
 			.saturating_add(T::DbWeight::get().writes(13 as u64))
 	}
 	// Storage: AMM ProtocolFee (r:0 w:1)
 	fn update_protocol_fee() -> Weight {
-			(4_067_000 as u64).saturating_add(T::DbWeight::get().writes(1 as u64))
+		Weight::from_ref_time(4_067_000 as u64).saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: AMM ProtocolFeeReceiver (r:0 w:1)
 	fn update_protocol_fee_receiver() -> Weight {
-			(4_114_000 as u64).saturating_add(T::DbWeight::get().writes(1 as u64))
+		Weight::from_ref_time(4_114_000 as u64).saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 }

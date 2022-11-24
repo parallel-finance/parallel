@@ -8,7 +8,6 @@ pub mod pallet_farming;
 pub mod pallet_liquid_staking;
 pub mod pallet_loans;
 pub mod pallet_membership;
-pub mod pallet_multisig;
 pub mod pallet_router;
 pub mod pallet_streaming;
 pub mod pallet_timestamp;
