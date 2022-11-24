@@ -62,7 +62,7 @@ impl<T: frame_system::Config> orml_vesting::WeightInfo for WeightInfo<T> {
 	fn claim(i: u32, ) -> Weight {
 		Weight::from_ref_time(32_915_000 as u64)
 			// Standard Error: 0
-			.saturating_add((15_000 as u64).saturating_mul(i as u64))
+			.saturating_add(Weight::from_ref_time(15_000 as u64).saturating_mul(i as u64))
 			.saturating_add(T::DbWeight::get().reads(4 as u64))
 			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
@@ -72,7 +72,7 @@ impl<T: frame_system::Config> orml_vesting::WeightInfo for WeightInfo<T> {
 	fn update_vesting_schedules(i: u32, ) -> Weight {
 		Weight::from_ref_time(27_534_000 as u64)
 			// Standard Error: 0
-			.saturating_add((60_000 as u64).saturating_mul(i as u64))
+			.saturating_add(Weight::from_ref_time(60_000 as u64).saturating_mul(i as u64))
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}

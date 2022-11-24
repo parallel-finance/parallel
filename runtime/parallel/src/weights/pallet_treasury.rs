@@ -52,7 +52,7 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 	fn approve_proposal(p: u32, ) -> Weight {
 		Weight::from_ref_time(19_177_000 as u64)
 			// Standard Error: 1_000
-			.saturating_add((188_000 as u64).saturating_mul(p as u64))
+			.saturating_add(Weight::from_ref_time(188_000 as u64).saturating_mul(p as u64))
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
@@ -69,7 +69,7 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 	fn on_initialize_proposals(p: u32, ) -> Weight {
 		Weight::from_ref_time(39_439_000 as u64)
 			// Standard Error: 19_000
-			.saturating_add((57_799_000 as u64).saturating_mul(p as u64))
+			.saturating_add(Weight::from_ref_time(57_799_000 as u64).saturating_mul(p as u64))
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().reads((3 as u64).saturating_mul(p as u64)))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))

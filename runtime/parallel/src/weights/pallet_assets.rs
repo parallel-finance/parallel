@@ -52,11 +52,11 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	fn destroy(c: u32, s: u32, a: u32, ) -> Weight {
 		Weight::from_ref_time(0 as u64)
 			// Standard Error: 56_000
-			.saturating_add((29_286_000 as u64).saturating_mul(c as u64))
+			.saturating_add(Weight::from_ref_time(29_286_000 as u64).saturating_mul(c as u64))
 			// Standard Error: 56_000
-			.saturating_add((34_681_000 as u64).saturating_mul(s as u64))
+			.saturating_add(Weight::from_ref_time(34_681_000 as u64).saturating_mul(s as u64))
 			// Standard Error: 561_000
-			.saturating_add((34_914_000 as u64).saturating_mul(a as u64))
+			.saturating_add(Weight::from_ref_time(34_914_000 as u64).saturating_mul(a as u64))
 			.saturating_add(T::DbWeight::get().reads(5 as u64))
 			.saturating_add(T::DbWeight::get().reads((2 as u64).saturating_mul(c as u64)))
 			.saturating_add(T::DbWeight::get().reads((2 as u64).saturating_mul(s as u64)))
@@ -150,7 +150,7 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	fn set_metadata(_n: u32, s: u32, ) -> Weight {
 		Weight::from_ref_time(54_619_000 as u64)
 			// Standard Error: 0
-			.saturating_add((4_000 as u64).saturating_mul(s as u64))
+			.saturating_add(Weight::from_ref_time(4_000 as u64).saturating_mul(s as u64))
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
@@ -168,7 +168,7 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	fn force_set_metadata(_n: u32, s: u32, ) -> Weight {
 		Weight::from_ref_time(32_021_000 as u64)
 			// Standard Error: 0
-			.saturating_add((2_000 as u64).saturating_mul(s as u64))
+			.saturating_add(Weight::from_ref_time(2_000 as u64).saturating_mul(s as u64))
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
