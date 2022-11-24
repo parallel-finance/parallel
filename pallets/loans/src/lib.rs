@@ -115,11 +115,11 @@ pub mod pallet {
         type PalletId: Get<PalletId>;
 
         /// The origin which can add/reduce reserves.
-        type ReserveOrigin: EnsureOrigin<Self::Origin>;
+        type ReserveOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// The origin which can update rate model, liquidate incentive and
         /// add/reduce reserves. Root can always do this.
-        type UpdateOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;

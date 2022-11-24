@@ -96,7 +96,7 @@ pub mod pallet {
         type UnixTime: UnixTime;
 
         /// The origin which can update minimum_deposit
-        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// Weight information
         type WeightInfo: WeightInfo;

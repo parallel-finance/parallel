@@ -119,11 +119,11 @@ where
     Instance: eip2612::InstanceToPrefix + 'static,
     Runtime: pallet_assets::Config<Instance> + pallet_evm::Config + frame_system::Config,
     Runtime::RuntimeCall: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
-    Runtime::RuntimeCall: From<pallet_assets::RuntimeCall<Runtime, Instance>>,
-    <Runtime::RuntimeCall as Dispatchable>::Origin: From<Option<Runtime::AccountId>>,
+    Runtime::RuntimeCall: From<pallet_assets::Call<Runtime, Instance>>,
+    <Runtime::RuntimeCall as Dispatchable>::RuntimeOrigin: From<Option<Runtime::AccountId>>,
     BalanceOf<Runtime, Instance>: TryFrom<U256> + Into<U256> + EvmData,
     Runtime: AddressToAssetId<AssetIdOf<Runtime, Instance>>,
-    <<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::Origin: OriginTrait,
+    <<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin: OriginTrait,
     <Runtime as pallet_timestamp::Config>::Moment: Into<U256>,
     AssetIdOf<Runtime, Instance>: Display,
 {
@@ -200,11 +200,11 @@ where
     Instance: eip2612::InstanceToPrefix + 'static,
     Runtime: pallet_assets::Config<Instance> + pallet_evm::Config + frame_system::Config,
     Runtime::RuntimeCall: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
-    Runtime::RuntimeCall: From<pallet_assets::RuntimeCall<Runtime, Instance>>,
-    <Runtime::RuntimeCall as Dispatchable>::Origin: From<Option<Runtime::AccountId>>,
+    Runtime::RuntimeCall: From<pallet_assets::Call<Runtime, Instance>>,
+    <Runtime::RuntimeCall as Dispatchable>::RuntimeOrigin: From<Option<Runtime::AccountId>>,
     BalanceOf<Runtime, Instance>: TryFrom<U256> + Into<U256> + EvmData,
     Runtime: AddressToAssetId<AssetIdOf<Runtime, Instance>>,
-    <<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::Origin: OriginTrait,
+    <<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin: OriginTrait,
 {
     fn total_supply(
         asset_id: AssetIdOf<Runtime, Instance>,
@@ -312,7 +312,7 @@ where
             RuntimeHelper::<Runtime>::try_dispatch(
                 handle,
                 Some(owner.clone()).into(),
-                pallet_assets::RuntimeCall::<Runtime, Instance>::cancel_approval {
+                pallet_assets::Call::<Runtime, Instance>::cancel_approval {
                     id: asset_id,
                     delegate: Runtime::Lookup::unlookup(spender.clone()),
                 },
@@ -322,7 +322,7 @@ where
         RuntimeHelper::<Runtime>::try_dispatch(
             handle,
             Some(owner).into(),
-            pallet_assets::RuntimeCall::<Runtime, Instance>::approve_transfer {
+            pallet_assets::Call::<Runtime, Instance>::approve_transfer {
                 id: asset_id,
                 delegate: Runtime::Lookup::unlookup(spender),
                 amount,
@@ -351,7 +351,7 @@ where
             RuntimeHelper::<Runtime>::try_dispatch(
                 handle,
                 Some(origin).into(),
-                pallet_assets::RuntimeCall::<Runtime, Instance>::transfer {
+                pallet_assets::Call::<Runtime, Instance>::transfer {
                     id: asset_id,
                     target: Runtime::Lookup::unlookup(to),
                     amount,
@@ -396,7 +396,7 @@ where
                 RuntimeHelper::<Runtime>::try_dispatch(
                     handle,
                     Some(caller).into(),
-                    pallet_assets::RuntimeCall::<Runtime, Instance>::transfer_approved {
+                    pallet_assets::Call::<Runtime, Instance>::transfer_approved {
                         id: asset_id,
                         owner: Runtime::Lookup::unlookup(from),
                         destination: Runtime::Lookup::unlookup(to),
@@ -408,7 +408,7 @@ where
                 RuntimeHelper::<Runtime>::try_dispatch(
                     handle,
                     Some(from).into(),
-                    pallet_assets::RuntimeCall::<Runtime, Instance>::transfer {
+                    pallet_assets::Call::<Runtime, Instance>::transfer {
                         id: asset_id,
                         target: Runtime::Lookup::unlookup(to),
                         amount,
@@ -509,7 +509,7 @@ where
         RuntimeHelper::<Runtime>::try_dispatch(
             handle,
             Some(origin).into(),
-            pallet_assets::RuntimeCall::<Runtime, Instance>::mint {
+            pallet_assets::Call::<Runtime, Instance>::mint {
                 id: asset_id,
                 beneficiary: Runtime::Lookup::unlookup(beneficiary),
                 amount,
@@ -536,7 +536,7 @@ where
         RuntimeHelper::<Runtime>::try_dispatch(
             handle,
             Some(origin).into(),
-            pallet_assets::RuntimeCall::<Runtime, Instance>::burn {
+            pallet_assets::Call::<Runtime, Instance>::burn {
                 id: asset_id,
                 who: Runtime::Lookup::unlookup(who),
                 amount,

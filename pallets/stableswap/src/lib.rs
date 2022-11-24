@@ -69,7 +69,8 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>: frame_system::Config {
-        type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self, I>>
+            + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
@@ -108,7 +109,7 @@ pub mod pallet {
         type AmplificationCoefficient: Get<u8>;
 
         /// Specify which origin is allowed to create new pools.
-        type CreatePoolOrigin: EnsureOrigin<Self::Origin>;
+        type CreatePoolOrigin: EnsureOrigin<Self::RuntimeOrigin>;
     }
 
     #[pallet::error]

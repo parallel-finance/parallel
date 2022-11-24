@@ -1,6 +1,6 @@
 use crate::{
     mock::{
-        market_mock, new_test_ext, Loans, Origin, Test, ACTIVE_MARKET_MOCK, ALICE, DOT,
+        market_mock, new_test_ext, Loans, RuntimeOrigin, Test, ACTIVE_MARKET_MOCK, ALICE, DOT,
         MARKET_MOCK, PDOT, PUSDT, SDOT,
     },
     Error, InterestRateModel, MarketState,

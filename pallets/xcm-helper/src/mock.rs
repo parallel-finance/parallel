@@ -59,8 +59,8 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
 }
 
 parameter_types! {
-    pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
-    pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND / 4;
+    pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND.saturating_div(4);
+    pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND.saturating_div(4);
 }
 
 impl cumulus_pallet_parachain_system::Config for Test {
@@ -80,7 +80,7 @@ impl parachain_info::Config for Test {}
 parameter_types! {
     pub RelayNetwork: NetworkId = NetworkId::Kusama;
     pub RelayCurrency: CurrencyId = DOT;
-    pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
+    pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
 
@@ -91,15 +91,15 @@ pub type LocationToAccountId = (
 );
 
 pub type XcmOriginToCallOrigin = (
-    SovereignSignedViaLocation<LocationToAccountId, Origin>,
-    RelayChainAsNative<RelayChainOrigin, Origin>,
-    SiblingParachainAsNative<cumulus_pallet_xcm::Origin, Origin>,
-    SignedAccountId32AsNative<RelayNetwork, Origin>,
-    XcmPassthrough<Origin>,
+    SovereignSignedViaLocation<LocationToAccountId, RuntimeOrigin>,
+    RelayChainAsNative<RelayChainOrigin, RuntimeOrigin>,
+    SiblingParachainAsNative<cumulus_pallet_xcm::Origin, RuntimeOrigin>,
+    SignedAccountId32AsNative<RelayNetwork, RuntimeOrigin>,
+    XcmPassthrough<RuntimeOrigin>,
 );
 
 parameter_types! {
-    pub const UnitWeightCost: Weight = 1;
+    pub const UnitWeightCost: u64 = 1;
     pub DotPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), 1);
 }
 
@@ -142,7 +142,7 @@ impl Config for XcmConfig {
     type IsTeleporter = ();
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
     type Trader = FixedRateOfFungible<DotPerSecond, ()>;
     type ResponseHandler = ();
     type SubscriptionService = PolkadotXcm;
@@ -166,7 +166,7 @@ impl<Origin: OriginTrait> ConvertOrigin<Origin> for SystemParachainAsSuperuser<O
                 } if ParaId::from(id).is_system(),
             )
         {
-            Ok(RuntimeOrigin::root())
+            Ok(Origin::root())
         } else {
             Err(origin)
         }
@@ -180,7 +180,7 @@ impl cumulus_pallet_xcmp_queue::Config for Test {
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = ();
     type ControllerOrigin = EnsureRoot<AccountId>;
-    type ControllerOriginConverter = SystemParachainAsSuperuser<Origin>;
+    type ControllerOriginConverter = SystemParachainAsSuperuser<RuntimeOrigin>;
     type WeightInfo = cumulus_pallet_xcmp_queue::weights::SubstrateWeight<Test>;
 }
 
@@ -195,7 +195,7 @@ impl cumulus_pallet_xcm::Config for Test {
     type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
-pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
+pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
 impl pallet_xcm::Config for Test {
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
@@ -203,15 +203,15 @@ impl pallet_xcm::Config for Test {
     type RuntimeOrigin = RuntimeOrigin;
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
-    type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
     type XcmRouter = XcmRouter;
-    type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
     type XcmExecuteFilter = Nothing;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type XcmTeleportFilter = Nothing;
 
     type XcmReserveTransferFilter = Everything;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
     type LocationInverter = LocationInverter<Ancestry>;
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
@@ -280,7 +280,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
-    pub const BaseXcmWeight: Weight = 100_000_000;
+    pub const BaseXcmWeight: u64 = 100_000_000;
     pub const MaxInstructions: u32 = 100;
 }
 
@@ -432,7 +432,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
     let xcm_weight_fee_misc = XcmWeightFeeMisc {
-        weight: 3_000_000_000,
+        weight: Weight::from_ref_time(3_000_000_000),
         fee: dot(10f64),
     };
 
@@ -509,7 +509,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         .unwrap();
 
     let xcm_weight_fee_misc = XcmWeightFeeMisc {
-        weight: 3_000_000_000,
+        weight: Weight::from_ref_time(3_000_000_000),
         fee: dot(10f64),
     };
 

@@ -23,7 +23,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{
-    log, pallet_prelude::*, traits::fungibles::Inspect, transactional, weights::DispatchClass,
+    dispatch::DispatchClass, log, pallet_prelude::*, traits::fungibles::Inspect, transactional,
 };
 use frame_system::pallet_prelude::*;
 use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
@@ -68,10 +68,10 @@ pub mod pallet {
             + DataFeeder<CurrencyId, TimeStampedPrice, Self::AccountId>;
 
         /// The origin which may set prices feed to system.
-        type FeederOrigin: EnsureOrigin<Self::Origin>;
+        type FeederOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// The origin which can update prices link.
-        type UpdateOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Liquid currency & staking currency provider
         type LiquidStakingCurrenciesProvider: LiquidStakingCurrenciesProvider<CurrencyId>;

@@ -32,25 +32,25 @@ pub trait WeightInfo {
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn set_price() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
     fn reset_price() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
     fn set_foreign_asset() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
     fn set_price() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
     fn reset_price() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
     fn set_foreign_asset() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
 }

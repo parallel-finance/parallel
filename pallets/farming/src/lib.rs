@@ -85,7 +85,7 @@ pub mod pallet {
         type Decimal: DecimalProvider<CurrencyId>;
 
         /// The origin which can create new pools and add reward.
-        type UpdateOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Specifies max amount lock item for a user
         #[pallet::constant]

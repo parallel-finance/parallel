@@ -196,11 +196,12 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
     pub const PrecompilesValue: Erc20AssetsPrecompileSet<Runtime> =
         Erc20AssetsPrecompileSet(PhantomData);
+    pub WeightPerGas: u64 = 20_000;
 }
 
 impl pallet_evm::Config for Runtime {
     type FeeCalculator = ();
-    type GasWeightMapping = ();
+    type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
     type CallOrigin = EnsureAddressRoot<AccountId>;
     type WithdrawOrigin = EnsureAddressNever<AccountId>;
     type AddressMapping = AccountId;
@@ -214,6 +215,7 @@ impl pallet_evm::Config for Runtime {
     type BlockGasLimit = ();
     type BlockHashMapping = pallet_evm::SubstrateBlockHashMapping<Self>;
     type FindAuthor = ();
+    type WeightPerGas = WeightPerGas;
 }
 
 // These parameters dont matter much as this will only be called by root with the forced arguments

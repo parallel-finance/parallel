@@ -16,7 +16,7 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{Event, *};
+use mock::{RuntimeEvent, *};
 use primitives::TimeStampedPrice;
 use sp_runtime::{
     traits::{BadOrigin, Saturating},
@@ -118,7 +118,7 @@ fn set_price_call_work() {
         );
 
         // check the event
-        let set_price_event = Event::Prices(crate::Event::SetPrice(
+        let set_price_event = RuntimeEvent::Prices(crate::Event::SetPrice(
             DOT,
             Price::saturating_from_integer(90),
         ));
@@ -170,7 +170,7 @@ fn reset_price_call_work() {
         );
 
         // check the event
-        let reset_price_event = Event::Prices(crate::Event::ResetPrice(DOT));
+        let reset_price_event = RuntimeEvent::Prices(crate::Event::ResetPrice(DOT));
         assert!(System::events()
             .iter()
             .any(|record| record.event == reset_price_event));

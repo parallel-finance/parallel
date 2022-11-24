@@ -33,11 +33,11 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Members (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	fn add_member(m: u32, ) -> Weight {
-		(39_514_000 as Weight)
+		(39_514_000 as u64)
 			// Standard Error: 5_000
-			.saturating_add((109_000 as Weight).saturating_mul(m as Weight))
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+			.saturating_add((109_000 as u64).saturating_mul(m as u64))
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	// Storage: TechnicalCommitteeMembership Members (r:1 w:1)
 	// Storage: TechnicalCommittee Proposals (r:1 w:0)
@@ -45,11 +45,11 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Members (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	fn remove_member(m: u32, ) -> Weight {
-		(47_023_000 as Weight)
+		(47_023_000 as u64)
 			// Standard Error: 0
-			.saturating_add((88_000 as Weight).saturating_mul(m as Weight))
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+			.saturating_add((88_000 as u64).saturating_mul(m as u64))
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	// Storage: TechnicalCommitteeMembership Members (r:1 w:1)
 	// Storage: TechnicalCommittee Proposals (r:1 w:0)
@@ -57,11 +57,11 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Members (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	fn swap_member(m: u32, ) -> Weight {
-		(46_951_000 as Weight)
+		(46_951_000 as u64)
 			// Standard Error: 0
-			.saturating_add((110_000 as Weight).saturating_mul(m as Weight))
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+			.saturating_add((110_000 as u64).saturating_mul(m as u64))
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	// Storage: TechnicalCommitteeMembership Members (r:1 w:1)
 	// Storage: TechnicalCommittee Proposals (r:1 w:0)
@@ -69,11 +69,11 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Members (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	fn reset_member(m: u32, ) -> Weight {
-		(48_481_000 as Weight)
+		(48_481_000 as u64)
 			// Standard Error: 1_000
-			.saturating_add((288_000 as Weight).saturating_mul(m as Weight))
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+			.saturating_add((288_000 as u64).saturating_mul(m as u64))
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	// Storage: TechnicalCommitteeMembership Members (r:1 w:1)
 	// Storage: TechnicalCommittee Proposals (r:1 w:0)
@@ -81,28 +81,28 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Members (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	fn change_key(m: u32, ) -> Weight {
-		(48_553_000 as Weight)
+		(48_553_000 as u64)
 			// Standard Error: 1_000
-			.saturating_add((114_000 as Weight).saturating_mul(m as Weight))
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+			.saturating_add((114_000 as u64).saturating_mul(m as u64))
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
 	// Storage: TechnicalCommitteeMembership Members (r:1 w:0)
 	// Storage: TechnicalCommitteeMembership Prime (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	fn set_prime(m: u32, ) -> Weight {
-		(14_085_000 as Weight)
+		(14_085_000 as u64)
 			// Standard Error: 0
-			.saturating_add((51_000 as Weight).saturating_mul(m as Weight))
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+			.saturating_add((51_000 as u64).saturating_mul(m as u64))
+			.saturating_add(T::DbWeight::get().reads(1 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	// Storage: TechnicalCommitteeMembership Prime (r:0 w:1)
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	fn clear_prime(m: u32, ) -> Weight {
-		(5_637_000 as Weight)
+		(5_637_000 as u64)
 			// Standard Error: 0
-			.saturating_add((3_000 as Weight).saturating_mul(m as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+			.saturating_add((3_000 as u64).saturating_mul(m as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 }

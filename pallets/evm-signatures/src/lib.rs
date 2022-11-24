@@ -27,6 +27,7 @@ mod tests;
 pub mod pallet {
     use super::*;
     use frame_support::{
+        dispatch::GetDispatchInfo,
         pallet_prelude::*,
         traits::{
             tokens::{
@@ -37,7 +38,6 @@ pub mod pallet {
             WithdrawReasons,
         },
         transactional,
-        weights::GetDispatchInfo,
     };
     use frame_system::{ensure_none, pallet_prelude::*};
     use pallet_evm::{AddressMapping, EnsureAddressOrigin};
@@ -66,7 +66,9 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// A signable call.
-        type Call: Parameter + UnfilteredDispatchable<Origin = Self::Origin> + GetDispatchInfo;
+        type RuntimeCall: Parameter
+            + UnfilteredDispatchable<RuntimeOrigin = Self::RuntimeOrigin>
+            + GetDispatchInfo;
 
         /// User defined signature type.
         type Signature: Parameter + Verify<Signer = Self::Signer> + TryFrom<Vec<u8>>;
@@ -97,7 +99,7 @@ pub mod pallet {
         type UnsignedPriority: Get<TransactionPriority>;
 
         /// Allow the origin to withdraw on behalf of given address.
-        type WithdrawOrigin: EnsureAddressOrigin<Self::Origin, Success = Self::AccountId>;
+        type WithdrawOrigin: EnsureAddressOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 
         /// Enable signature verify or not
         #[pallet::constant]
@@ -144,7 +146,7 @@ pub mod pallet {
         /// # </weight>
         #[pallet::weight({
             let dispatch_info = call.get_dispatch_info();
-            (dispatch_info.weight.saturating_add(10_000_000), dispatch_info.class)
+            (Weight::from_ref_time(10_000_000).saturating_add(dispatch_info.weight), dispatch_info.class)
         })]
         pub fn call(
             origin: OriginFor<T>,
@@ -176,7 +178,7 @@ pub mod pallet {
             // Processing fee
             let tx_fee = T::Currency::withdraw(
                 &signer,
-                T::RuntimeCallFee::get(),
+                T::CallFee::get(),
                 WithdrawReasons::FEE,
                 ExistenceRequirement::AllowDeath,
             )?;
@@ -216,7 +218,7 @@ pub mod pallet {
             signature: &T::Signature,
             nonce: &T::Index,
         ) -> bool {
-            let payload = (T::RuntimeCallMagicNumber::get(), *nonce, call.clone());
+            let payload = (T::CallMagicNumber::get(), *nonce, call.clone());
             //temporarily disable
             if T::VerifySignature::get() {
                 signature.verify(&payload.encode()[..], signer)
@@ -247,10 +249,7 @@ pub mod pallet {
     impl<T: Config> frame_support::unsigned::ValidateUnsigned for Pallet<T> {
         type Call = Call<T>;
 
-        fn validate_unsigned(
-            _source: TransactionSource,
-            call: &Self::RuntimeCall,
-        ) -> TransactionValidity {
+        fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
             // Call decomposition (we have only one possible value here)
             let (call, signer, signature, nonce) = match call {
                 Call::call {
@@ -259,7 +258,7 @@ pub mod pallet {
                     signature,
                     nonce,
                 } => (call, signer, signature, nonce),
-                _ => return InvalidTransaction::RuntimeCall.into(),
+                _ => return InvalidTransaction::Call.into(),
             };
 
             // Check that tx isn't stale
@@ -287,7 +286,7 @@ pub mod pallet {
             }
         }
 
-        fn pre_dispatch(_call: &Self::RuntimeCall) -> Result<(), TransactionValidityError> {
+        fn pre_dispatch(_call: &Self::Call) -> Result<(), TransactionValidityError> {
             Ok(())
         }
     }

@@ -171,11 +171,12 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
         pub BlockGasLimit: U256 = U256::max_value();
         pub const PrecompilesValue: Precompiles<Runtime> = Precompiles(PhantomData);
+        pub WeightPerGas: u64 = 20_000;
 }
 
 impl pallet_evm::Config for Runtime {
     type FeeCalculator = ();
-    type GasWeightMapping = ();
+    type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
     type CallOrigin = EnsureAddressRoot<AccountId>;
     type WithdrawOrigin = EnsureAddressNever<AccountId>;
     type AddressMapping = AccountId;
@@ -189,6 +190,7 @@ impl pallet_evm::Config for Runtime {
     type BlockGasLimit = BlockGasLimit;
     type BlockHashMapping = pallet_evm::SubstrateBlockHashMapping<Self>;
     type FindAuthor = ();
+    type WeightPerGas = WeightPerGas;
 }
 
 // Configure a mock runtime to test the pallet.
@@ -291,7 +293,7 @@ impl ExtBuilder {
     }
 }
 
-pub(crate) fn events() -> Vec<Event> {
+pub(crate) fn events() -> Vec<RuntimeEvent> {
     System::events()
         .into_iter()
         .map(|r| r.event)

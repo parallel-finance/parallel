@@ -336,7 +336,7 @@ fn test_transact_bond_work() {
             RewardDestination::Staked
         ));
 
-        ParaSystem::assert_has_event(mock::Event::LiquidStaking(crate::Event::Bonding(
+        ParaSystem::assert_has_event(mock::RuntimeEvent::LiquidStaking(crate::Event::Bonding(
             derivative_index,
             LiquidStaking::derivative_sovereign_account_id(derivative_index),
             ksm(3f64),
@@ -345,10 +345,10 @@ fn test_transact_bond_work() {
     });
 
     Relay::execute_with(|| {
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(3f64),
-        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(3f64),
+        }));
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id(
             derivative_index,
         ))
@@ -431,14 +431,14 @@ fn test_transact_unbond_work() {
     });
 
     Relay::execute_with(|| {
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(5f64),
-        )));
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(2f64),
-        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(5f64),
+        }));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(2f64),
+        }));
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id(
             derivative_index,
         ))
@@ -496,14 +496,14 @@ fn test_transact_withdraw_unbonded_work() {
         assert_eq!(ledger.active, ksm(3f64));
         assert_eq!(ledger.unlocking.len(), 1);
 
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(5f64),
-        )));
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(2f64),
-        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(5f64),
+        }));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(2f64),
+        }));
 
         pallet_staking::CurrentEra::<KusamaRuntime>::put(
             <KusamaRuntime as pallet_staking::Config>::BondingDuration::get(),
@@ -574,18 +574,18 @@ fn test_transact_rebond_work() {
     });
 
     Relay::execute_with(|| {
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(10f64),
-        )));
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(5f64),
-        )));
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(3f64),
-        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(10f64),
+        }));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(5f64),
+        }));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(3f64),
+        }));
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id(
             derivative_index,
         ))
@@ -980,7 +980,7 @@ fn test_verify_trie_proof_work() {
     let value = hex::decode(MOCK_DATA).unwrap();
     let relay_proof = StorageProof::new(get_mock_proof_bytes());
     let db = relay_proof.into_memory_db();
-    let result = sp_trie::read_trie_value::<LayoutV1, _>(&db, &relay_root, &key)
+    let result = sp_trie::read_trie_value::<LayoutV1, _>(&db, &relay_root, &key, None, None)
         .unwrap()
         .unwrap();
     assert_eq!(result, value);
