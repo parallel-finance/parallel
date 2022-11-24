@@ -82,8 +82,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -91,7 +91,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -114,7 +114,7 @@ parameter_types! {
 }
 
 impl pallet_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
     type Currency = Balances;
@@ -138,7 +138,7 @@ parameter_types! {
 impl pallet_balances::Config for Test {
     type Balance = Balance;
     type DustRemoval = ();
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = ();
@@ -177,7 +177,7 @@ impl ChangeMembers<AccountId> for ChangeBridgeMembers {
 
 type BridgeMembershipInstance = pallet_membership::Instance1;
 impl pallet_membership::Config<BridgeMembershipInstance> for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type AddOrigin = EnsureRootOrigin;
     type RemoveOrigin = EnsureRootOrigin;
     type SwapOrigin = EnsureRootOrigin;
@@ -217,7 +217,7 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
 }
 
 impl Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type RelayMembers = BridgeMembership;
     type RootOperatorAccountId = RootOperatorAccountId;
     type UpdateChainOrigin = EnsureRoot<AccountId>;
@@ -237,7 +237,7 @@ impl Config for Test {
 }
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
-pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, u64, Call, ()>;
+pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, u64, RuntimeCall, ()>;
 
 frame_support::construct_runtime!(
     pub enum Test where
@@ -262,9 +262,9 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), KSM, ALICE, true, 1).unwrap();
         Assets::force_set_metadata(
-            Origin::root(),
+            RuntimeOrigin::root(),
             KSM,
             b"Kusama".to_vec(),
             b"KSM".to_vec(),
@@ -272,9 +272,9 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), USDT, ALICE, true, 1).unwrap();
         Assets::force_set_metadata(
-            Origin::root(),
+            RuntimeOrigin::root(),
             USDT,
             b"USDT".to_vec(),
             b"USDT".to_vec(),
@@ -283,22 +283,22 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        Balances::set_balance(Origin::root(), EVE, dollar(100), dollar(0)).unwrap();
+        Balances::set_balance(RuntimeOrigin::root(), EVE, dollar(100), dollar(0)).unwrap();
         Balances::set_balance(
-            Origin::root(),
+            RuntimeOrigin::root(),
             PalletId(*b"par/gift").into_account_truncating(),
             dollar(1000000),
             dollar(0),
         )
         .unwrap();
 
-        BridgeMembership::add_member(Origin::root(), ALICE).unwrap();
-        BridgeMembership::add_member(Origin::root(), BOB).unwrap();
-        BridgeMembership::add_member(Origin::root(), CHARLIE).unwrap();
+        BridgeMembership::add_member(RuntimeOrigin::root(), ALICE).unwrap();
+        BridgeMembership::add_member(RuntimeOrigin::root(), BOB).unwrap();
+        BridgeMembership::add_member(RuntimeOrigin::root(), CHARLIE).unwrap();
 
-        Bridge::register_chain(Origin::root(), ETH).unwrap();
-        Bridge::register_bridge_token(Origin::root(), HKO, EHKO_CURRENCY).unwrap();
-        Bridge::register_bridge_token(Origin::root(), USDT, EUSDT_CURRENCY).unwrap();
+        Bridge::register_chain(RuntimeOrigin::root(), ETH).unwrap();
+        Bridge::register_bridge_token(RuntimeOrigin::root(), HKO, EHKO_CURRENCY).unwrap();
+        Bridge::register_bridge_token(RuntimeOrigin::root(), USDT, EUSDT_CURRENCY).unwrap();
 
         System::set_block_number(0);
         run_to_block(1);
@@ -307,8 +307,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 }
 
 // Checks events against the latest.
-pub fn assert_events(mut expected: Vec<Event>) {
-    let mut actual: Vec<Event> = system::Pallet::<Test>::events()
+pub fn assert_events(mut expected: Vec<RuntimeEvent>) {
+    let mut actual: Vec<RuntimeEvent> = system::Pallet::<Test>::events()
         .iter()
         .map(|e| e.event.clone())
         .collect();
