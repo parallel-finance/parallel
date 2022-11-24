@@ -41,19 +41,19 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// This can be used by the runtime to define which calls should be allowed in an emergency shutdown state.
         type Whitelist: Contains<<Self as Config>::RuntimeCall>;
 
         /// The origin which can shutdown.
-        type ShutdownOrigin: EnsureOrigin<Self::Origin>;
+        type ShutdownOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// The overarching call type.
-        type Call: Parameter
-            + Dispatchable<Origin = Self::Origin, PostInfo = PostDispatchInfo>
+        type RuntimeCall: Parameter
+            + Dispatchable<RuntimeOrigin = Self::RuntimeOrigin, PostInfo = PostDispatchInfo>
             + GetDispatchInfo
-            + From<frame_system::RuntimeCall<Self>>;
+            + From<frame_system::Call<Self>>;
     }
 
     #[pallet::event]
@@ -84,7 +84,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Toggle the shutdown flag
-        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        #[pallet::weight(Weight::from_ref_time(10_000).saturating_add(T::DbWeight::get().writes(1)))]
         pub fn toggle_pallet(origin: OriginFor<T>, pallet_idx: u8) -> DispatchResult {
             T::ShutdownOrigin::ensure_origin(origin)?;
 
@@ -96,7 +96,7 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        #[pallet::weight(Weight::from_ref_time(10_000).saturating_add(T::DbWeight::get().writes(1)))]
         pub fn toggle_call(origin: OriginFor<T>, pallet_idx: u8, call_idx: u8) -> DispatchResult {
             T::ShutdownOrigin::ensure_origin(origin)?;
 

@@ -28,7 +28,7 @@ use crate::{kusama_test_net::*, setup::*};
 fn transfer_from_relay_chain() {
     KusamaNet::execute_with(|| {
         assert_ok!(kusama_runtime::XcmPallet::reserve_transfer_assets(
-            kusama_runtime::Origin::signed(ALICE.into()),
+            kusama_runtime::RuntimeOrigin::signed(ALICE.into()),
             Box::new(VersionedMultiLocation::V1(X1(Parachain(2085)).into())),
             Box::new(VersionedMultiLocation::V1(
                 X1(Junction::AccountId32 {
@@ -53,7 +53,7 @@ fn transfer_to_relay_chain() {
     use heiko_runtime::{Origin, XTokens};
     Heiko::execute_with(|| {
         assert_ok!(XTokens::transfer(
-            Origin::signed(ALICE.into()),
+            RuntimeOrigin::signed(ALICE.into()),
             KSM,
             ksm(1f64),
             Box::new(xcm::VersionedMultiLocation::V1(MultiLocation::new(

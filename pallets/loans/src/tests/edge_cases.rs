@@ -7,18 +7,18 @@ use sp_runtime::FixedPointNumber;
 #[test]
 fn exceeded_supply_cap() {
     new_test_ext().execute_with(|| {
-        Assets::mint(Origin::signed(ALICE), DOT, ALICE, million_unit(1001)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, ALICE, million_unit(1001)).unwrap();
         let amount = million_unit(501);
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, amount));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, amount));
         // Exceed upper bound.
         assert_err!(
-            Loans::mint(Origin::signed(ALICE), DOT, amount),
+            Loans::mint(RuntimeOrigin::signed(ALICE), DOT, amount),
             Error::<Test>::SupplyCapacityExceeded
         );
 
-        Loans::redeem(Origin::signed(ALICE), DOT, amount).unwrap();
+        Loans::redeem(RuntimeOrigin::signed(ALICE), DOT, amount).unwrap();
         // Here should work, cause we redeemed already.
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, amount));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, amount));
     })
 }
 
@@ -26,11 +26,19 @@ fn exceeded_supply_cap() {
 fn repay_borrow_all_no_underflow() {
     new_test_ext().execute_with(|| {
         // Alice deposits 200 KSM as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, unit(200)));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), KSM, unit(200)));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            KSM,
+            true
+        ));
 
         // Alice borrow only 1/1e5 KSM which is hard to accrue total borrows interest in 100 seconds
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, 10_u128.pow(7)));
+        assert_ok!(Loans::borrow(
+            RuntimeOrigin::signed(ALICE),
+            KSM,
+            10_u128.pow(7)
+        ));
 
         accrue_interest_per_block(KSM, 100, 9);
 
@@ -41,7 +49,7 @@ fn repay_borrow_all_no_underflow() {
         assert_eq!(Loans::total_borrows(KSM), 10000000);
 
         // Alice repay all borrow balance. total_borrows = total_borrows.saturating_sub(10000005) = 0.
-        assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
+        assert_ok!(Loans::repay_borrow_all(RuntimeOrigin::signed(ALICE), KSM));
 
         assert_eq!(Assets::balance(KSM, &ALICE), unit(800) - 5);
 
@@ -70,9 +78,13 @@ fn ensure_capacity_fails_when_market_not_existed() {
 #[test]
 fn redeem_all_should_be_accurate() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, unit(200)));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, unit(50)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), KSM, unit(200)));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            KSM,
+            true
+        ));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), KSM, unit(50)));
 
         // let exchange_rate greater than 0.02
         accrue_interest_per_block(KSM, 6, 2);
@@ -81,9 +93,9 @@ fn redeem_all_should_be_accurate() {
             Rate::from_inner(20000000036387000)
         );
 
-        assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
+        assert_ok!(Loans::repay_borrow_all(RuntimeOrigin::signed(ALICE), KSM));
         // It failed with InsufficientLiquidity before #839
-        assert_ok!(Loans::redeem_all(Origin::signed(ALICE), KSM));
+        assert_ok!(Loans::redeem_all(RuntimeOrigin::signed(ALICE), KSM));
     })
 }
 
@@ -99,7 +111,7 @@ fn prevent_the_exchange_rate_attack() {
             false
         ));
         // Eve deposits a small amount
-        assert_ok!(Loans::mint(Origin::signed(EVE), DOT, 1));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(EVE), DOT, 1));
         // !!! Eve transfer a big amount to Loans::account_id
         assert_ok!(<Test as Config>::Assets::transfer(
             DOT,
@@ -128,7 +140,7 @@ fn prevent_the_exchange_rate_attack() {
         );
         // Bob can not deposit 0.1 DOT because the voucher_balance can not be 0.
         assert_noop!(
-            Loans::mint(Origin::signed(BOB), DOT, 100000000000),
+            Loans::mint(RuntimeOrigin::signed(BOB), DOT, 100000000000),
             Error::<Test>::InvalidExchangeRate
         );
     })

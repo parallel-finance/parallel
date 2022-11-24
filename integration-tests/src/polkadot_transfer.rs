@@ -28,7 +28,7 @@ use crate::{polkadot_test_net::*, setup::*};
 fn transfer_from_relay_chain() {
     PolkadotNet::execute_with(|| {
         assert_ok!(polkadot_runtime::XcmPallet::reserve_transfer_assets(
-            polkadot_runtime::Origin::signed(ALICE.into()),
+            polkadot_runtime::RuntimeOrigin::signed(ALICE.into()),
             Box::new(VersionedMultiLocation::V1(X1(Parachain(2012)).into())),
             Box::new(VersionedMultiLocation::V1(
                 X1(Junction::AccountId32 {
@@ -53,7 +53,7 @@ fn transfer_to_relay_chain() {
     use parallel_runtime::{Origin, XTokens};
     Parallel::execute_with(|| {
         assert_ok!(XTokens::transfer(
-            Origin::signed(ALICE.into()),
+            RuntimeOrigin::signed(ALICE.into()),
             DOT,
             dot(10f64),
             Box::new(xcm::VersionedMultiLocation::V1(MultiLocation::new(
@@ -87,7 +87,7 @@ fn transfer_sibling_chain_asset() {
 
     MockSibling::execute_with(|| {
         assert_ok!(PolkadotXcm::reserve_transfer_assets(
-            Origin::signed(ALICE.into()).clone(),
+            RuntimeOrigin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2012))).into()),
             Box::new(
                 Junction::AccountId32 {
@@ -121,7 +121,7 @@ fn transfer_sibling_chain_asset() {
 
     Parallel::execute_with(|| {
         assert_ok!(XTokens::transfer(
-            Origin::signed(ALICE.into()),
+            RuntimeOrigin::signed(ALICE.into()),
             PARA,
             10_000_000_000_000,
             Box::new(

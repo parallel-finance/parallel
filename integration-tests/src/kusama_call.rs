@@ -31,7 +31,7 @@ fn liquidate_staking_call_should_work() {
     Heiko::execute_with(|| {
         use heiko_runtime::{LiquidStaking, Origin};
         assert_ok!(LiquidStaking::stake(
-            Origin::signed(AccountId::from(ALICE)),
+            RuntimeOrigin::signed(AccountId::from(ALICE)),
             amount
         ));
         assert_ok!(with_transaction(

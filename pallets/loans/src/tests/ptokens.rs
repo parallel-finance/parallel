@@ -29,13 +29,17 @@ fn trait_inspect_methods_works() {
         assert_eq!(Loans::balance(PHKO, &DAVE), 0);
 
         // DAVE Deposit 100 HKO
-        assert_ok!(Loans::mint(Origin::signed(DAVE), HKO, unit(100)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(DAVE), HKO, unit(100)));
         assert_eq!(Loans::balance(PHKO, &DAVE), unit(100) * 50);
 
         assert_eq!(Loans::reducible_balance(PHKO, &DAVE, true), unit(100) * 50);
-        assert_ok!(Loans::collateral_asset(Origin::signed(DAVE), HKO, true));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(DAVE),
+            HKO,
+            true
+        ));
         // Borrow 25 HKO will reduce 25 HKO liquidity for collateral_factor is 50%
-        assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, unit(25)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(DAVE), HKO, unit(25)));
 
         assert_eq!(
             Loans::exchange_rate(HKO)
@@ -55,20 +59,24 @@ fn trait_inspect_methods_works() {
         // DAVE Deposit 100 HKO, 50 USDT, Borrow 25 HKO
         // Liquidity HKO = 25, USDT = 25
         // ptokens = dollar(25 + 25) / 1 / 0.5 / 0.02 = dollar(50) * 100
-        assert_ok!(Loans::mint(Origin::signed(DAVE), USDT, unit(50)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(DAVE), USDT, unit(50)));
         assert_eq!(Loans::balance(PUSDT, &DAVE), unit(50) * 50);
         assert_eq!(
             Loans::reducible_balance(PUSDT, &DAVE, true),
             unit(25) * 2 * 50
         );
         // enable USDT collateral
-        assert_ok!(Loans::collateral_asset(Origin::signed(DAVE), USDT, true));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(DAVE),
+            USDT,
+            true
+        ));
         assert_eq!(
             Loans::reducible_balance(PHKO, &DAVE, true),
             unit(25 + 25) * 2 * 50
         );
 
-        assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, unit(50)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(DAVE), HKO, unit(50)));
         assert_eq!(Loans::reducible_balance(PHKO, &DAVE, true), 0);
 
         assert_eq!(Loans::total_issuance(PHKO), unit(100) * 50);
@@ -82,13 +90,13 @@ fn ptoken_unique_works() {
     new_test_ext().execute_with(|| {
         // ptoken_id already exists in `UnderlyingAssetId`
         assert_noop!(
-            Loans::add_market(Origin::root(), SDOT, market_mock(PHKO)),
+            Loans::add_market(RuntimeOrigin::root(), SDOT, market_mock(PHKO)),
             Error::<Test>::InvalidPtokenId
         );
 
         // ptoken_id cannot as the same as the asset id in `Markets`
         assert_noop!(
-            Loans::add_market(Origin::root(), SDOT, market_mock(KSM)),
+            Loans::add_market(RuntimeOrigin::root(), SDOT, market_mock(KSM)),
             Error::<Test>::InvalidPtokenId
         );
     })
@@ -98,7 +106,7 @@ fn ptoken_unique_works() {
 fn transfer_ptoken_works() {
     new_test_ext().execute_with(|| {
         // DAVE Deposit 100 HKO
-        assert_ok!(Loans::mint(Origin::signed(DAVE), HKO, unit(100)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(DAVE), HKO, unit(100)));
 
         // DAVE HKO collateral: deposit = 100
         // HKO: cash - deposit = 1000 - 100 = 900
@@ -117,7 +125,7 @@ fn transfer_ptoken_works() {
 
         // Transfer ptokens from DAVE to ALICE
         Loans::transfer(PHKO, &DAVE, &ALICE, unit(50) * 50, true).unwrap();
-        // Loans::transfer_ptokens(Origin::signed(DAVE), ALICE, HKO, dollar(50) * 50).unwrap();
+        // Loans::transfer_ptokens(RuntimeOrigin::signed(DAVE), ALICE, HKO, dollar(50) * 50).unwrap();
 
         // DAVE HKO collateral: deposit = 50
         assert_eq!(
@@ -146,13 +154,21 @@ fn transfer_ptoken_works() {
 fn transfer_ptokens_under_collateral_works() {
     new_test_ext().execute_with(|| {
         // DAVE Deposit 100 HKO
-        assert_ok!(Loans::mint(Origin::signed(DAVE), HKO, unit(100)));
-        assert_ok!(Loans::collateral_asset(Origin::signed(DAVE), HKO, true));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(DAVE), HKO, unit(100)));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(DAVE),
+            HKO,
+            true
+        ));
 
         // Borrow 50 HKO will reduce 50 HKO liquidity for collateral_factor is 50%
-        assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, unit(50)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(DAVE), HKO, unit(50)));
         // Repay 40 HKO
-        assert_ok!(Loans::repay_borrow(Origin::signed(DAVE), HKO, unit(40)));
+        assert_ok!(Loans::repay_borrow(
+            RuntimeOrigin::signed(DAVE),
+            HKO,
+            unit(40)
+        ));
 
         // Transfer 20 ptokens from DAVE to ALICE
         Loans::transfer(PHKO, &DAVE, &ALICE, unit(20) * 50, true).unwrap();
@@ -167,10 +183,10 @@ fn transfer_ptokens_under_collateral_works() {
         );
         // DAVE Borrow 31 HKO should cause InsufficientLiquidity
         assert_noop!(
-            Loans::borrow(Origin::signed(DAVE), HKO, unit(31)),
+            Loans::borrow(RuntimeOrigin::signed(DAVE), HKO, unit(31)),
             Error::<Test>::InsufficientLiquidity
         );
-        assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, unit(30)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(DAVE), HKO, unit(30)));
 
         // Assert ALICE Supply HKO 20
         assert_eq!(

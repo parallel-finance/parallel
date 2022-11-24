@@ -59,7 +59,7 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_xcm::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Assets for deposit/withdraw assets to/from crowdloan account
         type Assets: Transfer<AccountIdOf<Self>, AssetId = CurrencyId, Balance = Balance>
@@ -92,7 +92,7 @@ pub mod pallet {
         type BlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 
         /// The origin which can update reserve_factor, xcm_fees etc
-        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// Weight information
         type WeightInfo: WeightInfo;
@@ -265,7 +265,7 @@ impl<T: Config> Pallet<T> {
         let dest = <T as pallet_xcm::Config>::LocationInverter::invert_location(&responder)
             .map_err(|()| Error::<T>::MultiLocationNotInvertible)?;
         let notify: <T as pallet_xcm::Config>::RuntimeCall = notify.into();
-        let max_response_weight = notify.get_dispatch_info().weight;
+        let max_response_weight = notify.get_dispatch_info().weight.ref_time();
         let query_id = pallet_xcm::Pallet::<T>::new_notify_query(responder, notify, timeout);
         let report_error = Xcm(vec![ReportError {
             dest,
@@ -316,7 +316,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
             },
             Transact {
                 origin_type: OriginKind::SovereignAccount,
-                require_weight_at_most: weight,
+                require_weight_at_most: weight.ref_time(),
                 call,
             },
             RefundSurplus,

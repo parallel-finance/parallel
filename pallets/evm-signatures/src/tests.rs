@@ -57,17 +57,17 @@ parameter_types! {
 }
 
 impl frame_system::Config for Runtime {
-    type Origin = Origin;
+    type RuntimeOrigin = RuntimeOrigin;
     type BaseCallFilter = frame_support::traits::Everything;
     type Index = u32;
     type BlockNumber = BlockNumber;
-    type Call = Call;
+    type RuntimeCall = RuntimeCall;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -89,7 +89,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
     type Balance = Balance;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = frame_system::Pallet<Runtime>;
@@ -109,7 +109,7 @@ parameter_types! {
 }
 
 impl pallet_assets::Config for Runtime {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
     type Currency = Balances;
@@ -134,8 +134,8 @@ parameter_types! {
 }
 
 impl Config for Runtime {
-    type Event = Event;
-    type Call = Call;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
     type Signature = ethereum::EthereumSignature;
     type Signer = <Signature as Verify>::Signer;
     type CallMagicNumber = CallMagicNumber;

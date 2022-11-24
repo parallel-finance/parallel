@@ -71,7 +71,7 @@ fn transfer_sibling_chain_asset() {
         assert_eq!(general_key_hex, "0x040d000000");
 
         assert_ok!(PolkadotXcm::reserve_transfer_assets(
-            Origin::signed(ALICE.into()).clone(),
+            RuntimeOrigin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2085))).into()),
             Box::new(
                 Junction::AccountId32 {
@@ -105,7 +105,7 @@ fn transfer_sibling_chain_asset() {
 
     Heiko::execute_with(|| {
         assert_ok!(XTokens::transfer(
-            Origin::signed(ALICE.into()),
+            RuntimeOrigin::signed(ALICE.into()),
             0,
             10_000_000_000_000,
             Box::new(

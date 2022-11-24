@@ -55,7 +55,7 @@ parameter_types! {
 }
 
 impl cumulus_pallet_parachain_system::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type OnSystemEvent = ();
     type SelfParaId = ParachainInfo;
     type DmpMessageHandler = DmpQueue;
@@ -125,7 +125,7 @@ pub type Barrier = AllowUnpaidExecutionFrom<Everything>;
 
 pub struct XcmConfig;
 impl Config for XcmConfig {
-    type Call = Call;
+    type RuntimeCall = RuntimeCall;
     type XcmSender = XcmRouter;
     type AssetTransactor = LocalAssetTransactor;
     type OriginConverter = XcmOriginToCallOrigin;
@@ -157,7 +157,7 @@ impl<Origin: OriginTrait> ConvertOrigin<Origin> for SystemParachainAsSuperuser<O
                 } if ParaId::from(id).is_system(),
             )
         {
-            Ok(Origin::root())
+            Ok(RuntimeOrigin::root())
         } else {
             Err(origin)
         }
@@ -165,7 +165,7 @@ impl<Origin: OriginTrait> ConvertOrigin<Origin> for SystemParachainAsSuperuser<O
 }
 
 impl cumulus_pallet_xcmp_queue::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ChannelInfo = ParachainSystem;
@@ -176,13 +176,13 @@ impl cumulus_pallet_xcmp_queue::Config for Test {
 }
 
 impl cumulus_pallet_dmp_queue::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 }
 
 impl cumulus_pallet_xcm::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
@@ -191,9 +191,9 @@ pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNet
 impl pallet_xcm::Config for Test {
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
 
-    type Origin = Origin;
-    type Call = Call;
-    type Event = Event;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
     type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmRouter = XcmRouter;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
@@ -309,7 +309,7 @@ parameter_types! {
 }
 
 impl pallet_loans::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type PriceFeeder = MockPriceFeeder;
     type PalletId = LoansPalletId;
     type ReserveOrigin = EnsureRoot<AccountId>;
@@ -346,7 +346,7 @@ parameter_type_with_key! {
 }
 
 impl orml_xtokens::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type CurrencyId = CurrencyId;
     type CurrencyIdConvert = CurrencyIdConvert;
@@ -378,8 +378,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = BlockNumber;
     type Hash = H256;
@@ -387,7 +387,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = AccountIdLookup<AccountId, ()>;
     type Header = generic::Header<BlockNumber, BlakeTwo256>;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -408,7 +408,7 @@ parameter_types! {
 impl pallet_balances::Config for Test {
     type MaxLocks = MaxLocks;
     type Balance = Balance;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type DustRemoval = ();
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
@@ -437,8 +437,8 @@ pub type UpdateOrigin =
     EitherOfDiverse<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 impl pallet_utility::Config for Test {
-    type Event = Event;
-    type Call = Call;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
     type PalletsOrigin = OriginCaller;
     type WeightInfo = pallet_utility::weights::SubstrateWeight<Test>;
 }
@@ -450,7 +450,7 @@ parameter_types! {
 }
 
 impl pallet_xcm_helper::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = UpdateOrigin;
     type Assets = Assets;
     type XcmSender = XcmRouter;
@@ -548,9 +548,9 @@ parameter_types! {
 }
 
 impl crate::Config for Test {
-    type Event = Event;
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type UpdateOrigin = UpdateOrigin;
     type PalletId = StakingPalletId;
     type LoansPalletId = LoansPalletId;
@@ -590,7 +590,7 @@ parameter_types! {
 }
 
 impl pallet_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
     type Currency = Balances;
@@ -650,9 +650,9 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(Origin::root(), KSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), KSM, Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
-            Origin::root(),
+            RuntimeOrigin::root(),
             KSM,
             b"Kusama".to_vec(),
             b"KSM".to_vec(),
@@ -660,9 +660,9 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::force_create(Origin::root(), SKSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SKSM, Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
-            Origin::root(),
+            RuntimeOrigin::root(),
             SKSM,
             b"Parallel Kusama".to_vec(),
             b"sKSM".to_vec(),
@@ -670,9 +670,9 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::force_create(Origin::root(), KSM_U, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), KSM_U, Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
-            Origin::root(),
+            RuntimeOrigin::root(),
             KSM_U,
             b"Kusama Ubonding".to_vec(),
             b"KSM_U".to_vec(),
@@ -681,23 +681,24 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(100f64)).unwrap();
-        Assets::mint(Origin::signed(ALICE), SKSM, Id(ALICE), ksm(100f64)).unwrap();
-        Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
-        LiquidStaking::update_staking_ledger_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), KSM, Id(ALICE), ksm(100f64)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), SKSM, Id(ALICE), ksm(100f64)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
+        LiquidStaking::update_staking_ledger_cap(RuntimeOrigin::signed(BOB), ksm(10000f64))
+            .unwrap();
 
         Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             KSM,
             Id(XcmHelper::account_id()),
             ksm(100f64),
         )
         .unwrap();
 
-        Loans::add_market(Origin::root(), KSM, market_mock(PKSM)).unwrap();
-        Loans::activate_market(Origin::root(), KSM).unwrap();
-        Loans::add_market(Origin::root(), KSM_U, market_mock(PKSM_U)).unwrap();
-        Loans::activate_market(Origin::root(), KSM_U).unwrap();
+        Loans::add_market(RuntimeOrigin::root(), KSM, market_mock(PKSM)).unwrap();
+        Loans::activate_market(RuntimeOrigin::root(), KSM).unwrap();
+        Loans::add_market(RuntimeOrigin::root(), KSM_U, market_mock(PKSM_U)).unwrap();
+        Loans::activate_market(RuntimeOrigin::root(), KSM_U).unwrap();
 
         System::set_block_number(1);
         Timestamp::set_timestamp(6000);
@@ -770,9 +771,9 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(Origin::root(), KSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), KSM, Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
-            Origin::root(),
+            RuntimeOrigin::root(),
             KSM,
             b"Kusama".to_vec(),
             b"KSM".to_vec(),
@@ -780,9 +781,9 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::force_create(Origin::root(), SKSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SKSM, Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
-            Origin::root(),
+            RuntimeOrigin::root(),
             SKSM,
             b"Parallel Kusama".to_vec(),
             b"sKSM".to_vec(),
@@ -790,9 +791,9 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::force_create(Origin::root(), KSM_U, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), KSM_U, Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
-            Origin::root(),
+            RuntimeOrigin::root(),
             KSM_U,
             b"Kusama Ubonding".to_vec(),
             b"KSM_U".to_vec(),
@@ -801,21 +802,22 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(10000f64)).unwrap();
-        Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), KSM, Id(ALICE), ksm(10000f64)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
         Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             KSM,
             Id(XcmHelper::account_id()),
             ksm(30f64),
         )
         .unwrap();
 
-        Loans::add_market(Origin::root(), KSM, market_mock(PKSM)).unwrap();
-        Loans::activate_market(Origin::root(), KSM).unwrap();
-        Loans::add_market(Origin::root(), KSM_U, market_mock(PKSM_U)).unwrap();
-        Loans::activate_market(Origin::root(), KSM_U).unwrap();
-        LiquidStaking::update_staking_ledger_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        Loans::add_market(RuntimeOrigin::root(), KSM, market_mock(PKSM)).unwrap();
+        Loans::activate_market(RuntimeOrigin::root(), KSM).unwrap();
+        Loans::add_market(RuntimeOrigin::root(), KSM_U, market_mock(PKSM_U)).unwrap();
+        Loans::activate_market(RuntimeOrigin::root(), KSM_U).unwrap();
+        LiquidStaking::update_staking_ledger_cap(RuntimeOrigin::signed(BOB), ksm(10000f64))
+            .unwrap();
 
         System::set_block_number(1);
         Timestamp::set_timestamp(6000);

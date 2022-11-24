@@ -550,7 +550,7 @@ fn deposit(data: Vec<u8>) {
             // We need to call using EVM pallet so we can check the EVM correctly sends the amount
             // to the precompile.
             Evm::call(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 Account::Alice.into(),
                 Account::Precompile.into(),
                 data,
@@ -665,7 +665,7 @@ fn deposit_zero() {
             // We need to call using EVM pallet so we can check the EVM correctly sends the amount
             // to the precompile.
             Evm::call(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 Account::Alice.into(),
                 Account::Precompile.into(),
                 EvmDataWriter::new_with_selector(Action::Deposit).build(),

@@ -64,8 +64,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = BlockNumber;
     type Hash = H256;
@@ -73,7 +73,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -114,7 +114,7 @@ parameter_types! {
 impl pallet_balances::Config for Test {
     type Balance = Balance;
     type DustRemoval = ();
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Test>;
@@ -240,7 +240,7 @@ impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
 }
 
 impl pallet_amm::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type LockAccountId = LockAccountId;
@@ -254,7 +254,7 @@ impl pallet_amm::Config for Test {
 }
 
 impl pallet_prices::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Source = MockDataProvider;
     type FeederOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
@@ -315,7 +315,7 @@ parameter_types! {
 }
 
 impl pallet_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
     type Currency = Balances;
@@ -338,7 +338,7 @@ parameter_types! {
 }
 
 impl Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type PriceFeeder = MockPriceFeeder;
     type PalletId = LoansPalletId;
     type ReserveOrigin = EnsureRoot<AccountId>;
@@ -369,35 +369,35 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         // Init assets
-        Balances::set_balance(Origin::root(), DAVE, unit(1000), unit(0)).unwrap();
-        Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), SDOT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), CDOT_6_13, ALICE, true, 1).unwrap();
+        Balances::set_balance(RuntimeOrigin::root(), DAVE, unit(1000), unit(0)).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), KSM, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), USDT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SDOT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), CDOT_6_13, ALICE, true, 1).unwrap();
 
-        Assets::mint(Origin::signed(ALICE), KSM, ALICE, unit(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, ALICE, unit(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), USDT, ALICE, unit(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), CDOT_6_13, ALICE, unit(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), KSM, BOB, unit(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, BOB, unit(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, DAVE, unit(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), USDT, DAVE, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), KSM, ALICE, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, ALICE, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), USDT, ALICE, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), CDOT_6_13, ALICE, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), KSM, BOB, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, BOB, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, DAVE, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), USDT, DAVE, unit(1000)).unwrap();
 
         // Init Markets
-        Loans::add_market(Origin::root(), HKO, market_mock(PHKO)).unwrap();
-        Loans::activate_market(Origin::root(), HKO).unwrap();
-        Loans::add_market(Origin::root(), KSM, market_mock(PKSM)).unwrap();
-        Loans::activate_market(Origin::root(), KSM).unwrap();
-        Loans::add_market(Origin::root(), DOT, market_mock(PDOT)).unwrap();
-        Loans::activate_market(Origin::root(), DOT).unwrap();
-        Loans::add_market(Origin::root(), USDT, market_mock(PUSDT)).unwrap();
-        Loans::activate_market(Origin::root(), USDT).unwrap();
-        Loans::add_market(Origin::root(), CDOT_6_13, market_mock(PCDOT_6_13)).unwrap();
-        Loans::activate_market(Origin::root(), CDOT_6_13).unwrap();
+        Loans::add_market(RuntimeOrigin::root(), HKO, market_mock(PHKO)).unwrap();
+        Loans::activate_market(RuntimeOrigin::root(), HKO).unwrap();
+        Loans::add_market(RuntimeOrigin::root(), KSM, market_mock(PKSM)).unwrap();
+        Loans::activate_market(RuntimeOrigin::root(), KSM).unwrap();
+        Loans::add_market(RuntimeOrigin::root(), DOT, market_mock(PDOT)).unwrap();
+        Loans::activate_market(RuntimeOrigin::root(), DOT).unwrap();
+        Loans::add_market(RuntimeOrigin::root(), USDT, market_mock(PUSDT)).unwrap();
+        Loans::activate_market(RuntimeOrigin::root(), USDT).unwrap();
+        Loans::add_market(RuntimeOrigin::root(), CDOT_6_13, market_mock(PCDOT_6_13)).unwrap();
+        Loans::activate_market(RuntimeOrigin::root(), CDOT_6_13).unwrap();
 
-        Loans::update_liquidation_free_collateral(Origin::root(), vec![CDOT_6_13]).unwrap();
+        Loans::update_liquidation_free_collateral(RuntimeOrigin::root(), vec![CDOT_6_13]).unwrap();
 
         System::set_block_number(0);
         TimestampPallet::set_timestamp(6000);

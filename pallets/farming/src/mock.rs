@@ -55,8 +55,8 @@ impl system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = BlockNumber;
     type Hash = H256;
@@ -64,7 +64,7 @@ impl system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -85,7 +85,7 @@ parameter_types! {
 impl pallet_balances::Config for Test {
     type MaxLocks = MaxLocks;
     type Balance = Balance;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type DustRemoval = ();
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
@@ -104,7 +104,7 @@ parameter_types! {
 }
 
 impl pallet_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
     type Currency = Balances;
@@ -142,7 +142,7 @@ impl DecimalProvider<CurrencyId> for Decimal {
 impl pallet_farming::Config for Test {
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Assets = CurrencyAdapter;
     type PalletId = FarmingPalletId;
     type MaxUserLockItemsCount = MaxUserLockItemsCount;
@@ -175,11 +175,25 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(Origin::root(), STAKE_TOKEN, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), REWARD_TOKEN, REWARD_TOKEN_PAYER, true, 1).unwrap();
-        Assets::force_create(Origin::root(), BIG_DECIMAL_STAKE_TOKEN, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), STAKE_TOKEN, ALICE, true, 1).unwrap();
         Assets::force_create(
-            Origin::root(),
+            RuntimeOrigin::root(),
+            REWARD_TOKEN,
+            REWARD_TOKEN_PAYER,
+            true,
+            1,
+        )
+        .unwrap();
+        Assets::force_create(
+            RuntimeOrigin::root(),
+            BIG_DECIMAL_STAKE_TOKEN,
+            ALICE,
+            true,
+            1,
+        )
+        .unwrap();
+        Assets::force_create(
+            RuntimeOrigin::root(),
             BIG_DECIMAL_REWARD_TOKEN,
             REWARD_TOKEN_PAYER,
             true,
@@ -187,31 +201,37 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        Assets::mint(Origin::signed(ALICE), STAKE_TOKEN, ALICE, 500_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), STAKE_TOKEN, BOB, 500_000_000).unwrap();
         Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
+            STAKE_TOKEN,
+            ALICE,
+            500_000_000,
+        )
+        .unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), STAKE_TOKEN, BOB, 500_000_000).unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
             STAKE_TOKEN,
             CHARLIE,
             1_100_000_000_000_000,
         )
         .unwrap();
         Assets::mint(
-            Origin::signed(REWARD_TOKEN_PAYER),
+            RuntimeOrigin::signed(REWARD_TOKEN_PAYER),
             REWARD_TOKEN,
             REWARD_TOKEN_PAYER,
             3_000_000_000_000_000,
         )
         .unwrap();
         Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             BIG_DECIMAL_STAKE_TOKEN,
             ALICE,
             100_000_000_000_000_000_000_000_000,
         )
         .unwrap();
         Assets::mint(
-            Origin::signed(REWARD_TOKEN_PAYER),
+            RuntimeOrigin::signed(REWARD_TOKEN_PAYER),
             BIG_DECIMAL_REWARD_TOKEN,
             REWARD_TOKEN_PAYER,
             11_000_000_000_000_000_000_000_000_000_000,
@@ -219,7 +239,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
         Farming::create(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -229,7 +249,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         let pool_info = Farming::pools((STAKE_TOKEN, REWARD_TOKEN, LOCK_DURATION)).unwrap();
         assert_eq!(pool_info.is_active, false);
         Farming::set_pool_status(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,

@@ -12,14 +12,14 @@ fn change_bridge_members_works() {
         assert_eq!(Bridge::vote_threshold(), 3);
 
         // After remove and swap, members count should be 2
-        BridgeMembership::remove_member(RuntimeOrigin::root(), ALICE).unwrap();
-        BridgeMembership::swap_member(RuntimeOrigin::root(), BOB, DAVE).unwrap();
+        BridgeMembership::remove_member(RuntimeRuntimeOrigin::root(), ALICE).unwrap();
+        BridgeMembership::swap_member(RuntimeRuntimeOrigin::root(), BOB, DAVE).unwrap();
         assert_eq!(Bridge::get_members_count(), 2);
         assert_eq!(Bridge::vote_threshold(), 2);
 
-        BridgeMembership::add_member(RuntimeOrigin::root(), ALICE).unwrap();
-        BridgeMembership::add_member(RuntimeOrigin::root(), BOB).unwrap();
-        BridgeMembership::add_member(RuntimeOrigin::root(), EVE).unwrap();
+        BridgeMembership::add_member(RuntimeRuntimeOrigin::root(), ALICE).unwrap();
+        BridgeMembership::add_member(RuntimeRuntimeOrigin::root(), BOB).unwrap();
+        BridgeMembership::add_member(RuntimeRuntimeOrigin::root(), EVE).unwrap();
         assert_eq!(Bridge::vote_threshold(), 4);
     });
 }
@@ -54,19 +54,19 @@ fn test_valid_threshold() {
 fn register_unregister_works() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            Bridge::register_chain(RuntimeOrigin::root(), ETH),
+            Bridge::register_chain(RuntimeRuntimeOrigin::root(), ETH),
             Error::<Test>::ChainIdAlreadyRegistered,
         );
 
         // Register a new chain_id succeed
-        Bridge::register_chain(RuntimeOrigin::root(), BNB).unwrap();
+        Bridge::register_chain(RuntimeRuntimeOrigin::root(), BNB).unwrap();
         assert_noop!(
-            Bridge::register_chain(RuntimeOrigin::root(), BNB),
+            Bridge::register_chain(RuntimeRuntimeOrigin::root(), BNB),
             Error::<Test>::ChainIdAlreadyRegistered,
         );
         // Teleport succeed when the chain is registered
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             BNB,
             EHKO,
             "TELE".into(),
@@ -75,15 +75,15 @@ fn register_unregister_works() {
         .unwrap();
 
         // Unregister a exist chain_id succeed
-        Bridge::unregister_chain(RuntimeOrigin::root(), ETH).unwrap();
+        Bridge::unregister_chain(RuntimeRuntimeOrigin::root(), ETH).unwrap();
         assert_noop!(
-            Bridge::unregister_chain(RuntimeOrigin::root(), ETH),
+            Bridge::unregister_chain(RuntimeRuntimeOrigin::root(), ETH),
             Error::<Test>::ChainIdNotRegistered,
         );
         // Teleport fails when the chain is not registered
         assert_noop!(
             Bridge::teleport(
-                RuntimeOrigin::signed(EVE),
+                RuntimeRuntimeOrigin::signed(EVE),
                 ETH,
                 EHKO,
                 "TELE".into(),
@@ -102,14 +102,14 @@ fn gift_fees_works() {
         assert_eq!(<Test as Config>::Assets::balance(HKO, &DAVE), dollar(0));
 
         Bridge::set_bridge_token_cap(
-            RuntimeOrigin::root(),
+            RuntimeRuntimeOrigin::root(),
             EUSDT,
             BridgeType::BridgeIn,
             usdt(300),
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             ETH,
             0,
             EUSDT,
@@ -119,7 +119,7 @@ fn gift_fees_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(BOB),
+            RuntimeRuntimeOrigin::signed(BOB),
             ETH,
             0,
             EUSDT,
@@ -129,7 +129,7 @@ fn gift_fees_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(CHARLIE),
+            RuntimeRuntimeOrigin::signed(CHARLIE),
             ETH,
             0,
             EUSDT,
@@ -150,13 +150,13 @@ fn gift_fees_works() {
         assert_eq!(<Test as Config>::Assets::balance(HKO, &BOB), dollar(0));
 
         Bridge::clean_cap_accumulated_value(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             EUSDT,
             BridgeType::BridgeIn,
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             ETH,
             1,
             EUSDT,
@@ -166,7 +166,7 @@ fn gift_fees_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(BOB),
+            RuntimeRuntimeOrigin::signed(BOB),
             ETH,
             1,
             EUSDT,
@@ -176,7 +176,7 @@ fn gift_fees_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(CHARLIE),
+            RuntimeRuntimeOrigin::signed(CHARLIE),
             ETH,
             1,
             EUSDT,
@@ -192,15 +192,21 @@ fn gift_fees_works() {
         // gift_fees = 0.025 HKO - (0.022 HKO - 0.01 HKO) = 0.013 HKO
         // final_gift = existential_deposit + 0.013 HKO = 0.023 HKO
         // final_balance = 0.022 HKO + 0.023 HKO = 0.045 HKO
-        Balances::set_balance(RuntimeOrigin::root(), BOB, dollar(22) / 1000, dollar(0)).unwrap();
+        Balances::set_balance(
+            RuntimeRuntimeOrigin::root(),
+            BOB,
+            dollar(22) / 1000,
+            dollar(0),
+        )
+        .unwrap();
         Bridge::clean_cap_accumulated_value(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             EUSDT,
             BridgeType::BridgeIn,
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             ETH,
             2,
             EUSDT,
@@ -210,7 +216,7 @@ fn gift_fees_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(BOB),
+            RuntimeRuntimeOrigin::signed(BOB),
             ETH,
             2,
             EUSDT,
@@ -220,7 +226,7 @@ fn gift_fees_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(CHARLIE),
+            RuntimeRuntimeOrigin::signed(CHARLIE),
             ETH,
             2,
             EUSDT,
@@ -238,15 +244,21 @@ fn gift_fees_works() {
         // gift_fees = 0.025 HKO - (0.035 HKO - 0.01 HKO) = 0 HKO
         // final_gift = 0 HKO
         // final_balance = 0.035 HKO
-        Balances::set_balance(RuntimeOrigin::root(), BOB, dollar(35) / 1000, dollar(0)).unwrap();
+        Balances::set_balance(
+            RuntimeRuntimeOrigin::root(),
+            BOB,
+            dollar(35) / 1000,
+            dollar(0),
+        )
+        .unwrap();
         Bridge::clean_cap_accumulated_value(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             EUSDT,
             BridgeType::BridgeIn,
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             ETH,
             3,
             EUSDT,
@@ -256,7 +268,7 @@ fn gift_fees_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(BOB),
+            RuntimeRuntimeOrigin::signed(BOB),
             ETH,
             3,
             EUSDT,
@@ -266,7 +278,7 @@ fn gift_fees_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(CHARLIE),
+            RuntimeRuntimeOrigin::signed(CHARLIE),
             ETH,
             3,
             EUSDT,
@@ -287,7 +299,7 @@ fn teleport_works() {
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));
 
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             ETH,
             EHKO,
             "TELE".into(),
@@ -309,7 +321,7 @@ fn materialize_works() {
         // EVE has 50 HKO left, and then requests for materializing 20 EHKO
         // Current vote threshold is 2
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             ETH,
             EHKO,
             "TELE".into(),
@@ -317,7 +329,7 @@ fn materialize_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             ETH,
             0,
             EHKO,
@@ -327,7 +339,7 @@ fn materialize_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(BOB),
+            RuntimeRuntimeOrigin::signed(BOB),
             ETH,
             0,
             EHKO,
@@ -337,7 +349,7 @@ fn materialize_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(CHARLIE),
+            RuntimeRuntimeOrigin::signed(CHARLIE),
             ETH,
             0,
             EHKO,
@@ -355,7 +367,7 @@ fn materialize_works() {
         // The chain_nonce should be unique to avoid comduplicate call
         assert_noop!(
             Bridge::materialize(
-                RuntimeOrigin::signed(ALICE),
+                RuntimeRuntimeOrigin::signed(ALICE),
                 ETH,
                 0,
                 EHKO,
@@ -370,7 +382,7 @@ fn materialize_works() {
         // Vote_for:    [ALICE, CHARLIE]
         // Vote_against [BOB]
         Bridge::materialize(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             ETH,
             1,
             EHKO,
@@ -381,7 +393,7 @@ fn materialize_works() {
         .unwrap();
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(60));
         Bridge::materialize(
-            RuntimeOrigin::signed(BOB),
+            RuntimeRuntimeOrigin::signed(BOB),
             ETH,
             1,
             EHKO,
@@ -392,7 +404,7 @@ fn materialize_works() {
         .unwrap();
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(60));
         Bridge::materialize(
-            RuntimeOrigin::signed(CHARLIE),
+            RuntimeRuntimeOrigin::signed(CHARLIE),
             ETH,
             1,
             EHKO,
@@ -422,13 +434,13 @@ fn set_bridge_token_fee_works() {
     new_test_ext().execute_with(|| {
         // Case 1: Bridge token is HKO
         // Set HKO fee equal to 2 HKO
-        Bridge::set_bridge_token_fee(RuntimeOrigin::root(), EHKO, dollar(1)).unwrap();
+        Bridge::set_bridge_token_fee(RuntimeRuntimeOrigin::root(), EHKO, dollar(1)).unwrap();
 
         // Initial balance of EVE is 100 HKO
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));
 
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             ETH,
             EHKO,
             "TELE".into(),
@@ -458,15 +470,15 @@ fn set_bridge_token_fee_works() {
 
         // Case 2: Bridge toke is EUSDT
         // Set EUSDT fee equal to 1 EUSDT
-        Bridge::set_bridge_token_fee(RuntimeOrigin::root(), EUSDT, usdt(1)).unwrap();
+        Bridge::set_bridge_token_fee(RuntimeRuntimeOrigin::root(), EUSDT, usdt(1)).unwrap();
 
         // EVE has 10 USDT initialized
-        Assets::mint(RuntimeOrigin::signed(ALICE), USDT, EVE, usdt(10)).unwrap();
+        Assets::mint(RuntimeRuntimeOrigin::signed(ALICE), USDT, EVE, usdt(10)).unwrap();
         assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), usdt(10));
 
         // EVE teleport 10 EUSDT
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             ETH,
             EUSDT,
             "TELE".into(),
@@ -503,15 +515,15 @@ fn set_bridge_token_status_works() {
     new_test_ext().execute_with(|| {
         // Case 1: Cannot teleport / materialize a disabled token
         // Set bridge token status to disabled
-        Bridge::set_bridge_token_status(RuntimeOrigin::root(), EHKO, false).unwrap();
+        Bridge::set_bridge_token_status(RuntimeRuntimeOrigin::root(), EHKO, false).unwrap();
 
         // Set HKO transaction fee to 2 HKO
-        Bridge::set_bridge_token_fee(RuntimeOrigin::root(), EHKO, dollar(1)).unwrap();
+        Bridge::set_bridge_token_fee(RuntimeRuntimeOrigin::root(), EHKO, dollar(1)).unwrap();
         // Initial balance of EVE is 100 HKO
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));
         assert_noop!(
             Bridge::teleport(
-                RuntimeOrigin::signed(EVE),
+                RuntimeRuntimeOrigin::signed(EVE),
                 ETH,
                 EHKO,
                 "TELE".into(),
@@ -521,7 +533,7 @@ fn set_bridge_token_status_works() {
         );
         assert_noop!(
             Bridge::materialize(
-                RuntimeOrigin::signed(ALICE),
+                RuntimeRuntimeOrigin::signed(ALICE),
                 ETH,
                 0,
                 EHKO,
@@ -533,9 +545,9 @@ fn set_bridge_token_status_works() {
         );
 
         // Case 2: User can teleport / materialize a enabled token
-        Bridge::set_bridge_token_status(RuntimeOrigin::root(), EHKO, true).unwrap();
+        Bridge::set_bridge_token_status(RuntimeRuntimeOrigin::root(), EHKO, true).unwrap();
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             ETH,
             EHKO,
             "TELE".into(),
@@ -561,7 +573,7 @@ fn set_bridge_token_status_works() {
         ))]);
 
         Bridge::materialize(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             ETH,
             0,
             EHKO,
@@ -571,7 +583,7 @@ fn set_bridge_token_status_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(BOB),
+            RuntimeRuntimeOrigin::signed(BOB),
             ETH,
             0,
             EHKO,
@@ -581,7 +593,7 @@ fn set_bridge_token_status_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(CHARLIE),
+            RuntimeRuntimeOrigin::signed(CHARLIE),
             ETH,
             0,
             EHKO,
@@ -597,15 +609,15 @@ fn set_bridge_token_status_works() {
 fn teleport_external_currency_works() {
     new_test_ext().execute_with(|| {
         // Set EUSDT fee equal to 1 USDT
-        Bridge::set_bridge_token_fee(RuntimeOrigin::root(), EUSDT, usdt(1)).unwrap();
+        Bridge::set_bridge_token_fee(RuntimeRuntimeOrigin::root(), EUSDT, usdt(1)).unwrap();
 
         // EVE has 100 USDT initialized
-        Assets::mint(RuntimeOrigin::signed(ALICE), USDT, EVE, usdt(100)).unwrap();
+        Assets::mint(RuntimeRuntimeOrigin::signed(ALICE), USDT, EVE, usdt(100)).unwrap();
         assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), usdt(100));
 
         // EVE teleport 10 EUSDT
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             ETH,
             EUSDT,
             "TELE".into(),
@@ -643,7 +655,7 @@ fn materialize_external_currency_works() {
         // EVE has 0 USDT, and then requests for materializing 10 USDT
         // Current vote threshold is 3
         Bridge::materialize(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             ETH,
             1,
             EUSDT,
@@ -653,7 +665,7 @@ fn materialize_external_currency_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(BOB),
+            RuntimeRuntimeOrigin::signed(BOB),
             ETH,
             1,
             EUSDT,
@@ -663,7 +675,7 @@ fn materialize_external_currency_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(CHARLIE),
+            RuntimeRuntimeOrigin::signed(CHARLIE),
             ETH,
             1,
             EUSDT,
@@ -684,7 +696,7 @@ fn materialize_external_currency_works() {
 
         assert_noop!(
             Bridge::teleport(
-                RuntimeOrigin::signed(EVE),
+                RuntimeRuntimeOrigin::signed(EVE),
                 ETH,
                 EUSDT,
                 "TELE".into(),
@@ -693,7 +705,7 @@ fn materialize_external_currency_works() {
             pallet_assets::Error::<Test>::BalanceLow,
         );
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             ETH,
             EUSDT,
             "TELE".into(),
@@ -716,7 +728,7 @@ fn bridge_in_and_out_cap_works() {
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));
         // bridge_out_cp = 100 HKO, teleport 10 HKO is ok
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             ETH,
             EHKO,
             "TELE".into(),
@@ -725,7 +737,7 @@ fn bridge_in_and_out_cap_works() {
         .unwrap();
         // It reaches the bridge out cap
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             ETH,
             EHKO,
             "TELE".into(),
@@ -735,7 +747,7 @@ fn bridge_in_and_out_cap_works() {
         // Failed if bridgeing amount exceed the bridge out cap
         assert_noop!(
             Bridge::teleport(
-                RuntimeOrigin::signed(EVE),
+                RuntimeRuntimeOrigin::signed(EVE),
                 ETH,
                 EHKO,
                 "TELE".into(),
@@ -746,7 +758,7 @@ fn bridge_in_and_out_cap_works() {
         // Bob also cannot teleport when bridge out capacity is exceeded
         assert_noop!(
             Bridge::teleport(
-                RuntimeOrigin::signed(BOB),
+                RuntimeRuntimeOrigin::signed(BOB),
                 ETH,
                 EHKO,
                 "TELE".into(),
@@ -757,7 +769,7 @@ fn bridge_in_and_out_cap_works() {
 
         // Case 2: bridge in cap works
         Balances::set_balance(
-            RuntimeOrigin::root(),
+            RuntimeRuntimeOrigin::root(),
             Bridge::account_id(),
             dollar(200),
             dollar(0),
@@ -765,7 +777,7 @@ fn bridge_in_and_out_cap_works() {
         .unwrap();
         // Bridge_in cap is 100 HKO
         Bridge::materialize(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             ETH,
             0,
             EHKO,
@@ -775,7 +787,7 @@ fn bridge_in_and_out_cap_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(BOB),
+            RuntimeRuntimeOrigin::signed(BOB),
             ETH,
             0,
             EHKO,
@@ -785,7 +797,7 @@ fn bridge_in_and_out_cap_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(CHARLIE),
+            RuntimeRuntimeOrigin::signed(CHARLIE),
             ETH,
             0,
             EHKO,
@@ -798,7 +810,7 @@ fn bridge_in_and_out_cap_works() {
         // Failed if exceed the bridge in cap
         assert_noop!(
             Bridge::materialize(
-                RuntimeOrigin::signed(ALICE),
+                RuntimeRuntimeOrigin::signed(ALICE),
                 ETH,
                 1,
                 EHKO,
@@ -814,9 +826,9 @@ fn bridge_in_and_out_cap_works() {
 #[test]
 fn clean_cap_accumulated_value_works() {
     new_test_ext().execute_with(|| {
-        Balances::set_balance(RuntimeOrigin::root(), EVE, dollar(200), dollar(0)).unwrap();
+        Balances::set_balance(RuntimeRuntimeOrigin::root(), EVE, dollar(200), dollar(0)).unwrap();
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             ETH,
             EHKO,
             "TELE".into(),
@@ -825,7 +837,7 @@ fn clean_cap_accumulated_value_works() {
         .unwrap();
         assert_noop!(
             Bridge::teleport(
-                RuntimeOrigin::signed(EVE),
+                RuntimeRuntimeOrigin::signed(EVE),
                 ETH,
                 EHKO,
                 "TELE".into(),
@@ -836,7 +848,7 @@ fn clean_cap_accumulated_value_works() {
 
         // CapOrigin can clean the accumulated cap value
         Bridge::clean_cap_accumulated_value(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             EHKO,
             BridgeType::BridgeOut,
         )
@@ -844,7 +856,7 @@ fn clean_cap_accumulated_value_works() {
 
         // Bridge out works again
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             ETH,
             EHKO,
             "TELE".into(),
@@ -853,7 +865,7 @@ fn clean_cap_accumulated_value_works() {
         .unwrap();
         assert_noop!(
             Bridge::teleport(
-                RuntimeOrigin::signed(EVE),
+                RuntimeRuntimeOrigin::signed(EVE),
                 ETH,
                 EHKO,
                 "TELE".into(),
@@ -867,9 +879,9 @@ fn clean_cap_accumulated_value_works() {
 #[test]
 fn set_bridge_token_cap_works() {
     new_test_ext().execute_with(|| {
-        Balances::set_balance(RuntimeOrigin::root(), EVE, dollar(500), dollar(0)).unwrap();
+        Balances::set_balance(RuntimeRuntimeOrigin::root(), EVE, dollar(500), dollar(0)).unwrap();
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             ETH,
             EHKO,
             "TELE".into(),
@@ -878,7 +890,7 @@ fn set_bridge_token_cap_works() {
         .unwrap();
         assert_noop!(
             Bridge::teleport(
-                RuntimeOrigin::signed(EVE),
+                RuntimeRuntimeOrigin::signed(EVE),
                 ETH,
                 EHKO,
                 "TELE".into(),
@@ -889,7 +901,7 @@ fn set_bridge_token_cap_works() {
 
         // Set a higher cap to continue the transaction above
         Bridge::set_bridge_token_cap(
-            RuntimeOrigin::root(),
+            RuntimeRuntimeOrigin::root(),
             EHKO,
             BridgeType::BridgeOut,
             dollar(350),
@@ -898,7 +910,7 @@ fn set_bridge_token_cap_works() {
 
         // It works after cap changes
         Bridge::teleport(
-            RuntimeOrigin::signed(EVE),
+            RuntimeRuntimeOrigin::signed(EVE),
             ETH,
             EHKO,
             "TELE".into(),
@@ -907,7 +919,7 @@ fn set_bridge_token_cap_works() {
         .unwrap();
         assert_noop!(
             Bridge::teleport(
-                RuntimeOrigin::signed(EVE),
+                RuntimeRuntimeOrigin::signed(EVE),
                 ETH,
                 EHKO,
                 "TELE".into(),
@@ -922,7 +934,7 @@ fn set_bridge_token_cap_works() {
 fn multi_materialize_cap_limit_works() {
     new_test_ext().execute_with(|| {
         Balances::set_balance(
-            RuntimeOrigin::root(),
+            RuntimeRuntimeOrigin::root(),
             Bridge::account_id(),
             dollar(300),
             dollar(0),
@@ -930,7 +942,7 @@ fn multi_materialize_cap_limit_works() {
         .unwrap();
         // Try to materialize for EVE with 100 EHKO
         Bridge::materialize(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             ETH,
             0,
             EHKO,
@@ -940,7 +952,7 @@ fn multi_materialize_cap_limit_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(BOB),
+            RuntimeRuntimeOrigin::signed(BOB),
             ETH,
             0,
             EHKO,
@@ -951,7 +963,7 @@ fn multi_materialize_cap_limit_works() {
         .unwrap();
         // But another materialize tx was finished advance and reach the bridge in cap
         Bridge::materialize(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             ETH,
             1,
             EHKO,
@@ -961,7 +973,7 @@ fn multi_materialize_cap_limit_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(BOB),
+            RuntimeRuntimeOrigin::signed(BOB),
             ETH,
             1,
             EHKO,
@@ -971,7 +983,7 @@ fn multi_materialize_cap_limit_works() {
         )
         .unwrap();
         Bridge::materialize(
-            RuntimeOrigin::signed(CHARLIE),
+            RuntimeRuntimeOrigin::signed(CHARLIE),
             ETH,
             1,
             EHKO,
@@ -983,7 +995,7 @@ fn multi_materialize_cap_limit_works() {
         // Failed if exceed the bridge in cap
         assert_noop!(
             Bridge::materialize(
-                RuntimeOrigin::signed(CHARLIE),
+                RuntimeRuntimeOrigin::signed(CHARLIE),
                 ETH,
                 0,
                 EHKO,
@@ -996,14 +1008,14 @@ fn multi_materialize_cap_limit_works() {
 
         // CapOrigin should clean the accumulated cap value
         Bridge::clean_cap_accumulated_value(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             EHKO,
             BridgeType::BridgeIn,
         )
         .unwrap();
         // Succeed after the accumulated cap value is cleaned
         Bridge::materialize(
-            RuntimeOrigin::signed(CHARLIE),
+            RuntimeRuntimeOrigin::signed(CHARLIE),
             ETH,
             0,
             EHKO,

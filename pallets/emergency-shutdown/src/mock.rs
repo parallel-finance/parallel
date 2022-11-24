@@ -29,15 +29,15 @@ parameter_types! {
 }
 
 pub struct BaseCallFilter;
-impl Contains<Call> for BaseCallFilter {
-    fn contains(c: &Call) -> bool {
+impl Contains<RuntimeCall> for BaseCallFilter {
+    fn contains(c: &RuntimeCall) -> bool {
         EmergencyShutdown::contains(c)
     }
 }
 
 pub struct WhiteListFilter;
-impl Contains<Call> for WhiteListFilter {
-    fn contains(_c: &Call) -> bool {
+impl Contains<RuntimeCall> for WhiteListFilter {
+    fn contains(_c: &RuntimeCall) -> bool {
         false
     }
 }
@@ -47,8 +47,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -56,7 +56,7 @@ impl frame_system::Config for Test {
     type AccountId = u64;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -70,10 +70,10 @@ impl frame_system::Config for Test {
 }
 
 impl pallet_emergency_shutdown::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Whitelist = WhiteListFilter;
     type ShutdownOrigin = EnsureRoot<u64>;
-    type Call = Call;
+    type RuntimeCall = RuntimeCall;
 }
 
 // Build genesis storage according to the mock runtime.

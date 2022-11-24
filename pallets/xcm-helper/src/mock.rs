@@ -64,7 +64,7 @@ parameter_types! {
 }
 
 impl cumulus_pallet_parachain_system::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type OnSystemEvent = ();
     type SelfParaId = ParachainInfo;
     type DmpMessageHandler = DmpQueue;
@@ -134,7 +134,7 @@ pub type Barrier = AllowUnpaidExecutionFrom<Everything>;
 
 pub struct XcmConfig;
 impl Config for XcmConfig {
-    type Call = Call;
+    type RuntimeCall = RuntimeCall;
     type XcmSender = XcmRouter;
     type AssetTransactor = LocalAssetTransactor;
     type OriginConverter = XcmOriginToCallOrigin;
@@ -166,7 +166,7 @@ impl<Origin: OriginTrait> ConvertOrigin<Origin> for SystemParachainAsSuperuser<O
                 } if ParaId::from(id).is_system(),
             )
         {
-            Ok(Origin::root())
+            Ok(RuntimeOrigin::root())
         } else {
             Err(origin)
         }
@@ -174,7 +174,7 @@ impl<Origin: OriginTrait> ConvertOrigin<Origin> for SystemParachainAsSuperuser<O
 }
 
 impl cumulus_pallet_xcmp_queue::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ChannelInfo = ParachainSystem;
@@ -185,13 +185,13 @@ impl cumulus_pallet_xcmp_queue::Config for Test {
 }
 
 impl cumulus_pallet_dmp_queue::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 }
 
 impl cumulus_pallet_xcm::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
@@ -200,9 +200,9 @@ pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNet
 impl pallet_xcm::Config for Test {
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
 
-    type Origin = Origin;
-    type Call = Call;
-    type Event = Event;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
     type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmRouter = XcmRouter;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
@@ -300,8 +300,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = Index;
     type BlockNumber = BlockNumber;
     type Hash = H256;
@@ -309,7 +309,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = AccountIdLookup<AccountId, ()>;
     type Header = generic::Header<BlockNumber, BlakeTwo256>;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -330,7 +330,7 @@ parameter_types! {
 impl pallet_balances::Config for Test {
     type MaxLocks = MaxLocks;
     type Balance = Balance;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type DustRemoval = ();
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
@@ -364,7 +364,7 @@ parameter_types! {
 }
 
 impl crate::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type Assets = Assets;
     type XcmSender = XcmRouter;
@@ -388,7 +388,7 @@ parameter_types! {
 }
 
 impl pallet_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
     type Currency = Balances;
@@ -438,19 +438,35 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
-        Assets::force_create(Origin::root(), SDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), SDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), DOT, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            Id(ALICE),
+            100 * DOT_DECIMAL,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            SDOT,
+            Id(ALICE),
+            100 * DOT_DECIMAL,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
             DOT,
             Id(XcmHelpers::account_id()),
             dot(30f64),
         )
         .unwrap();
-        XcmHelpers::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
-            .unwrap();
+        XcmHelpers::update_xcm_weight_fee(
+            RuntimeOrigin::root(),
+            XcmCall::AddMemo,
+            xcm_weight_fee_misc,
+        )
+        .unwrap();
     });
 
     ext
@@ -509,19 +525,35 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         System::set_block_number(1);
-        Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
-        Assets::force_create(Origin::root(), SDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), SDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), DOT, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            Id(ALICE),
+            100 * DOT_DECIMAL,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            SDOT,
+            Id(ALICE),
+            100 * DOT_DECIMAL,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
             DOT,
             Id(XcmHelpers::account_id()),
             dot(30f64),
         )
         .unwrap();
-        XcmHelpers::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
-            .unwrap();
+        XcmHelpers::update_xcm_weight_fee(
+            RuntimeOrigin::root(),
+            XcmCall::AddMemo,
+            xcm_weight_fee_misc,
+        )
+        .unwrap();
     });
 
     ext

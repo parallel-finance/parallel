@@ -1109,7 +1109,7 @@ fn update_protocol_fee_should_work() {
         assert!(AMM::protocol_fee().is_zero());
 
         assert_ok!(AMM::update_protocol_fee(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             Ratio::from_percent(20)
         ));
 
@@ -1123,7 +1123,7 @@ fn update_protocol_fee_receiver_should_work() {
         assert!(AMM::protolcol_fee_receiver().is_err());
 
         assert_ok!(AMM::update_protocol_fee_receiver(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             PROTOCOL_FEE_RECEIVER
         ));
 
@@ -1148,12 +1148,12 @@ fn handling_fees_should_work() {
         ));
 
         assert_ok!(AMM::update_protocol_fee(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             Ratio::from_percent(20)
         ));
 
         assert_ok!(AMM::update_protocol_fee_receiver(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             PROTOCOL_FEE_RECEIVER
         ));
 
@@ -1276,18 +1276,18 @@ fn quote_should_not_overflow() {
 #[test]
 fn glmr_add_liquidity_should_work() {
     new_test_ext().execute_with(|| {
-        Assets::force_create(RuntimeOrigin::root(), tokens::GLMR, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), tokens::PARA, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeRuntimeOrigin::root(), tokens::GLMR, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeRuntimeOrigin::root(), tokens::PARA, ALICE, true, 1).unwrap();
 
         Assets::mint(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             tokens::GLMR,
             ALICE,
             1000000000000000000000000,
         )
         .unwrap();
         Assets::mint(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             tokens::PARA,
             ALICE,
             200000000000000000000,
@@ -1304,7 +1304,7 @@ fn glmr_add_liquidity_should_work() {
         .unwrap();
 
         assert_ok!(AMM::add_liquidity(
-            RuntimeOrigin::signed(ALICE),
+            RuntimeRuntimeOrigin::signed(ALICE),
             (tokens::GLMR, tokens::PARA),
             (15000000000000000000000, 251621563685000000),
             (14925000000000000000000, 250363455866575000),
