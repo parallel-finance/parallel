@@ -65,7 +65,7 @@ pub mod pallet {
         type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
 
         // Origin which can lock asset balance
-        type LockOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type LockOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
     }
 
     #[pallet::pallet]

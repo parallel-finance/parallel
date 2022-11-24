@@ -111,7 +111,7 @@ where
 
 /// Converts a runtime trap into an RPC error.
 fn runtime_error_into_rpc_error(err: impl std::fmt::Debug) -> JsonRpseeError {
-    JsonRpseeError::RuntimeCall(CallError::Custom(ErrorObject::owned(
+    JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
         Error::RuntimeError.into(),
         "Runtime trapped",
         Some(format!("{:?}", err)),
@@ -119,7 +119,7 @@ fn runtime_error_into_rpc_error(err: impl std::fmt::Debug) -> JsonRpseeError {
 }
 
 fn smart_route_rpc_error(err: impl std::fmt::Debug) -> JsonRpseeError {
-    JsonRpseeError::RuntimeCall(CallError::Custom(ErrorObject::owned(
+    JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
         Error::RouterError.into(),
         "Smart router error",
         Some(format!("{:?}", err)),
@@ -131,7 +131,7 @@ fn decode_hex<H: std::fmt::Debug + Copy, T: TryFrom<H>>(
     name: &str,
 ) -> Result<T, JsonRpseeError> {
     from.try_into().map_err(|_| {
-        JsonRpseeError::RuntimeCall(CallError::Custom(ErrorObject::owned(
+        JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
             ErrorCode::InvalidParams.code(),
             format!("{:?} does not fit into the {} type", from, name),
             None::<()>,
@@ -143,7 +143,7 @@ fn try_into_rpc_balance<T: std::fmt::Display + Copy + TryInto<NumberOrHex>>(
     value: T,
 ) -> Result<NumberOrHex, JsonRpseeError> {
     value.try_into().map_err(|_| {
-        JsonRpseeError::RuntimeCall(CallError::Custom(ErrorObject::owned(
+        JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
             ErrorCode::InvalidParams.code(),
             format!("{} doesn't fit in NumberOrHex representation", value),
             None::<()>,
