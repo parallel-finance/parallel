@@ -18,10 +18,10 @@ use clap::Parser;
 use sc_cli::{KeySubcommand, SignCmd, VanityCmd, VerifyCmd};
 
 /// Sub-commands supported by the collator.
-#[derive(Debug, clap::Subcommand)]
+#[derive(Debug, Parser)]
 pub enum Subcommand {
     /// Key management CLI utilities
-    #[clap(subcommand)]
+    #[command(subcommand)]
     Key(KeySubcommand),
 
     Sign(SignCmd),
@@ -64,7 +64,7 @@ pub enum Subcommand {
     Revert(sc_cli::RevertCmd),
 
     /// The custom benchmark subcommmand benchmarking runtime pallets.
-    #[clap(subcommand)]
+    #[command(subcommand)]
     Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 }
 
@@ -75,7 +75,7 @@ pub enum Subcommand {
     subcommand_negates_reqs = true
 )]
 pub struct Cli {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     pub subcommand: Option<Subcommand>,
 
     #[clap(flatten)]

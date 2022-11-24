@@ -32,7 +32,7 @@ use std::{sync::Arc, time::Duration};
 use cumulus_client_cli::CollatorOptions;
 use cumulus_relay_chain_inprocess_interface::build_inprocess_relay_chain;
 use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface, RelayChainResult};
-use cumulus_relay_chain_rpc_interface::{create_client_and_start_worker, RelayChainRpcInterface};
+use cumulus_relay_chain_minimal_node::build_minimal_relay_chain_node;
 
 pub use sc_executor::NativeExecutionDispatch;
 
@@ -177,7 +177,6 @@ where
         _,
         _,
         _,
-        _,
     >(cumulus_client_consensus_aura::ImportQueueParams {
         block_import: client.clone(),
         client: client.clone(),
@@ -193,7 +192,6 @@ where
             Ok((time, slot))
         },
         registry: config.prometheus_registry(),
-        can_author_with: sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
         spawner: &task_manager.spawn_essential_handle(),
         telemetry: telemetry.as_ref().map(|telemetry| telemetry.handle()),
     })?;
@@ -225,11 +223,7 @@ async fn build_relay_chain_interface(
 )> {
     match collator_options.relay_chain_rpc_url {
         Some(relay_chain_url) => {
-            let client = create_client_and_start_worker(relay_chain_url, task_manager).await?;
-            Ok((
-                Arc::new(RelayChainRpcInterface::new(client)) as Arc<_>,
-                None,
-            ))
+            build_minimal_relay_chain_node(polkadot_config, task_manager, relay_chain_url).await
         }
         None => build_inprocess_relay_chain(
             polkadot_config,
@@ -289,7 +283,7 @@ where
     let transaction_pool = params.transaction_pool.clone();
     let import_queue = cumulus_client_service::SharedImportQueue::new(params.import_queue);
 
-    let (network, system_rpc_tx, start_network) =
+    let (network, system_rpc_tx, tx_handler_controller, start_network) =
         sc_service::build_network(sc_service::BuildNetworkParams {
             config: &parachain_config,
             client: client.clone(),
@@ -327,15 +321,16 @@ where
     }
 
     sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-        rpc_builder,
-        client: client.clone(),
-        transaction_pool: transaction_pool.clone(),
-        task_manager: &mut task_manager,
-        config: parachain_config,
-        keystore: params.keystore_container.sync_keystore(),
-        backend: backend.clone(),
         network: network.clone(),
+        client: client.clone(),
+        keystore: params.keystore_container.sync_keystore(),
+        task_manager: &mut task_manager,
+        transaction_pool: transaction_pool.clone(),
+        rpc_builder: Box::new(rpc_builder),
+        backend: backend.clone(),
         system_rpc_tx,
+        tx_handler_controller,
+        config: parachain_config,
         telemetry: telemetry.as_mut(),
     })?;
 
@@ -374,10 +369,10 @@ where
                             )
                             .await;
 
-                            let time = sp_timestamp::InherentDataProvider::from_system_time();
+                            let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
                             let slot =
 						sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-							*time,
+							*timestamp,
 							slot_duration,
 						);
 
@@ -387,7 +382,7 @@ where
                                 )
                             })?;
 
-                            Ok((time, slot, parachain_inherent))
+                            Ok((slot, timestamp, parachain_inherent))
                         }
                     },
                     block_import: client.clone(),
@@ -429,7 +424,6 @@ where
             relay_chain_interface,
             relay_chain_slot_duration,
             import_queue,
-            collator_options,
         };
 
         start_full_node(params)?;

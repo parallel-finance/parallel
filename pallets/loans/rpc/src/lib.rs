@@ -192,7 +192,7 @@ fn try_into_rpc_balance<T: std::fmt::Display + Copy + TryInto<NumberOrHex>>(
     value: T,
 ) -> RpcResult<NumberOrHex> {
     value.try_into().map_err(|_| {
-        JsonRpseeError::RuntimeCall(CallError::Custom(ErrorObject::owned(
+        JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
             ErrorCode::InvalidParams.code(),
             format!("{} doesn't fit in NumberOrHex representation", value),
             None::<()>,
