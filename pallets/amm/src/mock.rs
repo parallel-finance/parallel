@@ -210,28 +210,14 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(RuntimeRuntimeOrigin::root(), tokens::DOT, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeRuntimeOrigin::root(), tokens::SDOT, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeRuntimeOrigin::root(), tokens::KSM, ALICE, true, 1).unwrap();
-        Assets::force_create(
-            RuntimeRuntimeOrigin::root(),
-            SAMPLE_LP_TOKEN,
-            ALICE,
-            true,
-            1,
-        )
-        .unwrap();
-        Assets::force_create(
-            RuntimeRuntimeOrigin::root(),
-            SAMPLE_LP_TOKEN_2,
-            ALICE,
-            true,
-            1,
-        )
-        .unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::SDOT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::KSM, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SAMPLE_LP_TOKEN, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SAMPLE_LP_TOKEN_2, ALICE, true, 1).unwrap();
 
         Assets::mint(
-            RuntimeRuntimeOrigin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             tokens::DOT,
             ALICE,
             100_000_000,
@@ -239,28 +225,22 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
         Assets::mint(
-            RuntimeRuntimeOrigin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             tokens::DOT,
             BOB,
             100_000_000_000_000_000_000,
         )
         .unwrap();
         Assets::mint(
-            RuntimeRuntimeOrigin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             tokens::DOT,
             CHARLIE,
             1000_000_000,
         )
         .unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), tokens::DOT, EVE, 1000_000_000).unwrap();
         Assets::mint(
-            RuntimeRuntimeOrigin::signed(ALICE),
-            tokens::DOT,
-            EVE,
-            1000_000_000,
-        )
-        .unwrap();
-        Assets::mint(
-            RuntimeRuntimeOrigin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             tokens::DOT,
             FRANK,
             100_000_000_000_000_000_000,
@@ -268,28 +248,28 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
         Assets::mint(
-            RuntimeRuntimeOrigin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             tokens::SDOT,
             ALICE,
             100_000_000,
         )
         .unwrap();
         Assets::mint(
-            RuntimeRuntimeOrigin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             tokens::SDOT,
             BOB,
             100_000_000_000_000_000_000,
         )
         .unwrap();
         Assets::mint(
-            RuntimeRuntimeOrigin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             tokens::SDOT,
             CHARLIE,
             1000_000_000,
         )
         .unwrap();
         Assets::mint(
-            RuntimeRuntimeOrigin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             tokens::SDOT,
             EVE,
             1000_000_000,
@@ -297,21 +277,15 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
         Assets::mint(
-            RuntimeRuntimeOrigin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             tokens::KSM,
             ALICE,
             100_000_000,
         )
         .unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), tokens::KSM, BOB, 100_000_000).unwrap();
         Assets::mint(
-            RuntimeRuntimeOrigin::signed(ALICE),
-            tokens::KSM,
-            BOB,
-            100_000_000,
-        )
-        .unwrap();
-        Assets::mint(
-            RuntimeRuntimeOrigin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             tokens::KSM,
             FRANK,
             100_000_000_000_000_000_000,

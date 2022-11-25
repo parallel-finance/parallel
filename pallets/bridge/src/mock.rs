@@ -262,9 +262,9 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(RuntimeRuntimeOrigin::root(), KSM, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), KSM, ALICE, true, 1).unwrap();
         Assets::force_set_metadata(
-            RuntimeRuntimeOrigin::root(),
+            RuntimeOrigin::root(),
             KSM,
             b"Kusama".to_vec(),
             b"KSM".to_vec(),
@@ -272,9 +272,9 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::force_create(RuntimeRuntimeOrigin::root(), USDT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), USDT, ALICE, true, 1).unwrap();
         Assets::force_set_metadata(
-            RuntimeRuntimeOrigin::root(),
+            RuntimeOrigin::root(),
             USDT,
             b"USDT".to_vec(),
             b"USDT".to_vec(),
@@ -283,22 +283,22 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        Balances::set_balance(RuntimeRuntimeOrigin::root(), EVE, dollar(100), dollar(0)).unwrap();
+        Balances::set_balance(RuntimeOrigin::root(), EVE, dollar(100), dollar(0)).unwrap();
         Balances::set_balance(
-            RuntimeRuntimeOrigin::root(),
+            RuntimeOrigin::root(),
             PalletId(*b"par/gift").into_account_truncating(),
             dollar(1000000),
             dollar(0),
         )
         .unwrap();
 
-        BridgeMembership::add_member(RuntimeRuntimeOrigin::root(), ALICE).unwrap();
-        BridgeMembership::add_member(RuntimeRuntimeOrigin::root(), BOB).unwrap();
-        BridgeMembership::add_member(RuntimeRuntimeOrigin::root(), CHARLIE).unwrap();
+        BridgeMembership::add_member(RuntimeOrigin::root(), ALICE).unwrap();
+        BridgeMembership::add_member(RuntimeOrigin::root(), BOB).unwrap();
+        BridgeMembership::add_member(RuntimeOrigin::root(), CHARLIE).unwrap();
 
-        Bridge::register_chain(RuntimeRuntimeOrigin::root(), ETH).unwrap();
-        Bridge::register_bridge_token(RuntimeRuntimeOrigin::root(), HKO, EHKO_CURRENCY).unwrap();
-        Bridge::register_bridge_token(RuntimeRuntimeOrigin::root(), USDT, EUSDT_CURRENCY).unwrap();
+        Bridge::register_chain(RuntimeOrigin::root(), ETH).unwrap();
+        Bridge::register_bridge_token(RuntimeOrigin::root(), HKO, EHKO_CURRENCY).unwrap();
+        Bridge::register_bridge_token(RuntimeOrigin::root(), USDT, EUSDT_CURRENCY).unwrap();
 
         System::set_block_number(0);
         run_to_block(1);
