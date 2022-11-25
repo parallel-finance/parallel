@@ -107,7 +107,7 @@ fn initial_set_up<
     ExchangeRate::<T>::mutate(|b| *b = Rate::one());
 }
 
-fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
+fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
@@ -115,7 +115,7 @@ benchmarks! {
     where_clause {
         where
             T: Config + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_xcm_helper::Config,
-            <T as frame_system::Config>::Origin: From<pallet_xcm::Origin>
+            <T as frame_system::Config>::RuntimeOrigin: From<pallet_xcm::Origin>
     }
 
     stake {

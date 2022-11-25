@@ -23,7 +23,7 @@ const INITIAL_AMOUNT: u128 = 1_000_000_000_000_000;
 const ASSET_ID: u32 = 10;
 const MINIMUM_LIQUIDITY: u128 = 1_000u128;
 
-fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {
+fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::RuntimeEvent) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 

@@ -15,7 +15,7 @@ use sp_std::prelude::*;
 use xcm::latest::prelude::*;
 
 const XCM_WEIGHT_FEE: XcmWeightFeeMisc<Weight, Balance> = XcmWeightFeeMisc {
-    weight: 3_000_000_000,
+    weight: Weight::from_ref_time(3_000_000_000),
     fee: 50000000000u128,
 };
 const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
@@ -28,7 +28,7 @@ const LEASE_END: u32 = 7;
 const END_BLOCK: u32 = 1_000_000_000u32;
 const START_TRIE_INDEX: u32 = 0;
 
-fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
+fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
@@ -87,7 +87,7 @@ benchmarks! {
     where_clause {
         where
             T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_xcm_helper::Config,
-            <T as frame_system::Config>::Origin: From<pallet_xcm::Origin>
+            <T as frame_system::Config>::RuntimeOrigin: From<pallet_xcm::Origin>
     }
 
     create_vault {

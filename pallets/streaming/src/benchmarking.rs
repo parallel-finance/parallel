@@ -37,7 +37,7 @@ pub fn dollar(d: u128) -> u128 {
     d.saturating_mul(10_u128.pow(12))
 }
 
-fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
+fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 

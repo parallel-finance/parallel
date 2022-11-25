@@ -219,7 +219,6 @@ std                = [
   'orml-xtokens/std',
   'orml-xcm/std',
   'orml-vesting/std',
-  'frame-try-runtime/std',
   'pallet-amm/std',
   'pallet-router/std',
   'pallet-emergency-shutdown/std',
@@ -247,6 +246,21 @@ try-runtime        = [
   'pallet-scheduler/try-runtime',
   'pallet-preimage/try-runtime',
   'polkadot-runtime-common/try-runtime',
+  'pallet-proxy/try-runtime',
+  'pallet-xcm/try-runtime',
+  'parachain-info/try-runtime',
+  'pallet-collator-selection/try-runtime',
+  'cumulus-pallet-xcmp-queue/try-runtime',
+  'cumulus-pallet-dmp-queue/try-runtime',
+  'cumulus-pallet-xcm/try-runtime',
+  'cumulus-pallet-aura-ext/try-runtime',
+  'cumulus-pallet-parachain-system/try-runtime',
+  'pallet-crowdloans/try-runtime',
+  'pallet-amm/try-runtime',
+  'pallet-router/try-runtime',
+  'pallet-currency-adapter/try-runtime',
+  'pallet-emergency-shutdown/try-runtime',
+  'pallet-farming/try-runtime',
   'pallet-session/try-runtime',
   'pallet-assets/try-runtime',
   'pallet-authorship/try-runtime',
@@ -261,9 +275,4 @@ try-runtime        = [
   'pallet-prices/try-runtime',
   'pallet-xcm-helper/try-runtime',
   'pallet-asset-registry/try-runtime',
-]
-
-[package.metadata.cargo-udeps.ignore]
-normal = [
-  'frame-try-runtime',
 ]
