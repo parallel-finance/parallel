@@ -35,7 +35,7 @@ decl_test_relay_chain! {
 decl_test_parachain! {
     pub struct Heiko {
         Runtime = heiko_runtime::Runtime,
-        Origin = heiko_runtime::Origin,
+        RuntimeOrigin = heiko_runtime::RuntimeOrigin,
         XcmpMessageHandler = heiko_runtime ::XcmpQueue,
         DmpMessageHandler = heiko_runtime::DmpQueue,
         new_ext = para_ext(2085),
@@ -45,7 +45,7 @@ decl_test_parachain! {
 decl_test_parachain! {
     pub struct Statemine {
         Runtime = statemine_runtime::Runtime,
-        Origin = statemine_runtime::Origin,
+        RuntimeOrigin = statemine_runtime::RuntimeOrigin,
         XcmpMessageHandler = statemine_runtime::XcmpQueue,
         DmpMessageHandler = statemine_runtime::DmpQueue,
         new_ext = stamine_ext(),
@@ -55,7 +55,7 @@ decl_test_parachain! {
 decl_test_parachain! {
     pub struct MockSibling {
         Runtime = heiko_runtime::Runtime,
-        Origin = heiko_runtime::Origin,
+        RuntimeOrigin = heiko_runtime::RuntimeOrigin,
         XcmpMessageHandler = heiko_runtime::XcmpQueue,
         DmpMessageHandler = heiko_runtime::DmpQueue,
         new_ext = sibling_ext(2000),
@@ -87,7 +87,7 @@ fn default_parachains_host_configuration() -> HostConfiguration<BlockNumber> {
         max_upward_queue_count: 8,
         max_upward_queue_size: 1024 * 1024,
         max_downward_message_size: 1024 * 1024,
-        ump_service_total_weight: 100_000_000_000,
+        ump_service_total_weight: Weight::from_ref_time(100_000_000_000),
         max_upward_message_size: 50 * 1024,
         max_upward_message_num_per_candidate: 5,
         hrmp_sender_deposit: 0,

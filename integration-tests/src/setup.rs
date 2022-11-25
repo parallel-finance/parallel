@@ -16,6 +16,7 @@ use frame_support::traits::ConstU32;
 use frame_support::traits::GenesisBuild;
 use frame_support::WeakBoundedVec;
 
+pub use frame_support::pallet_prelude::Weight;
 use frame_support::traits::Currency;
 use pallet_loans::{InterestRateModel, JumpModel, Market, MarketState};
 use pallet_traits::{
@@ -120,7 +121,7 @@ impl ExtBuilder {
 
     pub fn heiko_build(self) -> sp_io::TestExternalities {
         use heiko_runtime::{
-            AssetRegistry, Assets, LiquidStaking, Loans, Origin, System, XcmHelper,
+            AssetRegistry, Assets, LiquidStaking, Loans, RuntimeOrigin, System, XcmHelper,
         };
         use paras::statemine::{ID as StatemineChainId, PALLET_INSTANCE as StatemineAssetInstance};
         let mut ext = sp_io::TestExternalities::new(self.init());
@@ -227,7 +228,7 @@ impl ExtBuilder {
                 RuntimeOrigin::root(),
                 XcmCall::TransferToSiblingchain(Box::new((1, Parachain(1000)).into())),
                 XcmWeightFeeMisc {
-                    weight: WEIGHT_IN_STATEMINE,
+                    weight: Weight::from_ref_time(WEIGHT_IN_STATEMINE),
                     fee: FEE_IN_STATEMINE,
                 },
             )
@@ -355,7 +356,7 @@ impl ExtBuilder {
     }
 
     pub fn parallel_build(self) -> sp_io::TestExternalities {
-        use parallel_runtime::{AssetRegistry, Assets, Origin, Runtime, System};
+        use parallel_runtime::{AssetRegistry, Assets, Runtime, RuntimeOrigin, System};
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
             .unwrap();
@@ -485,7 +486,7 @@ impl ExtBuilder {
     }
 
     pub fn statemine_build(self) -> sp_io::TestExternalities {
-        use statemine_runtime::{Assets, Balances, Origin, Runtime, System};
+        use statemine_runtime::{Assets, Balances, Runtime, RuntimeOrigin, System};
 
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
@@ -574,7 +575,7 @@ impl ExtBuilder {
     }
 
     pub fn karura_build(self) -> sp_io::TestExternalities {
-        use heiko_runtime::{AssetRegistry, Origin, System};
+        use heiko_runtime::{AssetRegistry, RuntimeOrigin, System};
         let mut ext = sp_io::TestExternalities::new(self.init());
         ext.execute_with(|| {
             System::set_block_number(1);
@@ -599,7 +600,7 @@ impl ExtBuilder {
     }
 
     pub fn clv_build(self) -> sp_io::TestExternalities {
-        use heiko_runtime::{AssetRegistry, Origin, System};
+        use heiko_runtime::{AssetRegistry, RuntimeOrigin, System};
         let mut ext = sp_io::TestExternalities::new(self.init());
         ext.execute_with(|| {
             System::set_block_number(1);

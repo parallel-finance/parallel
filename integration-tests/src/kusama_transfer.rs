@@ -50,7 +50,7 @@ fn transfer_from_relay_chain() {
 
 #[test]
 fn transfer_to_relay_chain() {
-    use heiko_runtime::{Origin, XTokens};
+    use heiko_runtime::{RuntimeOrigin, XTokens};
     Heiko::execute_with(|| {
         assert_ok!(XTokens::transfer(
             RuntimeOrigin::signed(ALICE.into()),
@@ -63,7 +63,7 @@ fn transfer_to_relay_chain() {
                     network: NetworkId::Any
                 })
             ))),
-            4_000_000_000
+            WeightLimit::Limited(4_000_000_000)
         ));
     });
 

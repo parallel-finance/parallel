@@ -50,7 +50,7 @@ fn transfer_from_relay_chain() {
 
 #[test]
 fn transfer_to_relay_chain() {
-    use parallel_runtime::{Origin, XTokens};
+    use parallel_runtime::{RuntimeOrigin, XTokens};
     Parallel::execute_with(|| {
         assert_ok!(XTokens::transfer(
             RuntimeOrigin::signed(ALICE.into()),
@@ -63,7 +63,7 @@ fn transfer_to_relay_chain() {
                     network: NetworkId::Any
                 })
             ))),
-            4_000_000_000
+            WeightLimit::Limited(4_000_000_000)
         ));
     });
 
@@ -83,7 +83,7 @@ fn transfer_sibling_chain_asset() {
     TestNet::reset();
 
     //since not easy to introduce runtime from other chain,just use heiko's
-    use parallel_runtime::{Assets, Balances, Origin, PolkadotXcm, XTokens};
+    use parallel_runtime::{Assets, Balances, PolkadotXcm, RuntimeOrigin, XTokens};
 
     MockSibling::execute_with(|| {
         assert_ok!(PolkadotXcm::reserve_transfer_assets(
@@ -137,7 +137,7 @@ fn transfer_sibling_chain_asset() {
                 )
                 .into()
             ),
-            4_000_000_000,
+            WeightLimit::Limited(4_000_000_000),
         ));
 
         assert_eq!(

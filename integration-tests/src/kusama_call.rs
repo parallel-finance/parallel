@@ -29,7 +29,7 @@ fn liquidate_staking_call_should_work() {
         hex_literal::hex!["5d199b535508990c59f411757617904ce65c905fced6878bacfbf26d3b4a1e97"]
             .into();
     Heiko::execute_with(|| {
-        use heiko_runtime::{LiquidStaking, Origin};
+        use heiko_runtime::{LiquidStaking, RuntimeOrigin};
         assert_ok!(LiquidStaking::stake(
             RuntimeOrigin::signed(AccountId::from(ALICE)),
             amount
@@ -56,7 +56,7 @@ fn liquidate_staking_call_should_work() {
                 total: amount,
                 active: amount,
                 unlocking: Default::default(),
-                claimed_rewards: vec![]
+                claimed_rewards: Default::default()
             })
         );
     })
