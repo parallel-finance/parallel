@@ -19,7 +19,6 @@ use cumulus_client_service::{
 };
 
 use polkadot_service::{CollatorPair, ConstructRuntimeApi};
-use sc_client_api::call_executor::ExecutorProvider;
 use sc_executor::NativeElseWasmExecutor;
 use sc_network_common::service::NetworkBlock;
 use sc_service::{Configuration, PartialComponents, TaskManager};
@@ -189,7 +188,7 @@ where
                     slot_duration,
                 );
 
-            Ok((time, slot))
+            Ok((slot, time))
         },
         registry: config.prometheus_registry(),
         spawner: &task_manager.spawn_essential_handle(),
