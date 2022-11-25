@@ -14,6 +14,7 @@
 
 #![allow(dead_code, unused)]
 
+use fc_db::DatabaseSource;
 use fc_rpc::{
     Eth, EthApiServer, EthBlockDataCacheTask, EthFilter, EthFilterApiServer, EthPubSub,
     EthPubSubApiServer, Net, NetApiServer, OverrideHandle, RuntimeApiStorageOverride,
@@ -23,9 +24,14 @@ use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use fp_storage::EthereumStorageSchema;
 use jsonrpsee::RpcModule;
 use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
+use primitives::*;
 use sc_client_api::{AuxStore, Backend, BlockchainEvents, StateBackend, StorageProvider};
 use sc_network::NetworkService;
 pub use sc_rpc::{DenyUnsafe, SubscriptionTaskExecutor};
+use sc_service::{
+    error::Error as ServiceError, BasePath, ChainSpec, Configuration, PartialComponents,
+    TFullBackend, TFullClient, TaskManager,
+};
 use sc_transaction_pool::{ChainApi, Pool};
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
@@ -38,30 +44,47 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use substrate_frame_rpc_system::{System, SystemApiServer};
 
-use primitives::*;
-
 use orml_oracle_rpc::{Oracle, OracleApiServer};
 use pallet_loans_rpc::{Loans, LoansApiServer};
 use pallet_router_rpc::{Router, RouterApiServer};
 
-pub fn open_frontier_backend(
-    config: &sc_service::Configuration,
-) -> Result<Arc<fc_db::Backend<Block>>, String> {
+pub fn frontier_database_dir(config: &Configuration, path: &str) -> std::path::PathBuf {
     let config_dir = config
         .base_path
         .as_ref()
         .map(|base_path| base_path.config_dir(config.chain_spec.id()))
         .unwrap_or_else(|| {
-            sc_service::BasePath::from_project("", "", "parallel")
-                .config_dir(config.chain_spec.id())
+            BasePath::from_project("", "", "parallel").config_dir(config.chain_spec.id())
         });
-    let path = config_dir.join("frontier").join("db");
+    config_dir.join("frontier").join(path)
+}
 
+pub fn open_frontier_backend<C>(
+    client: Arc<C>,
+    config: &Configuration,
+) -> Result<Arc<fc_db::Backend<Block>>, String>
+where
+    C: sp_blockchain::HeaderBackend<Block>,
+{
     Ok(Arc::new(fc_db::Backend::<Block>::new(
+        client,
         &fc_db::DatabaseSettings {
-            source: fc_db::DatabaseSource::RocksDb {
-                path,
-                cache_size: 0,
+            source: match config.database {
+                DatabaseSource::RocksDb { .. } => DatabaseSource::RocksDb {
+                    path: frontier_database_dir(config, "db"),
+                    cache_size: 0,
+                },
+                DatabaseSource::ParityDb { .. } => DatabaseSource::ParityDb {
+                    path: frontier_database_dir(config, "paritydb"),
+                },
+                DatabaseSource::Auto { .. } => DatabaseSource::Auto {
+                    rocksdb_path: frontier_database_dir(config, "db"),
+                    paritydb_path: frontier_database_dir(config, "paritydb"),
+                    cache_size: 0,
+                },
+                _ => {
+                    return Err("Supported db sources: `rocksdb` | `paritydb` | `auto`".to_string())
+                }
             },
         },
     )?))

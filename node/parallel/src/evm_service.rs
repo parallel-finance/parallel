@@ -36,7 +36,7 @@ use cumulus_client_service::{
 use cumulus_primitives_core::ParaId;
 use cumulus_relay_chain_inprocess_interface::build_inprocess_relay_chain;
 use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface, RelayChainResult};
-use cumulus_relay_chain_rpc_interface::{create_client_and_start_worker, RelayChainRpcInterface};
+use cumulus_relay_chain_minimal_node::build_minimal_relay_chain_node;
 use fc_consensus::FrontierBlockImport;
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use futures::StreamExt;
@@ -330,7 +330,7 @@ where
         client.clone(),
     );
 
-    let frontier_backend = crate::evm_rpc::open_frontier_backend(config)?;
+    let frontier_backend = crate::evm_rpc::open_frontier_backend(client.clone(), config)?;
     let frontier_block_import =
         FrontierBlockImport::new(client.clone(), client.clone(), frontier_backend.clone());
 
@@ -368,11 +368,7 @@ async fn build_relay_chain_interface(
 )> {
     match collator_options.relay_chain_rpc_url {
         Some(relay_chain_url) => {
-            let client = create_client_and_start_worker(relay_chain_url, task_manager).await?;
-            Ok((
-                Arc::new(RelayChainRpcInterface::new(client)) as Arc<_>,
-                None,
-            ))
+            build_minimal_relay_chain_node(polkadot_config, task_manager, relay_chain_url).await
         }
         None => build_inprocess_relay_chain(
             polkadot_config,
@@ -485,7 +481,7 @@ where
     let prometheus_registry = parachain_config.prometheus_registry().cloned();
     let transaction_pool = params.transaction_pool.clone();
     let import_queue = cumulus_client_service::SharedImportQueue::new(params.import_queue);
-    let (network, system_rpc_tx, start_network) =
+    let (network, system_rpc_tx, tx_handler_controller, start_network) =
         sc_service::build_network(sc_service::BuildNetworkParams {
             config: &parachain_config,
             client: client.clone(),
@@ -593,6 +589,7 @@ where
         backend: backend.clone(),
         network: network.clone(),
         system_rpc_tx,
+        tx_handler_controller,
         telemetry: telemetry.as_mut(),
     })?;
 
@@ -642,7 +639,6 @@ where
             relay_chain_interface,
             relay_chain_slot_duration,
             import_queue,
-            collator_options,
         };
 
         start_full_node(params)?;
@@ -701,7 +697,6 @@ where
             sp_consensus_aura::sr25519::AuthorityPair,
             _,
             _,
-            _,
         >(
             cumulus_client_consensus_aura::BuildVerifierParams {
                 client: client2.clone(),
@@ -714,11 +709,8 @@ where
                             slot_duration,
                         );
 
-                    Ok((time, slot))
+                    Ok((slot, time))
                 },
-                can_author_with: sp_consensus::CanAuthorWithNativeVersion::new(
-                    client2.executor().clone(),
-                ),
                 telemetry: telemetry_handle,
             },
         )) as Box<_>
@@ -792,11 +784,9 @@ where
          telemetry,
          task_manager| {
             let slot_duration = cumulus_client_consensus_aura::slot_duration(&*client)?;
-            let can_author_with = sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 
             cumulus_client_consensus_aura::import_queue::<
                 sp_consensus_aura::sr25519::AuthorityPair,
-                _,
                 _,
                 _,
                 _,
@@ -814,10 +804,9 @@ where
                             slot_duration,
                         );
 
-                    Ok((time, slot))
+                    Ok((slot, time))
                 },
                 registry: config.prometheus_registry(),
-                can_author_with,
                 spawner: &task_manager.spawn_essential_handle(),
                 telemetry,
             })
@@ -881,7 +870,7 @@ where
                                 "Failed to create parachain inherent",
                             )
                         })?;
-                        Ok((time, slot, parachain_inherent))
+                        Ok((slot, time, parachain_inherent))
                     }
                 },
                 block_import: client.clone(),
@@ -989,7 +978,7 @@ where
         task_manager.spawn_essential_handle(),
         client.clone(),
     );
-    let frontier_backend = crate::evm_rpc::open_frontier_backend(config)?;
+    let frontier_backend = crate::evm_rpc::open_frontier_backend(client.clone(), config)?;
 
     let frontier_block_import =
         FrontierBlockImport::new(client.clone(), client.clone(), frontier_backend.clone());
@@ -1051,7 +1040,7 @@ where
         other: (block_import, mut telemetry, frontier_backend),
     } = new_dev_partial::<RuntimeApi, Executor>(&config)?;
 
-    let (network, system_rpc_tx, network_starter) =
+    let (network, system_rpc_tx, tx_handler_controller, network_starter) =
         sc_service::build_network(sc_service::BuildNetworkParams {
             config: &config,
             client: client.clone(),
@@ -1168,6 +1157,7 @@ where
         backend,
         system_rpc_tx,
         config,
+        tx_handler_controller,
         telemetry: telemetry.as_mut(),
     })?;
 
@@ -1219,6 +1209,8 @@ where
                         current_para_block,
                         relay_offset: 1000,
                         relay_blocks_per_para_block: 2,
+                        para_blocks_per_relay_epoch: 10,
+                        relay_randomness_config: (),
                         xcm_config: Default::default(),
                         raw_downward_messages: vec![],
                         raw_horizontal_messages: vec![],
