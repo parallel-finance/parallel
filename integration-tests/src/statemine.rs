@@ -30,7 +30,7 @@ fn transfer_statemine_rmrk() {
     Statemine::execute_with(|| {
         use statemine_runtime::{PolkadotXcm, RuntimeOrigin};
 
-        assert_ok!(PolkadotXcm::reserve_transfer_assets(
+        assert_ok!(PolkadotXcm::limited_reserve_transfer_assets(
             RuntimeOrigin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2085))).into()),
             Box::new(
@@ -42,7 +42,8 @@ fn transfer_statemine_rmrk() {
                 .into()
             ),
             Box::new((X2(PalletInstance(50), GeneralIndex(8)), rmrk(2)).into()),
-            0
+            0,
+            WeightLimit::Unlimited
         ));
     });
 
@@ -112,7 +113,7 @@ fn transfer_statemine_usdt() {
     Statemine::execute_with(|| {
         use statemine_runtime::{PolkadotXcm, RuntimeOrigin};
 
-        assert_ok!(PolkadotXcm::reserve_transfer_assets(
+        assert_ok!(PolkadotXcm::limited_reserve_transfer_assets(
             RuntimeOrigin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2085))).into()),
             Box::new(
@@ -130,7 +131,8 @@ fn transfer_statemine_usdt() {
                 )
                     .into()
             ),
-            0
+            0,
+            WeightLimit::Unlimited
         ));
     });
 
