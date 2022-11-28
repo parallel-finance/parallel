@@ -69,6 +69,8 @@ jobs:
           target: wasm32-unknown-unknown
           default: true
           path: ""
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
       - name: Run cargo-tarpaulin
         run: |
           wget https://github.com/xd009642/tarpaulin/releases/download/${{ env.TARPAULIN_VERSION }}/cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz
