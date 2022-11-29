@@ -305,6 +305,7 @@ try-runtime        = [
   'pallet-prices/try-runtime',
   'pallet-crowdloans/try-runtime',
   'pallet-xcm-helper/try-runtime',
+  'pallet-stableswap/try-runtime',
   'pallet-asset-registry/try-runtime',
   'pallet-ethereum/try-runtime',
   'pallet-evm/try-runtime',
