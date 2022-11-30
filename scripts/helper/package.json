@@ -33,5 +33,6 @@
     "bignumber.js": "^9.0.2",
     "dotenv": "^16.0.0",
     "shelljs": "^0.8.5"
-  }
+  },
+  "packageManager": "yarn@3.3.0"
 }

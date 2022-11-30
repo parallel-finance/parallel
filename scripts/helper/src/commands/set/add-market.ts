@@ -5,7 +5,7 @@ import { readFile } from '../../utils'
 import BigNumber from 'bignumber.js'
 
 export default function ({ createCommand }: CreateCommandParameters): Command {
-  return createCommand('set market reward speed')
+  return createCommand('add market')
     .argument('<input>', 'path to reward csv', {
       validator: program.STRING
     })
@@ -28,7 +28,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       )
 
       const markets = (await readFile(input.toString(), 'utf8'))
-        .split(/\r\n/)
+        .split(/\r?\n/)
         .slice(1)
         .map(row => row.split(',').filter(Boolean))
         .filter(cols => cols.length >= 4)

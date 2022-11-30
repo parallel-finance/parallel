@@ -221,6 +221,9 @@ impl Contains<RuntimeCall> for WhiteListFilter {
             RuntimeCall::Assets(pallet_assets::Call::force_create { .. }) |
             RuntimeCall::Assets(pallet_assets::Call::force_set_metadata { .. }) |
             RuntimeCall::Assets(pallet_assets::Call::force_asset_status { .. }) |
+            RuntimeCall::Assets(pallet_assets::Call::force_clear_metadata { .. }) |
+            RuntimeCall::Assets(pallet_assets::Call::force_cancel_approval { .. }) |
+            RuntimeCall::Assets(pallet_assets::Call::force_transfer { .. }) |
             // Governance
             // RuntimeCall::Sudo(_) |
             RuntimeCall::Democracy(_) |
