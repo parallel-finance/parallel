@@ -65,7 +65,7 @@ pub mod pallet {
     use weights::WeightInfo;
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Assets for deposit/withdraw collateral assets to/from loans module
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
@@ -96,7 +96,7 @@ pub mod pallet {
         type UnixTime: UnixTime;
 
         /// The origin which can update minimum_deposit
-        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// Weight information
         type WeightInfo: WeightInfo;

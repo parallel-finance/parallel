@@ -86,8 +86,8 @@ impl system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = BlockNumber;
     type Hash = H256;
@@ -95,7 +95,7 @@ impl system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -116,7 +116,7 @@ parameter_types! {
 impl pallet_balances::Config for Test {
     type MaxLocks = MaxLocks;
     type Balance = Balance;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type DustRemoval = ();
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
@@ -135,7 +135,7 @@ parameter_types! {
 }
 
 impl pallet_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
     type Currency = Balances;
@@ -167,7 +167,7 @@ impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
 }
 
 impl pallet_amm::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type LockAccountId = LockAccountId;
@@ -210,46 +210,82 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(Origin::root(), tokens::DOT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), tokens::SDOT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), tokens::KSM, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN_2, ALICE, true, 1).unwrap();
-
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 100_000_000).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::SDOT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::KSM, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SAMPLE_LP_TOKEN, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SAMPLE_LP_TOKEN_2, ALICE, true, 1).unwrap();
 
         Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
+            tokens::DOT,
+            ALICE,
+            100_000_000,
+        )
+        .unwrap();
+
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
             tokens::DOT,
             BOB,
             100_000_000_000_000_000_000,
         )
         .unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, CHARLIE, 1000_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, EVE, 1000_000_000).unwrap();
         Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
+            tokens::DOT,
+            CHARLIE,
+            1000_000_000,
+        )
+        .unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), tokens::DOT, EVE, 1000_000_000).unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
             tokens::DOT,
             FRANK,
             100_000_000_000_000_000_000,
         )
         .unwrap();
 
-        Assets::mint(Origin::signed(ALICE), tokens::SDOT, ALICE, 100_000_000).unwrap();
         Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
+            tokens::SDOT,
+            ALICE,
+            100_000_000,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
             tokens::SDOT,
             BOB,
             100_000_000_000_000_000_000,
         )
         .unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::SDOT, CHARLIE, 1000_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::SDOT, EVE, 1000_000_000).unwrap();
-
-        Assets::mint(Origin::signed(ALICE), tokens::KSM, ALICE, 100_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::KSM, BOB, 100_000_000).unwrap();
         Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
+            tokens::SDOT,
+            CHARLIE,
+            1000_000_000,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            tokens::SDOT,
+            EVE,
+            1000_000_000,
+        )
+        .unwrap();
+
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            tokens::KSM,
+            ALICE,
+            100_000_000,
+        )
+        .unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), tokens::KSM, BOB, 100_000_000).unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
             tokens::KSM,
             FRANK,
             100_000_000_000_000_000_000,

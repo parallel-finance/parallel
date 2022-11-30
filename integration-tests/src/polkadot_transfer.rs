@@ -28,7 +28,7 @@ use crate::{polkadot_test_net::*, setup::*};
 fn transfer_from_relay_chain() {
     PolkadotNet::execute_with(|| {
         assert_ok!(polkadot_runtime::XcmPallet::reserve_transfer_assets(
-            polkadot_runtime::Origin::signed(ALICE.into()),
+            polkadot_runtime::RuntimeOrigin::signed(ALICE.into()),
             Box::new(VersionedMultiLocation::V1(X1(Parachain(2012)).into())),
             Box::new(VersionedMultiLocation::V1(
                 X1(Junction::AccountId32 {
@@ -50,10 +50,10 @@ fn transfer_from_relay_chain() {
 
 #[test]
 fn transfer_to_relay_chain() {
-    use parallel_runtime::{Origin, XTokens};
+    use parallel_runtime::{RuntimeOrigin, XTokens};
     Parallel::execute_with(|| {
         assert_ok!(XTokens::transfer(
-            Origin::signed(ALICE.into()),
+            RuntimeOrigin::signed(ALICE.into()),
             DOT,
             dot(10f64),
             Box::new(xcm::VersionedMultiLocation::V1(MultiLocation::new(
@@ -63,7 +63,7 @@ fn transfer_to_relay_chain() {
                     network: NetworkId::Any
                 })
             ))),
-            4_000_000_000
+            WeightLimit::Limited(4_000_000_000)
         ));
     });
 
@@ -72,7 +72,7 @@ fn transfer_to_relay_chain() {
         println!("parallel para account in relaychain:{:?}", para_acc);
         assert_eq!(
             polkadot_runtime::Balances::free_balance(&AccountId::from(BOB)),
-            995_305_825_48
+            99_573_469_824
         );
     });
 }
@@ -83,11 +83,11 @@ fn transfer_sibling_chain_asset() {
     TestNet::reset();
 
     //since not easy to introduce runtime from other chain,just use heiko's
-    use parallel_runtime::{Assets, Balances, Origin, PolkadotXcm, XTokens};
+    use parallel_runtime::{Assets, Balances, PolkadotXcm, RuntimeOrigin, XTokens};
 
     MockSibling::execute_with(|| {
         assert_ok!(PolkadotXcm::reserve_transfer_assets(
-            Origin::signed(ALICE.into()).clone(),
+            RuntimeOrigin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2012))).into()),
             Box::new(
                 Junction::AccountId32 {
@@ -121,7 +121,7 @@ fn transfer_sibling_chain_asset() {
 
     Parallel::execute_with(|| {
         assert_ok!(XTokens::transfer(
-            Origin::signed(ALICE.into()),
+            RuntimeOrigin::signed(ALICE.into()),
             PARA,
             10_000_000_000_000,
             Box::new(
@@ -137,7 +137,7 @@ fn transfer_sibling_chain_asset() {
                 )
                 .into()
             ),
-            4_000_000_000,
+            WeightLimit::Limited(4_000_000_000),
         ));
 
         assert_eq!(

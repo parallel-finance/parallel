@@ -66,7 +66,7 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Currency type for deposit/withdraw assets to/from plm
         /// module
@@ -85,7 +85,7 @@ pub mod pallet {
         type Decimal: DecimalProvider<CurrencyId>;
 
         /// The origin which can create new pools and add reward.
-        type UpdateOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Specifies max amount lock item for a user
         #[pallet::constant]

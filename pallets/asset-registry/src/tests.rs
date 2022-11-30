@@ -22,7 +22,7 @@ use frame_support::{assert_noop, assert_ok};
 fn registering_works() {
     new_test_ext().execute_with(|| {
         assert_ok!(AssetRegistry::register_asset(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1).into(),
             MockAssetType::MockAsset(1),
         ));
@@ -46,7 +46,7 @@ fn registering_works() {
 fn test_asset_exists_error() {
     new_test_ext().execute_with(|| {
         assert_ok!(AssetRegistry::register_asset(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1).into(),
             MockAssetType::MockAsset(1),
         ));
@@ -57,7 +57,7 @@ fn test_asset_exists_error() {
         );
         assert_noop!(
             AssetRegistry::register_asset(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 MockAssetType::MockAsset(1).into(),
                 MockAssetType::MockAsset(1),
             ),
@@ -70,13 +70,13 @@ fn test_asset_exists_error() {
 fn test_root_can_change_units_per_second() {
     new_test_ext().execute_with(|| {
         assert_ok!(AssetRegistry::register_asset(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1).into(),
             MockAssetType::MockAsset(1),
         ));
 
         assert_ok!(AssetRegistry::update_asset_units_per_second(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
         ));
@@ -107,7 +107,7 @@ fn test_regular_user_cannot_call_extrinsics() {
     new_test_ext().execute_with(|| {
         assert_noop!(
             AssetRegistry::register_asset(
-                Origin::signed(1),
+                RuntimeOrigin::signed(1),
                 MockAssetType::MockAsset(1).into(),
                 MockAssetType::MockAsset(1),
             ),
@@ -116,7 +116,7 @@ fn test_regular_user_cannot_call_extrinsics() {
 
         assert_noop!(
             AssetRegistry::update_asset_units_per_second(
-                Origin::signed(1),
+                RuntimeOrigin::signed(1),
                 MockAssetType::MockAsset(1),
                 200u128.into(),
             ),
@@ -124,7 +124,11 @@ fn test_regular_user_cannot_call_extrinsics() {
         );
 
         assert_noop!(
-            AssetRegistry::update_asset_type(Origin::signed(1), 1, MockAssetType::MockAsset(2),),
+            AssetRegistry::update_asset_type(
+                RuntimeOrigin::signed(1),
+                1,
+                MockAssetType::MockAsset(2),
+            ),
             sp_runtime::DispatchError::BadOrigin
         );
     });
@@ -134,19 +138,19 @@ fn test_regular_user_cannot_call_extrinsics() {
 fn test_root_can_change_asset_id_type() {
     new_test_ext().execute_with(|| {
         assert_ok!(AssetRegistry::register_asset(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1).into(),
             MockAssetType::MockAsset(1),
         ));
 
         assert_ok!(AssetRegistry::update_asset_units_per_second(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
         ));
 
         assert_ok!(AssetRegistry::update_asset_type(
-            Origin::root(),
+            RuntimeOrigin::root(),
             1,
             MockAssetType::MockAsset(2),
         ));
@@ -194,13 +198,13 @@ fn test_root_can_change_asset_id_type() {
 fn test_change_units_per_second_after_setting_it_once() {
     new_test_ext().execute_with(|| {
         assert_ok!(AssetRegistry::register_asset(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1).into(),
             MockAssetType::MockAsset(1),
         ));
 
         assert_ok!(AssetRegistry::update_asset_units_per_second(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
         ));
@@ -214,7 +218,7 @@ fn test_change_units_per_second_after_setting_it_once() {
         );
 
         assert_ok!(AssetRegistry::update_asset_units_per_second(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1),
             100u128.into(),
         ));
@@ -248,13 +252,13 @@ fn test_change_units_per_second_after_setting_it_once() {
 fn test_root_can_change_units_per_second_and_then_remove() {
     new_test_ext().execute_with(|| {
         assert_ok!(AssetRegistry::register_asset(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1).into(),
             MockAssetType::MockAsset(1),
         ));
 
         assert_ok!(AssetRegistry::update_asset_units_per_second(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
         ));
@@ -268,7 +272,7 @@ fn test_root_can_change_units_per_second_and_then_remove() {
         );
 
         assert_ok!(AssetRegistry::remove_fee_payment_asset(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1),
         ));
 
@@ -296,19 +300,19 @@ fn test_root_can_change_units_per_second_and_then_remove() {
 fn test_weight_hint_error() {
     new_test_ext().execute_with(|| {
         assert_ok!(AssetRegistry::register_asset(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1).into(),
             MockAssetType::MockAsset(1),
         ));
 
         assert_ok!(AssetRegistry::update_asset_units_per_second(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
         ));
 
         assert_ok!(AssetRegistry::remove_fee_payment_asset(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1)
         ));
     });
@@ -319,14 +323,18 @@ fn test_asset_id_non_existent_error() {
     new_test_ext().execute_with(|| {
         assert_noop!(
             AssetRegistry::update_asset_units_per_second(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 MockAssetType::MockAsset(1),
                 200u128.into(),
             ),
             Error::<Test>::AssetDoesNotExist
         );
         assert_noop!(
-            AssetRegistry::update_asset_type(Origin::root(), 1, MockAssetType::MockAsset(2),),
+            AssetRegistry::update_asset_type(
+                RuntimeOrigin::root(),
+                1,
+                MockAssetType::MockAsset(2),
+            ),
             Error::<Test>::AssetDoesNotExist
         );
     });
@@ -336,18 +344,18 @@ fn test_asset_id_non_existent_error() {
 fn test_root_can_remove_asset_association() {
     new_test_ext().execute_with(|| {
         assert_ok!(AssetRegistry::register_asset(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1).into(),
             MockAssetType::MockAsset(1),
         ));
 
         assert_ok!(AssetRegistry::update_asset_units_per_second(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1),
             200u128.into(),
         ));
 
-        assert_ok!(AssetRegistry::deregister_asset(Origin::root(), 1,));
+        assert_ok!(AssetRegistry::deregister_asset(RuntimeOrigin::root(), 1,));
 
         // Mappings are deleted
         assert!(AssetRegistry::asset_type_id(MockAssetType::MockAsset(1)).is_none());
@@ -377,12 +385,12 @@ fn test_root_can_remove_asset_association() {
 fn test_removing_without_asset_units_per_second_does_not_panic() {
     new_test_ext().execute_with(|| {
         assert_ok!(AssetRegistry::register_asset(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MockAssetType::MockAsset(1).into(),
             MockAssetType::MockAsset(1),
         ));
 
-        assert_ok!(AssetRegistry::deregister_asset(Origin::root(), 1,));
+        assert_ok!(AssetRegistry::deregister_asset(RuntimeOrigin::root(), 1,));
 
         // Mappings are deleted
         assert!(AssetRegistry::asset_type_id(MockAssetType::MockAsset(1)).is_none());

@@ -50,8 +50,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -59,7 +59,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -97,7 +97,7 @@ parameter_types! {
 impl pallet_balances::Config for Test {
     type Balance = Balance;
     type DustRemoval = ();
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Test>;
@@ -116,7 +116,7 @@ parameter_types! {
 }
 
 impl pallet_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
     type Currency = Balances;
@@ -150,7 +150,7 @@ parameter_types! {
 }
 
 impl Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type PalletId = StreamPalletId;
     type MaxStreamsCount = MaxStreamsCount;
     type MaxFinishedStreamsCount = MaxFinishedStreamsCount;
@@ -175,21 +175,21 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         // Init network tokens to execute extrinsic
-        Balances::set_balance(Origin::root(), ALICE, dollar(1000), dollar(0)).unwrap();
-        Balances::set_balance(Origin::root(), BOB, dollar(1000), dollar(0)).unwrap();
-        Balances::set_balance(Origin::root(), DAVE, dollar(1000), dollar(0)).unwrap();
+        Balances::set_balance(RuntimeOrigin::root(), ALICE, dollar(1000), dollar(0)).unwrap();
+        Balances::set_balance(RuntimeOrigin::root(), BOB, dollar(1000), dollar(0)).unwrap();
+        Balances::set_balance(RuntimeOrigin::root(), DAVE, dollar(1000), dollar(0)).unwrap();
         // Init DOT to alice with full access
-        Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), DOT, ALICE, true, 1).unwrap();
         // Alice mints DOT
-        Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(10000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(10000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, DAVE, dollar(10000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, ALICE, dollar(10000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, BOB, dollar(10000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, DAVE, dollar(10000)).unwrap();
         // Set block number and time
         System::set_block_number(0);
         TimestampPallet::set_timestamp(6000);
 
         // Set minimum deposit for DOT
-        Streaming::set_minimum_deposit(Origin::root(), DOT, dollar(0)).unwrap();
+        Streaming::set_minimum_deposit(RuntimeOrigin::root(), DOT, dollar(0)).unwrap();
     });
     ext
 }

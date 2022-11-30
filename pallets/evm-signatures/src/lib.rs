@@ -27,6 +27,7 @@ mod tests;
 pub mod pallet {
     use super::*;
     use frame_support::{
+        dispatch::GetDispatchInfo,
         pallet_prelude::*,
         traits::{
             tokens::{
@@ -37,7 +38,6 @@ pub mod pallet {
             WithdrawReasons,
         },
         transactional,
-        weights::GetDispatchInfo,
     };
     use frame_system::{ensure_none, pallet_prelude::*};
     use pallet_evm::{AddressMapping, EnsureAddressOrigin};
@@ -63,10 +63,12 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// A signable call.
-        type Call: Parameter + UnfilteredDispatchable<Origin = Self::Origin> + GetDispatchInfo;
+        type RuntimeCall: Parameter
+            + UnfilteredDispatchable<RuntimeOrigin = Self::RuntimeOrigin>
+            + GetDispatchInfo;
 
         /// User defined signature type.
         type Signature: Parameter + Verify<Signer = Self::Signer> + TryFrom<Vec<u8>>;
@@ -97,7 +99,7 @@ pub mod pallet {
         type UnsignedPriority: Get<TransactionPriority>;
 
         /// Allow the origin to withdraw on behalf of given address.
-        type WithdrawOrigin: EnsureAddressOrigin<Self::Origin, Success = Self::AccountId>;
+        type WithdrawOrigin: EnsureAddressOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 
         /// Enable signature verify or not
         #[pallet::constant]
@@ -144,11 +146,11 @@ pub mod pallet {
         /// # </weight>
         #[pallet::weight({
             let dispatch_info = call.get_dispatch_info();
-            (dispatch_info.weight.saturating_add(10_000_000), dispatch_info.class)
+            (Weight::from_ref_time(10_000_000).saturating_add(dispatch_info.weight), dispatch_info.class)
         })]
         pub fn call(
             origin: OriginFor<T>,
-            call: Box<<T as Config>::Call>,
+            call: Box<<T as Config>::RuntimeCall>,
             signer: T::AccountId,
             signature: Vec<u8>,
             #[pallet::compact] nonce: T::Index,
@@ -211,7 +213,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Verify custom signature and returns `true` if correct.
         pub fn valid_signature(
-            call: &<T as Config>::Call,
+            call: &<T as Config>::RuntimeCall,
             signer: &T::AccountId,
             signature: &T::Signature,
             nonce: &T::Index,

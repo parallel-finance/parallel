@@ -311,7 +311,7 @@ try-snapshot-upgrade:
 
 .PHONY: try-live-upgrade
 try-live-upgrade:
-	cargo run --bin parallel --release --features try-runtime --features runtime-benchmarks -- try-runtime --chain $(CHAIN) --wasm-execution=compiled on-runtime-upgrade live --uri=$(URL)
+	cargo run --bin parallel --release --features try-runtime --features runtime-benchmarks -- try-runtime --chain $(CHAIN) --wasm-execution=compiled --no-spec-check-panic on-runtime-upgrade live --uri=$(URL)
 
 .PHONY: try-heiko-live-upgrade
 try-heiko-live-upgrade:

@@ -54,17 +54,17 @@ impl<T: frame_system::Config> orml_oracle::WeightInfo for WeightInfo<T> {
 	// Storage: ParallelOracle Values (r:1 w:0)
 	// Storage: ParallelOracle RawValues (r:0 w:1)
 	fn feed_values(c: u32, ) -> Weight {
-		(18_441_000 as Weight)
+		Weight::from_ref_time(18_441_000 as u64)
 			// Standard Error: 88_000
-			.saturating_add((6_603_000 as Weight).saturating_mul(c as Weight))
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().reads((1 as Weight).saturating_mul(c as Weight)))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes((1 as Weight).saturating_mul(c as Weight)))
+			.saturating_add(Weight::from_ref_time(6_603_000 as u64).saturating_mul(c as u64))
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().reads((1 as u64).saturating_mul(c as u64)))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
+			.saturating_add(T::DbWeight::get().writes((1 as u64).saturating_mul(c as u64)))
 	}
 	// Storage: ParallelOracle HasDispatched (r:0 w:1)
 	fn on_finalize() -> Weight {
-		(3_578_000 as Weight)
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_ref_time(3_578_000 as u64)
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 }

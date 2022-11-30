@@ -37,16 +37,16 @@ parameter_types! {
 }
 
 impl frame_system::Config for Test {
-    type Origin = Origin;
+    type RuntimeOrigin = RuntimeOrigin;
     type Index = u64;
     type BlockNumber = BlockNumber;
-    type Call = Call;
+    type RuntimeCall = RuntimeCall;
     type Hash = H256;
     type Hashing = ::sp_runtime::traits::BlakeTwo256;
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type BlockWeights = ();
     type BlockLength = ();
@@ -195,7 +195,7 @@ parameter_types! {
 impl pallet_balances::Config for Test {
     type MaxLocks = MaxLocks;
     type Balance = Balance;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type DustRemoval = ();
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
@@ -215,7 +215,7 @@ parameter_types! {
 }
 
 impl pallet_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
     type Currency = Balances;
@@ -250,7 +250,7 @@ impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
 }
 
 impl pallet_amm::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type LockAccountId = LockAccountId;
@@ -264,7 +264,7 @@ impl pallet_amm::Config for Test {
 }
 
 impl crate::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Source = MockDataProvider;
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
     type UpdateOrigin = EnsureSignedBy<One, AccountId>;
@@ -311,22 +311,41 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(Origin::root(), tokens::DOT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), tokens::SDOT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), tokens::CDOT_7_14, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), tokens::LP_DOT_CDOT_7_14, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::SDOT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::CDOT_7_14, ALICE, true, 1).unwrap();
+        Assets::force_create(
+            RuntimeOrigin::root(),
+            tokens::LP_DOT_CDOT_7_14,
+            ALICE,
+            true,
+            1,
+        )
+        .unwrap();
 
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 1000 * PRICE_ONE).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::SDOT, ALICE, 1000 * PRICE_ONE).unwrap();
         Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
+            tokens::DOT,
+            ALICE,
+            1000 * PRICE_ONE,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            tokens::SDOT,
+            ALICE,
+            1000 * PRICE_ONE,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
             tokens::CDOT_7_14,
             ALICE,
             1000 * PRICE_ONE,
         )
         .unwrap();
 
-        Prices::set_foreign_asset(Origin::signed(ALICE), tokens::LC_DOT, CDOT_7_14).unwrap();
+        Prices::set_foreign_asset(RuntimeOrigin::signed(ALICE), tokens::LC_DOT, CDOT_7_14).unwrap();
     });
 
     ext

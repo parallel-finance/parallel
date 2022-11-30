@@ -16,6 +16,7 @@ use frame_support::traits::ConstU32;
 use frame_support::traits::GenesisBuild;
 use frame_support::WeakBoundedVec;
 
+pub use frame_support::pallet_prelude::Weight;
 use frame_support::traits::Currency;
 use pallet_loans::{InterestRateModel, JumpModel, Market, MarketState};
 use pallet_traits::{
@@ -120,14 +121,14 @@ impl ExtBuilder {
 
     pub fn heiko_build(self) -> sp_io::TestExternalities {
         use heiko_runtime::{
-            AssetRegistry, Assets, LiquidStaking, Loans, Origin, System, XcmHelper,
+            AssetRegistry, Assets, LiquidStaking, Loans, RuntimeOrigin, System, XcmHelper,
         };
         use paras::statemine::{ID as StatemineChainId, PALLET_INSTANCE as StatemineAssetInstance};
         let mut ext = sp_io::TestExternalities::new(self.init());
         ext.execute_with(|| {
             System::set_block_number(1);
             Assets::force_create(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 KSM,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
@@ -135,7 +136,7 @@ impl ExtBuilder {
             )
             .unwrap();
             Assets::force_set_metadata(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 KSM,
                 b"Kusama".to_vec(),
                 b"KSM".to_vec(),
@@ -144,7 +145,7 @@ impl ExtBuilder {
             )
             .unwrap();
             Assets::mint(
-                Origin::signed(AccountId::from(ALICE)),
+                RuntimeOrigin::signed(AccountId::from(ALICE)),
                 KSM,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 ksm(100f64),
@@ -153,7 +154,7 @@ impl ExtBuilder {
 
             //initialize for statemine rmrk
             Assets::force_create(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 RMRK,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
@@ -161,7 +162,7 @@ impl ExtBuilder {
             )
             .unwrap();
             Assets::force_set_metadata(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 RMRK,
                 b"RMRK".to_vec(),
                 b"RMRK".to_vec(),
@@ -181,9 +182,10 @@ impl ExtBuilder {
                 ),
             );
             let hko_asset_type = AssetType::Xcm(hko_asset_location);
-            AssetRegistry::register_asset(Origin::root(), HKO, hko_asset_type.clone()).unwrap();
+            AssetRegistry::register_asset(RuntimeOrigin::root(), HKO, hko_asset_type.clone())
+                .unwrap();
             AssetRegistry::update_asset_units_per_second(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 hko_asset_type,
                 HKO_WEIGHT_PER_SEC,
             )
@@ -191,9 +193,10 @@ impl ExtBuilder {
 
             let ksm_asset_location = MultiLocation::parent();
             let ksm_asset_type = AssetType::Xcm(ksm_asset_location);
-            AssetRegistry::register_asset(Origin::root(), KSM, ksm_asset_type.clone()).unwrap();
+            AssetRegistry::register_asset(RuntimeOrigin::root(), KSM, ksm_asset_type.clone())
+                .unwrap();
             AssetRegistry::update_asset_units_per_second(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 ksm_asset_type,
                 KSM_WEIGHT_PER_SEC,
             )
@@ -208,20 +211,24 @@ impl ExtBuilder {
                 ),
             );
             let statemine_rmrk_asset_type = AssetType::Xcm(statemine_rmrk_asset_location);
-            AssetRegistry::register_asset(Origin::root(), RMRK, statemine_rmrk_asset_type.clone())
-                .unwrap();
+            AssetRegistry::register_asset(
+                RuntimeOrigin::root(),
+                RMRK,
+                statemine_rmrk_asset_type.clone(),
+            )
+            .unwrap();
             AssetRegistry::update_asset_units_per_second(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 statemine_rmrk_asset_type,
                 RMRK_WEIGHT_PER_SEC,
             )
             .unwrap();
 
             XcmHelper::update_xcm_weight_fee(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 XcmCall::TransferToSiblingchain(Box::new((1, Parachain(1000)).into())),
                 XcmWeightFeeMisc {
-                    weight: WEIGHT_IN_STATEMINE,
+                    weight: Weight::from_ref_time(WEIGHT_IN_STATEMINE),
                     fee: FEE_IN_STATEMINE,
                 },
             )
@@ -229,7 +236,7 @@ impl ExtBuilder {
 
             //initialize for statemine usdt
             Assets::force_create(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 USDT,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
@@ -237,7 +244,7 @@ impl ExtBuilder {
             )
             .unwrap();
             Assets::force_set_metadata(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 USDT,
                 b"USDT".to_vec(),
                 b"USDT".to_vec(),
@@ -254,10 +261,14 @@ impl ExtBuilder {
                 ),
             );
             let statemine_usdt_asset_type = AssetType::Xcm(statemine_usdt_asset_location);
-            AssetRegistry::register_asset(Origin::root(), USDT, statemine_usdt_asset_type.clone())
-                .unwrap();
+            AssetRegistry::register_asset(
+                RuntimeOrigin::root(),
+                USDT,
+                statemine_usdt_asset_type.clone(),
+            )
+            .unwrap();
             AssetRegistry::update_asset_units_per_second(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 statemine_usdt_asset_type,
                 USDT_WEIGHT_PER_SEC,
             )
@@ -265,7 +276,7 @@ impl ExtBuilder {
 
             //initialize for acala kar as mock sibling
             Assets::force_create(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 KAR,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
@@ -273,7 +284,7 @@ impl ExtBuilder {
             )
             .unwrap();
             Assets::force_set_metadata(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 KAR,
                 b"KAR".to_vec(),
                 b"KAR".to_vec(),
@@ -293,9 +304,10 @@ impl ExtBuilder {
                 ),
             );
             let kar_asset_type = AssetType::Xcm(kar_asset_location);
-            AssetRegistry::register_asset(Origin::root(), KAR, kar_asset_type.clone()).unwrap();
+            AssetRegistry::register_asset(RuntimeOrigin::root(), KAR, kar_asset_type.clone())
+                .unwrap();
             AssetRegistry::update_asset_units_per_second(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 kar_asset_type,
                 KAR_WEIGHT_PER_SEC,
             )
@@ -303,7 +315,7 @@ impl ExtBuilder {
 
             //initialize for liquidate staking
             Assets::force_create(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 SKSM,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
@@ -311,7 +323,7 @@ impl ExtBuilder {
             )
             .unwrap();
             Assets::force_set_metadata(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 SKSM,
                 b"Parallel Kusama".to_vec(),
                 b"sKSM".to_vec(),
@@ -321,30 +333,30 @@ impl ExtBuilder {
             .unwrap();
 
             Assets::mint(
-                Origin::signed(AccountId::from(ALICE)),
+                RuntimeOrigin::signed(AccountId::from(ALICE)),
                 SKSM,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 ksm(100f64),
             )
             .unwrap();
-            LiquidStaking::update_staking_ledger_cap(Origin::root(), ksm(10000f64)).unwrap();
+            LiquidStaking::update_staking_ledger_cap(RuntimeOrigin::root(), ksm(10000f64)).unwrap();
 
             Assets::mint(
-                Origin::signed(AccountId::from(ALICE)),
+                RuntimeOrigin::signed(AccountId::from(ALICE)),
                 KSM,
                 MultiAddress::Id(XcmHelper::account_id()),
                 ksm(100f64),
             )
             .unwrap();
 
-            Loans::add_market(Origin::root(), KSM, market_mock(PKSM)).unwrap();
-            Loans::activate_market(Origin::root(), KSM).unwrap();
+            Loans::add_market(RuntimeOrigin::root(), KSM, market_mock(PKSM)).unwrap();
+            Loans::activate_market(RuntimeOrigin::root(), KSM).unwrap();
         });
         ext
     }
 
     pub fn parallel_build(self) -> sp_io::TestExternalities {
-        use parallel_runtime::{AssetRegistry, Assets, Origin, Runtime, System};
+        use parallel_runtime::{AssetRegistry, Assets, Runtime, RuntimeOrigin, System};
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
             .unwrap();
@@ -378,7 +390,7 @@ impl ExtBuilder {
         ext.execute_with(|| {
             System::set_block_number(1);
             Assets::force_create(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 DOT,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
@@ -386,7 +398,7 @@ impl ExtBuilder {
             )
             .unwrap();
             Assets::force_set_metadata(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 DOT,
                 b"Polkadot".to_vec(),
                 b"DOT".to_vec(),
@@ -395,7 +407,7 @@ impl ExtBuilder {
             )
             .unwrap();
             Assets::mint(
-                Origin::signed(AccountId::from(ALICE)),
+                RuntimeOrigin::signed(AccountId::from(ALICE)),
                 DOT,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 dot(100f64),
@@ -404,7 +416,7 @@ impl ExtBuilder {
 
             //initialize for clv as mock sibling
             Assets::force_create(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 CLV,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
@@ -412,7 +424,7 @@ impl ExtBuilder {
             )
             .unwrap();
             Assets::force_set_metadata(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 CLV,
                 b"CLV".to_vec(),
                 b"CLV".to_vec(),
@@ -431,18 +443,20 @@ impl ExtBuilder {
                 ),
             );
             let para_asset_type = AssetType::Xcm(para_asset_location);
-            AssetRegistry::register_asset(Origin::root(), PARA, para_asset_type.clone()).unwrap();
+            AssetRegistry::register_asset(RuntimeOrigin::root(), PARA, para_asset_type.clone())
+                .unwrap();
             AssetRegistry::update_asset_units_per_second(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 para_asset_type,
                 PARA_WEIGHT_PER_SEC,
             )
             .unwrap();
             let dot_asset_location = MultiLocation::parent();
             let dot_asset_type = AssetType::Xcm(dot_asset_location);
-            AssetRegistry::register_asset(Origin::root(), DOT, dot_asset_type.clone()).unwrap();
+            AssetRegistry::register_asset(RuntimeOrigin::root(), DOT, dot_asset_type.clone())
+                .unwrap();
             AssetRegistry::update_asset_units_per_second(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 dot_asset_type,
                 DOT_WEIGHT_PER_SEC,
             )
@@ -459,9 +473,10 @@ impl ExtBuilder {
                 ),
             );
             let clv_asset_type = AssetType::Xcm(clv_asset_location);
-            AssetRegistry::register_asset(Origin::root(), CLV, clv_asset_type.clone()).unwrap();
+            AssetRegistry::register_asset(RuntimeOrigin::root(), CLV, clv_asset_type.clone())
+                .unwrap();
             AssetRegistry::update_asset_units_per_second(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 clv_asset_type,
                 CLV_WEIGHT_PER_SEC,
             )
@@ -471,7 +486,7 @@ impl ExtBuilder {
     }
 
     pub fn statemine_build(self) -> sp_io::TestExternalities {
-        use statemine_runtime::{Assets, Balances, Origin, Runtime, System};
+        use statemine_runtime::{Assets, Balances, Runtime, RuntimeOrigin, System};
 
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
@@ -506,7 +521,7 @@ impl ExtBuilder {
 
             // prepare for rmrk
             Assets::force_create(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 RMRK_ASSET_ID,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
@@ -514,7 +529,7 @@ impl ExtBuilder {
             )
             .unwrap();
             Assets::force_set_metadata(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 RMRK_ASSET_ID.into(),
                 b"RMRK".to_vec(),
                 b"RMRK".to_vec(),
@@ -523,7 +538,7 @@ impl ExtBuilder {
             )
             .unwrap();
             Assets::mint(
-                Origin::signed(AccountId::from(ALICE)),
+                RuntimeOrigin::signed(AccountId::from(ALICE)),
                 RMRK_ASSET_ID,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 rmrk(10),
@@ -532,7 +547,7 @@ impl ExtBuilder {
 
             // prepare for usdt
             Assets::force_create(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 USDT_ASSET_ID,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
@@ -540,7 +555,7 @@ impl ExtBuilder {
             )
             .unwrap();
             Assets::force_set_metadata(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 USDT_ASSET_ID,
                 b"USDT".to_vec(),
                 b"USDT".to_vec(),
@@ -549,7 +564,7 @@ impl ExtBuilder {
             )
             .unwrap();
             Assets::mint(
-                Origin::signed(AccountId::from(ALICE)),
+                RuntimeOrigin::signed(AccountId::from(ALICE)),
                 USDT_ASSET_ID,
                 MultiAddress::Id(AccountId::from(ALICE)),
                 usdt(10),
@@ -560,7 +575,7 @@ impl ExtBuilder {
     }
 
     pub fn karura_build(self) -> sp_io::TestExternalities {
-        use heiko_runtime::{AssetRegistry, Origin, System};
+        use heiko_runtime::{AssetRegistry, RuntimeOrigin, System};
         let mut ext = sp_io::TestExternalities::new(self.init());
         ext.execute_with(|| {
             System::set_block_number(1);
@@ -572,9 +587,10 @@ impl ExtBuilder {
                 ))),
             );
             let hko_asset_type = AssetType::Xcm(hko_asset_location);
-            AssetRegistry::register_asset(Origin::root(), HKO, hko_asset_type.clone()).unwrap();
+            AssetRegistry::register_asset(RuntimeOrigin::root(), HKO, hko_asset_type.clone())
+                .unwrap();
             AssetRegistry::update_asset_units_per_second(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 hko_asset_type,
                 HKO_WEIGHT_PER_SEC,
             )
@@ -584,7 +600,7 @@ impl ExtBuilder {
     }
 
     pub fn clv_build(self) -> sp_io::TestExternalities {
-        use heiko_runtime::{AssetRegistry, Origin, System};
+        use heiko_runtime::{AssetRegistry, RuntimeOrigin, System};
         let mut ext = sp_io::TestExternalities::new(self.init());
         ext.execute_with(|| {
             System::set_block_number(1);
@@ -596,9 +612,10 @@ impl ExtBuilder {
                 ))),
             );
             let para_asset_type = AssetType::Xcm(para_asset_location);
-            AssetRegistry::register_asset(Origin::root(), PARA, para_asset_type.clone()).unwrap();
+            AssetRegistry::register_asset(RuntimeOrigin::root(), PARA, para_asset_type.clone())
+                .unwrap();
             AssetRegistry::update_asset_units_per_second(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 para_asset_type,
                 PARA_WEIGHT_PER_SEC,
             )

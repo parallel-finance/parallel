@@ -43,7 +43,7 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// The Asset Id. This will be used to register the asset in Assets
         type AssetId: Member + Parameter + Default + Copy + HasCompact + MaxEncodedLen;
@@ -55,7 +55,7 @@ pub mod pallet {
         type Balance: Member + Parameter + AtLeast32BitUnsigned + Default + Copy + MaxEncodedLen;
 
         /// Origin that is allowed to create and modify asset information
-        type UpdateOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         type WeightInfo: WeightInfo;
     }

@@ -59,12 +59,12 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
 }
 
 parameter_types! {
-    pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
-    pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND / 4;
+    pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND.saturating_div(4);
+    pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND.saturating_div(4);
 }
 
 impl cumulus_pallet_parachain_system::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type OnSystemEvent = ();
     type SelfParaId = ParachainInfo;
     type DmpMessageHandler = DmpQueue;
@@ -80,7 +80,7 @@ impl parachain_info::Config for Test {}
 parameter_types! {
     pub RelayNetwork: NetworkId = NetworkId::Kusama;
     pub RelayCurrency: CurrencyId = DOT;
-    pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
+    pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
 
@@ -91,15 +91,15 @@ pub type LocationToAccountId = (
 );
 
 pub type XcmOriginToCallOrigin = (
-    SovereignSignedViaLocation<LocationToAccountId, Origin>,
-    RelayChainAsNative<RelayChainOrigin, Origin>,
-    SiblingParachainAsNative<cumulus_pallet_xcm::Origin, Origin>,
-    SignedAccountId32AsNative<RelayNetwork, Origin>,
-    XcmPassthrough<Origin>,
+    SovereignSignedViaLocation<LocationToAccountId, RuntimeOrigin>,
+    RelayChainAsNative<RelayChainOrigin, RuntimeOrigin>,
+    SiblingParachainAsNative<cumulus_pallet_xcm::Origin, RuntimeOrigin>,
+    SignedAccountId32AsNative<RelayNetwork, RuntimeOrigin>,
+    XcmPassthrough<RuntimeOrigin>,
 );
 
 parameter_types! {
-    pub const UnitWeightCost: Weight = 1;
+    pub const UnitWeightCost: u64 = 1;
     pub DotPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), 1);
 }
 
@@ -134,7 +134,7 @@ pub type Barrier = AllowUnpaidExecutionFrom<Everything>;
 
 pub struct XcmConfig;
 impl Config for XcmConfig {
-    type Call = Call;
+    type RuntimeCall = RuntimeCall;
     type XcmSender = XcmRouter;
     type AssetTransactor = LocalAssetTransactor;
     type OriginConverter = XcmOriginToCallOrigin;
@@ -142,7 +142,7 @@ impl Config for XcmConfig {
     type IsTeleporter = ();
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
     type Trader = FixedRateOfFungible<DotPerSecond, ()>;
     type ResponseHandler = ();
     type SubscriptionService = PolkadotXcm;
@@ -174,44 +174,44 @@ impl<Origin: OriginTrait> ConvertOrigin<Origin> for SystemParachainAsSuperuser<O
 }
 
 impl cumulus_pallet_xcmp_queue::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = ();
     type ControllerOrigin = EnsureRoot<AccountId>;
-    type ControllerOriginConverter = SystemParachainAsSuperuser<Origin>;
+    type ControllerOriginConverter = SystemParachainAsSuperuser<RuntimeOrigin>;
     type WeightInfo = cumulus_pallet_xcmp_queue::weights::SubstrateWeight<Test>;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 }
 
 impl cumulus_pallet_xcm::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
-pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
+pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
 impl pallet_xcm::Config for Test {
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
 
-    type Origin = Origin;
-    type Call = Call;
-    type Event = Event;
-    type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
     type XcmRouter = XcmRouter;
-    type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
     type XcmExecuteFilter = Nothing;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type XcmTeleportFilter = Nothing;
 
     type XcmReserveTransferFilter = Everything;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
     type LocationInverter = LocationInverter<Ancestry>;
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
@@ -280,7 +280,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
-    pub const BaseXcmWeight: Weight = 100_000_000;
+    pub const BaseXcmWeight: u64 = 100_000_000;
     pub const MaxInstructions: u32 = 100;
 }
 
@@ -300,8 +300,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = Index;
     type BlockNumber = BlockNumber;
     type Hash = H256;
@@ -309,7 +309,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = AccountIdLookup<AccountId, ()>;
     type Header = generic::Header<BlockNumber, BlakeTwo256>;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -330,7 +330,7 @@ parameter_types! {
 impl pallet_balances::Config for Test {
     type MaxLocks = MaxLocks;
     type Balance = Balance;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type DustRemoval = ();
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
@@ -364,7 +364,7 @@ parameter_types! {
 }
 
 impl crate::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type Assets = Assets;
     type XcmSender = XcmRouter;
@@ -388,7 +388,7 @@ parameter_types! {
 }
 
 impl pallet_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
     type Currency = Balances;
@@ -432,25 +432,41 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
     let xcm_weight_fee_misc = XcmWeightFeeMisc {
-        weight: 3_000_000_000,
+        weight: Weight::from_ref_time(3_000_000_000),
         fee: dot(10f64),
     };
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
-        Assets::force_create(Origin::root(), SDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), SDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), DOT, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            Id(ALICE),
+            100 * DOT_DECIMAL,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            SDOT,
+            Id(ALICE),
+            100 * DOT_DECIMAL,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
             DOT,
             Id(XcmHelpers::account_id()),
             dot(30f64),
         )
         .unwrap();
-        XcmHelpers::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
-            .unwrap();
+        XcmHelpers::update_xcm_weight_fee(
+            RuntimeOrigin::root(),
+            XcmCall::AddMemo,
+            xcm_weight_fee_misc,
+        )
+        .unwrap();
     });
 
     ext
@@ -493,7 +509,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         .unwrap();
 
     let xcm_weight_fee_misc = XcmWeightFeeMisc {
-        weight: 3_000_000_000,
+        weight: Weight::from_ref_time(3_000_000_000),
         fee: dot(10f64),
     };
 
@@ -509,19 +525,35 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         System::set_block_number(1);
-        Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
-        Assets::force_create(Origin::root(), SDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), SDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), DOT, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            Id(ALICE),
+            100 * DOT_DECIMAL,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            SDOT,
+            Id(ALICE),
+            100 * DOT_DECIMAL,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
             DOT,
             Id(XcmHelpers::account_id()),
             dot(30f64),
         )
         .unwrap();
-        XcmHelpers::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
-            .unwrap();
+        XcmHelpers::update_xcm_weight_fee(
+            RuntimeOrigin::root(),
+            XcmCall::AddMemo,
+            xcm_weight_fee_misc,
+        )
+        .unwrap();
     });
 
     ext

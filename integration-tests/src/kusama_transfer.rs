@@ -28,7 +28,7 @@ use crate::{kusama_test_net::*, setup::*};
 fn transfer_from_relay_chain() {
     KusamaNet::execute_with(|| {
         assert_ok!(kusama_runtime::XcmPallet::reserve_transfer_assets(
-            kusama_runtime::Origin::signed(ALICE.into()),
+            kusama_runtime::RuntimeOrigin::signed(ALICE.into()),
             Box::new(VersionedMultiLocation::V1(X1(Parachain(2085)).into())),
             Box::new(VersionedMultiLocation::V1(
                 X1(Junction::AccountId32 {
@@ -50,10 +50,10 @@ fn transfer_from_relay_chain() {
 
 #[test]
 fn transfer_to_relay_chain() {
-    use heiko_runtime::{Origin, XTokens};
+    use heiko_runtime::{RuntimeOrigin, XTokens};
     Heiko::execute_with(|| {
         assert_ok!(XTokens::transfer(
-            Origin::signed(ALICE.into()),
+            RuntimeOrigin::signed(ALICE.into()),
             KSM,
             ksm(1f64),
             Box::new(xcm::VersionedMultiLocation::V1(MultiLocation::new(
@@ -63,7 +63,7 @@ fn transfer_to_relay_chain() {
                     network: NetworkId::Any
                 })
             ))),
-            4_000_000_000
+            WeightLimit::Limited(4_000_000_000)
         ));
     });
 
@@ -72,7 +72,7 @@ fn transfer_to_relay_chain() {
         println!("heiko para account in relaychain:{:?}", para_acc);
         assert_eq!(
             kusama_runtime::Balances::free_balance(&AccountId::from(BOB)),
-            999_988_476_752 //xcm fee in kusama is 11_523_248 ~=0.015$
+            999_989_594_258
         );
     });
 }

@@ -68,7 +68,8 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>: frame_system::Config {
-        type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self, I>>
+            + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Currency type for deposit/withdraw assets to/from amm
         /// module
@@ -86,10 +87,10 @@ pub mod pallet {
         type AMMWeightInfo: WeightInfo;
 
         /// Specify which origin is allowed to create new pools.
-        type CreatePoolOrigin: EnsureOrigin<Self::Origin>;
+        type CreatePoolOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Specify which origin is allowed to update fee receiver.
-        type ProtocolFeeUpdateOrigin: EnsureOrigin<Self::Origin>;
+        type ProtocolFeeUpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Defines the fees taken out of each trade and sent back to the AMM pool,
         /// typically 0.3%.

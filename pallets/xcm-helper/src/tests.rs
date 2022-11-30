@@ -13,7 +13,7 @@ fn update_xcm_fees_should_work() {
                 frame_system::RawOrigin::Root.into(), // origin
                 XcmCall::Bond,
                 XcmWeightFeeMisc {
-                    weight: One::one(),
+                    weight: Weight::from_ref_time(One::one()),
                     fee: Zero::zero()
                 }
             ),

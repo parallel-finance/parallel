@@ -97,7 +97,8 @@ jobs:
           toolchain: ${{ matrix.rust }}
           target: wasm32-unknown-unknown
           override: true
-
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
       # # Work around https://github.com/actions/cache/issues/403 by using GNU tar
       # # instead of BSD tar.
       # - name: Install GNU tar

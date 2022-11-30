@@ -16,7 +16,7 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{Event, *};
+use mock::{RuntimeEvent, *};
 use primitives::TimeStampedPrice;
 use sp_runtime::{
     traits::{BadOrigin, Saturating},
@@ -46,7 +46,7 @@ fn set_price_work() {
         );
         // set DOT price
         assert_ok!(Prices::set_price(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             DOT,
             Price::saturating_from_integer(99)
         ));
@@ -55,7 +55,7 @@ fn set_price_work() {
             Some((Price::from_inner(9_900_000_000 * PRICE_ONE), 0))
         );
         assert_ok!(Prices::set_price(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             KSM,
             Price::saturating_from_integer(1)
         ));
@@ -101,14 +101,14 @@ fn set_price_call_work() {
         );
         assert_noop!(
             Prices::set_price(
-                Origin::signed(CHARLIE),
+                RuntimeOrigin::signed(CHARLIE),
                 DOT,
                 Price::saturating_from_integer(100),
             ),
             BadOrigin
         );
         assert_ok!(Prices::set_price(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             DOT,
             Price::saturating_from_integer(90),
         ));
@@ -118,7 +118,7 @@ fn set_price_call_work() {
         );
 
         // check the event
-        let set_price_event = Event::Prices(crate::Event::SetPrice(
+        let set_price_event = RuntimeEvent::Prices(crate::Event::SetPrice(
             DOT,
             Price::saturating_from_integer(90),
         ));
@@ -127,7 +127,7 @@ fn set_price_call_work() {
             .any(|record| record.event == set_price_event));
         assert_eq!(
             Prices::set_price(
-                Origin::signed(ALICE),
+                RuntimeOrigin::signed(ALICE),
                 DOT,
                 Price::saturating_from_integer(90),
             ),
@@ -147,7 +147,7 @@ fn reset_price_call_work() {
             Some((FixedU128::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         assert_ok!(Prices::set_price(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             DOT,
             Price::saturating_from_integer(90),
         ));
@@ -157,8 +157,11 @@ fn reset_price_call_work() {
         );
 
         // try reset price
-        assert_noop!(Prices::reset_price(Origin::signed(CHARLIE), DOT), BadOrigin);
-        assert_ok!(Prices::reset_price(Origin::signed(ALICE), DOT));
+        assert_noop!(
+            Prices::reset_price(RuntimeOrigin::signed(CHARLIE), DOT),
+            BadOrigin
+        );
+        assert_ok!(Prices::reset_price(RuntimeOrigin::signed(ALICE), DOT));
 
         // price need to be 100 after reset_price
         assert_eq!(
@@ -167,12 +170,12 @@ fn reset_price_call_work() {
         );
 
         // check the event
-        let reset_price_event = Event::Prices(crate::Event::ResetPrice(DOT));
+        let reset_price_event = RuntimeEvent::Prices(crate::Event::ResetPrice(DOT));
         assert!(System::events()
             .iter()
             .any(|record| record.event == reset_price_event));
         assert_eq!(
-            Prices::reset_price(Origin::signed(ALICE), DOT),
+            Prices::reset_price(RuntimeOrigin::signed(ALICE), DOT),
             Ok(().into())
         );
     });
@@ -215,7 +218,7 @@ fn get_ctoken_price_work() {
 fn get_lp_ctoken_price_work() {
     new_test_ext().execute_with(|| {
         DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (CDOT_7_14, DOT),
             (300 * PRICE_ONE, 100 * PRICE_ONE), //3:1
             ALICE,
@@ -236,7 +239,7 @@ fn get_lp_ctoken_price_work() {
 fn get_lp_ctoken_price_with_different_exchange_rate_will_not_change() {
     new_test_ext().execute_with(|| {
         DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (CDOT_7_14, DOT),
             (200 * PRICE_ONE, 100 * PRICE_ONE), //2:1
             ALICE,
@@ -265,7 +268,7 @@ fn get_lp_ctoken_no_op_price_work() {
         );
 
         DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (CDOT_7_14, DOT),
             (300 * PRICE_ONE, 100 * PRICE_ONE),
             ALICE,

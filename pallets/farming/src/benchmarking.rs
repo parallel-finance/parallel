@@ -20,7 +20,7 @@ const REWARD_AMOUNT: u128 = 2_000_000_000_000_000;
 const SHOULD_REWARD_AMOUNT: u128 = 200_000_000_000_000;
 const WITHDRAW_AMOUNT: u128 = 1_000_000_000_000_000;
 
-fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
+fn assert_last_event<T: Config>(generic_event: <T as Config>::RuntimeEvent) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 

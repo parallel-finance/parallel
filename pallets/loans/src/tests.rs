@@ -75,7 +75,7 @@ fn loans_native_token_works() {
             ExchangeRate::<Test>::get(HKO),
             Rate::saturating_from_rational(2, 100)
         );
-        assert_ok!(Loans::mint(Origin::signed(DAVE), HKO, unit(1000)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(DAVE), HKO, unit(1000)));
 
         // Redeem 1001 HKO should cause InsufficientDeposit
         assert_noop!(
@@ -85,12 +85,20 @@ fn loans_native_token_works() {
         // Redeem 1000 HKO is ok
         assert_ok!(Loans::redeem_allowed(HKO, &DAVE, unit(50000),));
 
-        assert_ok!(Loans::collateral_asset(Origin::signed(DAVE), HKO, true));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(DAVE),
+            HKO,
+            true
+        ));
 
         // Borrow 500 HKO will reduce 500 HKO liquidity for collateral_factor is 50%
-        assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, unit(500)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(DAVE), HKO, unit(500)));
         // Repay 400 HKO
-        assert_ok!(Loans::repay_borrow(Origin::signed(DAVE), HKO, unit(400)));
+        assert_ok!(Loans::repay_borrow(
+            RuntimeOrigin::signed(DAVE),
+            HKO,
+            unit(400)
+        ));
 
         // HKO collateral: deposit = 1000
         // HKO borrow balance: borrow - repay = 500 - 400 = 100
@@ -111,7 +119,7 @@ fn loans_native_token_works() {
 fn mint_works() {
     new_test_ext().execute_with(|| {
         // Deposit 100 DOT
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
 
         // DOT collateral: deposit = 100
         // DOT: cash - deposit = 1000 - 100 = 900
@@ -132,7 +140,7 @@ fn mint_works() {
 fn mint_must_return_err_when_overflows_occur() {
     new_test_ext().execute_with(|| {
         Loans::force_update_market(
-            Origin::root(),
+            RuntimeOrigin::root(),
             DOT,
             Market {
                 supply_cap: u128::MAX,
@@ -145,13 +153,13 @@ fn mint_must_return_err_when_overflows_occur() {
 
         // Verify token balance first
         assert_noop!(
-            Loans::mint(Origin::signed(CHARLIE), DOT, OVERFLOW_DEPOSIT),
+            Loans::mint(RuntimeOrigin::signed(CHARLIE), DOT, OVERFLOW_DEPOSIT),
             ArithmeticError::Underflow
         );
 
         // Deposit OVERFLOW_DEPOSIT DOT for CHARLIE
         assert_ok!(Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             DOT,
             CHARLIE,
             OVERFLOW_DEPOSIT
@@ -160,14 +168,14 @@ fn mint_must_return_err_when_overflows_occur() {
         // Amount is too large, OVERFLOW_DEPOSIT / 0.0X == Overflow
         // Underflow is used here redeem could also be 0
         assert_noop!(
-            Loans::mint(Origin::signed(CHARLIE), DOT, OVERFLOW_DEPOSIT),
+            Loans::mint(RuntimeOrigin::signed(CHARLIE), DOT, OVERFLOW_DEPOSIT),
             ArithmeticError::Underflow
         );
 
         // Exchange rate must ge greater than zero
         // ExchangeRate::<Test>::insert(DOT, Rate::zero());
         // assert_noop!(
-        //     Loans::mint(Origin::signed(CHARLIE), DOT, 100),
+        //     Loans::mint(RuntimeOrigin::signed(CHARLIE), DOT, 100),
         //     ArithmeticError::Underflow
         // );
     })
@@ -177,10 +185,10 @@ fn mint_must_return_err_when_overflows_occur() {
 fn redeem_allowed_works() {
     new_test_ext().execute_with(|| {
         // Prepare: Bob Deposit 200 DOT
-        assert_ok!(Loans::mint(Origin::signed(BOB), DOT, 200));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(BOB), DOT, 200));
 
         // Deposit 200 KSM as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), KSM, 200));
         // Redeem 201 KSM should cause InsufficientDeposit
         assert_noop!(
             Loans::redeem_allowed(KSM, &ALICE, 10050),
@@ -194,9 +202,13 @@ fn redeem_allowed_works() {
         // Redeem 200 KSM is ok
         assert_ok!(Loans::redeem_allowed(KSM, &ALICE, 10000));
 
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            KSM,
+            true
+        ));
         // Borrow 50 DOT will reduce 100 KSM liquidity for collateral_factor is 50%
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 50));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, 50));
         // Redeem 101 KSM should cause InsufficientLiquidity
         assert_noop!(
             Loans::redeem_allowed(KSM, &ALICE, 5050),
@@ -211,23 +223,23 @@ fn redeem_allowed_works() {
 fn lf_redeem_allowed_works() {
     new_test_ext().execute_with(|| {
         // Set CDOT as lf collateral
-        Loans::update_liquidation_free_collateral(Origin::root(), vec![CDOT_6_13]).unwrap();
-        Loans::mint(Origin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
+        Loans::update_liquidation_free_collateral(RuntimeOrigin::root(), vec![CDOT_6_13]).unwrap();
+        Loans::mint(RuntimeOrigin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
 
-        Loans::mint(Origin::signed(DAVE), USDT, unit(200)).unwrap();
-        Loans::mint(Origin::signed(DAVE), DOT, unit(200)).unwrap();
+        Loans::mint(RuntimeOrigin::signed(DAVE), USDT, unit(200)).unwrap();
+        Loans::mint(RuntimeOrigin::signed(DAVE), DOT, unit(200)).unwrap();
         // Lend $200 CDOT
-        Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
+        Loans::collateral_asset(RuntimeOrigin::signed(ALICE), CDOT_6_13, true).unwrap();
 
-        Loans::borrow(Origin::signed(ALICE), DOT, unit(50)).unwrap();
+        Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, unit(50)).unwrap();
 
         // (200 - 100) * 50% >= 50
         assert_ok!(Loans::redeem_allowed(CDOT_6_13, &ALICE, unit(100)));
 
         // Set KSM as collateral, and borrow USDT
-        Loans::mint(Origin::signed(ALICE), KSM, unit(200)).unwrap();
-        Loans::collateral_asset(Origin::signed(ALICE), KSM, true).unwrap();
-        Loans::borrow(Origin::signed(ALICE), USDT, unit(100)).unwrap();
+        Loans::mint(RuntimeOrigin::signed(ALICE), KSM, unit(200)).unwrap();
+        Loans::collateral_asset(RuntimeOrigin::signed(ALICE), KSM, true).unwrap();
+        Loans::borrow(RuntimeOrigin::signed(ALICE), USDT, unit(100)).unwrap();
 
         assert_err!(
             Loans::redeem_allowed(KSM, &ALICE, unit(100)),
@@ -237,7 +249,7 @@ fn lf_redeem_allowed_works() {
         assert_ok!(Loans::redeem_allowed(CDOT_6_13, &ALICE, unit(100)));
 
         // Remove CDOT from lf collateral
-        Loans::update_liquidation_free_collateral(Origin::root(), vec![]).unwrap();
+        Loans::update_liquidation_free_collateral(RuntimeOrigin::root(), vec![]).unwrap();
         // Then it can be redeemed
         assert_ok!(Loans::redeem_allowed(KSM, &ALICE, unit(100)));
     })
@@ -246,8 +258,8 @@ fn lf_redeem_allowed_works() {
 #[test]
 fn redeem_works() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(100)));
-        assert_ok!(Loans::redeem(Origin::signed(ALICE), DOT, unit(20)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::redeem(RuntimeOrigin::signed(ALICE), DOT, unit(20)));
 
         // DOT collateral: deposit - redeem = 100 - 20 = 80
         // DOT: cash - deposit + redeem = 1000 - 100 + 20 = 920
@@ -264,7 +276,7 @@ fn redeem_works() {
 fn redeem_fails() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            Loans::redeem(Origin::signed(ALICE), DOT, unit(0)),
+            Loans::redeem(RuntimeOrigin::signed(ALICE), DOT, unit(0)),
             Error::<Test>::InvalidAmount
         );
     })
@@ -274,17 +286,21 @@ fn redeem_fails() {
 fn redeem_fails_when_insufficient_liquidity() {
     new_test_ext().execute_with(|| {
         // Prepare: Bob Deposit 200 DOT
-        assert_ok!(Loans::mint(Origin::signed(BOB), DOT, 200));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(BOB), DOT, 200));
 
         // Deposit 200 KSM as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), KSM, 200));
 
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            KSM,
+            true
+        ));
         // Borrow 50 DOT will reduce 100 KSM liquidity for collateral_factor is 50%
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 50));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, 50));
 
         assert_noop!(
-            Loans::redeem(Origin::signed(BOB), DOT, 151),
+            Loans::redeem(RuntimeOrigin::signed(BOB), DOT, 151),
             Error::<Test>::InsufficientCash
         );
     })
@@ -294,18 +310,22 @@ fn redeem_fails_when_insufficient_liquidity() {
 fn redeem_fails_when_would_use_reserved_balanace() {
     new_test_ext().execute_with(|| {
         // Prepare: Bob Deposit 200 DOT
-        assert_ok!(Loans::mint(Origin::signed(BOB), DOT, 200));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(BOB), DOT, 200));
 
         // Deposit 200 KSM as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), KSM, 200));
 
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            KSM,
+            true
+        ));
         // Borrow 50 DOT will reduce 100 KSM liquidity for collateral_factor is 50%
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 50));
-        assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, 50));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, 50));
+        assert_ok!(Loans::add_reserves(RuntimeOrigin::root(), ALICE, DOT, 50));
 
         assert_noop!(
-            Loans::redeem(Origin::signed(BOB), DOT, 151),
+            Loans::redeem(RuntimeOrigin::signed(BOB), DOT, 151),
             Error::<Test>::InsufficientCash
         );
     })
@@ -317,14 +337,14 @@ fn redeem_must_return_err_when_overflows_occur() {
         // Amount is too large, max_value / 0.0X == Overflow
         // Underflow is used here redeem could also be 0
         assert_noop!(
-            Loans::redeem(Origin::signed(ALICE), DOT, u128::MAX),
+            Loans::redeem(RuntimeOrigin::signed(ALICE), DOT, u128::MAX),
             ArithmeticError::Underflow,
         );
 
         // Exchange rate must ge greater than zero
         // ExchangeRate::<Test>::insert(DOT, Rate::zero());
         // assert_noop!(
-        //     Loans::redeem(Origin::signed(ALICE), DOT, 100),
+        //     Loans::redeem(RuntimeOrigin::signed(ALICE), DOT, 100),
         //     ArithmeticError::Underflow
         // );
     })
@@ -333,8 +353,8 @@ fn redeem_must_return_err_when_overflows_occur() {
 #[test]
 fn redeem_all_works() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(100)));
-        assert_ok!(Loans::redeem_all(Origin::signed(ALICE), DOT));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::redeem_all(RuntimeOrigin::signed(ALICE), DOT));
 
         // DOT: cash - deposit + redeem = 1000 - 100 + 100 = 1000
         // DOT collateral: deposit - redeem = 100 - 100 = 0
@@ -352,9 +372,13 @@ fn redeem_all_works() {
 fn borrow_allowed_works() {
     new_test_ext().execute_with(|| {
         // Deposit 200 DOT as collateral
-        assert_ok!(Loans::mint(Origin::signed(BOB), DOT, 200));
-        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(BOB), DOT, 200));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), KSM, 200));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            KSM,
+            true
+        ));
         // Borrow 101 DOT should cause InsufficientLiquidity
         assert_noop!(
             Loans::borrow_allowed(DOT, &ALICE, 101),
@@ -365,7 +389,7 @@ fn borrow_allowed_works() {
 
         // Set borrow limit to 10
         assert_ok!(Loans::force_update_market(
-            Origin::root(),
+            RuntimeOrigin::root(),
             DOT,
             Market {
                 borrow_cap: 10,
@@ -386,7 +410,7 @@ fn borrow_allowed_works() {
 fn update_liquidation_free_collateral_works() {
     new_test_ext().execute_with(|| {
         assert_ok!(Loans::update_liquidation_free_collateral(
-            Origin::root(),
+            RuntimeOrigin::root(),
             vec![CDOT_6_13]
         ));
         assert_eq!(Loans::liquidation_free_collaterals(), vec![CDOT_6_13]);
@@ -396,8 +420,8 @@ fn update_liquidation_free_collateral_works() {
 #[test]
 fn get_account_liquidity_works() {
     new_test_ext().execute_with(|| {
-        Loans::mint(Origin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
-        Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
+        Loans::mint(RuntimeOrigin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
+        Loans::collateral_asset(RuntimeOrigin::signed(ALICE), CDOT_6_13, true).unwrap();
 
         let (liquidity, _, lf_liquidity, _) = Loans::get_account_liquidity(&ALICE).unwrap();
 
@@ -409,17 +433,17 @@ fn get_account_liquidity_works() {
 #[test]
 fn get_account_liquidation_threshold_liquidity_works() {
     new_test_ext().execute_with(|| {
-        Loans::mint(Origin::signed(BOB), DOT, unit(200)).unwrap();
-        Loans::mint(Origin::signed(BOB), KSM, unit(200)).unwrap();
+        Loans::mint(RuntimeOrigin::signed(BOB), DOT, unit(200)).unwrap();
+        Loans::mint(RuntimeOrigin::signed(BOB), KSM, unit(200)).unwrap();
 
-        Loans::mint(Origin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
-        Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
+        Loans::mint(RuntimeOrigin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
+        Loans::collateral_asset(RuntimeOrigin::signed(ALICE), CDOT_6_13, true).unwrap();
 
-        Loans::mint(Origin::signed(ALICE), USDT, unit(200)).unwrap();
-        Loans::collateral_asset(Origin::signed(ALICE), USDT, true).unwrap();
+        Loans::mint(RuntimeOrigin::signed(ALICE), USDT, unit(200)).unwrap();
+        Loans::collateral_asset(RuntimeOrigin::signed(ALICE), USDT, true).unwrap();
 
-        Loans::borrow(Origin::signed(ALICE), KSM, unit(100)).unwrap();
-        Loans::borrow(Origin::signed(ALICE), DOT, unit(100)).unwrap();
+        Loans::borrow(RuntimeOrigin::signed(ALICE), KSM, unit(100)).unwrap();
+        Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, unit(100)).unwrap();
 
         let (liquidity, _, lf_liquidity, _) =
             Loans::get_account_liquidation_threshold_liquidity(&ALICE).unwrap();
@@ -440,11 +464,11 @@ fn get_account_liquidation_threshold_liquidity_works() {
 #[test]
 fn lf_borrow_allowed_works() {
     new_test_ext().execute_with(|| {
-        Loans::mint(Origin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
-        Loans::mint(Origin::signed(DAVE), USDT, unit(200)).unwrap();
-        Loans::mint(Origin::signed(DAVE), DOT, unit(200)).unwrap();
+        Loans::mint(RuntimeOrigin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
+        Loans::mint(RuntimeOrigin::signed(DAVE), USDT, unit(200)).unwrap();
+        Loans::mint(RuntimeOrigin::signed(DAVE), DOT, unit(200)).unwrap();
         // Lend $200 CDOT
-        Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
+        Loans::collateral_asset(RuntimeOrigin::signed(ALICE), CDOT_6_13, true).unwrap();
 
         assert_eq!(
             Loans::get_asset_value(DOT, unit(100)).unwrap(),
@@ -463,10 +487,14 @@ fn lf_borrow_allowed_works() {
 fn borrow_works() {
     new_test_ext().execute_with(|| {
         // Deposit 200 DOT as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(200)));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(200)));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            true
+        ));
         // Borrow 100 DOT
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
 
         // DOT collateral: deposit = 200
         // DOT borrow balance: borrow = 100
@@ -487,12 +515,12 @@ fn borrow_works() {
 fn lf_borrow_works() {
     new_test_ext().execute_with(|| {
         // Deposit 200 DOT as collateral
-        Loans::mint(Origin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
-        Loans::mint(Origin::signed(DAVE), DOT, unit(200)).unwrap();
-        Loans::collateral_asset(Origin::signed(ALICE), CDOT_6_13, true).unwrap();
+        Loans::mint(RuntimeOrigin::signed(ALICE), CDOT_6_13, unit(200)).unwrap();
+        Loans::mint(RuntimeOrigin::signed(DAVE), DOT, unit(200)).unwrap();
+        Loans::collateral_asset(RuntimeOrigin::signed(ALICE), CDOT_6_13, true).unwrap();
 
         // Borrow 100 DOT
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
 
         // CDOT collateral: deposit = 200
         // DOT borrow balance: borrow = 100
@@ -513,12 +541,20 @@ fn lf_borrow_works() {
 fn repay_borrow_works() {
     new_test_ext().execute_with(|| {
         // Deposit 200 DOT as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(200)));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(200)));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            true
+        ));
         // Borrow 100 DOT
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
         // Repay 30 DOT
-        assert_ok!(Loans::repay_borrow(Origin::signed(ALICE), DOT, unit(30)));
+        assert_ok!(Loans::repay_borrow(
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            unit(30)
+        ));
 
         // DOT collateral: deposit = 200
         // DOT borrow balance: borrow - repay = 100 - 30 = 70
@@ -539,15 +575,19 @@ fn repay_borrow_works() {
 fn repay_borrow_all_works() {
     new_test_ext().execute_with(|| {
         // Bob deposits 200 KSM
-        assert_ok!(Loans::mint(Origin::signed(BOB), KSM, unit(200)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(BOB), KSM, unit(200)));
         // Alice deposit 200 DOT as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(200)));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(200)));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            true
+        ));
         // Alice borrow 50 KSM
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, unit(50)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), KSM, unit(50)));
 
         // Alice repay all borrow balance
-        assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
+        assert_ok!(Loans::repay_borrow_all(RuntimeOrigin::signed(ALICE), KSM));
 
         // DOT: cash - deposit +  = 1000 - 200 = 800
         // DOT collateral: deposit = 200
@@ -570,29 +610,37 @@ fn collateral_asset_works() {
     new_test_ext().execute_with(|| {
         // No collateral assets
         assert_noop!(
-            Loans::collateral_asset(Origin::signed(ALICE), DOT, true),
+            Loans::collateral_asset(RuntimeOrigin::signed(ALICE), DOT, true),
             Error::<Test>::NoDeposit
         );
         // Deposit 200 DOT as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, 200));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, 200));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            true
+        ));
         assert_eq!(Loans::account_deposits(DOT, ALICE).is_collateral, true);
         assert_noop!(
-            Loans::collateral_asset(Origin::signed(ALICE), DOT, true),
+            Loans::collateral_asset(RuntimeOrigin::signed(ALICE), DOT, true),
             Error::<Test>::DuplicateOperation
         );
         // Borrow 100 DOT base on the collateral of 200 DOT
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 100));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, 100));
         assert_noop!(
-            Loans::collateral_asset(Origin::signed(ALICE), DOT, false),
+            Loans::collateral_asset(RuntimeOrigin::signed(ALICE), DOT, false),
             Error::<Test>::InsufficientLiquidity
         );
         // Repay all the borrows
-        assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), DOT));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, false));
+        assert_ok!(Loans::repay_borrow_all(RuntimeOrigin::signed(ALICE), DOT));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            false
+        ));
         assert_eq!(Loans::account_deposits(DOT, ALICE).is_collateral, false);
         assert_noop!(
-            Loans::collateral_asset(Origin::signed(ALICE), DOT, false),
+            Loans::collateral_asset(RuntimeOrigin::signed(ALICE), DOT, false),
             Error::<Test>::DuplicateOperation
         );
     })
@@ -603,11 +651,19 @@ fn total_collateral_value_works() {
     new_test_ext().execute_with(|| {
         // Mock the price for DOT = 1, KSM = 1
         let collateral_factor = Rate::saturating_from_rational(50, 100);
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(100)));
-        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, unit(200)));
-        assert_ok!(Loans::mint(Origin::signed(ALICE), USDT, unit(300)));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), KSM, unit(200)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), USDT, unit(300)));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            true
+        ));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            KSM,
+            true
+        ));
         assert_eq!(
             Loans::total_collateral_value(&ALICE).unwrap(),
             (collateral_factor.saturating_mul(FixedU128::from_inner(unit(100) + unit(200))))
@@ -619,7 +675,12 @@ fn total_collateral_value_works() {
 fn add_reserves_works() {
     new_test_ext().execute_with(|| {
         // Add 100 DOT reserves
-        assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, unit(100)));
+        assert_ok!(Loans::add_reserves(
+            RuntimeOrigin::root(),
+            ALICE,
+            DOT,
+            unit(100)
+        ));
 
         assert_eq!(Loans::total_reserves(DOT), unit(100));
         assert_eq!(
@@ -634,10 +695,20 @@ fn add_reserves_works() {
 fn reduce_reserves_works() {
     new_test_ext().execute_with(|| {
         // Add 100 DOT reserves
-        assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, unit(100)));
+        assert_ok!(Loans::add_reserves(
+            RuntimeOrigin::root(),
+            ALICE,
+            DOT,
+            unit(100)
+        ));
 
         // Reduce 20 DOT reserves
-        assert_ok!(Loans::reduce_reserves(Origin::root(), ALICE, DOT, unit(20)));
+        assert_ok!(Loans::reduce_reserves(
+            RuntimeOrigin::root(),
+            ALICE,
+            DOT,
+            unit(20)
+        ));
 
         assert_eq!(Loans::total_reserves(DOT), unit(80));
         assert_eq!(
@@ -651,9 +722,14 @@ fn reduce_reserves_works() {
 #[test]
 fn reduce_reserve_reduce_amount_must_be_less_than_total_reserves() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, unit(100)));
+        assert_ok!(Loans::add_reserves(
+            RuntimeOrigin::root(),
+            ALICE,
+            DOT,
+            unit(100)
+        ));
         assert_noop!(
-            Loans::reduce_reserves(Origin::root(), ALICE, DOT, unit(200)),
+            Loans::reduce_reserves(RuntimeOrigin::root(), ALICE, DOT, unit(200)),
             Error::<Test>::InsufficientReserves
         );
     })
@@ -786,7 +862,7 @@ fn update_exchange_rate_works() {
         // exchange_rate = total_cash + total_borrows - total_reverse / total_supply
         // total_cash = 10, total_supply = 500
         // exchange_rate = 10 + 5 - 1 / 500
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(10)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(10)));
         TotalBorrows::<Test>::insert(DOT, unit(5));
         TotalReserves::<Test>::insert(DOT, unit(1));
         // assert_ok!(Loans::update_exchange_rate(DOT));
@@ -874,7 +950,7 @@ fn get_price_works() {
 fn ensure_enough_cash_works() {
     new_test_ext().execute_with(|| {
         assert_ok!(Assets::mint(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             KSM,
             Loans::account_id(),
             unit(1000)
@@ -921,10 +997,10 @@ fn withdraw_missing_reward_works() {
     new_test_ext().execute_with(|| {
         assert_eq!(<Test as Config>::Assets::balance(HKO, &DAVE), unit(1000));
 
-        assert_ok!(Loans::add_reward(Origin::signed(DAVE), unit(100)));
+        assert_ok!(Loans::add_reward(RuntimeOrigin::signed(DAVE), unit(100)));
 
         assert_ok!(Loans::withdraw_missing_reward(
-            Origin::root(),
+            RuntimeOrigin::root(),
             ALICE,
             unit(40),
         ));
@@ -947,7 +1023,7 @@ fn update_market_reward_speed_works() {
         assert_eq!(Loans::reward_borrow_speed(DOT), 0);
 
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             DOT,
             Some(unit(1)),
             Some(unit(2)),
@@ -956,7 +1032,7 @@ fn update_market_reward_speed_works() {
         assert_eq!(Loans::reward_borrow_speed(DOT), unit(2));
 
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             DOT,
             Some(unit(2)),
             Some(0),
@@ -965,7 +1041,7 @@ fn update_market_reward_speed_works() {
         assert_eq!(Loans::reward_borrow_speed(DOT), unit(0));
 
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             DOT,
             Some(0),
             Some(0)
@@ -978,16 +1054,24 @@ fn update_market_reward_speed_works() {
 #[test]
 fn reward_calculation_one_palyer_in_multi_markets_works() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(100)));
-        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, unit(100)));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, unit(10)));
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, unit(10)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), KSM, unit(100)));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            true
+        ));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            KSM,
+            true
+        ));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, unit(10)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), KSM, unit(10)));
 
         _run_to_block(10);
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             DOT,
             Some(unit(1)),
             Some(unit(2)),
@@ -1007,9 +1091,9 @@ fn reward_calculation_one_palyer_in_multi_markets_works() {
         assert_eq!(Loans::reward_accrued(ALICE), 0);
 
         _run_to_block(20);
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             KSM,
             Some(unit(1)),
             Some(unit(1)),
@@ -1029,15 +1113,15 @@ fn reward_calculation_one_palyer_in_multi_markets_works() {
 
         _run_to_block(30);
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             DOT,
             Some(0),
             Some(0)
         ));
-        assert_ok!(Loans::redeem(Origin::signed(ALICE), DOT, unit(100)));
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, unit(10)));
-        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, unit(100)));
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, unit(10)));
+        assert_ok!(Loans::redeem(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, unit(10)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), KSM, unit(100)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), KSM, unit(10)));
 
         let supply_state = Loans::reward_supply_state(DOT);
         assert_eq!(supply_state.block, 30);
@@ -1051,15 +1135,15 @@ fn reward_calculation_one_palyer_in_multi_markets_works() {
 
         _run_to_block(40);
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             KSM,
             Some(0),
             Some(0)
         ));
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(100)));
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, unit(10)));
-        assert_ok!(Loans::redeem(Origin::signed(ALICE), KSM, unit(100)));
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, unit(10)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, unit(10)));
+        assert_ok!(Loans::redeem(RuntimeOrigin::signed(ALICE), KSM, unit(100)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), KSM, unit(10)));
 
         let supply_state = Loans::reward_supply_state(DOT);
         assert_eq!(supply_state.block, 40);
@@ -1073,15 +1157,15 @@ fn reward_calculation_one_palyer_in_multi_markets_works() {
 
         _run_to_block(50);
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             DOT,
             Some(unit(1)),
             Some(unit(1)),
         ));
-        assert_ok!(Loans::redeem(Origin::signed(ALICE), DOT, unit(100)));
-        assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), DOT));
-        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, unit(100)));
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, unit(10)));
+        assert_ok!(Loans::redeem(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::repay_borrow_all(RuntimeOrigin::signed(ALICE), DOT));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), KSM, unit(100)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), KSM, unit(10)));
 
         let supply_state = Loans::reward_supply_state(DOT);
         assert_eq!(supply_state.block, 50);
@@ -1095,14 +1179,14 @@ fn reward_calculation_one_palyer_in_multi_markets_works() {
 
         _run_to_block(60);
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             KSM,
             Some(unit(1)),
             Some(unit(1)),
         ));
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(100)));
-        assert_ok!(Loans::redeem(Origin::signed(ALICE), KSM, unit(100)));
-        assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::redeem(RuntimeOrigin::signed(ALICE), KSM, unit(100)));
+        assert_ok!(Loans::repay_borrow_all(RuntimeOrigin::signed(ALICE), KSM));
 
         let supply_state = Loans::reward_supply_state(DOT);
         assert_eq!(supply_state.block, 60);
@@ -1116,19 +1200,19 @@ fn reward_calculation_one_palyer_in_multi_markets_works() {
 
         _run_to_block(70);
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             DOT,
             Some(0),
             Some(0)
         ));
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             KSM,
             Some(0),
             Some(0)
         ));
-        assert_ok!(Loans::redeem(Origin::signed(ALICE), DOT, unit(100)));
-        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, unit(100)));
+        assert_ok!(Loans::redeem(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), KSM, unit(100)));
 
         let supply_state = Loans::reward_supply_state(DOT);
         assert_eq!(supply_state.block, 70);
@@ -1141,8 +1225,8 @@ fn reward_calculation_one_palyer_in_multi_markets_works() {
         assert_eq!(almost_equal(Loans::reward_accrued(ALICE), unit(130)), true);
 
         _run_to_block(80);
-        assert_ok!(Loans::add_reward(Origin::signed(DAVE), unit(200)));
-        assert_ok!(Loans::claim_reward(Origin::signed(ALICE)));
+        assert_ok!(Loans::add_reward(RuntimeOrigin::signed(DAVE), unit(200)));
+        assert_ok!(Loans::claim_reward(RuntimeOrigin::signed(ALICE)));
         assert_eq!(<Test as Config>::Assets::balance(HKO, &DAVE), unit(800));
         assert_eq!(
             almost_equal(<Test as Config>::Assets::balance(HKO, &ALICE), unit(130)),
@@ -1156,7 +1240,7 @@ fn reward_calculation_one_palyer_in_multi_markets_works() {
             true
         );
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             DOT,
             Some(unit(1)),
             Some(0),
@@ -1167,7 +1251,7 @@ fn reward_calculation_one_palyer_in_multi_markets_works() {
         // KSM supply:600   KSM supply reward: 30
         // KSM borrow:0     KSM borrow reward: 20
         _run_to_block(90);
-        assert_ok!(Loans::claim_reward(Origin::signed(ALICE)));
+        assert_ok!(Loans::claim_reward(RuntimeOrigin::signed(ALICE)));
         assert_eq!(
             almost_equal(<Test as Config>::Assets::balance(HKO, &ALICE), unit(140)),
             true
@@ -1178,14 +1262,22 @@ fn reward_calculation_one_palyer_in_multi_markets_works() {
 #[test]
 fn reward_calculation_multi_player_in_one_market_works() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(10)));
-        assert_ok!(Loans::mint(Origin::signed(BOB), DOT, unit(10)));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
-        assert_ok!(Loans::collateral_asset(Origin::signed(BOB), DOT, true));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(10)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(BOB), DOT, unit(10)));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            true
+        ));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(BOB),
+            DOT,
+            true
+        ));
 
         _run_to_block(10);
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             DOT,
             Some(unit(1)),
             Some(unit(1)),
@@ -1198,8 +1290,8 @@ fn reward_calculation_multi_player_in_one_market_works() {
         assert_eq!(Loans::reward_accrued(BOB), 0);
 
         _run_to_block(20);
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(70)));
-        assert_ok!(Loans::mint(Origin::signed(BOB), DOT, unit(10)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(70)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(BOB), DOT, unit(10)));
         // Alice supply:80     supply reward: 5
         // Alice borrow:0       borrow reward: 0
         // BOB supply:20       supply reward: 5
@@ -1208,10 +1300,10 @@ fn reward_calculation_multi_player_in_one_market_works() {
         assert_eq!(Loans::reward_accrued(BOB), unit(5));
 
         _run_to_block(30);
-        assert_ok!(Loans::redeem(Origin::signed(ALICE), DOT, unit(70)));
-        assert_ok!(Loans::redeem(Origin::signed(BOB), DOT, unit(10)));
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, unit(1)));
-        assert_ok!(Loans::borrow(Origin::signed(BOB), DOT, unit(1)));
+        assert_ok!(Loans::redeem(RuntimeOrigin::signed(ALICE), DOT, unit(70)));
+        assert_ok!(Loans::redeem(RuntimeOrigin::signed(BOB), DOT, unit(10)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, unit(1)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(BOB), DOT, unit(1)));
         // Alice supply:10     supply reward: 13
         // Alice borrow:1      borrow reward: 0
         // BOB supply:10       supply reward: 7
@@ -1220,10 +1312,10 @@ fn reward_calculation_multi_player_in_one_market_works() {
         assert_eq!(Loans::reward_accrued(BOB), unit(7));
 
         _run_to_block(40);
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(10)));
-        assert_ok!(Loans::mint(Origin::signed(BOB), DOT, unit(10)));
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, unit(1)));
-        assert_ok!(Loans::repay_borrow_all(Origin::signed(BOB), DOT));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(10)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(BOB), DOT, unit(10)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), DOT, unit(1)));
+        assert_ok!(Loans::repay_borrow_all(RuntimeOrigin::signed(BOB), DOT));
         // Alice supply:20     supply reward: 18
         // Alice borrow:2      borrow reward: 5
         // BOB supply:20       supply reward: 12
@@ -1232,10 +1324,10 @@ fn reward_calculation_multi_player_in_one_market_works() {
         assert_eq!(almost_equal(Loans::reward_accrued(BOB), unit(17)), true);
 
         _run_to_block(50);
-        assert_ok!(Loans::redeem(Origin::signed(ALICE), DOT, unit(10)));
-        assert_ok!(Loans::redeem_all(Origin::signed(BOB), DOT));
-        assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), DOT));
-        assert_ok!(Loans::repay_borrow_all(Origin::signed(BOB), DOT));
+        assert_ok!(Loans::redeem(RuntimeOrigin::signed(ALICE), DOT, unit(10)));
+        assert_ok!(Loans::redeem_all(RuntimeOrigin::signed(BOB), DOT));
+        assert_ok!(Loans::repay_borrow_all(RuntimeOrigin::signed(ALICE), DOT));
+        assert_ok!(Loans::repay_borrow_all(RuntimeOrigin::signed(BOB), DOT));
         // Alice supply:10     supply reward: 23
         // Alice borrow:0      borrow reward: 15
         // BOB supply:0       supply reward: 17
@@ -1244,10 +1336,10 @@ fn reward_calculation_multi_player_in_one_market_works() {
         assert_eq!(almost_equal(Loans::reward_accrued(BOB), unit(22)), true);
 
         _run_to_block(60);
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(10)));
-        assert_ok!(Loans::redeem_all(Origin::signed(BOB), DOT));
-        assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), DOT));
-        assert_ok!(Loans::repay_borrow_all(Origin::signed(BOB), DOT));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(10)));
+        assert_ok!(Loans::redeem_all(RuntimeOrigin::signed(BOB), DOT));
+        assert_ok!(Loans::repay_borrow_all(RuntimeOrigin::signed(ALICE), DOT));
+        assert_ok!(Loans::repay_borrow_all(RuntimeOrigin::signed(BOB), DOT));
         // Alice supply:10     supply reward: 33
         // Alice borrow:0      borrow reward: 15
         // BOB supply:0       supply reward: 17
@@ -1256,9 +1348,15 @@ fn reward_calculation_multi_player_in_one_market_works() {
         assert_eq!(almost_equal(Loans::reward_accrued(BOB), unit(22)), true);
 
         _run_to_block(70);
-        assert_ok!(Loans::add_reward(Origin::signed(DAVE), unit(200)));
-        assert_ok!(Loans::claim_reward_for_market(Origin::signed(ALICE), DOT));
-        assert_ok!(Loans::claim_reward_for_market(Origin::signed(BOB), DOT));
+        assert_ok!(Loans::add_reward(RuntimeOrigin::signed(DAVE), unit(200)));
+        assert_ok!(Loans::claim_reward_for_market(
+            RuntimeOrigin::signed(ALICE),
+            DOT
+        ));
+        assert_ok!(Loans::claim_reward_for_market(
+            RuntimeOrigin::signed(BOB),
+            DOT
+        ));
         assert_eq!(<Test as Config>::Assets::balance(HKO, &DAVE), unit(800));
         assert_eq!(
             almost_equal(<Test as Config>::Assets::balance(HKO, &ALICE), unit(58)),
@@ -1281,22 +1379,30 @@ fn reward_calculation_multi_player_in_one_market_works() {
 #[test]
 fn reward_calculation_after_liquidate_borrow_works() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, unit(200)));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
-        assert_ok!(Loans::mint(Origin::signed(BOB), KSM, unit(500)));
-        assert_ok!(Loans::collateral_asset(Origin::signed(BOB), KSM, true));
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, unit(50)));
-        assert_ok!(Loans::borrow(Origin::signed(BOB), KSM, unit(75)));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(200)));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(ALICE),
+            DOT,
+            true
+        ));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(BOB), KSM, unit(500)));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(BOB),
+            KSM,
+            true
+        ));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(ALICE), KSM, unit(50)));
+        assert_ok!(Loans::borrow(RuntimeOrigin::signed(BOB), KSM, unit(75)));
 
         _run_to_block(10);
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             DOT,
             Some(unit(1)),
             Some(unit(1)),
         ));
         assert_ok!(Loans::update_market_reward_speed(
-            Origin::root(),
+            RuntimeOrigin::root(),
             KSM,
             Some(unit(1)),
             Some(unit(1)),
@@ -1324,7 +1430,7 @@ fn reward_calculation_after_liquidate_borrow_works() {
         // since we set liquidate_threshold more than collateral_factor,with KSM price as 2 alice not shortfall yet.
         // so we can not liquidate_borrow here
         assert_noop!(
-            Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, unit(25), DOT),
+            Loans::liquidate_borrow(RuntimeOrigin::signed(BOB), ALICE, KSM, unit(25), DOT),
             Error::<Test>::InsufficientShortfall
         );
         // then we change KSM price = 3 to make alice shortfall
@@ -1337,7 +1443,7 @@ fn reward_calculation_after_liquidate_borrow_works() {
         // incentive_reward_account DOT Deposit: 75*0.03 = 2.25
         MockPriceFeeder::set_price(KSM, 3.into());
         assert_ok!(Loans::liquidate_borrow(
-            Origin::signed(BOB),
+            RuntimeOrigin::signed(BOB),
             ALICE,
             KSM,
             unit(25),

@@ -8,25 +8,37 @@ fn pool_create_work() {
     new_test_ext().execute_with(|| {
         // 1, create pool already exists
         assert_noop!(
-            Farming::create(Origin::root(), STAKE_TOKEN, REWARD_TOKEN, LOCK_DURATION, 50,),
+            Farming::create(
+                RuntimeOrigin::root(),
+                STAKE_TOKEN,
+                REWARD_TOKEN,
+                LOCK_DURATION,
+                50,
+            ),
             Error::<Test>::PoolAlreadyExists,
         );
 
         // 2, create pool with a invalid lock duration
         assert_noop!(
-            Farming::create(Origin::root(), EHKO, REWARD_TOKEN, 2628001, 50,),
+            Farming::create(RuntimeOrigin::root(), EHKO, REWARD_TOKEN, 2628001, 50,),
             Error::<Test>::ExcessMaxLockDuration,
         );
 
         // 3, create pool with a invalid lock duration
         assert_noop!(
-            Farming::create(Origin::root(), EHKO, REWARD_TOKEN, LOCK_DURATION, 60000,),
+            Farming::create(
+                RuntimeOrigin::root(),
+                EHKO,
+                REWARD_TOKEN,
+                LOCK_DURATION,
+                60000,
+            ),
             Error::<Test>::ExcessMaxCoolDownDuration,
         );
 
         // 4, can create a pool with different staking token
         assert_ok!(Farming::create(
-            Origin::root(),
+            RuntimeOrigin::root(),
             EHKO,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -35,7 +47,7 @@ fn pool_create_work() {
 
         // 5, can create a pool with different reward token
         assert_ok!(Farming::create(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             STAKE_TOKEN,
             LOCK_DURATION,
@@ -44,7 +56,7 @@ fn pool_create_work() {
 
         // 6, can create a pool with different lock duration
         assert_ok!(Farming::create(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             30,
@@ -66,7 +78,7 @@ fn pool_status_work() {
         ));
 
         assert_ok!(Farming::set_pool_status(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -87,14 +99,20 @@ fn pool_status_work() {
 
         // 3, can not set status for a pool which not exists
         assert_noop!(
-            Farming::set_pool_status(Origin::root(), EHKO, REWARD_TOKEN, LOCK_DURATION, false,),
+            Farming::set_pool_status(
+                RuntimeOrigin::root(),
+                EHKO,
+                REWARD_TOKEN,
+                LOCK_DURATION,
+                false,
+            ),
             Error::<Test>::PoolDoesNotExist,
         );
 
         // 4, can not set status with current status
         assert_noop!(
             Farming::set_pool_status(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 STAKE_TOKEN,
                 REWARD_TOKEN,
                 LOCK_DURATION,
@@ -111,7 +129,7 @@ fn pool_cool_down_duration_work() {
         // 1, can not set cool down duration for a pool which not exists
         assert_noop!(
             Farming::set_pool_cool_down_duration(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 EHKO,
                 REWARD_TOKEN,
                 LOCK_DURATION,
@@ -123,7 +141,7 @@ fn pool_cool_down_duration_work() {
         // 2, can not set cool down duration with current lock duration
         assert_noop!(
             Farming::set_pool_cool_down_duration(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 STAKE_TOKEN,
                 REWARD_TOKEN,
                 LOCK_DURATION,
@@ -135,7 +153,7 @@ fn pool_cool_down_duration_work() {
         // 3, can not set cool down duration with a invalid cool down duration
         assert_noop!(
             Farming::set_pool_cool_down_duration(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 STAKE_TOKEN,
                 REWARD_TOKEN,
                 LOCK_DURATION,
@@ -180,7 +198,7 @@ fn pool_cool_down_duration_work() {
         );
 
         assert_ok!(Farming::set_pool_cool_down_duration(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -233,13 +251,18 @@ fn pool_lock_duration_work() {
     new_test_ext().execute_with(|| {
         // 1, can not set cool down duration for a pool which not exists
         assert_noop!(
-            Farming::reset_pool_unlock_height(Origin::root(), EHKO, REWARD_TOKEN, LOCK_DURATION,),
+            Farming::reset_pool_unlock_height(
+                RuntimeOrigin::root(),
+                EHKO,
+                REWARD_TOKEN,
+                LOCK_DURATION,
+            ),
             Error::<Test>::PoolDoesNotExist,
         );
 
         run_to_block(10);
         assert_ok!(Farming::reset_pool_unlock_height(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -248,7 +271,7 @@ fn pool_lock_duration_work() {
         // 2, can not reset unlock height when pool is in lock
         assert_noop!(
             Farming::reset_pool_unlock_height(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 STAKE_TOKEN,
                 REWARD_TOKEN,
                 LOCK_DURATION,
@@ -336,7 +359,7 @@ fn pool_deposit_work() {
         );
 
         assert_ok!(Farming::set_pool_status(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -409,7 +432,7 @@ fn pool_withdraw_work() {
 
         run_to_block(10);
         assert_ok!(Farming::reset_pool_unlock_height(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -563,7 +586,7 @@ fn pool_dispatch_work() {
         // 1, can not dispatch reward for a pool which is not exists
         assert_noop!(
             Farming::dispatch_reward(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 EHKO,
                 REWARD_TOKEN,
                 LOCK_DURATION,
@@ -577,7 +600,7 @@ fn pool_dispatch_work() {
         // 2, can not dispatch reward for zero block
         assert_noop!(
             Farming::dispatch_reward(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 STAKE_TOKEN,
                 REWARD_TOKEN,
                 LOCK_DURATION,
@@ -590,7 +613,7 @@ fn pool_dispatch_work() {
 
         run_to_block(10);
         assert_ok!(Farming::dispatch_reward(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -611,7 +634,7 @@ fn pool_dispatch_work() {
 
         run_to_block(60);
         assert_ok!(Farming::dispatch_reward(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -665,7 +688,7 @@ fn pool_claim_work() {
 
         run_to_block(10);
         assert_ok!(Farming::dispatch_reward(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -709,7 +732,7 @@ fn pool_claim_precision_work() {
 
         run_to_block(10);
         assert_ok!(Farming::dispatch_reward(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -744,7 +767,7 @@ fn pool_complicated_scene0_work() {
 
         run_to_block(10);
         assert_ok!(Farming::dispatch_reward(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -818,7 +841,7 @@ fn pool_complicated_scene0_work() {
 
         run_to_block(140);
         assert_ok!(Farming::dispatch_reward(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -851,7 +874,7 @@ fn pool_complicated_scene0_work() {
 
         run_to_block(190);
         assert_ok!(Farming::dispatch_reward(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -909,7 +932,7 @@ fn edge_case_reward_rate_too_low() {
 
         run_to_block(10);
         assert_ok!(Farming::dispatch_reward(
-            Origin::root(),
+            RuntimeOrigin::root(),
             STAKE_TOKEN,
             REWARD_TOKEN,
             LOCK_DURATION,
@@ -957,7 +980,7 @@ fn edge_case_reward_rate_too_low() {
 fn edge_case_reward_token_decimal_too_big() {
     new_test_ext().execute_with(|| {
         Farming::create(
-            Origin::root(),
+            RuntimeOrigin::root(),
             BIG_DECIMAL_STAKE_TOKEN,
             BIG_DECIMAL_REWARD_TOKEN,
             LOCK_DURATION,
@@ -965,7 +988,7 @@ fn edge_case_reward_token_decimal_too_big() {
         )
         .unwrap();
         Farming::set_pool_status(
-            Origin::root(),
+            RuntimeOrigin::root(),
             BIG_DECIMAL_STAKE_TOKEN,
             BIG_DECIMAL_REWARD_TOKEN,
             LOCK_DURATION,
@@ -983,7 +1006,7 @@ fn edge_case_reward_token_decimal_too_big() {
 
         run_to_block(10);
         assert_ok!(Farming::dispatch_reward(
-            Origin::root(),
+            RuntimeOrigin::root(),
             BIG_DECIMAL_STAKE_TOKEN,
             BIG_DECIMAL_REWARD_TOKEN,
             LOCK_DURATION,
@@ -998,7 +1021,7 @@ fn edge_case_reward_token_decimal_too_big() {
         // would overflow in function reward_per_share if do not deal calculation with BigUint
         run_to_block(15);
         assert_ok!(Farming::dispatch_reward(
-            Origin::root(),
+            RuntimeOrigin::root(),
             BIG_DECIMAL_STAKE_TOKEN,
             BIG_DECIMAL_REWARD_TOKEN,
             LOCK_DURATION,

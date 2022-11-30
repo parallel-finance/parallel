@@ -76,19 +76,19 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Relay members has permission to materialize the assets
         type RelayMembers: SortedMembers<Self::AccountId>;
 
         /// The origin which can update bridged token
-        type UpdateTokenOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateTokenOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// The origin which can update bridged chain
-        type UpdateChainOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateChainOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// The origin which can clean accumulated cap value
-        type CapOrigin: EnsureOrigin<Self::Origin>;
+        type CapOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// The root operator account id
         #[pallet::constant]
@@ -641,7 +641,7 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        fn on_initialize(block_number: T::BlockNumber) -> u64 {
+        fn on_initialize(block_number: T::BlockNumber) -> Weight {
             let expired =
                 ProposalVotes::<T>::iter().filter(|x| (x).2.can_be_cleaned_up(block_number));
             expired.for_each(|x| {
@@ -650,7 +650,7 @@ pub mod pallet {
                 ProposalVotes::<T>::remove(chain_id, chain_nonce);
             });
 
-            0
+            Weight::zero()
         }
     }
 }
@@ -663,7 +663,7 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Checks if the origin is relay members
-    fn ensure_relay_member(origin: T::Origin) -> Result<T::AccountId, Error<T>> {
+    fn ensure_relay_member(origin: T::RuntimeOrigin) -> Result<T::AccountId, Error<T>> {
         let who = match ensure_signed_or_root(origin).map_err(|_| Error::<T>::OriginNoPermission)? {
             Some(account_id) => account_id,
             None => return Ok(T::RootOperatorAccountId::get()),

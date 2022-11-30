@@ -27,7 +27,7 @@ fn too_many_routes_should_not_work() {
 
         // User cannot input empty route.
         assert_noop!(
-            AMMRoute::swap_exact_tokens_for_tokens(Origin::signed(ALICE), routes_11, 1, 2),
+            AMMRoute::swap_exact_tokens_for_tokens(RuntimeOrigin::signed(ALICE), routes_11, 1, 2),
             Error::<Runtime>::ExceedMaxLengthRoute
         );
     });
@@ -37,7 +37,7 @@ fn empty_routes_should_not_work() {
     new_test_ext().execute_with(|| {
         // User cannot input empty route.
         assert_noop!(
-            AMMRoute::swap_exact_tokens_for_tokens(Origin::signed(ALICE), Vec::new(), 1, 2),
+            AMMRoute::swap_exact_tokens_for_tokens(RuntimeOrigin::signed(ALICE), Vec::new(), 1, 2),
             Error::<Runtime>::EmptyRoute
         );
     });
@@ -49,7 +49,7 @@ fn duplicated_routes_should_not_work() {
         let dup_routes = vec![DOT, SDOT, DOT];
 
         assert_noop!(
-            AMMRoute::swap_exact_tokens_for_tokens(Origin::signed(ALICE), dup_routes, 1, 2),
+            AMMRoute::swap_exact_tokens_for_tokens(RuntimeOrigin::signed(ALICE), dup_routes, 1, 2),
             Error::<Runtime>::DuplicatedRoute
         );
     });
@@ -60,7 +60,7 @@ fn too_low_balance_should_not_work() {
     new_test_ext().execute_with(|| {
         let route = vec![DOT, SDOT];
         assert_noop!(
-            AMMRoute::swap_exact_tokens_for_tokens(Origin::signed(ALICE), route, 0, 0),
+            AMMRoute::swap_exact_tokens_for_tokens(RuntimeOrigin::signed(ALICE), route, 0, 0),
             Error::<Runtime>::ZeroBalance
         );
     });
@@ -73,7 +73,7 @@ fn swap_exact_tokens_for_tokens_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (100_000_000, 100_000_000),
             DAVE,
@@ -87,7 +87,7 @@ fn swap_exact_tokens_for_tokens_should_work() {
         assert_eq!(Assets::balance(SDOT, trader), 10_000);
 
         AMMRoute::swap_exact_tokens_for_tokens(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             route,
             1_000, // amount_in
             900,   // min_amount_out
@@ -107,7 +107,7 @@ fn swap_tokens_for_exact_tokens_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (100_000_000, 100_000_000),
             DAVE,
@@ -121,7 +121,7 @@ fn swap_tokens_for_exact_tokens_should_work() {
         assert_eq!(Assets::balance(SDOT, trader), 10_000);
 
         AMMRoute::swap_tokens_for_exact_tokens(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             route,
             1_000, // amount_out
             1_010, // max_amount_in
@@ -141,7 +141,7 @@ fn pool_as_bridge_swap_tokens_for_exact_tokens_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (USDT, SDOT),
             (40_000_000, 1_000_000),
             DAVE,
@@ -151,7 +151,7 @@ fn pool_as_bridge_swap_tokens_for_exact_tokens_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (50_000_000, 50_000_000),
             DAVE,
@@ -172,7 +172,7 @@ fn pool_as_bridge_swap_tokens_for_exact_tokens_should_work() {
         let max_input_token_willing_to_spend = 510;
 
         AMMRoute::swap_tokens_for_exact_tokens(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             route,
             exact_amount_we_want_out,         // want 1_000 USDT
             max_input_token_willing_to_spend, // dont want to spend more than 4_000 DOT
@@ -191,7 +191,7 @@ fn swap_exact_tokens_for_tokens_should_not_work_if_amount_less_than_min_amount_o
     new_test_ext().execute_with(|| {
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (100_000_000, 100_000_000),
             DAVE,
@@ -214,7 +214,7 @@ fn swap_exact_tokens_for_tokens_should_not_work_if_amount_less_than_min_amount_o
         let routes = vec![DOT, SDOT];
         assert_noop!(
             AMMRoute::swap_exact_tokens_for_tokens(
-                Origin::signed(ALICE),
+                RuntimeOrigin::signed(ALICE),
                 routes,
                 1_000,
                 min_amount_out
@@ -229,7 +229,7 @@ fn swap_tokens_for_exact_tokens_should_not_work_if_amount_more_than_max_amount_i
     new_test_ext().execute_with(|| {
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (100_000_000, 100_000_000),
             DAVE,
@@ -252,7 +252,7 @@ fn swap_tokens_for_exact_tokens_should_not_work_if_amount_more_than_max_amount_i
         let routes = vec![DOT, SDOT];
         assert_noop!(
             AMMRoute::swap_tokens_for_exact_tokens(
-                Origin::signed(ALICE),
+                RuntimeOrigin::signed(ALICE),
                 routes,
                 1_000,
                 max_amount_in
@@ -267,7 +267,7 @@ fn trade_should_work_more_than_one_route() {
     new_test_ext().execute_with(|| {
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (100_000_000, 100_000_000),
             DAVE,
@@ -276,7 +276,7 @@ fn trade_should_work_more_than_one_route() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (SDOT, KSM),
             (100_000_000, 100_000_000),
             DAVE,
@@ -285,7 +285,7 @@ fn trade_should_work_more_than_one_route() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (USDT, KSM),
             (100_000_000, 100_000_000),
             DAVE,
@@ -340,7 +340,7 @@ fn trade_should_work_more_than_one_route() {
         // calculate amount out
         let routes = vec![DOT, SDOT, KSM, USDT];
         assert_ok!(AMMRoute::swap_exact_tokens_for_tokens(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             routes,
             1_000,
             980
@@ -412,7 +412,7 @@ fn get_all_routes_should_work() {
         let input_amount = 1_000;
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (100_000_000, 90_000_000),
             DAVE,
@@ -421,7 +421,7 @@ fn get_all_routes_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (SDOT, KSM),
             (100_000_000, 100_000_000),
             DAVE,
@@ -430,7 +430,7 @@ fn get_all_routes_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, KSM),
             (100_000_000, 70_000_000),
             DAVE,
@@ -459,7 +459,7 @@ fn get_best_route_should_work() {
         let input_amount = 1_000;
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (100_000_000, 90_000_000),
             DAVE,
@@ -468,7 +468,7 @@ fn get_best_route_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (SDOT, KSM),
             (100_000_000, 100_000_000),
             DAVE,
@@ -477,7 +477,7 @@ fn get_best_route_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, KSM),
             (100_000_000, 70_000_000),
             DAVE,
@@ -503,7 +503,7 @@ fn get_route_for_tokens_not_in_graph_should_not_work() {
         let input_amount = 1_000;
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (100_000_000, 90_000_000),
             DAVE,
@@ -512,7 +512,7 @@ fn get_route_for_tokens_not_in_graph_should_not_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (SDOT, KSM),
             (100_000_000, 100_000_000),
             DAVE,
@@ -521,7 +521,7 @@ fn get_route_for_tokens_not_in_graph_should_not_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, KSM),
             (100_000_000, 70_000_000),
             DAVE,
@@ -546,7 +546,7 @@ fn get_route_for_tokens_not_possible_should_not_work() {
         let input_amount = 1_000;
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (100_000_000, 90_000_000),
             DAVE,
@@ -555,7 +555,7 @@ fn get_route_for_tokens_not_possible_should_not_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (KSM, USDT),
             (100_000_000, 70_000_000),
             DAVE,
@@ -578,7 +578,7 @@ fn get_route_for_tokens_not_possible_should_not_work() {
 fn get_routes_for_non_existing_pair_should_not_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, KSM),
             (100_000_000, 70_000_000),
             DAVE,
@@ -602,7 +602,7 @@ fn get_best_route_same_tokens_should_work() {
         let input_amount = 1_000;
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (100_000_000, 90_000_000),
             DAVE,
@@ -611,7 +611,7 @@ fn get_best_route_same_tokens_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (SDOT, KSM),
             (100_000_000, 100_000_000),
             DAVE,
@@ -620,7 +620,7 @@ fn get_best_route_same_tokens_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, KSM),
             (100_000_000, 70_000_000),
             DAVE,
@@ -645,7 +645,7 @@ fn get_best_route_same_tokens_reversed_should_work() {
         let input_amount = 1_000;
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (100_000_000, 90_000_000),
             DAVE,
@@ -654,7 +654,7 @@ fn get_best_route_same_tokens_reversed_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (SDOT, KSM),
             (100_000_000, 100_000_000),
             DAVE,
@@ -663,7 +663,7 @@ fn get_best_route_same_tokens_reversed_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, KSM),
             (100_000_000, 70_000_000),
             DAVE,
@@ -688,7 +688,7 @@ fn get_all_routes_reversed_should_work() {
         let input_amount = 1_000;
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (100_000_000, 90_000_000),
             DAVE,
@@ -697,7 +697,7 @@ fn get_all_routes_reversed_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (SDOT, KSM),
             (100_000_000, 100_000_000),
             DAVE,
@@ -706,7 +706,7 @@ fn get_all_routes_reversed_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, KSM),
             (100_000_000, 70_000_000),
             DAVE,
@@ -735,7 +735,7 @@ fn get_best_route_reversed_should_work() {
         let input_amount = 1_000;
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, SDOT),
             (100_000_000, 90_000_000),
             DAVE,
@@ -744,7 +744,7 @@ fn get_best_route_reversed_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (SDOT, KSM),
             (100_000_000, 100_000_000),
             DAVE,
@@ -753,7 +753,7 @@ fn get_best_route_reversed_should_work() {
 
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             (DOT, KSM),
             (100_000_000, 70_000_000),
             DAVE,

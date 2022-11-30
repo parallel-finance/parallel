@@ -112,12 +112,12 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_utility::Config + pallet_xcm::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        type Origin: IsType<<Self as frame_system::Config>::Origin>
-            + Into<Result<pallet_xcm::Origin, <Self as Config>::Origin>>;
+        type RuntimeOrigin: IsType<<Self as frame_system::Config>::RuntimeOrigin>
+            + Into<Result<pallet_xcm::Origin, <Self as Config>::RuntimeOrigin>>;
 
-        type Call: IsType<<Self as pallet_xcm::Config>::Call> + From<Call<Self>>;
+        type RuntimeCall: IsType<<Self as pallet_xcm::Config>::RuntimeCall> + From<Call<Self>>;
 
         /// Assets for deposit/withdraw assets to/from pallet account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId>
@@ -125,10 +125,10 @@ pub mod pallet {
             + InspectMetadata<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
         /// The origin which can do operation on relaychain using parachain's sovereign account
-        type RelayOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type RelayOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// The origin which can update liquid currency, staking currency and other parameters
-        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// Approved accouts which can call `withdraw_unbonded` and `settlement`
         type Members: SortedMembers<Self::AccountId>;
@@ -712,8 +712,8 @@ pub mod pallet {
             query_id: QueryId,
             response: Response,
         ) -> DispatchResultWithPostInfo {
-            let responder =
-                ensure_response(<T as Config>::Origin::from(origin.clone())).or_else(|_| {
+            let responder = ensure_response(<T as Config>::RuntimeOrigin::from(origin.clone()))
+                .or_else(|_| {
                     T::UpdateOrigin::ensure_origin(origin).map(|_| MultiLocation::here())
                 })?;
             if let Response::ExecutionResult(res) = response {
@@ -1922,8 +1922,8 @@ pub mod pallet {
             Ok(())
         }
 
-        fn notify_placeholder() -> <T as Config>::Call {
-            <T as Config>::Call::from(Call::<T>::notification_received {
+        fn notify_placeholder() -> <T as Config>::RuntimeCall {
+            <T as Config>::RuntimeCall::from(Call::<T>::notification_received {
                 query_id: Default::default(),
                 response: Default::default(),
             })
@@ -1954,6 +1954,8 @@ pub mod pallet {
                 &db,
                 &relay_parent_storage_root,
                 &key,
+                None,
+                None,
             ) {
                 return result == value;
             }

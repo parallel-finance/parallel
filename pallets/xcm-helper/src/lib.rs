@@ -45,7 +45,7 @@ mod tests;
 pub mod weights;
 pub use weights::WeightInfo;
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
-pub type CallIdOf<T> = <T as pallet_xcm::Config>::Call;
+pub type CallIdOf<T> = <T as pallet_xcm::Config>::RuntimeCall;
 pub type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 pub type BalanceOf<T> =
@@ -59,7 +59,7 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_xcm::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Assets for deposit/withdraw assets to/from crowdloan account
         type Assets: Transfer<AccountIdOf<Self>, AssetId = CurrencyId, Balance = Balance>
@@ -92,7 +92,7 @@ pub mod pallet {
         type BlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 
         /// The origin which can update reserve_factor, xcm_fees etc
-        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// Weight information
         type WeightInfo: WeightInfo;
@@ -174,21 +174,21 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, TAccountId> {
     fn do_withdraw(
         para_id: ParaId,
         para_account_id: TAccountId,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_contribute(
         para_id: ParaId,
         amount: Balance,
         who: &TAccountId,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_proxy_contribute(
         para_id: ParaId,
         amount: Balance,
         who: &TAccountId,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_bond(
@@ -196,53 +196,53 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, TAccountId> {
         payee: RewardDestination<TAccountId>,
         stash: TAccountId,
         index: u16,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_bond_extra(
         value: Balance,
         stash: TAccountId,
         index: u16,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_unbond(
         value: Balance,
         index: u16,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_rebond(
         value: Balance,
         index: u16,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_withdraw_unbonded(
         num_slashing_spans: u32,
         para_account_id: TAccountId,
         index: u16,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_nominate(
         targets: Vec<TAccountId>,
         index: u16,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_add_proxy(
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_remove_proxy(
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError>;
 }
 
@@ -258,14 +258,14 @@ impl<T: Config> Pallet<T> {
     pub fn report_outcome_notify(
         message: &mut Xcm<()>,
         responder: impl Into<MultiLocation>,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
         timeout: BlockNumberFor<T>,
     ) -> Result<QueryId, DispatchError> {
         let responder = responder.into();
         let dest = <T as pallet_xcm::Config>::LocationInverter::invert_location(&responder)
             .map_err(|()| Error::<T>::MultiLocationNotInvertible)?;
-        let notify: <T as pallet_xcm::Config>::Call = notify.into();
-        let max_response_weight = notify.get_dispatch_info().weight;
+        let notify: <T as pallet_xcm::Config>::RuntimeCall = notify.into();
+        let max_response_weight = notify.get_dispatch_info().weight.ref_time();
         let query_id = pallet_xcm::Pallet::<T>::new_notify_query(responder, notify, timeout);
         let report_error = Xcm(vec![ReportError {
             dest,
@@ -316,7 +316,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
             },
             Transact {
                 origin_type: OriginKind::SovereignAccount,
-                require_weight_at_most: weight,
+                require_weight_at_most: weight.ref_time(),
                 call,
             },
             RefundSurplus,
@@ -332,7 +332,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::AddProxy);
         Ok(switch_relay!({
@@ -369,7 +369,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
         delegate: AccountId,
         proxy_type: Option<ProxyType>,
         delay: BlockNumber,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::RemoveProxy);
         Ok(switch_relay!({
@@ -406,7 +406,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
     fn do_withdraw(
         para_id: ParaId,
         para_account_id: AccountIdOf<T>,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Withdraw);
         Ok(switch_relay!({
@@ -442,7 +442,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
         para_id: ParaId,
         amount: BalanceOf<T>,
         _who: &AccountIdOf<T>,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Contribute);
         Ok(switch_relay!({
@@ -480,7 +480,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
         para_id: ParaId,
         amount: BalanceOf<T>,
         who: &AccountIdOf<T>,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Contribute);
         let real =
@@ -537,7 +537,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
         payee: RewardDestination<AccountIdOf<T>>,
         stash: AccountIdOf<T>,
         index: u16,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError> {
         let controller = stash.clone();
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Bond);
@@ -592,7 +592,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
         value: BalanceOf<T>,
         stash: AccountIdOf<T>,
         index: u16,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::BondExtra);
         Ok(switch_relay!({
@@ -641,7 +641,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
     fn do_unbond(
         value: BalanceOf<T>,
         index: u16,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Unbond);
         Ok(switch_relay!({
@@ -679,7 +679,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
     fn do_rebond(
         value: BalanceOf<T>,
         index: u16,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Rebond);
         Ok(switch_relay!({
@@ -718,7 +718,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
         num_slashing_spans: u32,
         para_account_id: AccountIdOf<T>,
         index: u16,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::WithdrawUnbonded);
         Ok(switch_relay!({
@@ -772,7 +772,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
     fn do_nominate(
         targets: Vec<AccountIdOf<T>>,
         index: u16,
-        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        notify: impl Into<<T as pallet_xcm::Config>::RuntimeCall>,
     ) -> Result<QueryId, DispatchError> {
         let targets_source = targets.into_iter().map(T::Lookup::unlookup).collect();
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Nominate);

@@ -6,7 +6,7 @@ use frame_support::{assert_noop, assert_ok, dispatch::*};
 fn toggle_call_works() {
     new_test_ext().execute_with(|| {
         let remark = "test".as_bytes().to_vec();
-        let call = Call::System(frame_system::Call::remark { remark });
+        let call = RuntimeCall::System(frame_system::Call::remark { remark });
 
         let (pallet_idx, call_idx): (u8, u8) = call
             .using_encoded(|mut bytes| Decode::decode(&mut bytes))
@@ -18,7 +18,7 @@ fn toggle_call_works() {
             false
         );
         assert_ok!(EmergencyShutdown::toggle_call(
-            Origin::root(),
+            RuntimeOrigin::root(),
             pallet_idx.clone(),
             call_idx.clone()
         ));
@@ -27,7 +27,7 @@ fn toggle_call_works() {
             true
         );
         assert_ok!(EmergencyShutdown::toggle_call(
-            Origin::root(),
+            RuntimeOrigin::root(),
             pallet_idx.clone(),
             call_idx.clone()
         ));
@@ -48,7 +48,7 @@ fn toggle_pallet_works() {
             false
         );
         assert_ok!(EmergencyShutdown::toggle_pallet(
-            Origin::root(),
+            RuntimeOrigin::root(),
             pallet_idx.clone()
         ));
         assert_eq!(
@@ -56,7 +56,7 @@ fn toggle_pallet_works() {
             true
         );
         assert_ok!(EmergencyShutdown::toggle_pallet(
-            Origin::root(),
+            RuntimeOrigin::root(),
             pallet_idx.clone()
         ));
         assert_eq!(EmergencyShutdown::disabled_pallets(pallet_idx), false);
@@ -73,25 +73,28 @@ fn call_filter_works() {
             false
         );
         assert_ok!(EmergencyShutdown::toggle_pallet(
-            Origin::root(),
+            RuntimeOrigin::root(),
             pallet_idx.clone()
         ));
 
         let remark = "test".as_bytes().to_vec();
-        let call = Call::System(frame_system::Call::remark { remark });
+        let call = RuntimeCall::System(frame_system::Call::remark { remark });
         // When emergency shutdown toggle is on
         assert_eq!(
             EmergencyShutdown::disabled_pallets(pallet_idx.clone()),
             true
         );
         assert_noop!(
-            call.clone().dispatch(Origin::signed(1)),
+            call.clone().dispatch(RuntimeOrigin::signed(1)),
             frame_system::Error::<Test>::CallFiltered,
         );
 
         // When emergency shutdown toggle is off
-        assert_ok!(EmergencyShutdown::toggle_pallet(Origin::root(), pallet_idx));
+        assert_ok!(EmergencyShutdown::toggle_pallet(
+            RuntimeOrigin::root(),
+            pallet_idx
+        ));
 
-        assert_ok!(call.dispatch(Origin::signed(1)));
+        assert_ok!(call.dispatch(RuntimeOrigin::signed(1)));
     });
 }

@@ -57,17 +57,17 @@ parameter_types! {
 }
 
 impl frame_system::Config for Runtime {
-    type Origin = Origin;
+    type RuntimeOrigin = RuntimeOrigin;
     type BaseCallFilter = frame_support::traits::Everything;
     type Index = u32;
     type BlockNumber = BlockNumber;
-    type Call = Call;
+    type RuntimeCall = RuntimeCall;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -89,7 +89,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
     type Balance = Balance;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = frame_system::Pallet<Runtime>;
@@ -109,7 +109,7 @@ parameter_types! {
 }
 
 impl pallet_assets::Config for Runtime {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
     type Currency = Balances;
@@ -134,8 +134,8 @@ parameter_types! {
 }
 
 impl Config for Runtime {
-    type Event = Event;
-    type Call = Call;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
     type Signature = ethereum::EthereumSignature;
     type Signer = <Signature as Verify>::Signer;
     type CallMagicNumber = CallMagicNumber;
@@ -203,7 +203,7 @@ fn invalid_signature() {
     let signature = Vec::from(&hex!["dd0992d40e5cdf99db76bed162808508ac65acd7ae2fdc8573594f03ed9c939773e813181788fc02c3c68f3fdc592759b35f6354484343e18cb5317d34dab6c61b"][..]);
     new_test_ext().execute_with(|| {
         assert_err!(
-            EVMSignatures::call(Origin::none(), Box::new(call), bob, signature, 0),
+            EVMSignatures::call(RuntimeOrigin::none(), Box::new(call), bob, signature, 0),
             Error::<Runtime>::InvalidSignature,
         );
     });
@@ -218,7 +218,7 @@ fn balance_transfer() {
         let alice: <Runtime as frame_system::Config>::AccountId = Keyring::Alice.into();
         assert_eq!(System::account(alice.clone()).data.free, 0);
 
-        let call: Call = pallet_balances::Call::<Runtime>::transfer {
+        let call: RuntimeCall = pallet_balances::Call::<Runtime>::transfer {
             dest: alice.clone(),
             value: 1_000,
         }
@@ -228,7 +228,7 @@ fn balance_transfer() {
 
         assert_eq!(System::account(account.clone()).nonce, 0);
         assert_ok!(EVMSignatures::call(
-            Origin::none(),
+            RuntimeOrigin::none(),
             Box::new(call.clone()),
             account.clone(),
             signature,
@@ -241,7 +241,7 @@ fn balance_transfer() {
         let signature = eth_sign(&ECDSA_SEED, payload.encode().as_ref()).into();
         assert_err!(
             EVMSignatures::call(
-                Origin::none(),
+                RuntimeOrigin::none(),
                 Box::new(call.clone()),
                 account.clone(),
                 signature,
@@ -254,7 +254,7 @@ fn balance_transfer() {
         let signature = eth_sign(&ECDSA_SEED, payload.encode().as_ref()).into();
         assert_eq!(System::account(account.clone()).nonce, 1);
         assert_ok!(EVMSignatures::call(
-            Origin::none(),
+            RuntimeOrigin::none(),
             Box::new(call.clone()),
             account.clone(),
             signature,
@@ -281,7 +281,7 @@ fn call_fixtures() {
 
     let dest =
         AccountId::from_ss58check("5GVwcV6EzxxYbXBm7H6dtxc9TCgL4oepMXtgqWYEc3VXJoaf").unwrap();
-    let call: Call = pallet_balances::Call::<Runtime>::transfer { dest, value: 1000 }.into();
+    let call: RuntimeCall = pallet_balances::Call::<Runtime>::transfer { dest, value: 1000 }.into();
     assert_eq!(
         call.encode(),
         hex!["0000c4305fb88b6ccb43d6552dc11d18e7b0ee3185247adcc6e885eb284adf6c563da10f"],

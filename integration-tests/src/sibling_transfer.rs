@@ -52,7 +52,7 @@ fn transfer_sibling_chain_asset() {
     TestNet::reset();
 
     //since not easy to introduce runtime from other chain,just use heiko's
-    use heiko_runtime::{Assets, Balances, Origin, PolkadotXcm, XTokens};
+    use heiko_runtime::{Assets, Balances, PolkadotXcm, RuntimeOrigin, XTokens};
 
     MockSibling::execute_with(|| {
         let mut general_key =
@@ -71,7 +71,7 @@ fn transfer_sibling_chain_asset() {
         assert_eq!(general_key_hex, "0x040d000000");
 
         assert_ok!(PolkadotXcm::reserve_transfer_assets(
-            Origin::signed(ALICE.into()).clone(),
+            RuntimeOrigin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2085))).into()),
             Box::new(
                 Junction::AccountId32 {
@@ -105,7 +105,7 @@ fn transfer_sibling_chain_asset() {
 
     Heiko::execute_with(|| {
         assert_ok!(XTokens::transfer(
-            Origin::signed(ALICE.into()),
+            RuntimeOrigin::signed(ALICE.into()),
             0,
             10_000_000_000_000,
             Box::new(
@@ -121,7 +121,7 @@ fn transfer_sibling_chain_asset() {
                 )
                 .into()
             ),
-            4_000_000_000,
+            WeightLimit::Limited(4_000_000_000),
         ));
 
         assert_eq!(

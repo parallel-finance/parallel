@@ -40,39 +40,39 @@ fn create_new_vault_should_work() {
 
         assert_noop!(
             Crowdloans::create_vault(
-                Origin::signed(EVE),   // origin
-                crowdloan,             // crowdloan
-                ctoken,                // ctoken
-                LEASE_START,           // lease_start
-                LEASE_END,             // lease_end
-                contribution_strategy, // contribution_strategy
-                cap,                   // cap
-                end_block              // end_block
+                RuntimeOrigin::signed(EVE), // origin
+                crowdloan,                  // crowdloan
+                ctoken,                     // ctoken
+                LEASE_START,                // lease_start
+                LEASE_END,                  // lease_end
+                contribution_strategy,      // contribution_strategy
+                cap,                        // cap
+                end_block                   // end_block
             ),
             DispatchError::BadOrigin
         );
 
         assert_ok!(Crowdloans::create_vault(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            ctoken,                // ctoken
-            LEASE_START,           // lease_start
-            LEASE_END,             // lease_end
-            contribution_strategy, // contribution_strategy
-            cap,                   // cap
-            end_block              // end_block
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // crowdloan
+            ctoken,                       // ctoken
+            LEASE_START,                  // lease_start
+            LEASE_END,                    // lease_end
+            contribution_strategy,        // contribution_strategy
+            cap,                          // cap
+            end_block                     // end_block
         ));
 
         assert_noop!(
             Crowdloans::create_vault(
-                Origin::signed(CHARLIE), // origin
-                crowdloan,               // crowdloan
-                ctoken,                  // ctoken
-                LEASE_START,             // lease_start
-                LEASE_END,               // lease_end
-                contribution_strategy,   // contribution_strategy
-                cap,                     // cap
-                end_block                // end_block
+                RuntimeOrigin::signed(CHARLIE), // origin
+                crowdloan,                      // crowdloan
+                ctoken,                         // ctoken
+                LEASE_START,                    // lease_start
+                LEASE_END,                      // lease_end
+                contribution_strategy,          // contribution_strategy
+                cap,                            // cap
+                end_block                       // end_block
             ),
             Error::<Test>::VaultAlreadyExists
         );
@@ -115,7 +115,7 @@ fn create_new_vault_should_not_work_if_ctoken_is_different() {
         ));
 
         Assets::mint(
-            Origin::signed(Crowdloans::account_id()),
+            RuntimeOrigin::signed(Crowdloans::account_id()),
             ctoken,
             Id(ALICE),
             dot(100f64),
@@ -319,9 +319,9 @@ fn set_vrf_should_work() {
         // do contribute
         assert_noop!(
             Crowdloans::contribute(
-                Origin::signed(ALICE), // origin
-                crowdloan,             // crowdloan
-                amount,                // amount
+                RuntimeOrigin::signed(ALICE), // origin
+                crowdloan,                    // crowdloan
+                amount,                       // amount
                 Vec::new()
             ),
             Error::<Test>::VrfDelayInProgress
@@ -329,9 +329,9 @@ fn set_vrf_should_work() {
 
         assert_noop!(
             Crowdloans::contribute(
-                Origin::signed(ALICE), // origin
-                crowdloan + 1,         // crowdloan
-                amount,                // amount
+                RuntimeOrigin::signed(ALICE), // origin
+                crowdloan + 1,                // crowdloan
+                amount,                       // amount
                 Vec::new()
             ),
             Error::<Test>::VrfDelayInProgress
@@ -378,9 +378,9 @@ fn contribute_should_work() {
 
         // do contribute
         assert_ok!(Crowdloans::contribute(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            amount,                // amount
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // crowdloan
+            amount,                       // amount
             vec![12, 34],
         ));
 
@@ -440,9 +440,9 @@ fn contribute_should_fail_insufficient_funds() {
         // do contribute
         assert_noop!(
             Crowdloans::contribute(
-                Origin::signed(BOB), // origin
-                crowdloan,           // crowdloan
-                amount,              // amount
+                RuntimeOrigin::signed(BOB), // origin
+                crowdloan,                  // crowdloan
+                amount,                     // amount
                 Vec::new()
             ),
             pallet_assets::Error::<Test>::NoAccount
@@ -625,9 +625,9 @@ fn claim_failed_should_work() {
 
         // do contribute
         assert_ok!(Crowdloans::contribute(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            amount,                // amount
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // crowdloan
+            amount,                       // amount
             Vec::new()
         ));
 
@@ -661,10 +661,10 @@ fn claim_failed_should_work() {
 
         // do withdraw
         assert_ok!(Crowdloans::withdraw(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // ctoken
-            LEASE_START,           // lease_start
-            LEASE_END,             // lease_end
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // ctoken
+            LEASE_START,                  // lease_start
+            LEASE_END,                    // lease_end
         ));
         assert_eq!(Assets::balance(DOT, ALICE), dot(100f64));
 
@@ -717,9 +717,9 @@ fn claim_succeed_and_expired_should_work() {
 
         // do contribute
         assert_ok!(Crowdloans::contribute(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            amount,                // amount
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // crowdloan
+            amount,                       // amount
             Vec::new()
         ));
 
@@ -745,10 +745,10 @@ fn claim_succeed_and_expired_should_work() {
 
         // do claim succeed
         assert_ok!(Crowdloans::claim(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // ctoken
-            LEASE_START,           // lease_start
-            LEASE_END,             // lease_end
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // ctoken
+            LEASE_START,                  // lease_start
+            LEASE_END,                    // lease_end
         ));
         assert_eq!(Assets::balance(ctoken, ALICE), amount);
         assert_eq!(Assets::balance(DOT, ALICE), dot(100f64) - amount);
@@ -775,11 +775,11 @@ fn claim_succeed_and_expired_should_work() {
 
         // do redeem expired
         assert_ok!(Crowdloans::redeem(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // ctoken
-            LEASE_START,           // lease_start
-            LEASE_END,             // lease_end
-            amount                 // amount
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // ctoken
+            LEASE_START,                  // lease_start
+            LEASE_END,                    // lease_end
+            amount                        // amount
         ));
         assert_eq!(Assets::balance(ctoken, ALICE), 0u128);
         assert_eq!(Assets::balance(DOT, ALICE), dot(100f64));
@@ -926,7 +926,7 @@ fn xcm_contribute_should_work() {
         );
         RelayInitializer::on_finalize(3);
         assert_ok!(RelayCrowdloan::create(
-            kusama_runtime::Origin::signed(ALICE),
+            kusama_runtime::RuntimeOrigin::signed(ALICE),
             crowdloan,
             amount,
             0,
@@ -966,9 +966,9 @@ fn xcm_contribute_should_work() {
 
         // do contribute
         assert_ok!(Crowdloans::contribute(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            amount,                // amount
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // crowdloan
+            amount,                       // amount
             Vec::new()
         ));
 
@@ -1210,9 +1210,9 @@ fn refund_should_work_when_vault_phase_is_closed() {
         .ok();
 
         Crowdloans::contribute(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            amount,                // amount
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // crowdloan
+            amount,                       // amount
             vec![],
         )
         .ok();
@@ -1284,9 +1284,9 @@ fn claim_for_should_work() {
 
         // do contribute
         assert_ok!(Crowdloans::contribute(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            amount,                // amount
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // crowdloan
+            amount,                       // amount
             Vec::new()
         ));
 
@@ -1312,11 +1312,11 @@ fn claim_for_should_work() {
 
         // do claim_for succeed
         assert_ok!(Crowdloans::claim_for(
-            Origin::signed(BOB), // origin
-            Id(ALICE),           //dest
-            crowdloan,           // ctoken
-            LEASE_START,         // lease_start
-            LEASE_END,           // lease_end
+            RuntimeOrigin::signed(BOB), // origin
+            Id(ALICE),                  //dest
+            crowdloan,                  // ctoken
+            LEASE_START,                // lease_start
+            LEASE_END,                  // lease_end
         ));
         assert_eq!(Assets::balance(ctoken, ALICE), amount);
         assert_eq!(Assets::balance(DOT, ALICE), dot(100f64) - amount);
@@ -1368,9 +1368,9 @@ fn withdraw_for_should_work() {
 
         // do contribute
         assert_ok!(Crowdloans::contribute(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            amount,                // amount
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // crowdloan
+            amount,                       // amount
             Vec::new()
         ));
 
@@ -1405,11 +1405,11 @@ fn withdraw_for_should_work() {
 
         // do withdraw_for succeed
         assert_ok!(Crowdloans::withdraw_for(
-            Origin::signed(BOB), // origin
-            Id(ALICE),           //dest
-            crowdloan,           // ctoken
-            LEASE_START,         // lease_start
-            LEASE_END,           // lease_end
+            RuntimeOrigin::signed(BOB), // origin
+            Id(ALICE),                  //dest
+            crowdloan,                  // ctoken
+            LEASE_START,                // lease_start
+            LEASE_END,                  // lease_end
         ));
         assert_eq!(Assets::balance(DOT, ALICE), dot(100f64));
 
@@ -1443,14 +1443,14 @@ fn get_ctoken_exchange_rate_should_work() {
         let end_lease = 13;
 
         assert_ok!(Crowdloans::create_vault(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            ctoken,                // ctoken
-            start_lease,           // lease_start
-            end_lease,             // lease_end
-            contribution_strategy, // contribution_strategy
-            cap,                   // cap
-            end_block              // end_block
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // crowdloan
+            ctoken,                       // ctoken
+            start_lease,                  // lease_start
+            end_lease,                    // lease_end
+            contribution_strategy,        // contribution_strategy
+            cap,                          // cap
+            end_block                     // end_block
         ));
         let start_rate = Rate::from_inner(450_000_000_000_000_000);
         //set relay_block_num as 0 is invalid and will not get rate
@@ -1556,14 +1556,14 @@ fn get_ctoken_exchange_rate_with_partial_lease_should_work() {
         let end_lease = 9;
 
         assert_ok!(Crowdloans::create_vault(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            ctoken,                // ctoken
-            start_lease,           // lease_start
-            end_lease,             // lease_end
-            contribution_strategy, // contribution_strategy
-            cap,                   // cap
-            end_block              // end_block
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // crowdloan
+            ctoken,                       // ctoken
+            start_lease,                  // lease_start
+            end_lease,                    // lease_end
+            contribution_strategy,        // contribution_strategy
+            cap,                          // cap
+            end_block                     // end_block
         ));
         let start_rate = Rate::from_inner(450_000_000_000_000_000);
         //set relay_block_num as lease_start_block + 1
@@ -1610,14 +1610,14 @@ fn get_ctoken_exchange_rate_with_minor_input_change_should_work() {
         let end_lease = 13;
 
         assert_ok!(Crowdloans::create_vault(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            ctoken,                // ctoken
-            start_lease,           // lease_start
-            end_lease,             // lease_end
-            contribution_strategy, // contribution_strategy
-            cap,                   // cap
-            end_block              // end_block
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // crowdloan
+            ctoken,                       // ctoken
+            start_lease,                  // lease_start
+            end_lease,                    // lease_end
+            contribution_strategy,        // contribution_strategy
+            cap,                          // cap
+            end_block                     // end_block
         ));
 
         let start_rate = Rate::from_inner(450_000_000_000_000_000);
@@ -1714,9 +1714,9 @@ fn refund_should_work_for_single_user() {
         .ok();
 
         Crowdloans::contribute(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            amount,                // amount
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // crowdloan
+            amount,                       // amount
             vec![],
         )
         .ok();
@@ -1807,9 +1807,9 @@ fn xcm_proxy_contribute_should_work() {
         // do contribute
         assert_err!(
             Crowdloans::contribute(
-                Origin::signed(ALICE), // origin
-                crowdloan,             // crowdloan
-                amount,                // amount
+                RuntimeOrigin::signed(ALICE), // origin
+                crowdloan,                    // crowdloan
+                amount,                       // amount
                 vec![12, 34],
             ),
             Error::<Test>::EmptyProxyAddress,
@@ -1822,9 +1822,9 @@ fn xcm_proxy_contribute_should_work() {
 
         // do contribute
         assert_ok!(Crowdloans::contribute(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            amount,                // amount
+            RuntimeOrigin::signed(ALICE), // origin
+            crowdloan,                    // crowdloan
+            amount,                       // amount
             vec![12, 34],
         ));
 

@@ -397,6 +397,12 @@ pub fn run() -> Result<()> {
                             crate::service::new_partial::<RuntimeApi, Executor>(&config)?;
                         cmd.run(partials.client)
                     }),
+                    #[cfg(not(feature = "runtime-benchmarks"))]
+                    BenchmarkCmd::Storage(_) => Err(
+                        "Storage benchmarking can be enabled with `--features runtime-benchmarks`."
+                            .into(),
+                    ),
+                    #[cfg(feature = "runtime-benchmarks")]
                     BenchmarkCmd::Storage(cmd) => runner.sync_run(|config| {
                         let partials =
                             crate::service::new_partial::<RuntimeApi, Executor>(&config)?;
@@ -581,7 +587,7 @@ impl CliConfiguration<Self> for RelayChainCli {
     fn base_path(&self) -> Result<Option<BasePath>> {
         Ok(self
             .shared_params()
-            .base_path()
+            .base_path()?
             .or_else(|| self.base_path.clone().map(Into::into)))
     }
 
@@ -638,8 +644,8 @@ impl CliConfiguration<Self> for RelayChainCli {
         self.base.base.transaction_pool(is_dev)
     }
 
-    fn state_cache_child_ratio(&self) -> Result<Option<usize>> {
-        self.base.base.state_cache_child_ratio()
+    fn trie_cache_maximum_size(&self) -> Result<Option<usize>> {
+        self.base.base.trie_cache_maximum_size()
     }
 
     fn rpc_methods(&self) -> Result<sc_service::config::RpcMethods> {

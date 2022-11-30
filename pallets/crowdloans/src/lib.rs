@@ -102,17 +102,17 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_xcm::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Assets for deposit/withdraw assets to/from crowdloan account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
-        type Origin: IsType<<Self as frame_system::Config>::Origin>
-            + Into<Result<pallet_xcm::Origin, <Self as Config>::Origin>>;
+        type RuntimeOrigin: IsType<<Self as frame_system::Config>::RuntimeOrigin>
+            + Into<Result<pallet_xcm::Origin, <Self as Config>::RuntimeOrigin>>;
 
-        type Call: IsType<<Self as pallet_xcm::Config>::Call> + From<Call<Self>>;
+        type RuntimeCall: IsType<<Self as pallet_xcm::Config>::RuntimeCall> + From<Call<Self>>;
 
         /// Returns the parachain ID we are running with.
         #[pallet::constant]
@@ -150,34 +150,36 @@ pub mod pallet {
         type LeasePerYear: Get<Self::BlockNumber>;
 
         /// The origin which can update global proxy address
-        type ProxyOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type ProxyOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// The origin which can migrate pending contribution
-        type MigrateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type MigrateOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// The origin which can set vrf flag
-        type VrfOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type VrfOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// The origin which can create vault
-        type CreateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type CreateOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// The origin which can refund
-        type RefundOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type RefundOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// The origin which can dissolve vault
-        type DissolveOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type DissolveOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// The origin which can update vault
-        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// The origin which can close/reopen vault
-        type OpenCloseOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type OpenCloseOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// The origin which can call auction failed/succeeded
-        type AuctionSucceededFailedOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type AuctionSucceededFailedOrigin: EnsureOrigin<
+            <Self as frame_system::Config>::RuntimeOrigin,
+        >;
 
         /// The origin which can call slot expired
-        type SlotExpiredOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type SlotExpiredOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
         /// Approved automation group for Phase Transition, Vrf, VaultCreation, VaultUpdate, Refund and Dissolve
         type Members: SortedMembers<Self::AccountId>;
@@ -998,7 +1000,7 @@ pub mod pallet {
             query_id: QueryId,
             response: Response,
         ) -> DispatchResultWithPostInfo {
-            let responder = ensure_response(<T as Config>::Origin::from(origin))?;
+            let responder = ensure_response(<T as Config>::RuntimeOrigin::from(origin))?;
             if let Response::ExecutionResult(res) = response {
                 if let Some(request) = Self::xcm_request(&query_id) {
                     Self::do_notification_received(query_id, request, res)?;
@@ -1222,8 +1224,8 @@ pub mod pallet {
                 .ok_or(ArithmeticError::Overflow)
         }
 
-        fn notify_placeholder() -> <T as Config>::Call {
-            <T as Config>::Call::from(Call::<T>::notification_received {
+        fn notify_placeholder() -> <T as Config>::RuntimeCall {
+            <T as Config>::RuntimeCall::from(Call::<T>::notification_received {
                 query_id: Default::default(),
                 response: Default::default(),
             })

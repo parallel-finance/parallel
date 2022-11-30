@@ -34,37 +34,37 @@ pub trait WeightInfo {
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn get_delta() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
     fn get_alternative_var() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
     fn add_liquidity() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
     fn remove_liquidity() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
     fn create_pool() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
     fn get_delta() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
     fn get_alternative_var() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
     fn add_liquidity() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
     fn remove_liquidity() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
     fn create_pool() -> Weight {
-        10_000 as Weight
+        Weight::from_ref_time(10_000 as u64)
     }
 }

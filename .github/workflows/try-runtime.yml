@@ -56,6 +56,8 @@ jobs:
           components: rustfmt
           target: wasm32-unknown-unknown
           default: true
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
       - name: Try Heiko Runtime Upgrade
         run: |
           make try-heiko-live-upgrade

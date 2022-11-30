@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use frame_support::weights::GetDispatchInfo;
-use frame_support::weights::PostDispatchInfo;
+use frame_support::dispatch::GetDispatchInfo;
+use frame_support::dispatch::PostDispatchInfo;
 use pallet_evm::{
     ExitRevert, Precompile, PrecompileFailure, PrecompileHandle, PrecompileResult, PrecompileSet,
 };
@@ -64,9 +64,9 @@ where
         + AddressToAssetId<<R as pallet_assets::Config>::AssetId>
         + pallet_assets::Config
         + pallet_balances::Config,
-    R::Call: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
-    <R as frame_system::Config>::Call: From<polkadot_runtime_common::BalancesCall<R>>,
-    <<R as frame_system::Config>::Call as Dispatchable>::Origin:
+    R::RuntimeCall: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
+    <R as frame_system::Config>::RuntimeCall: From<polkadot_runtime_common::BalancesCall<R>>,
+    <<R as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
         From<Option<<R as frame_system::Config>::AccountId>>,
     <R as pallet_balances::Config>::Balance: TryFrom<sp_core::U256>,
     <R as pallet_balances::Config>::Balance: Into<sp_core::U256>,

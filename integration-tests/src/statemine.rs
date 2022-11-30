@@ -28,10 +28,10 @@ pub const STATEMINE_TOTAL_FEE_AMOUNT: u128 = 1_000_000_000; //still can be decre
 fn transfer_statemine_rmrk() {
     //reserve transfer rmrk from statemine to heiko
     Statemine::execute_with(|| {
-        use statemine_runtime::{Origin, PolkadotXcm};
+        use statemine_runtime::{PolkadotXcm, RuntimeOrigin};
 
-        assert_ok!(PolkadotXcm::reserve_transfer_assets(
-            Origin::signed(ALICE.into()).clone(),
+        assert_ok!(PolkadotXcm::limited_reserve_transfer_assets(
+            RuntimeOrigin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2085))).into()),
             Box::new(
                 Junction::AccountId32 {
@@ -42,7 +42,8 @@ fn transfer_statemine_rmrk() {
                 .into()
             ),
             Box::new((X2(PalletInstance(50), GeneralIndex(8)), rmrk(2)).into()),
-            0
+            0,
+            WeightLimit::Unlimited
         ));
     });
 
@@ -51,17 +52,17 @@ fn transfer_statemine_rmrk() {
 
     //check rmrk transferred and then transfer it back to statemine with ksm as fee
     Heiko::execute_with(|| {
-        use heiko_runtime::{Assets, Origin, XTokens};
+        use heiko_runtime::{Assets, RuntimeOrigin, XTokens};
         //with RMRK_WEIGHT_PER_SEC set in heiko rmrk fee is 12_000_000 which is 0.0012rmrk~=0.004$
         assert_eq!(Assets::balance(RMRK, &AccountId::from(BOB)), 19988000000);
         assert_ok!(Assets::mint(
-            Origin::signed(AccountId::from(ALICE)),
+            RuntimeOrigin::signed(AccountId::from(ALICE)),
             KSM,
             MultiAddress::Id(AccountId::from(BOB)),
             ksm(1f64),
         )); //mint some ksm to BOB to pay for the xcm fee
         assert_ok!(XTokens::transfer_multicurrencies(
-            Origin::signed(BOB.into()),
+            RuntimeOrigin::signed(BOB.into()),
             vec![(KSM, STATEMINE_TOTAL_FEE_AMOUNT), (RMRK, rmrk(1)),],
             0,
             Box::new(
@@ -77,7 +78,7 @@ fn transfer_statemine_rmrk() {
                 )
                 .into()
             ),
-            WEIGHT_IN_STATEMINE as u64
+            WeightLimit::Limited(WEIGHT_IN_STATEMINE as u64)
         ));
     });
     // check reserved ksm move from heiko sovereign to statemine sovereign
@@ -110,10 +111,10 @@ fn transfer_statemine_rmrk() {
 fn transfer_statemine_usdt() {
     //reserve transfer usdt from statemine to heiko
     Statemine::execute_with(|| {
-        use statemine_runtime::{Origin, PolkadotXcm};
+        use statemine_runtime::{PolkadotXcm, RuntimeOrigin};
 
-        assert_ok!(PolkadotXcm::reserve_transfer_assets(
-            Origin::signed(ALICE.into()).clone(),
+        assert_ok!(PolkadotXcm::limited_reserve_transfer_assets(
+            RuntimeOrigin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2085))).into()),
             Box::new(
                 Junction::AccountId32 {
@@ -130,7 +131,8 @@ fn transfer_statemine_usdt() {
                 )
                     .into()
             ),
-            0
+            0,
+            WeightLimit::Unlimited
         ));
     });
 
@@ -138,17 +140,17 @@ fn transfer_statemine_usdt() {
 
     //check usdt transferred and then transfer it back to statemine with ksm as fee
     Heiko::execute_with(|| {
-        use heiko_runtime::{Assets, Origin, XTokens};
+        use heiko_runtime::{Assets, RuntimeOrigin, XTokens};
         //with USDT_WEIGHT_PER_SEC set in heiko usdt fee is 0.018$
         assert_eq!(Assets::balance(USDT, &AccountId::from(BOB)), 1982000);
         assert_ok!(Assets::mint(
-            Origin::signed(AccountId::from(ALICE)),
+            RuntimeOrigin::signed(AccountId::from(ALICE)),
             KSM,
             MultiAddress::Id(AccountId::from(BOB)),
             ksm(1f64),
         )); //mint some ksm to BOB to pay for the xcm fee
         assert_ok!(XTokens::transfer_multicurrencies(
-            Origin::signed(BOB.into()),
+            RuntimeOrigin::signed(BOB.into()),
             vec![(KSM, STATEMINE_TOTAL_FEE_AMOUNT), (USDT, usdt(1)),],
             0,
             Box::new(
@@ -164,7 +166,7 @@ fn transfer_statemine_usdt() {
                 )
                 .into()
             ),
-            WEIGHT_IN_STATEMINE as u64
+            WeightLimit::Limited(WEIGHT_IN_STATEMINE as u64)
         ));
     });
 

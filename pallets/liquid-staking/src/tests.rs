@@ -29,7 +29,10 @@ use crate::{
 #[test]
 fn stake_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(10f64)
+        ));
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
         assert_eq!(
@@ -93,7 +96,10 @@ fn stake_should_work() {
             }
         );
 
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(10f64)
+        ));
 
         assert_ok!(with_transaction(
             || -> TransactionOutcome<DispatchResult> {
@@ -130,9 +136,12 @@ fn stake_should_work() {
 #[test]
 fn unstake_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(10f64)
+        ));
         assert_ok!(LiquidStaking::unstake(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             ksm(6f64),
             Default::default()
         ));
@@ -197,7 +206,7 @@ fn unstake_should_work() {
         // Just make it 1 to calculate.
         ExchangeRate::<Test>::set(Rate::one());
         assert_ok!(LiquidStaking::unstake(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             ksm(3.95f64),
             Default::default()
         ));
@@ -254,9 +263,12 @@ enum StakeOp {
 impl StakeOp {
     fn execute(self) {
         match self {
-            Self::Stake(amount) => LiquidStaking::stake(Origin::signed(ALICE), amount).unwrap(),
+            Self::Stake(amount) => {
+                LiquidStaking::stake(RuntimeOrigin::signed(ALICE), amount).unwrap()
+            }
             Self::Unstake(amount) => {
-                LiquidStaking::unstake(Origin::signed(ALICE), amount, Default::default()).unwrap()
+                LiquidStaking::unstake(RuntimeOrigin::signed(ALICE), amount, Default::default())
+                    .unwrap()
             }
         };
     }
@@ -313,15 +325,18 @@ fn test_transact_bond_work() {
     TestNet::reset();
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(2000f64),));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(2000f64),
+        ));
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             ksm(3f64),
             RewardDestination::Staked
         ));
 
-        ParaSystem::assert_has_event(mock::Event::LiquidStaking(crate::Event::Bonding(
+        ParaSystem::assert_has_event(mock::RuntimeEvent::LiquidStaking(crate::Event::Bonding(
             derivative_index,
             LiquidStaking::derivative_sovereign_account_id(derivative_index),
             ksm(3f64),
@@ -330,10 +345,10 @@ fn test_transact_bond_work() {
     });
 
     Relay::execute_with(|| {
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(3f64),
-        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(3f64),
+        }));
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id(
             derivative_index,
         ))
@@ -347,10 +362,13 @@ fn test_transact_bond_extra_work() {
     TestNet::reset();
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(4000f64),));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(4000f64),
+        ));
         let bond_amount = ksm(2f64);
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             bond_amount,
             RewardDestination::Staked
@@ -362,7 +380,7 @@ fn test_transact_bond_extra_work() {
         ));
 
         assert_ok!(LiquidStaking::bond_extra(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             ksm(3f64)
         ));
@@ -382,16 +400,19 @@ fn test_transact_unbond_work() {
     TestNet::reset();
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(6000f64),
+        ));
         assert_ok!(LiquidStaking::unstake(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             ksm(1000f64),
             Default::default()
         ));
         let bond_amount = ksm(5f64);
 
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             bond_amount,
             RewardDestination::Staked
@@ -403,21 +424,21 @@ fn test_transact_unbond_work() {
             Response::ExecutionResult(None),
         ));
         assert_ok!(LiquidStaking::unbond(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             ksm(2f64)
         ));
     });
 
     Relay::execute_with(|| {
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(5f64),
-        )));
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(2f64),
-        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(5f64),
+        }));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(2f64),
+        }));
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id(
             derivative_index,
         ))
@@ -432,16 +453,19 @@ fn test_transact_withdraw_unbonded_work() {
     TestNet::reset();
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(6000f64),
+        ));
         assert_ok!(LiquidStaking::unstake(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             ksm(2000f64),
             Default::default()
         ));
         let bond_amount = ksm(5f64);
         let unbond_amount = ksm(2f64);
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             bond_amount,
             RewardDestination::Staked
@@ -452,7 +476,7 @@ fn test_transact_withdraw_unbonded_work() {
             Response::ExecutionResult(None),
         ));
         assert_ok!(LiquidStaking::unbond(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             unbond_amount
         ));
@@ -472,14 +496,14 @@ fn test_transact_withdraw_unbonded_work() {
         assert_eq!(ledger.active, ksm(3f64));
         assert_eq!(ledger.unlocking.len(), 1);
 
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(5f64),
-        )));
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(2f64),
-        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(5f64),
+        }));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(2f64),
+        }));
 
         pallet_staking::CurrentEra::<KusamaRuntime>::put(
             <KusamaRuntime as pallet_staking::Config>::BondingDuration::get(),
@@ -488,12 +512,12 @@ fn test_transact_withdraw_unbonded_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::force_set_current_era(
-            Origin::root(),
+            RuntimeOrigin::root(),
             <KusamaRuntime as pallet_staking::Config>::BondingDuration::get(),
         ));
 
         assert_ok!(LiquidStaking::withdraw_unbonded(
-            Origin::root(),
+            RuntimeOrigin::root(),
             derivative_index,
             0
         ));
@@ -515,15 +539,18 @@ fn test_transact_rebond_work() {
     TestNet::reset();
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(6000f64),
+        ));
         assert_ok!(LiquidStaking::unstake(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             ksm(1000f64),
             Default::default()
         ));
         let bond_amount = ksm(10f64);
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             bond_amount,
             RewardDestination::Staked
@@ -535,30 +562,30 @@ fn test_transact_rebond_work() {
             Response::ExecutionResult(None),
         ));
         assert_ok!(LiquidStaking::unbond(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             ksm(5f64)
         ));
         assert_ok!(LiquidStaking::rebond(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             ksm(3f64)
         ));
     });
 
     Relay::execute_with(|| {
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(10f64),
-        )));
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(5f64),
-        )));
-        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_sovereign_account_id(derivative_index),
-            ksm(3f64),
-        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(10f64),
+        }));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(5f64),
+        }));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded {
+            stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            amount: ksm(3f64),
+        }));
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id(
             derivative_index,
         ))
@@ -573,10 +600,13 @@ fn test_transact_nominate_work() {
     TestNet::reset();
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(4000f64),));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(4000f64),
+        ));
         let bond_amount = ksm(10f64);
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             bond_amount,
             RewardDestination::Staked
@@ -589,7 +619,7 @@ fn test_transact_nominate_work() {
         ));
 
         assert_ok!(LiquidStaking::nominate(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             vec![ALICE, BOB],
         ));
@@ -615,9 +645,12 @@ fn test_transfer_bond() {
     let xcm_transfer_amount = ksm(10f64);
     let derivative_index = 0u16;
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(2000f64),));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(2000f64),
+        ));
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             xcm_transfer_amount,
             RewardDestination::Staked
@@ -650,7 +683,7 @@ fn test_transfer_bond() {
 fn update_staking_ledger_cap_should_not_work_if_with_invalid_param() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            LiquidStaking::update_staking_ledger_cap(Origin::root(), Zero::zero()),
+            LiquidStaking::update_staking_ledger_cap(RuntimeOrigin::root(), Zero::zero()),
             Error::<Test>::InvalidCap
         );
     })
@@ -660,11 +693,11 @@ fn update_staking_ledger_cap_should_not_work_if_with_invalid_param() {
 fn update_reserve_factor_should_not_work_if_with_invalid_param() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            LiquidStaking::update_reserve_factor(Origin::root(), Ratio::zero()),
+            LiquidStaking::update_reserve_factor(RuntimeOrigin::root(), Ratio::zero()),
             Error::<Test>::InvalidFactor
         );
         assert_noop!(
-            LiquidStaking::update_reserve_factor(Origin::root(), Ratio::one()),
+            LiquidStaking::update_reserve_factor(RuntimeOrigin::root(), Ratio::one()),
             Error::<Test>::InvalidFactor
         );
     })
@@ -673,16 +706,19 @@ fn update_reserve_factor_should_not_work_if_with_invalid_param() {
 #[test]
 fn claim_for_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(10f64)
+        ));
         assert_eq!(<Test as Config>::Assets::balance(KSM, &ALICE), ksm(90f64));
 
         assert_ok!(LiquidStaking::unstake(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             ksm(1f64),
             Default::default()
         ));
         assert_ok!(LiquidStaking::unstake(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             ksm(3.95f64),
             Default::default()
         ));
@@ -695,7 +731,7 @@ fn claim_for_should_work() {
         );
 
         assert_noop!(
-            LiquidStaking::claim_for(Origin::signed(BOB), Id(ALICE)),
+            LiquidStaking::claim_for(RuntimeOrigin::signed(BOB), Id(ALICE)),
             Error::<Test>::NothingToClaim
         );
 
@@ -713,7 +749,7 @@ fn claim_for_should_work() {
             Response::ExecutionResult(None),
         ));
         assert_ok!(LiquidStaking::withdraw_unbonded(
-            Origin::root(),
+            RuntimeOrigin::root(),
             derivative_index,
             0
         ));
@@ -723,7 +759,10 @@ fn claim_for_should_work() {
             Response::ExecutionResult(None),
         ));
 
-        assert_ok!(LiquidStaking::claim_for(Origin::signed(BOB), Id(ALICE)));
+        assert_ok!(LiquidStaking::claim_for(
+            RuntimeOrigin::signed(BOB),
+            Id(ALICE)
+        ));
         assert_eq!(
             <Test as Config>::Assets::balance(KSM, &ALICE),
             ksm(90f64) + ksm(4.95f64)
@@ -742,7 +781,10 @@ fn test_on_initialize_work() {
 
         // 1.1 stake
         let bond_amount = ksm(10f64);
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), bond_amount));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            bond_amount
+        ));
         let total_stake_amount = bond_amount - xcm_fees - reserve_factor.mul_floor(bond_amount);
 
         // 1.2 on_initialize_bond
@@ -796,7 +838,7 @@ fn test_set_staking_ledger_work() {
         );
         assert_noop!(
             LiquidStaking::set_staking_ledger(
-                Origin::signed(ALICE),
+                RuntimeOrigin::signed(ALICE),
                 derivative_index,
                 staking_ledger.clone(),
                 get_mock_proof_bytes()
@@ -811,7 +853,7 @@ fn test_set_staking_ledger_work() {
         staking_ledger.bond_extra(bond_extra_amount);
         assert_noop!(
             LiquidStaking::set_staking_ledger(
-                Origin::signed(ALICE),
+                RuntimeOrigin::signed(ALICE),
                 derivative_index,
                 staking_ledger.clone(),
                 get_mock_proof_bytes()
@@ -820,7 +862,7 @@ fn test_set_staking_ledger_work() {
         );
         LiquidStaking::on_finalize(1);
         assert_ok!(LiquidStaking::set_staking_ledger(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             get_mock_staking_ledger(derivative_index),
             get_mock_proof_bytes()
@@ -828,7 +870,7 @@ fn test_set_staking_ledger_work() {
 
         assert_noop!(
             LiquidStaking::set_staking_ledger(
-                Origin::signed(ALICE),
+                RuntimeOrigin::signed(ALICE),
                 derivative_index,
                 staking_ledger.clone(),
                 get_mock_proof_bytes()
@@ -850,7 +892,10 @@ fn test_set_staking_ledger_work() {
 fn test_force_set_era_start_block_work() {
     new_test_ext().execute_with(|| {
         assert_eq!(EraStartBlock::<Test>::get(), 0);
-        assert_ok!(LiquidStaking::force_set_era_start_block(Origin::root(), 11));
+        assert_ok!(LiquidStaking::force_set_era_start_block(
+            RuntimeOrigin::root(),
+            11
+        ));
         assert_eq!(EraStartBlock::<Test>::get(), 11);
     })
 }
@@ -859,7 +904,10 @@ fn test_force_set_era_start_block_work() {
 fn test_force_set_current_era_work() {
     new_test_ext().execute_with(|| {
         assert_eq!(CurrentEra::<Test>::get(), 0);
-        assert_ok!(LiquidStaking::force_set_current_era(Origin::root(), 12));
+        assert_ok!(LiquidStaking::force_set_current_era(
+            RuntimeOrigin::root(),
+            12
+        ));
         assert_eq!(CurrentEra::<Test>::get(), 12);
     })
 }
@@ -869,10 +917,13 @@ fn test_force_notification_received_work() {
     new_test_ext().execute_with(|| {
         let derivative_index = 0u16;
         let bond_amount = ksm(10f64);
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(20f64),));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(20f64),
+        ));
 
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             bond_amount,
             RewardDestination::Staked
@@ -888,14 +939,14 @@ fn test_force_notification_received_work() {
         );
         assert_noop!(
             LiquidStaking::notification_received(
-                Origin::signed(ALICE),
+                RuntimeOrigin::signed(ALICE),
                 query_id,
                 Response::ExecutionResult(None),
             ),
             BadOrigin
         );
         assert_ok!(LiquidStaking::notification_received(
-            Origin::root(),
+            RuntimeOrigin::root(),
             query_id,
             Response::ExecutionResult(None),
         ));
@@ -929,7 +980,7 @@ fn test_verify_trie_proof_work() {
     let value = hex::decode(MOCK_DATA).unwrap();
     let relay_proof = StorageProof::new(get_mock_proof_bytes());
     let db = relay_proof.into_memory_db();
-    let result = sp_trie::read_trie_value::<LayoutV1, _>(&db, &relay_root, &key)
+    let result = sp_trie::read_trie_value::<LayoutV1, _>(&db, &relay_root, &key, None, None)
         .unwrap()
         .unwrap();
     assert_eq!(result, value);
@@ -957,11 +1008,14 @@ fn test_verify_merkle_proof_work() {
 fn reduce_reserves_works() {
     new_test_ext().execute_with(|| {
         // Stake 1000 KSM, 0.5% for reserves
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(100f64)));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(100f64)
+        ));
         assert_eq!(LiquidStaking::total_reserves(), ksm(0.5f64));
         // Reduce 20 KSM reserves
         assert_ok!(LiquidStaking::reduce_reserves(
-            Origin::root(),
+            RuntimeOrigin::root(),
             Id(ALICE),
             ksm(0.2f64)
         ));
@@ -969,7 +1023,7 @@ fn reduce_reserves_works() {
 
         // should failed if exceed the cap
         assert_noop!(
-            LiquidStaking::reduce_reserves(Origin::root(), Id(ALICE), ksm(0.31f64)),
+            LiquidStaking::reduce_reserves(RuntimeOrigin::root(), Id(ALICE), ksm(0.31f64)),
             Underflow
         );
     })
@@ -978,9 +1032,12 @@ fn reduce_reserves_works() {
 #[test]
 fn cancel_unstake_works() {
     new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(10f64)
+        ));
         assert_ok!(LiquidStaking::unstake(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             ksm(6f64),
             UnstakeProvider::MatchingPool
         ));
@@ -1004,7 +1061,7 @@ fn cancel_unstake_works() {
         );
 
         assert_ok!(LiquidStaking::cancel_unstake(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             ksm(6f64)
         ));
         assert_eq!(
@@ -1028,11 +1085,18 @@ fn cancel_unstake_works() {
 #[test]
 fn fast_unstake_works() {
     new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
-        assert_ok!(Loans::mint(Origin::signed(BOB), KSM, ksm(100f64)));
-        assert_ok!(Loans::collateral_asset(Origin::signed(BOB), KSM, true));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            ksm(10f64)
+        ));
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(BOB), KSM, ksm(100f64)));
+        assert_ok!(Loans::collateral_asset(
+            RuntimeOrigin::signed(BOB),
+            KSM,
+            true
+        ));
         assert_ok!(LiquidStaking::unstake(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             ksm(6f64),
             UnstakeProvider::Loans
         ));
@@ -1063,7 +1127,7 @@ fn fast_unstake_works() {
             Response::ExecutionResult(None),
         ));
         assert_ok!(LiquidStaking::withdraw_unbonded(
-            Origin::root(),
+            RuntimeOrigin::root(),
             derivative_index,
             0
         ));
@@ -1074,7 +1138,7 @@ fn fast_unstake_works() {
         ));
 
         assert_ok!(LiquidStaking::claim_for(
-            Origin::signed(BOB),
+            RuntimeOrigin::signed(BOB),
             Id(LiquidStaking::loans_account_id())
         ));
         assert_eq!(
@@ -1095,7 +1159,7 @@ fn test_charge_commission_work() {
         );
         StakingLedgers::<Test>::insert(derivative_index, staking_ledger.clone());
         assert_ok!(LiquidStaking::update_commission_rate(
-            Origin::root(),
+            RuntimeOrigin::root(),
             Rate::from_rational(1, 100)
         ));
         LiquidStaking::on_finalize(1);
@@ -1121,7 +1185,7 @@ fn test_charge_commission_work() {
         let inflate_liquid_amount = inflate_rate.saturating_mul_int(issurance);
 
         assert_ok!(LiquidStaking::set_staking_ledger(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             derivative_index,
             get_mock_staking_ledger(derivative_index),
             get_mock_proof_bytes()
@@ -1147,17 +1211,20 @@ fn test_complete_fast_match_unstake_work() {
         let reserve_factor = LiquidStaking::reserve_factor();
         let xcm_fees = XcmFees::get();
         let bond_amount = ksm(10f64);
-        assert_ok!(LiquidStaking::stake(Origin::signed(BOB), bond_amount));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(BOB),
+            bond_amount
+        ));
         let total_stake_amount = bond_amount - xcm_fees - reserve_factor.mul_floor(bond_amount);
 
         let fast_unstake_amount = ksm(3f64);
         assert_ok!(LiquidStaking::unstake(
-            Origin::signed(BOB),
+            RuntimeOrigin::signed(BOB),
             fast_unstake_amount,
             UnstakeProvider::MatchingPool
         ));
         assert_ok!(LiquidStaking::fast_match_unstake(
-            Origin::signed(BOB),
+            RuntimeOrigin::signed(BOB),
             [BOB].to_vec(),
         ));
 
@@ -1193,8 +1260,14 @@ fn test_partial_fast_match_unstake_work() {
         let reserve_factor = LiquidStaking::reserve_factor();
         let xcm_fees = XcmFees::get();
         let bond_amount = ksm(5f64);
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), bond_amount));
-        assert_ok!(LiquidStaking::stake(Origin::signed(BOB), bond_amount));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(ALICE),
+            bond_amount
+        ));
+        assert_ok!(LiquidStaking::stake(
+            RuntimeOrigin::signed(BOB),
+            bond_amount
+        ));
 
         let alice_stake_amount = bond_amount - xcm_fees - reserve_factor.mul_floor(bond_amount);
         let bob_stake_amount = alice_stake_amount;
@@ -1203,17 +1276,17 @@ fn test_partial_fast_match_unstake_work() {
         let alice_fast_unstake_amount = ksm(10f64);
         let bob_fast_unstake_amount = ksm(1f64);
         assert_ok!(LiquidStaking::unstake(
-            Origin::signed(ALICE),
+            RuntimeOrigin::signed(ALICE),
             alice_fast_unstake_amount,
             UnstakeProvider::MatchingPool
         ));
         assert_ok!(LiquidStaking::unstake(
-            Origin::signed(BOB),
+            RuntimeOrigin::signed(BOB),
             bob_fast_unstake_amount,
             UnstakeProvider::MatchingPool
         ));
         assert_ok!(LiquidStaking::fast_match_unstake(
-            Origin::signed(BOB),
+            RuntimeOrigin::signed(BOB),
             [BOB, ALICE].to_vec(),
         ));
 

@@ -34,7 +34,7 @@ decl_test_relay_chain! {
 decl_test_parachain! {
     pub struct Parallel {
         Runtime = parallel_runtime::Runtime,
-        Origin = parallel_runtime::Origin,
+        RuntimeOrigin = parallel_runtime::RuntimeOrigin,
         XcmpMessageHandler = parallel_runtime ::XcmpQueue,
         DmpMessageHandler = parallel_runtime::DmpQueue,
         new_ext = para_ext(2012),
@@ -44,7 +44,7 @@ decl_test_parachain! {
 decl_test_parachain! {
     pub struct Statemint {
         Runtime = statemint_runtime::Runtime,
-        Origin = statemint_runtime::Origin,
+        RuntimeOrigin = statemint_runtime::RuntimeOrigin,
         XcmpMessageHandler = statemint_runtime::XcmpQueue,
         DmpMessageHandler = statemint_runtime::DmpQueue,
         new_ext = para_ext(1000),
@@ -54,7 +54,7 @@ decl_test_parachain! {
 decl_test_parachain! {
     pub struct MockSibling {
         Runtime = parallel_runtime::Runtime,
-        Origin = parallel_runtime::Origin,
+        RuntimeOrigin = parallel_runtime::RuntimeOrigin,
         XcmpMessageHandler = parallel_runtime::XcmpQueue,
         DmpMessageHandler = parallel_runtime::DmpQueue,
         new_ext = sibling_ext(2002),
@@ -86,7 +86,7 @@ fn default_parachains_host_configuration() -> HostConfiguration<BlockNumber> {
         max_upward_queue_count: 8,
         max_upward_queue_size: 1024 * 1024,
         max_downward_message_size: 1024 * 1024,
-        ump_service_total_weight: 100_000_000_000,
+        ump_service_total_weight: Weight::from_ref_time(100_000_000_000),
         max_upward_message_size: 50 * 1024,
         max_upward_message_num_per_candidate: 5,
         hrmp_sender_deposit: 0,
