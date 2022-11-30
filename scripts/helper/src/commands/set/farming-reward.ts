@@ -5,7 +5,7 @@ import { readFile } from '../../utils'
 import BigNumber from 'bignumber.js'
 
 export default function ({ createCommand }: CreateCommandParameters): Command {
-  return createCommand('set market reward speed')
+  return createCommand('set farming reward speed')
     .argument('<input>', 'path to reward csv', {
       validator: program.STRING
     })
@@ -26,26 +26,47 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       const signer = new Keyring({ type: 'sr25519' }).addFromUri(
         `${process.env.PARA_CHAIN_SUDO_KEY || '//Dave'}`
       )
+      const isParallel = (await api.rpc.system.chain()).toString() === 'Parallel'
+      const payer = isParallel
+        ? 'p8B3QXweBQKzu8DhkggwJqFkUVQ53kB1RejtFQ8q3JMSFqqMd'
+        : 'hJFHzsKENPsaqPJT2k6D4VYUKz2eFxxW7AVfG9zvL3Q1R7sFp'
+      const rewardAsset = isParallel ? '1' : '0'
+      const lockDuration = '0'
+      const blockNumber = (await api.rpc.chain.getHeader()).number.toBn()
 
       const rewards = (await readFile(input.toString(), 'utf8'))
         .split(/\r?\n/)
         .slice(1)
         .map(row => row.split(',').filter(Boolean))
         .filter(cols => cols.length >= 4)
-        .map(([assetId, assetName, borrowSpeed, supplySpeed]) => [
+        .map(([assetId, assetName, amount, rewardDuration]) => [
           assetId,
           assetName,
-          new BigNumber(borrowSpeed).multipliedBy('1000000000000').toString(),
-          new BigNumber(supplySpeed).multipliedBy('1000000000000').toString()
+          new BigNumber(amount).multipliedBy('1000000000000').toString(),
+          new BigNumber(rewardDuration).toString()
         ])
 
       const proposal = api.tx.utility.batchAll(
-        rewards.map(([assetId, assetName, borrowSpeed, supplySpeed]) => {
-          logger.info(
-            ` assetId: ${assetId}, assetName: ${assetName}, borrowSpeed: ${borrowSpeed}, supplySpeed: ${supplySpeed} `
-          )
-          return api.tx.loans.updateMarketRewardSpeed(assetId, supplySpeed, borrowSpeed)
-        })
+        await Promise.all(
+          rewards.map(async ([assetId, assetName, amount, rewardDuration]) => {
+            logger.info(
+              ` assetId: ${assetId}, assetName: ${assetName}, amount: ${amount}, rewardDuration: ${rewardDuration} `
+            )
+            // eslint-disable-next-line
+            const pool = (await api.query.farming.pools(assetId, rewardAsset, null)) as any
+            if (pool && pool.unwrapOrDefault().periodFinish.toBn().gt(blockNumber)) {
+              amount = '0'
+            }
+            return api.tx.farming.dispatchReward(
+              assetId,
+              rewardAsset,
+              lockDuration,
+              { Id: payer },
+              amount,
+              rewardDuration
+            )
+          })
+        )
       )
 
       const tx = api.tx.generalCouncil.propose(
