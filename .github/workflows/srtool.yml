@@ -3,7 +3,7 @@ name: Srtool build
 on:
   push:
     branches:
-      - Fix/srtool-ci
+      - master
     tags:
       - "v*"
 
