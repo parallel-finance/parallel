@@ -3,7 +3,7 @@ name: Srtool build
 on:
   push:
     branches:
-      - master
+      - Fix/srtool-ci
     tags:
       - "v*"
 
@@ -91,14 +91,14 @@ jobs:
             `${{ matrix.chain }}_runtime-v${{ steps.runtime_version.outputs.version }}.compact.compressed.wasm - ${{ steps.runtime_blake2_256_hash.outputs.hash }}`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # - name: slack
-      #   uses: 8398a7/action-slack@v3
-      #   env:
-      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      #   with:
-      #     status: ${{ job.status }}
-      #     fields: repo,message,commit,author,eventName,ref,workflow
-      #   if: always()
+      - name: slack
+        uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,eventName,ref,workflow
+        if: always()
 
   postrelease:
     needs: srtool
