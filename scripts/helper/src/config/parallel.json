@@ -72,7 +72,7 @@
       "symbol": "sDOT",
       "assetId": 1001,
       "decimal": 10,
-      "balances": []
+      "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "1100000000"]]
     },
     {
       "name": "Parallel Crowdloans Polkadot - (0 ~ 7)",
@@ -109,6 +109,13 @@
       "name": "Parallel LP-DOT/PARA",
       "symbol": "LP-DOT/PARA",
       "assetId": 6002,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Parallel LP-DOT/sDOT",
+      "symbol": "LP-DOT/sDOT",
+      "assetId": 6003,
       "decimal": 12,
       "balances": []
     },
@@ -298,6 +305,12 @@
       "liquidityAmounts": ["10000000000000000", "10000000000000000"],
       "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
       "liquidityProviderToken": 6005
+    },
+    {
+      "pool": [1001, 101],
+      "liquidityAmounts": ["1000000000", "1000000000"],
+      "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
+      "liquidityProviderToken": 6003
     }
   ],
   "crowdloans": [
