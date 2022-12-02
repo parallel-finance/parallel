@@ -40,7 +40,8 @@ jobs:
           toolchain: nightly-2022-05-11
           target: wasm32-unknown-unknown
           override: true
-
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
       - name: Build binary
         run: |
           cargo build --workspace --exclude runtime-integration-tests --release --bin parallel
