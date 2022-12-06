@@ -25,7 +25,6 @@ use frame_support::{
     },
     weights::constants::WEIGHT_PER_SECOND,
 };
-use primitives::ParaId;
 use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::traits::{BlakeTwo256, Convert, Hash as THash, SaturatedConversion, Zero};
@@ -537,12 +536,9 @@ impl<
     }
 }
 
-pub struct CurrencyIdConvert<AssetIdInfoGetter, ParachainId>(
-    PhantomData<(AssetIdInfoGetter, ParachainId)>,
-);
-impl<AssetIdInfoGetter: AssetTypeGetter<CurrencyId, AssetType>, ParachainId: Get<ParaId>>
-    Convert<CurrencyId, Option<MultiLocation>>
-    for CurrencyIdConvert<AssetIdInfoGetter, ParachainId>
+pub struct CurrencyIdConvert<AssetIdInfoGetter>(PhantomData<AssetIdInfoGetter>);
+impl<AssetIdInfoGetter: AssetTypeGetter<CurrencyId, AssetType>>
+    Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert<AssetIdInfoGetter>
 {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         let multi_location =
@@ -557,41 +553,24 @@ impl<AssetIdInfoGetter: AssetTypeGetter<CurrencyId, AssetType>, ParachainId: Get
     }
 }
 
-impl<AssetIdInfoGetter: AssetTypeGetter<CurrencyId, AssetType>, ParachainId: Get<ParaId>>
-    Convert<MultiLocation, Option<CurrencyId>>
-    for CurrencyIdConvert<AssetIdInfoGetter, ParachainId>
+impl<AssetIdInfoGetter: AssetTypeGetter<CurrencyId, AssetType>>
+    Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert<AssetIdInfoGetter>
 {
     fn convert(location: MultiLocation) -> Option<CurrencyId> {
-        let mut new_location = location.clone();
-
-        // Multilocation stores in Pallet AssetRegistry start with parent 1
-        // And due to `assets.reanchored` in xcm-executor,
-        // So manually convert here, then query currency_id
-        if new_location.parents == 0 {
-            // Consider optimizing under this issue
-            // https://github.com/paritytech/polkadot/issues/4489
-            new_location.parents = 1;
-            new_location = new_location
-                .pushed_front_with_interior(Parachain(ParachainId::get().into()))
-                .unwrap_or(location.clone());
-        }
-
         let currency_id =
-            AsAssetType::<CurrencyId, AssetType, AssetIdInfoGetter>::convert_ref(&new_location)
-                .ok();
+            AsAssetType::<CurrencyId, AssetType, AssetIdInfoGetter>::convert_ref(&location).ok();
         log::trace!(
             target: "xcm::convert",
-            "multi_location: {:?}, new_location: {:?}, currency_id: {:?}",
+            "multi_location: {:?}. currency_id: {:?}",
             location,
-            new_location,
             currency_id,
         );
         currency_id
     }
 }
 
-impl<AssetIdInfoGetter: AssetTypeGetter<CurrencyId, AssetType>, ParachainId: Get<ParaId>>
-    Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert<AssetIdInfoGetter, ParachainId>
+impl<AssetIdInfoGetter: AssetTypeGetter<CurrencyId, AssetType>>
+    Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert<AssetIdInfoGetter>
 {
     fn convert(a: MultiAsset) -> Option<CurrencyId> {
         if let MultiAsset {
