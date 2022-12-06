@@ -1096,7 +1096,7 @@ pub type AssetTransactors = (LocalAssetTransactor, ForeignFungiblesTransactor);
 /// We do not burn anything because we want to mimic exactly what
 /// the sovereign account has
 pub type XcmFeesToAccount = pallet_traits::xcm::XcmFeesToAccount<
-    Assets,
+    CurrencyAdapter,
     (
         ConvertedConcreteAssetId<
             CurrencyId,
