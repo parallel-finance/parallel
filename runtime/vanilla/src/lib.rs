@@ -422,7 +422,7 @@ impl orml_xtokens::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type CurrencyId = CurrencyId;
-    type CurrencyIdConvert = CurrencyIdConvert<AssetRegistry>;
+    type CurrencyIdConvert = CurrencyIdConvert<AssetRegistry, ParachainInfo>;
     type AccountIdToMultiLocation = AccountIdToMultiLocation<AccountId>;
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
@@ -1169,13 +1169,13 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
     CurrencyAdapter,
     // Use this currency when it is a fungible asset matching the given location or name:
-    IsNativeConcrete<CurrencyId, CurrencyIdConvert<AssetRegistry>>,
+    IsNativeConcrete<CurrencyId, CurrencyIdConvert<AssetRegistry, ParachainInfo>>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
     Balance,
     // Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
     LocationToAccountId,
-    CurrencyIdConvert<AssetRegistry>,
+    CurrencyIdConvert<AssetRegistry, ParachainInfo>,
     NativeCurrencyId,
     ExistentialDeposit,
     GiftAccount,
@@ -1228,7 +1228,9 @@ impl TakeRevenue for ToTreasury {
             fun: Fungibility::Fungible(amount),
         } = revenue
         {
-            if let Some(currency_id) = CurrencyIdConvert::<AssetRegistry>::convert(id) {
+            if let Some(currency_id) =
+                CurrencyIdConvert::<AssetRegistry, ParachainInfo>::convert(id)
+            {
                 let _ = Assets::mint_into(currency_id, &TreasuryAccount::get(), amount);
             }
         }
