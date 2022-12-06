@@ -612,7 +612,13 @@ where
             new_location.parents = 1;
             new_location = new_location
                 .pushed_front_with_interior(Parachain(ParachainId::get().into()))
-                .unwrap_or(location);
+                .unwrap_or(location.clone());
+            log::trace!(
+                target: "xcm::asset_registry_convert",
+                "old_location: {:?}, new_location: {:?}",
+                location,
+                new_location,
+            );
             return new_location.into();
         }
 
