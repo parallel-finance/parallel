@@ -100,7 +100,7 @@ pub use pallet_streaming;
 use pallet_traits::{
     xcm::{
         AccountIdToMultiLocation, AsAssetType, AssetType, CurrencyIdConvert, FirstAssetTrader,
-        MultiCurrencyAdapter,
+        MultiCurrencyAdapter, XcmAssetRegistry,
     },
     DecimalProvider, EmergencyCallFilter, ValidationDataProvider,
 };
@@ -397,7 +397,7 @@ impl orml_xtokens::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type CurrencyId = CurrencyId;
-    type CurrencyIdConvert = CurrencyIdConvert<AssetRegistry>;
+    type CurrencyIdConvert = CurrencyIdConvert<WrapAssetRegistry>;
     type AccountIdToMultiLocation = AccountIdToMultiLocation<AccountId>;
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
@@ -992,13 +992,13 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
     CurrencyAdapter,
     // Use this currency when it is a fungible asset matching the given location or name:
-    IsNativeConcrete<CurrencyId, CurrencyIdConvert<AssetRegistry>>,
+    IsNativeConcrete<CurrencyId, CurrencyIdConvert<WrapAssetRegistry>>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
     Balance,
     // Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
     LocationToAccountId,
-    CurrencyIdConvert<AssetRegistry>,
+    CurrencyIdConvert<WrapAssetRegistry>,
     NativeCurrencyId,
     ExistentialDeposit,
     GiftAccount,
@@ -1051,7 +1051,7 @@ impl TakeRevenue for ToTreasury {
             fun: Fungibility::Fungible(amount),
         } = revenue
         {
-            if let Some(currency_id) = CurrencyIdConvert::<AssetRegistry>::convert(id) {
+            if let Some(currency_id) = CurrencyIdConvert::<WrapAssetRegistry>::convert(id) {
                 let _ = Assets::mint_into(currency_id, &TreasuryAccount::get(), amount);
             }
         }
@@ -1061,6 +1061,8 @@ impl TakeRevenue for ToTreasury {
 parameter_types! {
     pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 }
+
+pub type WrapAssetRegistry = XcmAssetRegistry<CurrencyId, AssetType, AssetRegistry, ParachainInfo>;
 
 /// The non-reserve fungible transactor type
 /// It will use pallet-assets, and the Id will be matched against AsAssetType
@@ -1072,7 +1074,7 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
         ConvertedConcreteAssetId<
             CurrencyId,
             Balance,
-            AsAssetType<CurrencyId, AssetType, AssetRegistry>,
+            AsAssetType<CurrencyId, AssetType, WrapAssetRegistry>,
             JustTry,
         >,
     ),
@@ -1099,7 +1101,7 @@ pub type XcmFeesToAccount = pallet_traits::xcm::XcmFeesToAccount<
         ConvertedConcreteAssetId<
             CurrencyId,
             Balance,
-            AsAssetType<CurrencyId, AssetType, AssetRegistry>,
+            AsAssetType<CurrencyId, AssetType, WrapAssetRegistry>,
             JustTry,
         >,
     ),
@@ -1120,7 +1122,7 @@ impl Config for XcmConfig {
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<BaseXcmWeight, RuntimeCall, MaxInstructions>;
-    type Trader = FirstAssetTrader<AssetType, AssetRegistry, XcmFeesToAccount>;
+    type Trader = FirstAssetTrader<AssetType, WrapAssetRegistry, XcmFeesToAccount>;
     type ResponseHandler = PolkadotXcm;
     type SubscriptionService = PolkadotXcm;
     type AssetTrap = PolkadotXcm;
