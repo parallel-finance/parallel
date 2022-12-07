@@ -97,11 +97,10 @@ fn transfer_sibling_chain_asset() {
                 .into()
                 .into()
             ),
-            //just use para to mock clv here
             Box::new(
                 (
                     X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"PARA".to_vec(),
+                        b"CLV".to_vec(),
                         None
                     ))),
                     para(10)

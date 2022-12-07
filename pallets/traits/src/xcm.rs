@@ -25,6 +25,7 @@ use frame_support::{
     },
     weights::constants::WEIGHT_PER_SECOND,
 };
+use primitives::ParaId;
 use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::traits::{BlakeTwo256, Convert, Hash as THash, SaturatedConversion, Zero};
@@ -582,5 +583,75 @@ impl<AssetIdInfoGetter: AssetTypeGetter<CurrencyId, AssetType>>
         } else {
             None
         }
+    }
+}
+
+// Multilocation stores in Pallet AssetRegistry start with parent 1
+// And due to `assets.reanchored` in xcm-executor,
+// So manually convert here, then query currency_id
+
+// Consider optimizing under this issue
+// https://github.com/paritytech/polkadot/issues/4489
+pub struct XcmAssetRegistry<AssetId, AssetType, AssetIdInfoGetter, ParachainId>(
+    PhantomData<(AssetId, AssetType, AssetIdInfoGetter, ParachainId)>,
+);
+
+impl<AssetId, AssetType, AssetIdInfoGetter, ParachainId>
+    XcmAssetRegistry<AssetId, AssetType, AssetIdInfoGetter, ParachainId>
+where
+    AssetType: From<MultiLocation> + Into<Option<MultiLocation>> + Clone,
+    ParachainId: Get<ParaId>,
+{
+    fn convert(asset_type: AssetType) -> AssetType {
+        if let Some(location) = asset_type.clone().into() {
+            if location.parents != 0 {
+                return asset_type;
+            }
+            let mut new_location = location.clone();
+            new_location.parents = 1;
+            new_location = new_location
+                .pushed_front_with_interior(Parachain(ParachainId::get().into()))
+                .unwrap_or_else(|_| location.clone());
+            log::trace!(
+                target: "xcm::asset_registry_convert",
+                "old_location: {:?}, new_location: {:?}",
+                location,
+                new_location,
+            );
+            return new_location.into();
+        }
+
+        asset_type
+    }
+}
+
+impl<AssetId, AssetType, AssetIdInfoGetter, ParachainId> AssetTypeGetter<AssetId, AssetType>
+    for XcmAssetRegistry<AssetId, AssetType, AssetIdInfoGetter, ParachainId>
+where
+    AssetType: From<MultiLocation> + Into<Option<MultiLocation>> + Clone,
+    AssetIdInfoGetter: AssetTypeGetter<AssetId, AssetType>,
+    ParachainId: Get<ParaId>,
+{
+    fn get_asset_type(asset_id: AssetId) -> Option<AssetType> {
+        AssetIdInfoGetter::get_asset_type(asset_id)
+    }
+
+    fn get_asset_id(asset_type: AssetType) -> Option<AssetId> {
+        AssetIdInfoGetter::get_asset_id(Self::convert(asset_type))
+    }
+}
+
+impl<AssetId, AssetType, AssetIdInfoGetter, ParachainId> UnitsToWeightRatio<AssetType>
+    for XcmAssetRegistry<AssetId, AssetType, AssetIdInfoGetter, ParachainId>
+where
+    AssetType: From<MultiLocation> + Into<Option<MultiLocation>> + Clone,
+    AssetIdInfoGetter: UnitsToWeightRatio<AssetType>,
+    ParachainId: Get<ParaId>,
+{
+    fn payment_is_supported(asset_type: AssetType) -> bool {
+        AssetIdInfoGetter::payment_is_supported(Self::convert(asset_type))
+    }
+    fn get_units_per_second(asset_type: AssetType) -> Option<u128> {
+        AssetIdInfoGetter::get_units_per_second(Self::convert(asset_type))
     }
 }
