@@ -599,7 +599,6 @@ pub struct XcmAssetRegistry<AssetId, AssetType, AssetIdInfoGetter, ParachainId>(
 impl<AssetId, AssetType, AssetIdInfoGetter, ParachainId>
     XcmAssetRegistry<AssetId, AssetType, AssetIdInfoGetter, ParachainId>
 where
-    AssetId: Clone,
     AssetType: From<MultiLocation> + Into<Option<MultiLocation>> + Clone,
     ParachainId: Get<ParaId>,
 {
@@ -629,7 +628,6 @@ where
 impl<AssetId, AssetType, AssetIdInfoGetter, ParachainId> AssetTypeGetter<AssetId, AssetType>
     for XcmAssetRegistry<AssetId, AssetType, AssetIdInfoGetter, ParachainId>
 where
-    AssetId: Clone,
     AssetType: From<MultiLocation> + Into<Option<MultiLocation>> + Clone,
     AssetIdInfoGetter: AssetTypeGetter<AssetId, AssetType>,
     ParachainId: Get<ParaId>,
@@ -646,7 +644,6 @@ where
 impl<AssetId, AssetType, AssetIdInfoGetter, ParachainId> UnitsToWeightRatio<AssetType>
     for XcmAssetRegistry<AssetId, AssetType, AssetIdInfoGetter, ParachainId>
 where
-    AssetId: Clone,
     AssetType: From<MultiLocation> + Into<Option<MultiLocation>> + Clone,
     AssetIdInfoGetter: UnitsToWeightRatio<AssetType>,
     ParachainId: Get<ParaId>,

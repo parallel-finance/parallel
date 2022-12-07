@@ -81,11 +81,10 @@ fn transfer_sibling_chain_asset() {
                 .into()
                 .into()
             ),
-            //just use hko to mock kar here
             Box::new(
                 (
                     X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"HKO".to_vec(),
+                        b"KAR".to_vec(),
                         None
                     ))),
                     heiko(10)

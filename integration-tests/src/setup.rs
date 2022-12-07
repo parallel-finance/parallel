@@ -296,9 +296,8 @@ impl ExtBuilder {
                 1,
                 X2(
                     Parachain(2000),
-                    //since we use hko to mock kar,just use hko location here
                     GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"HKO".to_vec(),
+                        b"KAR".to_vec(),
                         None,
                     )),
                 ),
@@ -465,9 +464,8 @@ impl ExtBuilder {
                 1,
                 X2(
                     Parachain(2002),
-                    //since we use para to mock clv,just use para location here
                     GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"PARA".to_vec(),
+                        b"CLV".to_vec(),
                         None,
                     )),
                 ),
@@ -579,19 +577,23 @@ impl ExtBuilder {
         let mut ext = sp_io::TestExternalities::new(self.init());
         ext.execute_with(|| {
             System::set_block_number(1);
-            let hko_asset_location = MultiLocation::new(
-                0,
-                X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                    b"HKO".to_vec(),
-                    None,
-                ))),
+            let kar_asset_location = MultiLocation::new(
+                1,
+                X2(
+                    Parachain(2000),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        b"KAR".to_vec(),
+                        None,
+                    )),
+                ),
             );
-            let hko_asset_type = AssetType::Xcm(hko_asset_location);
-            AssetRegistry::register_asset(RuntimeOrigin::root(), HKO, hko_asset_type.clone())
+            let kar_asset_type = AssetType::Xcm(kar_asset_location);
+            // use HKO mock native balance
+            AssetRegistry::register_asset(RuntimeOrigin::root(), HKO, kar_asset_type.clone())
                 .unwrap();
             AssetRegistry::update_asset_units_per_second(
                 RuntimeOrigin::root(),
-                hko_asset_type,
+                kar_asset_type,
                 HKO_WEIGHT_PER_SEC,
             )
             .unwrap();
@@ -600,23 +602,26 @@ impl ExtBuilder {
     }
 
     pub fn clv_build(self) -> sp_io::TestExternalities {
-        use heiko_runtime::{AssetRegistry, RuntimeOrigin, System};
+        use parallel_runtime::{AssetRegistry, RuntimeOrigin, System};
         let mut ext = sp_io::TestExternalities::new(self.init());
         ext.execute_with(|| {
             System::set_block_number(1);
-            let para_asset_location = MultiLocation::new(
-                0,
-                X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                    b"PARA".to_vec(),
-                    None,
-                ))),
+            let clv_asset_location = MultiLocation::new(
+                1,
+                X2(
+                    Parachain(2002),
+                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
+                        b"CLV".to_vec(),
+                        None,
+                    )),
+                ),
             );
-            let para_asset_type = AssetType::Xcm(para_asset_location);
-            AssetRegistry::register_asset(RuntimeOrigin::root(), PARA, para_asset_type.clone())
+            let clv_asset_type = AssetType::Xcm(clv_asset_location);
+            AssetRegistry::register_asset(RuntimeOrigin::root(), PARA, clv_asset_type.clone())
                 .unwrap();
             AssetRegistry::update_asset_units_per_second(
                 RuntimeOrigin::root(),
-                para_asset_type,
+                clv_asset_type,
                 PARA_WEIGHT_PER_SEC,
             )
             .unwrap();
