@@ -61,10 +61,14 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// Toggled Pallet
         /// [flag]
-        ToggledPallet(bool),
+        ToggledPallet { pallet_idx: u8, updated_flag: bool },
         /// Toggled Call
         /// [flag]
-        ToggledCall(bool),
+        ToggledCall {
+            pallet_idx: u8,
+            call_idx: u8,
+            updated_flag: bool,
+        },
     }
 
     #[pallet::pallet]
@@ -92,7 +96,10 @@ pub mod pallet {
             <DisabledPallets<T>>::insert(pallet_idx, updated_flag);
 
             // Emit an event.
-            Self::deposit_event(Event::ToggledPallet(updated_flag));
+            Self::deposit_event(Event::ToggledPallet {
+                pallet_idx,
+                updated_flag,
+            });
             Ok(())
         }
 
@@ -104,7 +111,11 @@ pub mod pallet {
             <DisabledCalls<T>>::insert(pallet_idx, call_idx, updated_flag);
 
             // Emit an event.
-            Self::deposit_event(Event::ToggledCall(updated_flag));
+            Self::deposit_event(Event::ToggledCall {
+                pallet_idx,
+                call_idx,
+                updated_flag,
+            });
             Ok(())
         }
     }
