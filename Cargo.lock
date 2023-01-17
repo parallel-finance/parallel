@@ -3496,7 +3496,7 @@ checksum = "2540771e65fc8cb83cd6e8a237f70c319bd5c29f78ed1084ba5d50eeac86f7f9"
 
 [[package]]
 name = "heiko-runtime"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -4112,7 +4112,7 @@ dependencies = [
 
 [[package]]
 name = "kerria-runtime"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -4923,7 +4923,7 @@ dependencies = [
 
 [[package]]
 name = "lz4-sys"
-version = "1.9.4"
+version = "1.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57d27b317e207b10f69f5e75494119e391a96f48861ae870d1da6edac98ca900"
 dependencies = [
@@ -5709,7 +5709,7 @@ checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
 
 [[package]]
 name = "pallet-amm"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5732,7 +5732,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-asset-registry"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5961,7 +5961,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-bridge"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6053,7 +6053,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-crowdloans"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "bytes",
  "cumulus-pallet-dmp-queue",
@@ -6099,7 +6099,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-currency-adapter"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6184,7 +6184,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-emergency-shutdown"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6393,7 +6393,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-farming"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6527,7 +6527,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-liquid-staking"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -6574,7 +6574,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6601,7 +6601,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans-rpc"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "jsonrpsee",
  "pallet-loans-rpc-runtime-api",
@@ -6617,7 +6617,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans-rpc-runtime-api"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
@@ -6797,7 +6797,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-prices"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6887,7 +6887,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6908,7 +6908,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router-rpc"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "jsonrpsee",
  "pallet-router-rpc-runtime-api",
@@ -6925,7 +6925,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router-rpc-runtime-api"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
@@ -7003,7 +7003,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-stableswap"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7069,7 +7069,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-streaming"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7144,7 +7144,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-traits"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -7323,7 +7323,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-helper"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -7400,7 +7400,7 @@ dependencies = [
 
 [[package]]
 name = "parallel"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "async-trait",
  "clap",
@@ -7499,7 +7499,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-primitives"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -7518,7 +7518,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-runtime"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -7608,7 +7608,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-support"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "frame-support",
  "log",
@@ -9875,7 +9875,7 @@ dependencies = [
 
 [[package]]
 name = "runtime-integration-tests"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -13479,7 +13479,7 @@ dependencies = [
 
 [[package]]
 name = "vanilla-runtime"
-version = "1.9.4"
+version = "1.9.5"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
