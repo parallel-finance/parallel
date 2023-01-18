@@ -146,7 +146,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 194,
+    spec_version: 195,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -1846,12 +1846,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (
-        pallet_preimage::migration::v1::Migration<Runtime>,
-        pallet_scheduler::migration::v3::MigrateToV4<Runtime>,
-        pallet_democracy::migrations::v1::Migration<Runtime>,
-        pallet_multisig::migrations::v1::MigrateToV1<Runtime>,
-    ),
+    (),
 >;
 
 impl_runtime_apis! {

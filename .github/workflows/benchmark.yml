@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-20.04]
-        rust: [nightly-2022-05-11]
+        rust: [nightly-2022-07-24]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
