@@ -528,7 +528,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type LoansPalletId = LoansPalletId;
     type WeightInfo = weights::pallet_liquid_staking::WeightInfo<Runtime>;
     type SelfParaId = ParachainInfo;
-    type Assets = Assets;
+    type Assets = CurrencyAdapter;
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndexList = DerivativeIndexList;
@@ -551,6 +551,8 @@ impl pallet_liquid_staking::Config for Runtime {
     type NumSlashingSpans = NumSlashingSpans;
     type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
+    type Decimal = Decimal;
+    type NativeCurrency = NativeCurrencyId;
 }
 
 parameter_types! {

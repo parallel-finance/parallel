@@ -17,7 +17,9 @@ use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::{IsSystem, Sibling};
 
 use pallet_loans::{InterestRateModel, JumpModel, Market, MarketState};
-use pallet_traits::{xcm::MultiCurrencyAdapter, PriceFeeder, ValidationDataProvider};
+use pallet_traits::{
+    xcm::MultiCurrencyAdapter, DecimalProvider, PriceFeeder, ValidationDataProvider,
+};
 use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::{
     tokens::*, Balance, EraIndex, ParaId, PersistedValidationData, Price, PriceDetail, Rate, Ratio,
@@ -563,7 +565,7 @@ impl crate::Config for Test {
     type XcmFees = XcmFees;
     type LoansInstantUnstakeFee = LoansInstantUnstakeFee;
     type MatchingPoolFastUnstakeFee = MatchingPoolFastUnstakeFee;
-    type Assets = Assets;
+    type Assets = CurrencyAdapter;
     type RelayOrigin = RelayOrigin;
     type EraLength = EraLength;
     type MinStake = MinStake;
@@ -578,6 +580,24 @@ impl crate::Config for Test {
     type DistributionStrategy = AverageDistribution;
     type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
+    type Decimal = Decimal;
+    type NativeCurrency = NativeCurrencyId;
+}
+
+pub struct Decimal;
+#[allow(non_upper_case_globals)]
+impl DecimalProvider<CurrencyId> for Decimal {
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
+        match *asset_id {
+            DOT => Some(10),
+            KSM => Some(12),
+            PARA => Some(12),
+            HKO => Some(12),
+            USDT => Some(6),
+            CLV => Some(18),
+            _ => None,
+        }
+    }
 }
 
 parameter_types! {
@@ -606,6 +626,13 @@ impl pallet_assets::Config for Test {
     type Extra = ();
 }
 
+impl pallet_currency_adapter::Config for Test {
+    type Assets = Assets;
+    type Balances = Balances;
+    type GetNativeCurrencyId = NativeCurrencyId;
+    type LockOrigin = EnsureRoot<AccountId>;
+}
+
 construct_runtime!(
     pub enum Test where
         Block = Block,
@@ -627,6 +654,7 @@ construct_runtime!(
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
         Loans: pallet_loans::{Pallet, Storage, Call, Event<T>},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+        CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
     }
 );
 
