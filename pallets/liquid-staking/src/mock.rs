@@ -590,7 +590,9 @@ impl DecimalProvider<CurrencyId> for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         match *asset_id {
             DOT => Some(10),
+            SDOT => Some(10),
             KSM => Some(12),
+            SKSM => Some(12),
             PARA => Some(12),
             HKO => Some(12),
             USDT => Some(6),

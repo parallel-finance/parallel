@@ -268,9 +268,9 @@ benchmarks! {
     }
 
     update_incentive {
-    }: _(SystemOrigin::Root, BalanceOf<T>::one())
+    }: _(SystemOrigin::Root, BalanceOf::<T>::one())
     verify {
-        assert_eq!(Incentive::<T>::get(), BalanceOf<T>::one());
+        assert_eq!(Incentive::<T>::get(), BalanceOf::<T>::one());
     }
 
     update_staking_ledger_cap {

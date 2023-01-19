@@ -20,7 +20,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::traits::{fungibles::InspectMetadata, tokens::Balance as BalanceT, Get};
+use frame_support::traits::{tokens::Balance as BalanceT, Get};
 use sp_runtime::{
     traits::{One, Zero},
     FixedPointNumber, FixedPointOperand,
@@ -62,7 +62,7 @@ pub mod pallet {
         require_transactional,
         storage::{storage_prefix, with_transaction},
         traits::{
-            fungibles::{Inspect, InspectMetadata, Mutate, Transfer},
+            fungibles::{Inspect, Mutate, Transfer},
             IsType, SortedMembers,
         },
         transactional, PalletId, StorageHasher,
