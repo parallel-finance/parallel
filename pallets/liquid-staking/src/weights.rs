@@ -67,6 +67,7 @@ pub trait WeightInfo {
 	fn cancel_unstake() -> Weight;
 	fn update_commission_rate() -> Weight;
 	fn fast_match_unstake(n: u32, ) -> Weight;
+	fn update_incentive() -> Weight;
 }
 
 /// Weights for pallet_liquid_staking using the Substrate node and recommended hardware.
@@ -382,6 +383,11 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 			.saturating_add(T::DbWeight::get().writes((4 as u64).saturating_mul(n as u64)))
 	}
+	fn update_incentive() -> Weight {
+		Weight::from_ref_time(40_612_000 as u64)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
+	}
 }
 
 // For backwards compatibility and tests
@@ -695,5 +701,11 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads((4 as u64).saturating_mul(n as u64)))
 			.saturating_add(RocksDbWeight::get().writes(4 as u64))
 			.saturating_add(RocksDbWeight::get().writes((4 as u64).saturating_mul(n as u64)))
+	}
+
+	fn update_incentive() -> Weight {
+		Weight::from_ref_time(40_612_000 as u64)
+			.saturating_add(RocksDbWeight::get().reads(2 as u64))
+			.saturating_add(RocksDbWeight::get().writes(2 as u64))
 	}
 }

@@ -20,7 +20,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::traits::{fungibles::InspectMetadata, tokens::Balance as BalanceT, Get};
+use frame_support::traits::{tokens::Balance as BalanceT, Get};
 use sp_runtime::{
     traits::{One, Zero},
     FixedPointNumber, FixedPointOperand,
@@ -28,7 +28,7 @@ use sp_runtime::{
 
 pub use pallet::*;
 use pallet_traits::{
-    DistributionStrategy, ExchangeRateProvider, LiquidStakingConvert,
+    DecimalProvider, DistributionStrategy, ExchangeRateProvider, LiquidStakingConvert,
     LiquidStakingCurrenciesProvider, Loans, LoansMarketDataProvider, LoansPositionDataProvider,
     ValidationDataProvider,
 };
@@ -62,7 +62,7 @@ pub mod pallet {
         require_transactional,
         storage::{storage_prefix, with_transaction},
         traits::{
-            fungibles::{Inspect, InspectMetadata, Mutate, Transfer},
+            fungibles::{Inspect, Mutate, Transfer},
             IsType, SortedMembers,
         },
         transactional, PalletId, StorageHasher,
@@ -122,7 +122,7 @@ pub mod pallet {
         /// Assets for deposit/withdraw assets to/from pallet account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + InspectMetadata<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+            + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
         /// The origin which can do operation on relaychain using parachain's sovereign account
         type RelayOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
@@ -223,6 +223,13 @@ pub mod pallet {
         /// Who/where to send the protocol fees
         #[pallet::constant]
         type ProtocolFeeReceiver: Get<Self::AccountId>;
+
+        /// Decimal provider.
+        type Decimal: DecimalProvider<CurrencyId>;
+
+        /// The asset id for native currency.
+        #[pallet::constant]
+        type NativeCurrency: Get<AssetIdOf<Self>>;
     }
 
     #[pallet::event]
@@ -281,6 +288,8 @@ pub mod pallet {
         /// Fast Unstake Matched
         /// [unstaker, received_staking_amount, matched_liquid_amount, fee_in_liquid_currency]
         FastUnstakeMatched(T::AccountId, BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
+        /// Incentive amount was updated
+        IncentiveUpdated(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -428,6 +437,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn is_matched)]
     pub type IsMatched<T: Config> = StorageValue<_, bool, ValueQuery>;
+
+    /// Incentive for users who successfully update era/ledger
+    #[pallet::storage]
+    #[pallet::getter(fn incentive)]
+    pub type Incentive<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[derive(Default)]
     #[pallet::genesis_config]
@@ -863,7 +877,7 @@ pub mod pallet {
             era: EraIndex,
             proof: Vec<Vec<u8>>,
         ) -> DispatchResultWithPostInfo {
-            Self::ensure_origin(origin)?;
+            let who = ensure_signed(origin)?;
 
             let offset = era.saturating_sub(Self::current_era());
 
@@ -875,6 +889,15 @@ pub mod pallet {
             );
 
             Self::do_advance_era(offset)?;
+            if !offset.is_zero() {
+                let _ = T::Assets::transfer(
+                    T::NativeCurrency::get(),
+                    &Self::account_id(),
+                    &who,
+                    Self::incentive(),
+                    false,
+                );
+            }
 
             Ok(().into())
         }
@@ -888,7 +911,7 @@ pub mod pallet {
             staking_ledger: StakingLedger<T::AccountId, BalanceOf<T>>,
             proof: Vec<Vec<u8>>,
         ) -> DispatchResultWithPostInfo {
-            Self::ensure_origin(origin)?;
+            let who = ensure_signed(origin)?;
 
             Self::do_update_ledger(derivative_index, |ledger| {
                 ensure!(
@@ -927,6 +950,13 @@ pub mod pallet {
                     &derivative_index,
                     &staking_ledger,
                     inflate_liquid_amount,
+                );
+                let _ = T::Assets::transfer(
+                    T::NativeCurrency::get(),
+                    &Self::account_id(),
+                    &who,
+                    Self::incentive(),
+                    false,
                 );
                 *ledger = staking_ledger;
                 Ok(())
@@ -1022,6 +1052,19 @@ pub mod pallet {
             for unstaker in unstaker_list {
                 Self::do_fast_match_unstake(&unstaker)?;
             }
+            Ok(())
+        }
+
+        /// Update incentive amount
+        #[pallet::weight(<T as Config>::WeightInfo::update_incentive())]
+        #[transactional]
+        pub fn update_incentive(
+            origin: OriginFor<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            Incentive::<T>::put(amount);
+            Self::deposit_event(Event::<T>::IncentiveUpdated(amount));
             Ok(())
         }
     }
@@ -1990,7 +2033,7 @@ impl<T: Config> ExchangeRateProvider<AssetIdOf<T>> for Pallet<T> {
 impl<T: Config> LiquidStakingCurrenciesProvider<AssetIdOf<T>> for Pallet<T> {
     fn get_staking_currency() -> Option<AssetIdOf<T>> {
         let asset_id = T::StakingCurrency::get();
-        if !<T::Assets as InspectMetadata<AccountIdOf<T>>>::decimals(&asset_id).is_zero() {
+        if T::Decimal::get_decimal(&asset_id).is_some() {
             Some(asset_id)
         } else {
             None
@@ -1999,7 +2042,7 @@ impl<T: Config> LiquidStakingCurrenciesProvider<AssetIdOf<T>> for Pallet<T> {
 
     fn get_liquid_currency() -> Option<AssetIdOf<T>> {
         let asset_id = T::LiquidCurrency::get();
-        if !<T::Assets as InspectMetadata<AccountIdOf<T>>>::decimals(&asset_id).is_zero() {
+        if T::Decimal::get_decimal(&asset_id).is_some() {
             Some(asset_id)
         } else {
             None

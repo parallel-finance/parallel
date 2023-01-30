@@ -56,7 +56,8 @@ orml-traits      = { version = '0.4.1-dev' }
 orml-xcm-support = { version = '0.4.1-dev' }
 orml-xtokens     = { version = '0.4.1-dev' }
 
-pallet-loans = { path = '../loans' }
+pallet-loans            = { path = '../loans' }
+pallet-currency-adapter = { path = '../currency-adapter' }
 
 [features]
 default            = ['std']

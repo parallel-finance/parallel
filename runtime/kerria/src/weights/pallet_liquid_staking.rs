@@ -339,4 +339,10 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 			.saturating_add(T::DbWeight::get().writes((4 as u64).saturating_mul(n as u64)))
 	}
+
+	fn update_incentive() -> Weight {
+		Weight::from_ref_time(39_392_000 as u64)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
+	}
 }
