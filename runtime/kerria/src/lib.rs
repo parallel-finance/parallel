@@ -1991,10 +1991,10 @@ construct_runtime!(
         AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>} = 95,
 
         // EVM
-        EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>} = 97,
-        Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Origin, Config} = 98,
-        BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event} = 99,
-        EVMSignatureCall: pallet_evm_signatures::{Pallet, Call, Event<T>, ValidateUnsigned} = 100,
+        EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>} = 110,
+        Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Origin, Config} = 111,
+        BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event} = 112,
+        EVMSignatureCall: pallet_evm_signatures::{Pallet, Call, Event<T>, ValidateUnsigned} = 113,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
