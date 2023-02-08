@@ -828,8 +828,8 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
 pub type ParallelPrecompilesType = ParallelPrecompiles<Runtime, NativeErc20Metadata>;
 
 parameter_types! {
-    /// * Parallel:  1591
-    pub EVMChainId: u64 = 1591;
+    /// * Parallel:  2012
+    pub EVMChainId: u64 = 2012;
     pub CallMagicNumber: u16 = EVMChainId::get() as u16;
     /// EVM gas limit
     pub BlockGasLimit: U256 = U256::from(

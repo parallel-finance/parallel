@@ -813,8 +813,8 @@ pub type ParallelPrecompilesType = ParallelPrecompiles<Runtime, NativeErc20Metad
 
 parameter_types! {
     /// Ethereum-compatible chain_id:
-    /// * Vanilla:  1592
-    pub EVMChainId: u64 = 1592;
+    /// * Vanilla:  2085
+    pub EVMChainId: u64 = 2085;
     pub CallMagicNumber: u16 = EVMChainId::get() as u16;
     /// EVM gas limit
     pub BlockGasLimit: U256 = U256::from(
