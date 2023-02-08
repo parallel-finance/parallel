@@ -1,28 +1,33 @@
-#![warn(missing_docs)]
+// Copyright 2021 Parallel Finance Developer.
+// This file is part of Parallel Finance.
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #![allow(dead_code, unused)]
 
-use std::sync::Arc;
-
-use primitives::{AccountId, Balance, Block, CurrencyId, DataProviderId, Index, TimeStampedPrice};
-pub use sc_rpc_api::DenyUnsafe;
+use jsonrpsee::RpcModule;
+use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
+use primitives::*;
+pub use sc_rpc::{DenyUnsafe, SubscriptionTaskExecutor};
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
-
-/// substrate rpc
-use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
+use std::sync::Arc;
 use substrate_frame_rpc_system::{System, SystemApiServer};
 
-/// orml rpc
 use orml_oracle_rpc::{Oracle, OracleApiServer};
-
-/// parallel rpc
 use pallet_loans_rpc::{Loans, LoansApiServer};
 use pallet_router_rpc::{Router, RouterApiServer};
-
-/// A type representing all RPC extensions.
-pub type RpcExtension = jsonrpsee::RpcModule<()>;
 
 /// Full client dependencies.
 pub struct FullDeps<C, P> {
@@ -37,7 +42,7 @@ pub struct FullDeps<C, P> {
 /// Instantiate all full RPC extensions.
 pub fn create_full<C, P>(
     deps: FullDeps<C, P>,
-) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
+) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
     C: ProvideRuntimeApi<Block>,
     C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
@@ -50,18 +55,18 @@ where
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
 {
-    let mut module = RpcExtension::new(());
+    let mut io = RpcModule::new(());
     let FullDeps {
         client,
         pool,
         deny_unsafe,
     } = deps;
 
-    module.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
-    module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
-    module.merge(Oracle::new(client.clone()).into_rpc())?;
-    module.merge(Loans::new(client.clone()).into_rpc())?;
-    module.merge(Router::new(client.clone()).into_rpc())?;
+    io.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
+    io.merge(TransactionPayment::new(client.clone()).into_rpc())?;
+    io.merge(Oracle::new(client.clone()).into_rpc())?;
+    io.merge(Loans::new(client.clone()).into_rpc())?;
+    io.merge(Router::new(client.clone()).into_rpc())?;
 
-    Ok(module)
+    Ok(io)
 }
