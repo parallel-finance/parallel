@@ -887,11 +887,6 @@ impl pallet_evm_signatures::Config for Runtime {
     type WeightInfo = pallet_evm_signatures::weights::SubstrateWeight<Runtime>;
 }
 
-impl pallet_sudo::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type RuntimeCall = RuntimeCall;
-}
-
 #[derive(
     Copy,
     Clone,

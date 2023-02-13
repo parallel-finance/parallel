@@ -17,21 +17,30 @@ use cumulus_client_network::BlockAnnounceValidator;
 use cumulus_client_service::{
     prepare_node_config, start_collator, start_full_node, StartCollatorParams, StartFullNodeParams,
 };
+use cumulus_primitives_parachain_inherent::MockValidationDataInherentDataProvider;
 
 use polkadot_service::{CollatorPair, ConstructRuntimeApi};
+use sc_consensus_manual_seal::{self as manual_seal};
 use sc_executor::NativeElseWasmExecutor;
 use sc_network_common::service::NetworkBlock;
+use sc_service::error::Error as ServiceError;
 use sc_service::{Configuration, PartialComponents, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker, TelemetryWorkerHandle};
 
 use primitives::*;
 
-use std::{sync::Arc, time::Duration};
+use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use cumulus_client_cli::CollatorOptions;
 use cumulus_relay_chain_inprocess_interface::build_inprocess_relay_chain;
 use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface, RelayChainResult};
 use cumulus_relay_chain_minimal_node::build_minimal_relay_chain_node;
+
+use fc_consensus::FrontierBlockImport;
+use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
+use futures::StreamExt;
+use sc_client_api::BlockchainEvents;
+use sp_blockchain::HeaderBackend;
 
 pub use sc_executor::NativeExecutionDispatch;
 
@@ -65,6 +74,7 @@ impl sc_executor::NativeExecutionDispatch for HeikoExecutor {
 pub type FullBackend = sc_service::TFullBackend<Block>;
 pub type FullClient<RuntimeApi, Executor> =
     sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>;
+pub type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
 pub trait IdentifyVariant {
     fn is_parallel(&self) -> bool;
@@ -387,7 +397,7 @@ where
                 pool: transaction_pool.clone(),
                 graph: transaction_pool.pool().clone(),
                 network: network.clone(),
-                is_authority,
+                is_authority: validator,
                 deny_unsafe,
                 frontier_backend: frontier_backend.clone(),
                 filter_pool: filter_pool.clone(),
@@ -569,24 +579,10 @@ pub fn new_dev_partial<RuntimeApi, Executor>(
 where
     RuntimeApi:
         ConstructRuntimeApi<Block, FullClient<RuntimeApi, Executor>> + Send + Sync + 'static,
-    RuntimeApi::RuntimeApi: sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
-        + sp_api::Metadata<Block>
-        + sp_session::SessionKeys<Block>
-        + sp_api::ApiExt<
-            Block,
-            StateBackend = sc_client_api::StateBackendFor<TFullBackend<Block>, Block>,
-        > + sp_offchain::OffchainWorkerApi<Block>
-        + sp_block_builder::BlockBuilder<Block>
-        + sp_consensus_aura::AuraApi<Block, AuraId>
-        + frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index>
-        + pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, Balance>
-        + fp_rpc::EthereumRuntimeRPCApi<Block>
-        + fp_rpc::ConvertTransactionRuntimeApi<Block>
-        + orml_oracle_rpc::OracleRuntimeApi<Block, DataProviderId, CurrencyId, TimeStampedPrice>
-        + pallet_loans_rpc::LoansRuntimeApi<Block, AccountId, Balance>
-        + pallet_router_rpc::RouterRuntimeApi<Block, Balance>,
-    sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
-    Executor: sc_executor::NativeExecutionDispatch + 'static,
+    RuntimeApi::RuntimeApi: crate::client::RuntimeApiCollection<
+        StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>,
+    >,
+    Executor: NativeExecutionDispatch + 'static,
 {
     if config.keystore_remote.is_some() {
         return Err(ServiceError::Other(
@@ -660,28 +656,12 @@ pub fn start_dev_node<RuntimeApi, Executor>(
     config: Configuration,
 ) -> Result<TaskManager, ServiceError>
 where
-    RuntimeApi: ConstructRuntimeApi<Block, TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>
-        + Send
-        + Sync
-        + 'static,
-    RuntimeApi::RuntimeApi: sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
-        + sp_api::Metadata<Block>
-        + sp_session::SessionKeys<Block>
-        + sp_api::ApiExt<
-            Block,
-            StateBackend = sc_client_api::StateBackendFor<TFullBackend<Block>, Block>,
-        > + sp_offchain::OffchainWorkerApi<Block>
-        + sp_block_builder::BlockBuilder<Block>
-        + sp_consensus_aura::AuraApi<Block, AuraId>
-        + frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index>
-        + pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, Balance>
-        + fp_rpc::EthereumRuntimeRPCApi<Block>
-        + fp_rpc::ConvertTransactionRuntimeApi<Block>
-        + orml_oracle_rpc::OracleRuntimeApi<Block, DataProviderId, CurrencyId, TimeStampedPrice>
-        + pallet_loans_rpc::LoansRuntimeApi<Block, AccountId, Balance>
-        + pallet_router_rpc::RouterRuntimeApi<Block, Balance>,
-    sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
-    Executor: sc_executor::NativeExecutionDispatch + 'static,
+    RuntimeApi:
+        ConstructRuntimeApi<Block, FullClient<RuntimeApi, Executor>> + Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: crate::client::RuntimeApiCollection<
+        StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>,
+    >,
+    Executor: NativeExecutionDispatch + 'static,
 {
     let sc_service::PartialComponents {
         client,

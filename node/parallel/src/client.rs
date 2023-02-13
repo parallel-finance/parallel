@@ -60,7 +60,9 @@ where
         + sp_session::SessionKeys<Block>
         + cumulus_primitives_core::CollectCollationInfo<Block>
         + pallet_loans_rpc::LoansRuntimeApi<Block, AccountId, Balance>
-        + pallet_router_rpc::RouterRuntimeApi<Block, Balance>,
+        + pallet_router_rpc::RouterRuntimeApi<Block, Balance>
+        + fp_rpc::EthereumRuntimeRPCApi<Block>
+        + fp_rpc::ConvertTransactionRuntimeApi<Block>,
     <Self as sp_api::ApiExt<Block>>::StateBackend: sp_api::StateBackend<BlakeTwo256>,
 {
 }
