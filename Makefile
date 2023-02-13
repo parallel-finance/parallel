@@ -66,15 +66,11 @@ clean:
 	cargo clean -p parallel -p vanilla-runtime -p kerria-runtime -p heiko-runtime -p parallel-runtime
 
 .PHONY: ci
-ci: check check-with-evm lint check-helper check-wasm test integration-test
+ci: check lint check-helper check-wasm test integration-test
 
 .PHONY: check
 check:
-	SKIP_WASM_BUILD= cargo check --all-targets --features runtime-benchmarks --features try-runtime
-
-.PHONY: check-with-evm
-check-with-evm:
-	SKIP_WASM_BUILD= cargo check --all-targets --features with-evm-runtime --features runtime-benchmarks --features try-runtime --features testing
+	SKIP_WASM_BUILD= cargo check --all-targets --features runtime-benchmarks --features try-runtime --features testing
 
 .PHONY: check-wasm
 check-wasm:

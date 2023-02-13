@@ -122,9 +122,9 @@ impl SubstrateCli for Cli {
         } else if chain_spec.is_heiko() {
             &heiko_runtime::VERSION
         } else if chain_spec.is_vanilla() || chain_spec.is_dev() {
-            &vanilla_runtime::VERSION;
+            &vanilla_runtime::VERSION
         } else if chain_spec.is_kerria() {
-            &kerria_runtime::VERSION;
+            &kerria_runtime::VERSION
         } else {
             unreachable!()
         }
