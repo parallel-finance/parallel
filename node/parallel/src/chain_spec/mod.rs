@@ -13,11 +13,8 @@
 // limitations under the License.
 
 pub mod heiko;
-pub mod parallel;
-
-#[cfg(feature = "with-evm-runtime")]
 pub mod kerria;
-#[cfg(feature = "with-evm-runtime")]
+pub mod parallel;
 pub mod vanilla;
 
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};

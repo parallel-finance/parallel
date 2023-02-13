@@ -33,8 +33,8 @@ pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/parityt
 # runtimes
 heiko-runtime                              = { path = '../../runtime/heiko' }
 parallel-runtime                           = { path = '../../runtime/parallel' }
-kerria-runtime                             = { path = '../../runtime/kerria', optional = true}
-vanilla-runtime                            = { path = '../../runtime/vanilla', optional = true }
+kerria-runtime                             = { path = '../../runtime/kerria' }
+vanilla-runtime                            = { path = '../../runtime/vanilla' }
 
 sc-basic-authorship     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.32' }
 sc-chain-spec           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.32' }
@@ -131,6 +131,8 @@ default            = ['std']
 runtime-benchmarks = [
   'parallel-runtime/runtime-benchmarks',
   'heiko-runtime/runtime-benchmarks',
+  'vanilla-runtime/runtime-benchmarks',
+  'kerria-runtime/runtime-benchmarks',
   'polkadot-service/runtime-benchmarks',
   "try-runtime-cli",
 ]
@@ -138,13 +140,7 @@ std                = []
 try-runtime        = [
   'heiko-runtime/try-runtime',
   'parallel-runtime/try-runtime',
-  "polkadot-service/try-runtime",
-]
-with-evm-runtime = [
-  'vanilla-runtime',
-  'kerria-runtime',
-  'vanilla-runtime/runtime-benchmarks',
   'vanilla-runtime/try-runtime',
-  'kerria-runtime/runtime-benchmarks',
   'kerria-runtime/try-runtime',
+  "polkadot-service/try-runtime",
 ]
