@@ -9,7 +9,7 @@
 - launch chain locally 
 
 ```
-make init && make launch-evm
+make init && make run-dev-node
 ```
 
 - provisioning
