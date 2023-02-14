@@ -140,7 +140,6 @@ fn heiko_genesis(
     technical_committee: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
-    //TODO: confirm
     // This is supposed the be the simplest bytecode to revert without returning any data.
     // We will pre-deploy it under all of our precompiles to ensure they can be called from
     // within contracts.
@@ -237,7 +236,7 @@ fn heiko_genesis(
         },
         base_fee: BaseFeeConfig::new(
             sp_core::U256::from(1_000_000_000),
-            sp_runtime::Permill::from_parts(125_000),
+            sp_runtime::Permill::zero(),
         ),
         ethereum: Default::default(),
     }
