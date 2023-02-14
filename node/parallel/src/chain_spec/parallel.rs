@@ -140,7 +140,6 @@ fn parallel_genesis(
     technical_committee: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
-    //TODO:
     let revert_bytecode = vec![0x60, 0x00, 0x60, 0x00, 0xFD];
     GenesisConfig {
         system: SystemConfig {
@@ -214,7 +213,6 @@ fn parallel_genesis(
         polkadot_xcm: PolkadotXcmConfig {
             safe_xcm_version: Some(2),
         },
-        //TODO: confirm
         evm: EVMConfig {
             // We need _some_ code inserted at the precompile address so that
             // the evm will actually call the address.
@@ -232,10 +230,7 @@ fn parallel_genesis(
                 })
                 .collect(),
         },
-        base_fee: BaseFeeConfig::new(
-            sp_core::U256::from(1_000_000_000),
-            sp_runtime::Permill::zero(),
-        ),
+        base_fee: BaseFeeConfig::new(sp_core::U256::from(10_000_000), sp_runtime::Permill::zero()),
         ethereum: Default::default(),
     }
 }

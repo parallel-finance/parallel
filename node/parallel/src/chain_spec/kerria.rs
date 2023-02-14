@@ -254,10 +254,7 @@ fn kerria_genesis(
                 })
                 .collect(),
         },
-        base_fee: BaseFeeConfig::new(
-            sp_core::U256::from(1_000_000_000),
-            sp_runtime::Permill::zero(),
-        ),
+        base_fee: BaseFeeConfig::new(sp_core::U256::from(10_000_000), sp_runtime::Permill::zero()),
         ethereum: Default::default(),
     }
 }

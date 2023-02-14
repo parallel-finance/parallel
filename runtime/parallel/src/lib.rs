@@ -777,7 +777,7 @@ impl pallet_transaction_payment::Config for Runtime {
 
 parameter_types! {
     pub DefaultElasticity: Permill = Permill::zero();
-    pub DefaultBaseFeePerGas: U256 = (1_000_000_000).into();
+    pub DefaultBaseFeePerGas: U256 = (10_000_000).into();
 }
 
 pub struct BaseFeeThreshold;
