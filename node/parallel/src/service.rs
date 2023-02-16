@@ -394,24 +394,34 @@ where
         prometheus_registry.clone(),
     ));
 
-    let rpc_builder = Box::new(move |deny_unsafe, subscription| {
-        let deps = crate::rpc::FullDeps {
-            client: client.clone(),
-            pool: transaction_pool.clone(),
-            graph: transaction_pool.pool().clone(),
-            network: network.clone(),
-            is_authority: validator,
-            deny_unsafe,
-            frontier_backend,
-            filter_pool,
-            fee_history_limit: FEE_HISTORY_LIMIT,
-            fee_history_cache,
-            block_data_cache,
-            overrides,
-        };
+    let rpc_builder = {
+        let client = client.clone();
+        let network = network.clone();
+        let transaction_pool = transaction_pool.clone();
+        let frontier_backend = frontier_backend.clone();
+        let overrides = overrides.clone();
+        let fee_history_cache = fee_history_cache.clone();
+        let block_data_cache = block_data_cache.clone();
 
-        crate::rpc::create_full(deps, subscription).map_err(Into::into)
-    });
+        Box::new(move |deny_unsafe, subscription| {
+            let deps = crate::rpc::FullDeps {
+                client: client.clone(),
+                pool: transaction_pool.clone(),
+                graph: transaction_pool.pool().clone(),
+                network: network.clone(),
+                is_authority: validator,
+                deny_unsafe,
+                frontier_backend: frontier_backend.clone(),
+                filter_pool: filter_pool.clone(),
+                fee_history_limit: FEE_HISTORY_LIMIT,
+                fee_history_cache: fee_history_cache.clone(),
+                block_data_cache: block_data_cache.clone(),
+                overrides: overrides.clone(),
+            };
+
+            crate::rpc::create_full(deps, subscription).map_err(Into::into)
+        })
+    };
 
     if parachain_config.offchain_worker.enabled {
         sc_service::build_offchain_workers(
