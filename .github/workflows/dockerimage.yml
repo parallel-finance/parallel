@@ -2,7 +2,7 @@ name: Docker Image
 
 on:
   push:
-    branches: [Feat/integrate-evm]
+    branches: [master]
     tags:
       - "v*"
       - "staging*"

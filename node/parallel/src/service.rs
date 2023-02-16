@@ -207,7 +207,6 @@ where
         task_manager.spawn_essential_handle(),
         client.clone(),
     );
-    // FIXME:
     let frontier_backend = crate::rpc::open_frontier_backend(client.clone(), config)?;
     let frontier_block_import =
         FrontierBlockImport::new(client.clone(), client.clone(), frontier_backend.clone());
@@ -222,7 +221,7 @@ where
         _,
         _,
     >(cumulus_client_consensus_aura::ImportQueueParams {
-        block_import: frontier_block_import, // TODO: confirm
+        block_import: frontier_block_import,
         client: client.clone(),
         create_inherent_data_providers: move |_, _| async move {
             let time = sp_timestamp::InherentDataProvider::from_system_time();
@@ -340,7 +339,6 @@ where
             warp_sync: None,
         })?;
 
-    // TODO: check and confirm
     let filter_pool: FilterPool = Arc::new(std::sync::Mutex::new(BTreeMap::new()));
     let fee_history_cache: FeeHistoryCache = Arc::new(std::sync::Mutex::new(BTreeMap::new()));
     let overrides = crate::rpc::overrides_handle(client.clone());
@@ -396,46 +394,24 @@ where
         prometheus_registry.clone(),
     ));
 
-    let rpc_builder = {
-        // let client = client.clone();
-        // let pool = transaction_pool.clone();
+    let rpc_builder = Box::new(move |deny_unsafe, subscription| {
+        let deps = crate::rpc::FullDeps {
+            client: client.clone(),
+            pool: transaction_pool.clone(),
+            graph: transaction_pool.pool().clone(),
+            network: network.clone(),
+            is_authority: validator,
+            deny_unsafe,
+            frontier_backend,
+            filter_pool,
+            fee_history_limit: FEE_HISTORY_LIMIT,
+            fee_history_cache,
+            block_data_cache,
+            overrides,
+        };
 
-        // Box::new(move |deny_unsafe, _| {
-        //     let deps = crate::rpc::FullDeps {
-        //         client: client.clone(),
-        //         pool: pool.clone(),
-        //         deny_unsafe,
-        //     };
-
-        //     crate::rpc::create_full(deps).map_err(Into::into)
-        // })
-        let client = client.clone();
-        let network = network.clone();
-        let transaction_pool = transaction_pool.clone();
-        let frontier_backend = frontier_backend.clone();
-        let overrides = overrides.clone();
-        let fee_history_cache = fee_history_cache.clone();
-        let block_data_cache = block_data_cache.clone();
-
-        Box::new(move |deny_unsafe, subscription| {
-            let deps = crate::rpc::FullDeps {
-                client: client.clone(),
-                pool: transaction_pool.clone(),
-                graph: transaction_pool.pool().clone(),
-                network: network.clone(),
-                is_authority: validator,
-                deny_unsafe,
-                frontier_backend: frontier_backend.clone(),
-                filter_pool: filter_pool.clone(),
-                fee_history_limit: FEE_HISTORY_LIMIT,
-                fee_history_cache: fee_history_cache.clone(),
-                block_data_cache: block_data_cache.clone(),
-                overrides: overrides.clone(),
-            };
-
-            crate::rpc::create_full(deps, subscription).map_err(Into::into)
-        })
-    };
+        crate::rpc::create_full(deps, subscription).map_err(Into::into)
+    });
 
     if parachain_config.offchain_worker.enabled {
         sc_service::build_offchain_workers(
@@ -452,7 +428,7 @@ where
         keystore: params.keystore_container.sync_keystore(),
         task_manager: &mut task_manager,
         transaction_pool: transaction_pool.clone(),
-        rpc_builder: Box::new(rpc_builder),
+        rpc_builder,
         backend: backend.clone(),
         system_rpc_tx,
         tx_handler_controller,
