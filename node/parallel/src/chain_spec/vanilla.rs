@@ -328,10 +328,7 @@ fn vanilla_genesis(
                 map
             },
         },
-        base_fee: BaseFeeConfig::new(
-            sp_core::U256::from(1_000_000_000),
-            sp_runtime::Permill::from_parts(125_000),
-        ),
+        base_fee: BaseFeeConfig::new(sp_core::U256::from(10_000_000), sp_runtime::Permill::zero()),
         ethereum: Default::default(),
     }
 }

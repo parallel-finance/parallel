@@ -13,11 +13,12 @@
 // limitations under the License.
 
 use heiko_runtime::{
-    opaque::SessionKeys, BalancesConfig, BridgeMembershipConfig, CollatorSelectionConfig,
-    CrowdloansAutomatorsMembershipConfig, DemocracyConfig, GeneralCouncilConfig,
-    GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingAgentsMembershipConfig,
-    LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig, PolkadotXcmConfig,
-    SessionConfig, SystemConfig, TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
+    opaque::SessionKeys, BalancesConfig, BaseFeeConfig, BridgeMembershipConfig,
+    CollatorSelectionConfig, CrowdloansAutomatorsMembershipConfig, DemocracyConfig, EVMConfig,
+    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
+    LiquidStakingAgentsMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
+    ParachainInfoConfig, ParallelPrecompilesType, PolkadotXcmConfig, SessionConfig, SystemConfig,
+    TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
 };
 // use heiko_runtime::SudoConfig;
 use primitives::*;
@@ -139,6 +140,11 @@ fn heiko_genesis(
     technical_committee: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
+    // This is supposed the be the simplest bytecode to revert without returning any data.
+    // We will pre-deploy it under all of our precompiles to ensure they can be called from
+    // within contracts.
+    // (PUSH1 0x00 PUSH1 0x00 REVERT)
+    let revert_bytecode = vec![0x60, 0x00, 0x60, 0x00, 0xFD];
     GenesisConfig {
         system: SystemConfig {
             code: WASM_BINARY
@@ -211,5 +217,24 @@ fn heiko_genesis(
         polkadot_xcm: PolkadotXcmConfig {
             safe_xcm_version: Some(2),
         },
+        evm: EVMConfig {
+            // We need _some_ code inserted at the precompile address so that
+            // the evm will actually call the address.
+            accounts: ParallelPrecompilesType::used_addresses()
+                .map(|addr| {
+                    (
+                        addr,
+                        fp_evm::GenesisAccount {
+                            nonce: Default::default(),
+                            balance: Default::default(),
+                            storage: Default::default(),
+                            code: revert_bytecode.clone(),
+                        },
+                    )
+                })
+                .collect(),
+        },
+        base_fee: BaseFeeConfig::new(sp_core::U256::from(10_000_000), sp_runtime::Permill::zero()),
+        ethereum: Default::default(),
     }
 }

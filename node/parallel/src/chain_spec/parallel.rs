@@ -13,11 +13,12 @@
 // limitations under the License.
 
 use parallel_runtime::{
-    opaque::SessionKeys, BalancesConfig, BridgeMembershipConfig, CollatorSelectionConfig,
-    CrowdloansAutomatorsMembershipConfig, DemocracyConfig, GeneralCouncilConfig,
-    GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingAgentsMembershipConfig,
-    LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig, PolkadotXcmConfig,
-    SessionConfig, SystemConfig, TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
+    opaque::SessionKeys, BalancesConfig, BaseFeeConfig, BridgeMembershipConfig,
+    CollatorSelectionConfig, CrowdloansAutomatorsMembershipConfig, DemocracyConfig, EVMConfig,
+    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
+    LiquidStakingAgentsMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
+    ParachainInfoConfig, ParallelPrecompilesType, PolkadotXcmConfig, SessionConfig, SystemConfig,
+    TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
 };
 // use parallel_runtime::SudoConfig;
 use primitives::{network::NetworkType, *};
@@ -139,6 +140,7 @@ fn parallel_genesis(
     technical_committee: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
+    let revert_bytecode = vec![0x60, 0x00, 0x60, 0x00, 0xFD];
     GenesisConfig {
         system: SystemConfig {
             code: WASM_BINARY
@@ -211,5 +213,24 @@ fn parallel_genesis(
         polkadot_xcm: PolkadotXcmConfig {
             safe_xcm_version: Some(2),
         },
+        evm: EVMConfig {
+            // We need _some_ code inserted at the precompile address so that
+            // the evm will actually call the address.
+            accounts: ParallelPrecompilesType::used_addresses()
+                .map(|addr| {
+                    (
+                        addr,
+                        fp_evm::GenesisAccount {
+                            nonce: Default::default(),
+                            balance: Default::default(),
+                            storage: Default::default(),
+                            code: revert_bytecode.clone(),
+                        },
+                    )
+                })
+                .collect(),
+        },
+        base_fee: BaseFeeConfig::new(sp_core::U256::from(10_000_000), sp_runtime::Permill::zero()),
+        ethereum: Default::default(),
     }
 }

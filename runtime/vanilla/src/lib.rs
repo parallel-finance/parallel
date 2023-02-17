@@ -761,7 +761,7 @@ impl pallet_transaction_payment::Config for Runtime {
 
 parameter_types! {
     pub DefaultElasticity: Permill = Permill::zero();
-    pub DefaultBaseFeePerGas: U256 = (1_000_000_000).into();
+    pub DefaultBaseFeePerGas: U256 = (10_000_000).into();
 }
 
 pub struct BaseFeeThreshold;
@@ -813,8 +813,8 @@ pub type ParallelPrecompilesType = ParallelPrecompiles<Runtime, NativeErc20Metad
 
 parameter_types! {
     /// Ethereum-compatible chain_id:
-    /// * Vanilla:  1592
-    pub EVMChainId: u64 = 1592;
+    /// * Vanilla:  2085
+    pub EVMChainId: u64 = 2085;
     pub CallMagicNumber: u16 = EVMChainId::get() as u16;
     /// EVM gas limit
     pub BlockGasLimit: U256 = U256::from(
@@ -2021,10 +2021,10 @@ construct_runtime!(
         StableSwap: pallet_stableswap::{Pallet, Call, Storage, Event<T>} = 96,
 
         // EVM
-        EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>} = 97,
-        Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Origin, Config} = 98,
-        BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event} = 99,
-        EVMSignatureCall: pallet_evm_signatures::{Pallet, Call, Event<T>, ValidateUnsigned} = 100,
+        EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>} = 110,
+        Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Origin, Config} = 111,
+        BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event} = 112,
+        EVMSignatureCall: pallet_evm_signatures::{Pallet, Call, Event<T>, ValidateUnsigned} = 113,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,

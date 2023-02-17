@@ -40,7 +40,6 @@ const HEIKO_PARA_ID: u32 = 2085;
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     Ok(match id {
-        #[cfg(feature = "with-evm-runtime")]
         "dev" => Box::new(chain_spec::vanilla::local_development_config(ParaId::from(
             HEIKO_PARA_ID,
         ))),
@@ -56,11 +55,9 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
         "" | "parallel" => Box::new(chain_spec::parallel::parallel_config(ParaId::from(
             PARALLEL_PARA_ID,
         ))?),
-        #[cfg(feature = "with-evm-runtime")]
         "vanilla-dev" => Box::new(chain_spec::vanilla::vanilla_dev_config(ParaId::from(
             HEIKO_PARA_ID,
         ))),
-        #[cfg(feature = "with-evm-runtime")]
         "kerria-dev" => Box::new(chain_spec::kerria::kerria_dev_config(ParaId::from(
             PARALLEL_PARA_ID,
         ))),
@@ -78,25 +75,9 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             } else if starts_with("heiko") {
                 Box::new(chain_spec::heiko::ChainSpec::from_json_file(path)?)
             } else if starts_with("vanilla") {
-                #[cfg(feature = "with-evm-runtime")]
-                {
-                    Box::new(chain_spec::vanilla::ChainSpec::from_json_file(path)?)
-                }
-                #[cfg(not(feature = "with-evm-runtime"))]
-                return Err(
-                    "chain_spec's filename start with vanilla should be built with evm runtime"
-                        .into(),
-                );
+                Box::new(chain_spec::vanilla::ChainSpec::from_json_file(path)?)
             } else if starts_with("kerria") {
-                #[cfg(feature = "with-evm-runtime")]
-                {
-                    Box::new(chain_spec::kerria::ChainSpec::from_json_file(path)?)
-                }
-                #[cfg(not(feature = "with-evm-runtime"))]
-                return Err(
-                    "chain_spec's filename start with kerria should be built with evm runtime"
-                        .into(),
-                );
+                Box::new(chain_spec::kerria::ChainSpec::from_json_file(path)?)
             } else {
                 return Err(
                     "chain_spec's filename must start with parallel/heiko/kerria/vanilla".into(),
@@ -141,15 +122,9 @@ impl SubstrateCli for Cli {
         } else if chain_spec.is_heiko() {
             &heiko_runtime::VERSION
         } else if chain_spec.is_vanilla() || chain_spec.is_dev() {
-            #[cfg(feature = "with-evm-runtime")]
-            return &vanilla_runtime::VERSION;
-            #[cfg(not(feature = "with-evm-runtime"))]
-            return &heiko_runtime::VERSION;
+            &vanilla_runtime::VERSION
         } else if chain_spec.is_kerria() {
-            #[cfg(feature = "with-evm-runtime")]
-            return &kerria_runtime::VERSION;
-            #[cfg(not(feature = "with-evm-runtime"))]
-            return &parallel_runtime::VERSION;
+            &kerria_runtime::VERSION
         } else {
             unreachable!()
         }
@@ -199,52 +174,33 @@ impl SubstrateCli for RelayChainCli {
 macro_rules! switch_runtime {
     ($chain_spec:expr, { $( $code:tt )* }) => {
         if $chain_spec.is_parallel() {
-            #[cfg(not(feature = "with-evm-runtime"))] {
-                #[allow(unused_imports)]
-                use crate::service::ParallelExecutor as Executor;
-                #[allow(unused_imports)]
-                use parallel_runtime::{RuntimeApi, Block};
+            #[allow(unused_imports)]
+            use crate::service::ParallelExecutor as Executor;
+            #[allow(unused_imports)]
+            use parallel_runtime::{RuntimeApi, Block};
 
-                $( $code )*
-            }
-            #[cfg(feature = "with-evm-runtime")] {
-                unreachable!();
-            }
+            $( $code )*
         } else if $chain_spec.is_heiko() {
-            #[cfg(not(feature = "with-evm-runtime"))] {
-                #[allow(unused_imports)]
-                use crate::service::HeikoExecutor as Executor;
-                #[allow(unused_imports)]
-                use heiko_runtime::{RuntimeApi, Block};
+            #[allow(unused_imports)]
+            use crate::service::HeikoExecutor as Executor;
+            #[allow(unused_imports)]
+            use heiko_runtime::{RuntimeApi, Block};
 
-                $( $code )*
-            }
-            #[cfg(feature = "with-evm-runtime")] {
-                unreachable!();
-            }
+            $( $code )*
         } else if ($chain_spec.is_vanilla() || $chain_spec.is_dev()) {
-            #[cfg(feature = "with-evm-runtime")] {
-                #[allow(unused_imports)]
-                use crate::evm_service::VanillaExecutor as Executor;
-                #[allow(unused_imports)]
-                use vanilla_runtime::{RuntimeApi, Block};
+            #[allow(unused_imports)]
+            use crate::service::VanillaExecutor as Executor;
+            #[allow(unused_imports)]
+            use vanilla_runtime::{RuntimeApi, Block};
 
-                $( $code )*
-            }#[cfg(not(feature = "with-evm-runtime"))] {
-                unreachable!();
-            }
+            $( $code )*
         } else if $chain_spec.is_kerria() {
-            #[cfg(feature = "with-evm-runtime")] {
-                #[allow(unused_imports)]
-                use crate::evm_service::KerriaExecutor as Executor;
-                #[allow(unused_imports)]
-                use kerria_runtime::{RuntimeApi, Block};
+            #[allow(unused_imports)]
+            use crate::service::KerriaExecutor as Executor;
+            #[allow(unused_imports)]
+            use kerria_runtime::{RuntimeApi, Block};
 
-                $( $code )*
-            }
-            #[cfg(not(feature = "with-evm-runtime"))] {
-                unreachable!();
-            }
+            $( $code )*
         } else {
             unreachable!();
         }
@@ -467,13 +423,9 @@ pub fn run() -> Result<()> {
 
             switch_runtime!(chain_spec, {
                 runner.run_node_until_exit(|config| async move {
-                    #[cfg(feature = "with-evm-runtime")]
-                    {
-                        if config.chain_spec.is_dev() {
-                            return crate::evm_service::start_dev_node::<RuntimeApi, Executor>(config).map_err(Into::into);
-                        }
+                    if config.chain_spec.is_dev() {
+                        return crate::service::start_dev_node::<RuntimeApi, Executor>(config).map_err(Into::into);
                     }
-
                     let extension = chain_spec::Extensions::try_get(&*config.chain_spec);
                     let relay_chain_id = extension.map(|e| e.relay_chain.clone());
                     let para_chain_id = extension
@@ -524,25 +476,15 @@ pub fn run() -> Result<()> {
                         }
                     );
 
-                    #[cfg(feature = "with-evm-runtime")]
-                    {
-                        crate::evm_service::start_node::<RuntimeApi, Executor>(config, polkadot_config, collator_options, id)
-                            .await
-                            .map(|r| r.0)
-                            .map_err(Into::into)
-                    }
-                    #[cfg(not(feature = "with-evm-runtime"))]
-                    {
-                        crate::service::start_node::<RuntimeApi, Executor>(
-                            config,
-                            polkadot_config,
-                            collator_options,
-                            id,
-                        )
-                        .await
-                        .map(|r| r.0)
-                        .map_err(Into::into)
-                    }
+                    crate::service::start_node::<RuntimeApi, Executor>(
+                        config,
+                        polkadot_config,
+                        collator_options,
+                        id,
+                    )
+                    .await
+                    .map(|r| r.0)
+                    .map_err(Into::into)
                 })
             })
         }

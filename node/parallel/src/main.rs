@@ -22,11 +22,6 @@ mod client;
 mod command;
 mod rpc;
 
-#[cfg(feature = "with-evm-runtime")]
-mod evm_rpc;
-#[cfg(feature = "with-evm-runtime")]
-mod evm_service;
-
 fn main() -> sc_cli::Result<()> {
     command::run()
 }

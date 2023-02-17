@@ -247,7 +247,6 @@ std                = [
   'pallet-router/std',
   'pallet-currency-adapter/std',
   'pallet-farming/std',
-  'pallet-crowdloans/std',
   'pallet-emergency-shutdown/std',
   'pallet-xcm-helper/std',
   'pallet-stableswap/std',

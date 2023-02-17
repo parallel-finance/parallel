@@ -95,18 +95,6 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_ORGNAME }}/${{ matrix.bin }}:${{ steps.docker_tag.outputs.value }}
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
-      - name: Build and push image with evm
-        id: docker_build_evm
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: Dockerfile.evm
-          push: true
-          platforms: linux/amd64
-          build-args: |
-            BIN=${{ matrix.bin }}
-            PROFILE=release
-          tags: ${{ secrets.DOCKERHUB_ORGNAME }}/${{ matrix.bin }}:${{ steps.docker_tag.outputs.value }}_evm
       - name: slack
         uses: 8398a7/action-slack@v3
         env:

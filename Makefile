@@ -10,7 +10,7 @@ SURI           											:= //Alice
 LAUNCH_CONFIG_YAML	  							:= config.yml
 LAUNCH_CONFIG_JSON	  							:= config.json
 DOCKER_OVERRIDE_YAML                := docker-compose.override.yml
-DOCKER_TAG     											:= latest_evm
+DOCKER_TAG     											:= latest
 RELAY_DOCKER_TAG										:= v0.9.28
 CUMULUS_DOCKER_TAG									:= v0.9.28
 
@@ -37,10 +37,6 @@ build:
 build-release:
 	cargo build --locked --workspace --exclude runtime-integration-tests --bin parallel --release --features runtime-benchmarks --features try-runtime
 
-.PHONY: build-release-with-evm
-build-release-with-evm:
-	cargo build --locked --workspace --exclude runtime-integration-tests --bin parallel --release --features with-evm-runtime --features runtime-benchmarks --features try-runtime
-
 .PHONY: build-compact-release
 build-compact-release:
 	cargo build --locked --workspace --exclude runtime-integration-tests --bin parallel --release
@@ -55,26 +51,16 @@ build-release-if-not-exists:
 		make build-release; \
 	fi
 
-.PHONY: build-evm-release-if-not-exists
-build-evm-release-if-not-exists:
-	if [ ! -f ./target/release/parallel ]; then \
-		make build-release-with-evm; \
-	fi
-
 .PHONY: clean
 clean:
 	cargo clean -p parallel -p vanilla-runtime -p kerria-runtime -p heiko-runtime -p parallel-runtime
 
 .PHONY: ci
-ci: check check-with-evm lint check-helper check-wasm test integration-test
+ci: check lint check-helper check-wasm test integration-test
 
 .PHONY: check
 check:
-	SKIP_WASM_BUILD= cargo check --all-targets --features runtime-benchmarks --features try-runtime
-
-.PHONY: check-with-evm
-check-with-evm:
-	SKIP_WASM_BUILD= cargo check --all-targets --features with-evm-runtime --features runtime-benchmarks --features try-runtime --features testing
+	SKIP_WASM_BUILD= cargo check --all-targets --features runtime-benchmarks --features try-runtime --features testing
 
 .PHONY: check-wasm
 check-wasm:
@@ -87,10 +73,6 @@ check-helper:
 .PHONY: test
 test:
 	SKIP_WASM_BUILD= cargo test --workspace --features runtime-benchmarks --exclude runtime-integration-tests --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude kerria-runtime --exclude heiko-runtime --exclude pallet-loans-rpc --exclude pallet-loans-rpc-runtime-api --exclude parallel-primitives -- --nocapture
-
-.PHONY: test-with-evm
-test-with-evm:
-	SKIP_WASM_BUILD= cargo test --workspace --features with-evm-runtime --features runtime-benchmarks --exclude runtime-integration-tests --exclude pallet-loans-rpc --exclude pallet-loans-rpc-runtime-api --exclude parallel-primitives -- --nocapture
 
 .PHONY: test-loans
 test-loans:
@@ -137,43 +119,43 @@ bench:build-release-if-not-exists
 	./scripts/benchmark.sh
 
 .PHONY: bench-farming
-bench-farming: build-evm-release-if-not-exists
+bench-farming: build-release-if-not-exists
 	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-farming --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/farming/src/weights.rs
 
 .PHONY: bench-loans
-bench-loans: build-evm-release-if-not-exists
+bench-loans: build-release-if-not-exists
 	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
 
 .PHONY: bench-crowdloans
-bench-crowdloans: build-evm-release-if-not-exists
+bench-crowdloans: build-release-if-not-exists
 	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-crowdloans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/crowdloans/src/weights.rs
 
 .PHONY: bench-bridge
-bench-bridge: build-evm-release-if-not-exists
+bench-bridge: build-release-if-not-exists
 	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-bridge --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/bridge/src/weights.rs
 
 .PHONY: bench-xcm-helper
-bench-xcm-helper: build-evm-release-if-not-exists
+bench-xcm-helper: build-release-if-not-exists
 	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-xcm-helper --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/xcm-helper/src/weights.rs
 
 .PHONY: bench-amm
-bench-amm: build-evm-release-if-not-exists
+bench-amm: build-release-if-not-exists
 	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-amm --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/amm/src/weights.rs
 
 .PHONY: bench-liquid-staking
-bench-liquid-staking: build-evm-release-if-not-exists
+bench-liquid-staking: build-release-if-not-exists
 	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-liquid-staking --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/liquid-staking/src/weights.rs
 
 .PHONY: bench-amm-router
-bench-amm-router: build-evm-release-if-not-exists
+bench-amm-router: build-release-if-not-exists
 	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-router --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/router/src/weights.rs
 
 .PHONY: bench-streaming
-bench-streaming: build-evm-release-if-not-exists
+bench-streaming: build-release-if-not-exists
 	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-streaming --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/streaming/src/weights.rs
 
 .PHONY: bench-asset-registry
-bench-asset-registry: build-evm-release-if-not-exists
+bench-asset-registry: build-release-if-not-exists
 	./target/release/parallel benchmark pallet --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-asset-registry --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/asset-registry/src/weights.rs
 
 .PHONY: lint
@@ -253,9 +235,9 @@ dev-launch: shutdown
 dev-launch-vanilla:
 	make PARA_ID=2085 CHAIN=vanilla-dev RELAY_CHAIN=kusama-local dev-launch
 
-.PHONY: launch-evm
-launch-evm:
-	cargo run --locked --bin parallel --features with-evm-runtime --features runtime-benchmarks --features try-runtime -- --tmp --alice --dev --rpc-cors all --unsafe-ws-external --rpc-methods unsafe --unsafe-rpc-external --ws-port 19944 --rpc-port 29933
+.PHONY: run-dev-node
+run-dev-node:
+	cargo run --locked --bin parallel --features runtime-benchmarks --features try-runtime -- --tmp --alice --dev --rpc-cors all --unsafe-ws-external --rpc-methods unsafe --unsafe-rpc-external --ws-port 19944 --rpc-port 29933
 
 .PHONY: provisioning-evm
 provisioning-evm:
@@ -283,13 +265,6 @@ production-image:
 		-c 512 \
 		-t parallelfinance/parallel:latest \
 		-f Dockerfile.release .
-
-.PHONY: integration-image-with-evm
-integration-image-with-evm:
-	DOCKER_BUILDKIT=1 docker build --build-arg BIN=parallel \
-		-c 512 \
-		-t parallelfinance/parallel:latest_evm \
-		-f Dockerfile.evm .
 
 .PHONY: key
 key:
