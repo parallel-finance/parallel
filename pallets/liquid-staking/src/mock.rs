@@ -7,7 +7,7 @@ use frame_support::{
         tokens::BalanceConversion, EitherOfDiverse, Everything, GenesisBuild, Nothing, OriginTrait,
         SortedMembers,
     },
-    weights::constants::WEIGHT_PER_SECOND,
+    weights::constants::WEIGHT_REF_TIME_PER_SECOND,
     PalletId, WeakBoundedVec,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
@@ -52,8 +52,8 @@ use crate::{distribution::AverageDistribution, types::StakingLedger, BalanceOf};
 pub use kusama_runtime;
 
 parameter_types! {
-    pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND.saturating_div(4);
-    pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND.saturating_div(4);
+    pub const ReservedXcmpWeight: Weight = WEIGHT_REF_TIME_PER_SECOND.saturating_div(4);
+    pub const ReservedDmpWeight: Weight = WEIGHT_REF_TIME_PER_SECOND.saturating_div(4);
 }
 
 impl cumulus_pallet_parachain_system::Config for Test {
