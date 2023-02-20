@@ -2586,7 +2586,7 @@ dependencies = [
 [[package]]
 name = "fc-consensus"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "async-trait",
  "fc-db",
@@ -2605,7 +2605,7 @@ dependencies = [
 [[package]]
 name = "fc-db"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "fp-storage",
  "kvdb-rocksdb",
@@ -2624,7 +2624,7 @@ dependencies = [
 [[package]]
 name = "fc-mapping-sync"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "fc-db",
  "fp-consensus",
@@ -2641,7 +2641,7 @@ dependencies = [
 [[package]]
 name = "fc-rpc"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "ethereum 0.14.0",
  "ethereum-types 0.14.1",
@@ -2684,7 +2684,7 @@ dependencies = [
 [[package]]
 name = "fc-rpc-core"
 version = "1.1.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "ethereum 0.14.0",
  "ethereum-types 0.14.1",
@@ -2833,7 +2833,7 @@ dependencies = [
 [[package]]
 name = "fp-consensus"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "ethereum 0.14.0",
  "parity-scale-codec",
@@ -2845,7 +2845,7 @@ dependencies = [
 [[package]]
 name = "fp-dynamic-fee"
 version = "1.0.0"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "async-trait",
  "sp-core",
@@ -2855,7 +2855,7 @@ dependencies = [
 [[package]]
 name = "fp-ethereum"
 version = "1.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "ethereum 0.14.0",
  "ethereum-types 0.14.1",
@@ -2870,7 +2870,7 @@ dependencies = [
 [[package]]
 name = "fp-evm"
 version = "3.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "evm 0.37.0",
  "frame-support",
@@ -2883,7 +2883,7 @@ dependencies = [
 [[package]]
 name = "fp-rpc"
 version = "3.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "ethereum 0.14.0",
  "ethereum-types 0.14.1",
@@ -2900,7 +2900,7 @@ dependencies = [
 [[package]]
 name = "fp-self-contained"
 version = "1.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "ethereum 0.14.0",
  "frame-support",
@@ -2914,7 +2914,7 @@ dependencies = [
 [[package]]
 name = "fp-storage"
 version = "2.0.0"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "parity-scale-codec",
  "serde",
@@ -5651,7 +5651,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=f336875e48599b5e9500b301385259354821f01f#f336875e48599b5e9500b301385259354821f01f"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=db0381f6363e0c8e781082b6f552c092b688fb1c#db0381f6363e0c8e781082b6f552c092b688fb1c"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5669,7 +5669,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle-rpc"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=f336875e48599b5e9500b301385259354821f01f#f336875e48599b5e9500b301385259354821f01f"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=db0381f6363e0c8e781082b6f552c092b688fb1c#db0381f6363e0c8e781082b6f552c092b688fb1c"
 dependencies = [
  "jsonrpsee",
  "orml-oracle-rpc-runtime-api",
@@ -5684,7 +5684,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle-rpc-runtime-api"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=f336875e48599b5e9500b301385259354821f01f#f336875e48599b5e9500b301385259354821f01f"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=db0381f6363e0c8e781082b6f552c092b688fb1c#db0381f6363e0c8e781082b6f552c092b688fb1c"
 dependencies = [
  "parity-scale-codec",
  "sp-api",
@@ -5694,7 +5694,7 @@ dependencies = [
 [[package]]
 name = "orml-traits"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=f336875e48599b5e9500b301385259354821f01f#f336875e48599b5e9500b301385259354821f01f"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=db0381f6363e0c8e781082b6f552c092b688fb1c#db0381f6363e0c8e781082b6f552c092b688fb1c"
 dependencies = [
  "frame-support",
  "impl-trait-for-tuples",
@@ -5712,7 +5712,7 @@ dependencies = [
 [[package]]
 name = "orml-utilities"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=f336875e48599b5e9500b301385259354821f01f#f336875e48599b5e9500b301385259354821f01f"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=db0381f6363e0c8e781082b6f552c092b688fb1c#db0381f6363e0c8e781082b6f552c092b688fb1c"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -5726,7 +5726,7 @@ dependencies = [
 [[package]]
 name = "orml-vesting"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=f336875e48599b5e9500b301385259354821f01f#f336875e48599b5e9500b301385259354821f01f"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=db0381f6363e0c8e781082b6f552c092b688fb1c#db0381f6363e0c8e781082b6f552c092b688fb1c"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5741,7 +5741,7 @@ dependencies = [
 [[package]]
 name = "orml-xcm"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=f336875e48599b5e9500b301385259354821f01f#f336875e48599b5e9500b301385259354821f01f"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=db0381f6363e0c8e781082b6f552c092b688fb1c#db0381f6363e0c8e781082b6f552c092b688fb1c"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5755,7 +5755,7 @@ dependencies = [
 [[package]]
 name = "orml-xcm-support"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=f336875e48599b5e9500b301385259354821f01f#f336875e48599b5e9500b301385259354821f01f"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=db0381f6363e0c8e781082b6f552c092b688fb1c#db0381f6363e0c8e781082b6f552c092b688fb1c"
 dependencies = [
  "frame-support",
  "orml-traits",
@@ -5769,7 +5769,7 @@ dependencies = [
 [[package]]
 name = "orml-xtokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=f336875e48599b5e9500b301385259354821f01f#f336875e48599b5e9500b301385259354821f01f"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=db0381f6363e0c8e781082b6f552c092b688fb1c#db0381f6363e0c8e781082b6f552c092b688fb1c"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -5986,7 +5986,7 @@ dependencies = [
 [[package]]
 name = "pallet-base-fee"
 version = "1.0.0"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -6296,7 +6296,7 @@ dependencies = [
 [[package]]
 name = "pallet-ethereum"
 version = "4.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "ethereum 0.14.0",
  "ethereum-types 0.14.1",
@@ -6323,7 +6323,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm"
 version = "6.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "environmental",
  "evm 0.37.0",
@@ -6403,7 +6403,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-blake2"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "fp-evm",
 ]
@@ -6411,7 +6411,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-bn128"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "fp-evm",
  "sp-core",
@@ -6421,7 +6421,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-dispatch"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -6431,7 +6431,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-ed25519"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "ed25519-dalek",
  "fp-evm",
@@ -6440,7 +6440,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-modexp"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "fp-evm",
  "num",
@@ -6449,7 +6449,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-sha3fips"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "fp-evm",
  "tiny-keccak",
@@ -6458,7 +6458,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-simple"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=aee1041c59274939484348b886762d522a7b4e28#aee1041c59274939484348b886762d522a7b4e28"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
 dependencies = [
  "fp-evm",
  "ripemd",
