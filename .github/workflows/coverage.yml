@@ -64,7 +64,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2022-07-24
+          toolchain: nightly-2022-11-15
           components: rustfmt
           target: wasm32-unknown-unknown
           default: true
@@ -75,7 +75,7 @@ jobs:
         run: |
           wget https://github.com/xd009642/tarpaulin/releases/download/${{ env.TARPAULIN_VERSION }}/cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz
           tar -zxvf cargo-tarpaulin-${{ env.TARPAULIN_VERSION }}-travis.tar.gz -C $HOME/.cargo/bin
-          cargo +nightly-2022-07-24 tarpaulin --verbose --no-fail-fast \
+          cargo +nightly-2022-11-15 tarpaulin --verbose --no-fail-fast \
             -p pallet-loans \
             -p pallet-liquid-staking \
             -p pallet-farming \

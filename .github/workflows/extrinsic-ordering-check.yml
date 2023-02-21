@@ -30,14 +30,14 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2022-07-24
+          toolchain: nightly-2022-11-15
           components: rustfmt, clippy
           override: true
 
       - name: Install wasm32-unknown-unknown
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2022-07-24
+          toolchain: nightly-2022-11-15
           target: wasm32-unknown-unknown
           override: true
       - name: Install Protoc
