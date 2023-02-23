@@ -19,11 +19,17 @@ fn transfer_initial_balance<
     caller: T::AccountId,
 ) {
     let account_id = T::Lookup::unlookup(caller.clone());
-    pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), KSM, account_id, true, 1)
-        .ok();
+    pallet_assets::Pallet::<T>::force_create(
+        SystemOrigin::Root.into(),
+        KSM.into(),
+        account_id,
+        true,
+        1,
+    )
+    .ok();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        KSM,
+        KSM.into(),
         b"kusama".to_vec(),
         b"KSM".to_vec(),
         12,

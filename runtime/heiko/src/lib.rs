@@ -484,7 +484,9 @@ impl pallet_assets::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
+    type AssetIdParameter = codec::Compact<CurrencyId>;
     type Currency = Balances;
+    type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ForceOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
@@ -495,6 +497,9 @@ impl pallet_assets::Config for Runtime {
     type Freezer = ();
     type WeightInfo = weights::pallet_assets::WeightInfo<Runtime>;
     type Extra = ();
+    type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 parameter_types! {

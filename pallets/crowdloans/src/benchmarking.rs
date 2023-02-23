@@ -44,7 +44,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        <T as Config>::RelayCurrency::get(),
+        <T as Config>::RelayCurrency::get().into(),
         account_id.clone(),
         true,
         One::one(),
@@ -54,7 +54,7 @@ fn initial_set_up<
     // force create a new ctoken asset
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        ctoken,
+        ctoken.into(),
         account_id,
         true,
         One::one(),

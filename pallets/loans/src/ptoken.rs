@@ -120,6 +120,10 @@ impl<T: Config> Inspect<T::AccountId> for Pallet<T> {
 
         WithdrawConsequence::Success
     }
+
+    fn asset_exists(ptoken_id: Self::AssetId) -> bool {
+        Self::underlying_id(ptoken_id).is_ok()
+    }
 }
 
 impl<T: Config> Transfer<T::AccountId> for Pallet<T> {

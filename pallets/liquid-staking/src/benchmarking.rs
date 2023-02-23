@@ -51,7 +51,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        T::StakingCurrency::get(),
+        T::StakingCurrency::get().into(),
         account_id.clone(),
         true,
         1,
@@ -59,7 +59,7 @@ fn initial_set_up<
     .ok();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        T::StakingCurrency::get(),
+        T::StakingCurrency::get().into(),
         b"Staking Currency".to_vec(),
         b"Staking Currency".to_vec(),
         12,
@@ -69,7 +69,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        T::LiquidCurrency::get(),
+        T::LiquidCurrency::get().into(),
         account_id,
         true,
         1,
@@ -78,7 +78,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        T::LiquidCurrency::get(),
+        T::LiquidCurrency::get().into(),
         b"Liquid Currency".to_vec(),
         b"Liquid Currency".to_vec(),
         12,
@@ -87,7 +87,7 @@ fn initial_set_up<
     .unwrap();
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
-        T::StakingCurrency::get(),
+        T::StakingCurrency::get().into(),
         &caller,
         INITIAL_AMOUNT,
     )
@@ -99,7 +99,7 @@ fn initial_set_up<
     LiquidStaking::<T>::update_reserve_factor(SystemOrigin::Root.into(), RESERVE_FACTOR).unwrap();
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
-        T::StakingCurrency::get(),
+        T::StakingCurrency::get().into(),
         &pallet_xcm_helper::Pallet::<T>::account_id(),
         INITIAL_XCM_FEES,
     )
