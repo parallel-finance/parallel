@@ -499,7 +499,7 @@ impl pallet_assets::Config for Runtime {
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = AssetsStringLimit;
     type Freezer = ();
-    type WeightInfo = weights::pallet_assets::WeightInfo<Runtime>;
+    type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
     type Extra = ();
     type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
     #[cfg(feature = "runtime-benchmarks")]
