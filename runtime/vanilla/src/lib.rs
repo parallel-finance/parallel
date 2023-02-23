@@ -24,8 +24,8 @@ use frame_support::{
     traits::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
-        ChangeMembers, ConstU32, Contains, EitherOfDiverse, EqualPrivilegeOnly, Everything,
-        FindAuthor, InstanceFilter, Nothing,
+        AsEnsureOriginWithArg, ChangeMembers, ConstU32, Contains, EitherOfDiverse,
+        EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, Nothing,
     },
     weights::{
         constants::{
@@ -214,9 +214,10 @@ const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
 /// by  Operational  extrinsics.
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 /// We allow for 500 ms of compute with parachain block.
-const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_REF_TIME_PER_SECOND
-    .saturating_div(2)
-    .set_proof_size(cumulus_primitives_core::relay_chain::v2::MAX_POV_SIZE as u64);
+const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
+    WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
+    cumulus_primitives_core::relay_chain::v2::MAX_POV_SIZE as u64,
+);
 
 parameter_types! {
     pub const BlockHashCount: BlockNumber = 250;
@@ -313,7 +314,6 @@ impl Contains<RuntimeCall> for BaseCallFilter {
                 RuntimeCall::Assets(pallet_assets::Call::freeze_asset { .. }) |
                 RuntimeCall::Assets(pallet_assets::Call::thaw_asset { .. }) |
                 RuntimeCall::Assets(pallet_assets::Call::burn { .. }) |
-                RuntimeCall::Assets(pallet_assets::Call::destroy { .. }) |
                 RuntimeCall::CurrencyAdapter(_) |
                 // 3rd Party
                 RuntimeCall::Oracle(_) |
@@ -474,7 +474,7 @@ impl pallet_assets::Config for Runtime {
     type AssetId = CurrencyId;
     type AssetIdParameter = codec::Compact<CurrencyId>;
     type Currency = Balances;
-    type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
@@ -828,7 +828,7 @@ parameter_types! {
         NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS
     );
     pub ParallelPrecompilesValue: ParallelPrecompilesType = ParallelPrecompiles::<Runtime,NativeErc20Metadata>::new();
-    pub WeightPerGas: u64 = WEIGHT_PER_GAS;
+    pub WeightPerGas: Weight = Weight::from_ref_time(WEIGHT_PER_GAS);
 }
 
 impl pallet_evm::Config for Runtime {
@@ -2528,15 +2528,16 @@ impl_runtime_apis! {
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {
-        fn on_runtime_upgrade() -> (Weight, Weight) {
+        fn on_runtime_upgrade(checks: bool) -> (Weight, Weight) {
             log::info!("try-runtime::on_runtime_upgrade.");
-            let weight = Executive::try_runtime_upgrade().unwrap();
+            let weight = Executive::try_runtime_upgrade(checks).unwrap();
             (weight, RuntimeBlockWeights::get().max_block)
         }
 
         fn execute_block(
             block: Block,
             state_root_check: bool,
+            signature_check: bool,
             select: frame_try_runtime::TryStateSelect
         ) -> Weight {
             log::info!(
@@ -2546,7 +2547,7 @@ impl_runtime_apis! {
                 state_root_check,
                 select,
             );
-            Executive::try_execute_block(block, state_root_check, select).expect("try_execute_block failed")
+            Executive::try_execute_block(block, state_root_check, signature_check, select).expect("try_execute_block failed")
         }
     }
 }

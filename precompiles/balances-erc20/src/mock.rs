@@ -169,9 +169,9 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-        pub BlockGasLimit: U256 = U256::max_value();
-        pub const PrecompilesValue: Precompiles<Runtime> = Precompiles(PhantomData);
-        pub WeightPerGas: u64 = 1;
+    pub BlockGasLimit: U256 = U256::max_value();
+    pub const PrecompilesValue: Precompiles<Runtime> = Precompiles(PhantomData);
+    pub WeightPerGas: Weight = Weight::from_ref_time(1);
 }
 
 impl pallet_evm::Config for Runtime {
