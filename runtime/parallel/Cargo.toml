@@ -91,8 +91,8 @@ orml-xtokens                = { version = '0.4.1-dev', default-features = false 
 fp-rpc                         = { version = '3.0.0-dev', default-features = false }
 fp-self-contained              = { version = '1.0.0-dev', default-features = false }
 pallet-base-fee                = { version = '1.0.0', default-features = false }
-pallet-ethereum                = { version = '4.0.0-dev', default-features = false }
-pallet-evm                     = { version = '6.0.0-dev', default-features = false }
+pallet-ethereum                = { version = '4.0.0-dev', default-features = false, features = ['forbid-evm-reentrancy'] }
+pallet-evm                     = { version = '6.0.0-dev', default-features = false, features = ['forbid-evm-reentrancy'] }
 pallet-evm-precompile-blake2   = { version = '2.0.0-dev', default-features = false }
 pallet-evm-precompile-bn128    = { version = '2.0.0-dev', default-features = false }
 pallet-evm-precompile-dispatch = { version = '2.0.0-dev', default-features = false }
@@ -245,6 +245,8 @@ std                = [
   'pallet-farming/std',
   'pallet-asset-registry/std',
   'pallet-traits/std',
+  'fp-rpc/std',
+  'fp-self-contained/std',
   'pallet-base-fee/std',
   'pallet-ethereum/std',
   'pallet-evm/std',
@@ -308,6 +310,7 @@ try-runtime        = [
   'pallet-crowdloans/try-runtime',
   'pallet-xcm-helper/try-runtime',
   'pallet-asset-registry/try-runtime',
+  'fp-self-contained/try-runtime',
   'pallet-ethereum/try-runtime',
   'pallet-evm/try-runtime',
   'pallet-base-fee/try-runtime',
