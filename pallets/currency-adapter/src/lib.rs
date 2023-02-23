@@ -176,6 +176,13 @@ impl<T: Config> Inspects<T::AccountId> for Pallet<T> {
             T::Assets::can_withdraw(asset, who, amount)
         }
     }
+    fn asset_exists(asset: Self::AssetId) -> bool {
+        if asset == T::GetNativeCurrencyId::get() {
+            true
+        } else {
+            T::Assets::asset_exists(asset)
+        }
+    }
 }
 
 impl<T: Config> Mutates<T::AccountId> for Pallet<T> {

@@ -140,7 +140,7 @@ impl<
                 let units_per_second = AssetIdInfoGetter::get_units_per_second(asset_type)
                     .ok_or(XcmError::TooExpensive)?;
                 let amount = units_per_second.saturating_mul(weight as u128)
-                    / (WEIGHT_REF_TIME_PER_SECOND.ref_time() as u128);
+                    / (WEIGHT_REF_TIME_PER_SECOND as u128);
 
                 // We dont need to proceed if the amount is 0
                 // For cases (specially tests) where the asset is very cheap with respect
@@ -202,8 +202,7 @@ impl<
         if let Some((id, prev_amount, units_per_second)) = self.1.clone() {
             let weight = weight.min(self.0);
             self.0 -= weight;
-            let amount = units_per_second * (weight as u128)
-                / (WEIGHT_REF_TIME_PER_SECOND.ref_time() as u128);
+            let amount = units_per_second * (weight as u128) / (WEIGHT_REF_TIME_PER_SECOND as u128);
             self.1 = Some((
                 id.clone(),
                 prev_amount.saturating_sub(amount),
