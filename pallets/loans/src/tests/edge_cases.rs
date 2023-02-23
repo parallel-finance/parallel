@@ -7,7 +7,13 @@ use sp_runtime::FixedPointNumber;
 #[test]
 fn exceeded_supply_cap() {
     new_test_ext().execute_with(|| {
-        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, ALICE, million_unit(1001)).unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            DOT.into(),
+            ALICE,
+            million_unit(1001),
+        )
+        .unwrap();
         let amount = million_unit(501);
         assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, amount));
         // Exceed upper bound.
@@ -104,7 +110,7 @@ fn prevent_the_exchange_rate_attack() {
     new_test_ext().execute_with(|| {
         // Initialize Eve's balance
         assert_ok!(<Test as Config>::Assets::transfer(
-            DOT,
+            DOT.into(),
             &ALICE,
             &EVE,
             unit(200),
@@ -114,7 +120,7 @@ fn prevent_the_exchange_rate_attack() {
         assert_ok!(Loans::mint(RuntimeOrigin::signed(EVE), DOT, 1));
         // !!! Eve transfer a big amount to Loans::account_id
         assert_ok!(<Test as Config>::Assets::transfer(
-            DOT,
+            DOT.into(),
             &EVE,
             &Loans::account_id(),
             unit(100),

@@ -811,8 +811,14 @@ fn create_with_minimum_deposit_works() {
         );
 
         // Asset is not supported to create stream
-        Assets::force_create(RuntimeOrigin::root(), USDT, ALICE, true, 1).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), USDT, ALICE, dollar(10000)).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), USDT.into(), ALICE, true, 1).unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            USDT.into(),
+            ALICE,
+            dollar(10000),
+        )
+        .unwrap();
         assert_err!(
             Streaming::create(
                 RuntimeOrigin::signed(ALICE),
@@ -857,7 +863,13 @@ fn create_with_lots_stream_works() {
             Balance,
         >>::create(ALICE, BOB, dollar(99), DOT, 6, 10, false));
 
-        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, ALICE, dollar(100 * 500)).unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            DOT.into(),
+            ALICE,
+            dollar(100 * 500),
+        )
+        .unwrap();
         let initial_stream_id = NextStreamId::<Test>::get();
         let recipient_list = 100..500;
         let stream_amount = dollar(101);

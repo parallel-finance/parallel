@@ -3,9 +3,12 @@
 use super::*;
 use frame_support::{
     parameter_types,
-    traits::{fungibles::InspectMetadata, ChangeMembers, EitherOfDiverse, Everything},
+    traits::{
+        fungibles::InspectMetadata, AsEnsureOriginWithArg, ChangeMembers, EitherOfDiverse,
+        Everything,
+    },
 };
-use frame_system::{self as system, EnsureRoot};
+use frame_system::{self as system, EnsureRoot, EnsureSigned};
 use primitives::tokens::{HKO, KSM};
 use system::EnsureSignedBy;
 
@@ -117,7 +120,9 @@ impl pallet_assets::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
+    type AssetIdParameter = codec::Compact<CurrencyId>;
     type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
@@ -128,6 +133,9 @@ impl pallet_assets::Config for Test {
     type Freezer = ();
     type Extra = ();
     type WeightInfo = ();
+    type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 parameter_types! {
@@ -262,20 +270,20 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(RuntimeOrigin::root(), KSM, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), KSM.into(), ALICE, true, 1).unwrap();
         Assets::force_set_metadata(
             RuntimeOrigin::root(),
-            KSM,
+            KSM.into(),
             b"Kusama".to_vec(),
             b"KSM".to_vec(),
             12,
             false,
         )
         .unwrap();
-        Assets::force_create(RuntimeOrigin::root(), USDT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), USDT.into(), ALICE, true, 1).unwrap();
         Assets::force_set_metadata(
             RuntimeOrigin::root(),
-            USDT,
+            USDT.into(),
             b"USDT".to_vec(),
             b"USDT".to_vec(),
             6,

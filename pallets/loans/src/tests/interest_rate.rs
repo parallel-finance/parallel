@@ -36,7 +36,7 @@ fn interest_rate_model_works() {
         let rate_decimal: u128 = 1_000_000_000_000_000_000;
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            DOT,
+            DOT.into(),
             ALICE,
             million_unit(1000) - unit(1000),
         )

@@ -15,9 +15,12 @@
 pub use super::*;
 
 use frame_support::{
-    construct_runtime, parameter_types, traits::Everything, traits::SortedMembers, PalletId,
+    construct_runtime, parameter_types,
+    traits::SortedMembers,
+    traits::{AsEnsureOriginWithArg, Everything},
+    PalletId,
 };
-use frame_system::{EnsureRoot, EnsureSignedBy};
+use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
 use pallet_traits::{
     DecimalProvider, ExchangeRateProvider, LiquidStakingCurrenciesProvider,
@@ -318,7 +321,9 @@ impl pallet_assets::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
+    type AssetIdParameter = codec::Compact<CurrencyId>;
     type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
@@ -329,6 +334,9 @@ impl pallet_assets::Config for Test {
     type Freezer = ();
     type Extra = ();
     type WeightInfo = ();
+    type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 parameter_types! {
@@ -370,20 +378,26 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     ext.execute_with(|| {
         // Init assets
         Balances::set_balance(RuntimeOrigin::root(), DAVE, unit(1000), unit(0)).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), DOT, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), KSM, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), USDT, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), SDOT, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), CDOT_6_13, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), DOT.into(), ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), KSM.into(), ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), USDT.into(), ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SDOT.into(), ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), CDOT_6_13.into(), ALICE, true, 1).unwrap();
 
-        Assets::mint(RuntimeOrigin::signed(ALICE), KSM, ALICE, unit(1000)).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, ALICE, unit(1000)).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), USDT, ALICE, unit(1000)).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), CDOT_6_13, ALICE, unit(1000)).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), KSM, BOB, unit(1000)).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, BOB, unit(1000)).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, DAVE, unit(1000)).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), USDT, DAVE, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), KSM.into(), ALICE, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), DOT.into(), ALICE, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), USDT.into(), ALICE, unit(1000)).unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            CDOT_6_13.into(),
+            ALICE,
+            unit(1000),
+        )
+        .unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), KSM.into(), BOB, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), DOT.into(), BOB, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), DOT.into(), DAVE, unit(1000)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), USDT.into(), DAVE, unit(1000)).unwrap();
 
         // Init Markets
         Loans::add_market(RuntimeOrigin::root(), HKO, market_mock(PHKO)).unwrap();

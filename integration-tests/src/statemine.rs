@@ -57,7 +57,7 @@ fn transfer_statemine_rmrk() {
         assert_eq!(Assets::balance(RMRK, &AccountId::from(BOB)), 19988000000);
         assert_ok!(Assets::mint(
             RuntimeOrigin::signed(AccountId::from(ALICE)),
-            KSM,
+            KSM.into(),
             MultiAddress::Id(AccountId::from(BOB)),
             ksm(1f64),
         )); //mint some ksm to BOB to pay for the xcm fee
@@ -145,7 +145,7 @@ fn transfer_statemine_usdt() {
         assert_eq!(Assets::balance(USDT, &AccountId::from(BOB)), 1982000);
         assert_ok!(Assets::mint(
             RuntimeOrigin::signed(AccountId::from(ALICE)),
-            KSM,
+            KSM.into(),
             MultiAddress::Id(AccountId::from(BOB)),
             ksm(1f64),
         )); //mint some ksm to BOB to pay for the xcm fee

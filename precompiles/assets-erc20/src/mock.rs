@@ -15,9 +15,14 @@
 use super::*;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{construct_runtime, parameter_types, traits::Everything};
+use frame_support::{
+    construct_runtime,
+    dispatch::Weight,
+    parameter_types,
+    traits::{AsEnsureOriginWithArg, Everything},
+};
 
-use frame_system::EnsureRoot;
+use frame_system::{EnsureRoot, EnsureSigned};
 use pallet_evm::{AddressMapping, EnsureAddressNever, EnsureAddressRoot};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
@@ -28,7 +33,7 @@ use sp_runtime::{
 };
 
 pub type AccountId = Account;
-pub type AssetId = u128;
+pub type AssetId = u32;
 pub type Balance = u128;
 pub type BlockNumber = u64;
 pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -71,12 +76,13 @@ impl AddressMapping<Account> for Account {
             a if a == H160::repeat_byte(0xBB) => Self::Bob,
             a if a == H160::repeat_byte(0xCC) => Self::Charlie,
             _ => {
-                let mut data = [0u8; 16];
-                let (prefix_part, id_part) = h160_account.as_fixed_bytes().split_at(4);
-                if prefix_part == &[255u8; 4] {
-                    data.copy_from_slice(id_part);
+                let mut data = [0u8; 4];
+                // let (prefix_part, id_part) = h160_account.as_fixed_bytes().split_at(4);
+                let address_bytes: [u8; 20] = h160_account.into();
+                if ASSET_PRECOMPILE_ADDRESS_PREFIX.eq(&address_bytes[0..4]) {
+                    data.copy_from_slice(&address_bytes[16..20]);
 
-                    return Self::AssetId(u128::from_be_bytes(data));
+                    return Self::AssetId(u32::from_be_bytes(data));
                 }
                 Self::Bogus
             }
@@ -91,11 +97,11 @@ impl AddressToAssetId<AssetId> for Runtime {
     /// The way to convert an account to assetId is by ensuring that the prefix is 0XFFFFFFFF
     /// and by taking the lowest 128 bits as the assetId
     fn address_to_asset_id(address: H160) -> Option<AssetId> {
-        let mut data = [0u8; 16];
+        let mut data = [0u8; 4];
         let address_bytes: [u8; 20] = address.into();
         if ASSET_PRECOMPILE_ADDRESS_PREFIX.eq(&address_bytes[0..4]) {
-            data.copy_from_slice(&address_bytes[4..20]);
-            Some(u128::from_be_bytes(data))
+            data.copy_from_slice(&address_bytes[16..20]);
+            Some(u32::from_be_bytes(data))
         } else {
             None
         }
@@ -233,7 +239,9 @@ impl pallet_assets::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = AssetId;
+    type AssetIdParameter = codec::Compact<AssetId>;
     type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type AssetAccountDeposit = AssetAccountDeposit;
@@ -244,6 +252,9 @@ impl pallet_assets::Config for Runtime {
     type Freezer = ();
     type Extra = ();
     type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
+    type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 // Configure a mock runtime to test the pallet.

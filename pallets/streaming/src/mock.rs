@@ -14,8 +14,12 @@
 
 use super::*;
 
-use frame_support::{construct_runtime, parameter_types, traits::Everything, PalletId};
-use frame_system::EnsureRoot;
+use frame_support::{
+    construct_runtime, parameter_types,
+    traits::{AsEnsureOriginWithArg, Everything},
+    PalletId,
+};
+use frame_system::{EnsureRoot, EnsureSigned};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
@@ -119,7 +123,9 @@ impl pallet_assets::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
+    type AssetIdParameter = codec::Compact<CurrencyId>;
     type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
@@ -130,6 +136,9 @@ impl pallet_assets::Config for Test {
     type Freezer = ();
     type Extra = ();
     type WeightInfo = ();
+    type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 parameter_types! {
@@ -179,11 +188,23 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Balances::set_balance(RuntimeOrigin::root(), BOB, dollar(1000), dollar(0)).unwrap();
         Balances::set_balance(RuntimeOrigin::root(), DAVE, dollar(1000), dollar(0)).unwrap();
         // Init DOT to alice with full access
-        Assets::force_create(RuntimeOrigin::root(), DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), DOT.into(), ALICE, true, 1).unwrap();
         // Alice mints DOT
-        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, ALICE, dollar(10000)).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, BOB, dollar(10000)).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), DOT, DAVE, dollar(10000)).unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            DOT.into(),
+            ALICE,
+            dollar(10000),
+        )
+        .unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), DOT.into(), BOB, dollar(10000)).unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            DOT.into(),
+            DAVE,
+            dollar(10000),
+        )
+        .unwrap();
         // Set block number and time
         System::set_block_number(0);
         TimestampPallet::set_timestamp(6000);

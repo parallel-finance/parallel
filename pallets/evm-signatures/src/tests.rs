@@ -15,8 +15,8 @@
 use crate as evm_signatures;
 use codec::Encode;
 use evm_signatures::*;
-use frame_support::{assert_err, assert_ok, parameter_types};
-use frame_system::EnsureRoot;
+use frame_support::{assert_err, assert_ok, parameter_types, traits::AsEnsureOriginWithArg};
+use frame_system::{EnsureRoot, EnsureSigned};
 use hex_literal::hex;
 use sp_core::{ecdsa, Pair};
 use sp_io::hashing::keccak_256;
@@ -112,7 +112,9 @@ impl pallet_assets::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
+    type AssetIdParameter = codec::Compact<CurrencyId>;
     type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
@@ -123,6 +125,9 @@ impl pallet_assets::Config for Runtime {
     type Freezer = ();
     type Extra = ();
     type WeightInfo = ();
+    type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 parameter_types! {

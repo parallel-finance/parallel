@@ -4,13 +4,13 @@ use frame_support::{
     pallet_prelude::*,
     parameter_types, sp_io,
     traits::{
-        tokens::BalanceConversion, EitherOfDiverse, Everything, GenesisBuild, Nothing, OriginTrait,
-        SortedMembers,
+        tokens::BalanceConversion, AsEnsureOriginWithArg, EitherOfDiverse, Everything,
+        GenesisBuild, Nothing, OriginTrait, SortedMembers,
     },
     weights::constants::WEIGHT_REF_TIME_PER_SECOND,
     PalletId, WeakBoundedVec,
 };
-use frame_system::{EnsureRoot, EnsureSignedBy};
+use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
@@ -52,8 +52,8 @@ use crate::{distribution::AverageDistribution, types::StakingLedger, BalanceOf};
 pub use kusama_runtime;
 
 parameter_types! {
-    pub const ReservedXcmpWeight: Weight = WEIGHT_REF_TIME_PER_SECOND.saturating_div(4);
-    pub const ReservedDmpWeight: Weight = WEIGHT_REF_TIME_PER_SECOND.saturating_div(4);
+    pub const ReservedXcmpWeight: Weight = Weight::from_ref_time(WEIGHT_REF_TIME_PER_SECOND.saturating_div(4));
+    pub const ReservedDmpWeight: Weight = Weight::from_ref_time(WEIGHT_REF_TIME_PER_SECOND.saturating_div(4));
 }
 
 impl cumulus_pallet_parachain_system::Config for Test {
@@ -615,7 +615,9 @@ impl pallet_assets::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
+    type AssetIdParameter = codec::Compact<CurrencyId>;
     type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
@@ -626,6 +628,9 @@ impl pallet_assets::Config for Test {
     type Freezer = ();
     type WeightInfo = ();
     type Extra = ();
+    type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 impl pallet_currency_adapter::Config for Test {
@@ -680,30 +685,30 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(RuntimeOrigin::root(), KSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), KSM.into(), Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
             RuntimeOrigin::root(),
-            KSM,
+            KSM.into(),
             b"Kusama".to_vec(),
             b"KSM".to_vec(),
             12,
             false,
         )
         .unwrap();
-        Assets::force_create(RuntimeOrigin::root(), SKSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SKSM.into(), Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
             RuntimeOrigin::root(),
-            SKSM,
+            SKSM.into(),
             b"Parallel Kusama".to_vec(),
             b"sKSM".to_vec(),
             12,
             false,
         )
         .unwrap();
-        Assets::force_create(RuntimeOrigin::root(), KSM_U, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), KSM_U.into(), Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
             RuntimeOrigin::root(),
-            KSM_U,
+            KSM_U.into(),
             b"Kusama Ubonding".to_vec(),
             b"KSM_U".to_vec(),
             12,
@@ -711,15 +716,33 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        Assets::mint(RuntimeOrigin::signed(ALICE), KSM, Id(ALICE), ksm(100f64)).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), SKSM, Id(ALICE), ksm(100f64)).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            KSM.into(),
+            Id(ALICE),
+            ksm(100f64),
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            SKSM.into(),
+            Id(ALICE),
+            ksm(100f64),
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            KSM.into(),
+            Id(BOB),
+            ksm(20000f64),
+        )
+        .unwrap();
         LiquidStaking::update_staking_ledger_cap(RuntimeOrigin::signed(BOB), ksm(10000f64))
             .unwrap();
 
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            KSM,
+            KSM.into(),
             Id(XcmHelper::account_id()),
             ksm(100f64),
         )
@@ -801,30 +824,30 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(RuntimeOrigin::root(), KSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), KSM.into(), Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
             RuntimeOrigin::root(),
-            KSM,
+            KSM.into(),
             b"Kusama".to_vec(),
             b"KSM".to_vec(),
             12,
             false,
         )
         .unwrap();
-        Assets::force_create(RuntimeOrigin::root(), SKSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SKSM.into(), Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
             RuntimeOrigin::root(),
-            SKSM,
+            SKSM.into(),
             b"Parallel Kusama".to_vec(),
             b"sKSM".to_vec(),
             12,
             false,
         )
         .unwrap();
-        Assets::force_create(RuntimeOrigin::root(), KSM_U, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), KSM_U.into(), Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
             RuntimeOrigin::root(),
-            KSM_U,
+            KSM_U.into(),
             b"Kusama Ubonding".to_vec(),
             b"KSM_U".to_vec(),
             12,
@@ -832,11 +855,23 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        Assets::mint(RuntimeOrigin::signed(ALICE), KSM, Id(ALICE), ksm(10000f64)).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            KSM,
+            KSM.into(),
+            Id(ALICE),
+            ksm(10000f64),
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            KSM.into(),
+            Id(BOB),
+            ksm(20000f64),
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            KSM.into(),
             Id(XcmHelper::account_id()),
             ksm(30f64),
         )

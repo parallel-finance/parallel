@@ -1,8 +1,12 @@
 use crate as pallet_farming;
 
 // use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{parameter_types, traits::Everything, PalletId};
-use frame_system::{self as system, EnsureRoot};
+use frame_support::{
+    parameter_types,
+    traits::{AsEnsureOriginWithArg, Everything},
+    PalletId,
+};
+use frame_system::{self as system, EnsureRoot, EnsureSigned};
 use pallet_traits::DecimalProvider;
 use primitives::{Balance, CurrencyId};
 #[cfg(feature = "std")]
@@ -107,7 +111,9 @@ impl pallet_assets::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
+    type AssetIdParameter = codec::Compact<CurrencyId>;
     type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
@@ -118,6 +124,9 @@ impl pallet_assets::Config for Test {
     type Freezer = ();
     type Extra = ();
     type WeightInfo = ();
+    type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 parameter_types! {
@@ -175,10 +184,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(RuntimeOrigin::root(), STAKE_TOKEN, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), STAKE_TOKEN.into(), ALICE, true, 1).unwrap();
         Assets::force_create(
             RuntimeOrigin::root(),
-            REWARD_TOKEN,
+            REWARD_TOKEN.into(),
             REWARD_TOKEN_PAYER,
             true,
             1,
@@ -186,7 +195,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
         Assets::force_create(
             RuntimeOrigin::root(),
-            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_STAKE_TOKEN.into(),
             ALICE,
             true,
             1,
@@ -194,7 +203,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
         Assets::force_create(
             RuntimeOrigin::root(),
-            BIG_DECIMAL_REWARD_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN.into(),
             REWARD_TOKEN_PAYER,
             true,
             1,
@@ -203,36 +212,42 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            STAKE_TOKEN,
+            STAKE_TOKEN.into(),
             ALICE,
             500_000_000,
         )
         .unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), STAKE_TOKEN, BOB, 500_000_000).unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            STAKE_TOKEN,
+            STAKE_TOKEN.into(),
+            BOB,
+            500_000_000,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            STAKE_TOKEN.into(),
             CHARLIE,
             1_100_000_000_000_000,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(REWARD_TOKEN_PAYER),
-            REWARD_TOKEN,
+            REWARD_TOKEN.into(),
             REWARD_TOKEN_PAYER,
             3_000_000_000_000_000,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_STAKE_TOKEN.into(),
             ALICE,
             100_000_000_000_000_000_000_000_000,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(REWARD_TOKEN_PAYER),
-            BIG_DECIMAL_REWARD_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN.into(),
             REWARD_TOKEN_PAYER,
             11_000_000_000_000_000_000_000_000_000_000,
         )

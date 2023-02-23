@@ -461,7 +461,7 @@ fn set_bridge_token_fee_works() {
         Bridge::set_bridge_token_fee(RuntimeOrigin::root(), EUSDT, usdt(1)).unwrap();
 
         // EVE has 10 USDT initialized
-        Assets::mint(RuntimeOrigin::signed(ALICE), USDT, EVE, usdt(10)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), USDT.into(), EVE, usdt(10)).unwrap();
         assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), usdt(10));
 
         // EVE teleport 10 EUSDT
@@ -600,7 +600,7 @@ fn teleport_external_currency_works() {
         Bridge::set_bridge_token_fee(RuntimeOrigin::root(), EUSDT, usdt(1)).unwrap();
 
         // EVE has 100 USDT initialized
-        Assets::mint(RuntimeOrigin::signed(ALICE), USDT, EVE, usdt(100)).unwrap();
+        Assets::mint(RuntimeOrigin::signed(ALICE), USDT.into(), EVE, usdt(100)).unwrap();
         assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), usdt(100));
 
         // EVE teleport 10 EUSDT

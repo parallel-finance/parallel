@@ -160,7 +160,7 @@ fn mint_must_return_err_when_overflows_occur() {
         // Deposit OVERFLOW_DEPOSIT DOT for CHARLIE
         assert_ok!(Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            DOT,
+            DOT.into(),
             CHARLIE,
             OVERFLOW_DEPOSIT
         ));
@@ -951,7 +951,7 @@ fn ensure_enough_cash_works() {
     new_test_ext().execute_with(|| {
         assert_ok!(Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            KSM,
+            KSM.into(),
             Loans::account_id(),
             unit(1000)
         ));
