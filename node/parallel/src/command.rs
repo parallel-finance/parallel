@@ -396,6 +396,12 @@ pub fn run() -> Result<()> {
         }
         #[cfg(feature = "try-runtime")]
         Some(Subcommand::TryRuntime(cmd)) => {
+            use sc_executor::{sp_wasm_interface::ExtendedHostFunctions, NativeExecutionDispatch};
+            type HostFunctionsOf<E> = ExtendedHostFunctions<
+                sp_io::SubstrateHostFunctions,
+                <E as NativeExecutionDispatch>::ExtendHostFunctions,
+            >;
+
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
@@ -410,7 +416,7 @@ pub fn run() -> Result<()> {
                                 sc_cli::Error::Service(sc_service::Error::Prometheus(e))
                             })?;
 
-                    Ok((cmd.run::<Block, Executor>(config), task_manager))
+                    Ok((cmd.run::<Block, HostFunctionsOf<Executor>>(), task_manager))
                 })
             })
         }

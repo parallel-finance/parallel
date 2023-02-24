@@ -18,7 +18,7 @@ derive_more            = '0.15.0'
 frame-benchmarking     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
 frame-benchmarking-cli = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
 hex-literal            = '0.3.4'
-jsonrpsee              = { version = "0.15.1", features = ["server", "macros"] }
+jsonrpsee              = { version = "0.16.2", features = ["server", "macros"] }
 log                    = '0.4.13'
 futures                = { version = '0.3.1', features = ["compat"] }
 async-trait            = '0.1.42'
@@ -83,6 +83,7 @@ sp-storage          = { git = 'https://github.com/paritytech/substrate.git', bra
 sp-timestamp        = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
 sp-transaction-pool = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
 sp-trie             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
+sp-io               = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', optional = true }
 
 cumulus-client-cli                      = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
 cumulus-client-collator                 = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
@@ -142,5 +143,7 @@ try-runtime        = [
   'parallel-runtime/try-runtime',
   'vanilla-runtime/try-runtime',
   'kerria-runtime/try-runtime',
-  "polkadot-service/try-runtime",
+  'polkadot-service/try-runtime',
+  'try-runtime-cli/try-runtime',
+  'sp-io',
 ]
