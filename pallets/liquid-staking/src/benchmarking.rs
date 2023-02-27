@@ -87,7 +87,7 @@ fn initial_set_up<
     .unwrap();
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
-        T::StakingCurrency::get().into(),
+        T::StakingCurrency::get(),
         &caller,
         INITIAL_AMOUNT,
     )
@@ -99,7 +99,7 @@ fn initial_set_up<
     LiquidStaking::<T>::update_reserve_factor(SystemOrigin::Root.into(), RESERVE_FACTOR).unwrap();
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
-        T::StakingCurrency::get().into(),
+        T::StakingCurrency::get(),
         &pallet_xcm_helper::Pallet::<T>::account_id(),
         INITIAL_XCM_FEES,
     )

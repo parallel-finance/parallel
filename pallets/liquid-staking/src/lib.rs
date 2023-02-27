@@ -465,6 +465,7 @@ pub mod pallet {
         /// further used as collateral for lending.
         ///
         /// - `amount`: the amount of staking assets
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as Config>::WeightInfo::stake())]
         #[transactional]
         pub fn stake(
@@ -523,6 +524,7 @@ pub mod pallet {
         /// chain to do the `unbond` operation.
         ///
         /// - `amount`: the amount of derivative
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::unstake())]
         #[transactional]
         pub fn unstake(
@@ -594,6 +596,7 @@ pub mod pallet {
         }
 
         /// Update insurance pool's reserve_factor
+        #[pallet::call_index(2)]
         #[pallet::weight(<T as Config>::WeightInfo::update_reserve_factor())]
         #[transactional]
         pub fn update_reserve_factor(
@@ -619,6 +622,7 @@ pub mod pallet {
         }
 
         /// Update ledger's max bonded cap
+        #[pallet::call_index(3)]
         #[pallet::weight(<T as Config>::WeightInfo::update_staking_ledger_cap())]
         #[transactional]
         pub fn update_staking_ledger_cap(
@@ -640,6 +644,7 @@ pub mod pallet {
         }
 
         /// Bond on relaychain via xcm.transact
+        #[pallet::call_index(4)]
         #[pallet::weight(<T as Config>::WeightInfo::bond())]
         #[transactional]
         pub fn bond(
@@ -654,6 +659,7 @@ pub mod pallet {
         }
 
         /// Bond_extra on relaychain via xcm.transact
+        #[pallet::call_index(5)]
         #[pallet::weight(<T as Config>::WeightInfo::bond_extra())]
         #[transactional]
         pub fn bond_extra(
@@ -667,6 +673,7 @@ pub mod pallet {
         }
 
         /// Unbond on relaychain via xcm.transact
+        #[pallet::call_index(6)]
         #[pallet::weight(<T as Config>::WeightInfo::unbond())]
         #[transactional]
         pub fn unbond(
@@ -680,6 +687,7 @@ pub mod pallet {
         }
 
         /// Rebond on relaychain via xcm.transact
+        #[pallet::call_index(7)]
         #[pallet::weight(<T as Config>::WeightInfo::rebond())]
         #[transactional]
         pub fn rebond(
@@ -693,6 +701,7 @@ pub mod pallet {
         }
 
         /// Withdraw unbonded on relaychain via xcm.transact
+        #[pallet::call_index(8)]
         #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
         #[transactional]
         pub fn withdraw_unbonded(
@@ -706,6 +715,7 @@ pub mod pallet {
         }
 
         /// Nominate on relaychain via xcm.transact
+        #[pallet::call_index(9)]
         #[pallet::weight(<T as Config>::WeightInfo::nominate())]
         #[transactional]
         pub fn nominate(
@@ -719,6 +729,7 @@ pub mod pallet {
         }
 
         /// Internal call which is expected to be triggered only by xcm instruction
+        #[pallet::call_index(10)]
         #[pallet::weight(<T as Config>::WeightInfo::notification_received())]
         #[transactional]
         pub fn notification_received(
@@ -731,7 +742,7 @@ pub mod pallet {
                     T::UpdateOrigin::ensure_origin(origin).map(|_| MultiLocation::here())
                 })?;
             if let Response::ExecutionResult(res) = response {
-                if let Some(request) = Self::xcm_request(&query_id) {
+                if let Some(request) = Self::xcm_request(query_id) {
                     Self::do_notification_received(query_id, request, res)?;
                 }
 
@@ -746,6 +757,7 @@ pub mod pallet {
 
         /// Claim assets back when current era index arrived
         /// at target era
+        #[pallet::call_index(11)]
         #[pallet::weight(<T as Config>::WeightInfo::claim_for())]
         #[transactional]
         pub fn claim_for(
@@ -800,6 +812,7 @@ pub mod pallet {
         }
 
         /// Force set era start block
+        #[pallet::call_index(12)]
         #[pallet::weight(<T as Config>::WeightInfo::force_set_era_start_block())]
         #[transactional]
         pub fn force_set_era_start_block(
@@ -812,6 +825,7 @@ pub mod pallet {
         }
 
         /// Force set current era
+        #[pallet::call_index(13)]
         #[pallet::weight(<T as Config>::WeightInfo::force_set_current_era())]
         #[transactional]
         pub fn force_set_current_era(origin: OriginFor<T>, era: EraIndex) -> DispatchResult {
@@ -822,6 +836,7 @@ pub mod pallet {
         }
 
         /// Force advance era
+        #[pallet::call_index(14)]
         #[pallet::weight(<T as Config>::WeightInfo::force_advance_era())]
         #[transactional]
         pub fn force_advance_era(
@@ -836,6 +851,7 @@ pub mod pallet {
         }
 
         /// Force matching
+        #[pallet::call_index(15)]
         #[pallet::weight(<T as Config>::WeightInfo::force_matching())]
         #[transactional]
         pub fn force_matching(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -847,6 +863,7 @@ pub mod pallet {
         }
 
         /// Force set staking_ledger
+        #[pallet::call_index(16)]
         #[pallet::weight(<T as Config>::WeightInfo::force_set_staking_ledger())]
         #[transactional]
         pub fn force_set_staking_ledger(
@@ -870,6 +887,7 @@ pub mod pallet {
         }
 
         /// Set current era by providing storage proof
+        #[pallet::call_index(17)]
         #[pallet::weight(<T as Config>::WeightInfo::force_set_current_era())]
         #[transactional]
         pub fn set_current_era(
@@ -903,6 +921,7 @@ pub mod pallet {
         }
 
         /// Set staking_ledger by providing storage proof
+        #[pallet::call_index(18)]
         #[pallet::weight(<T as Config>::WeightInfo::force_set_staking_ledger())]
         #[transactional]
         pub fn set_staking_ledger(
@@ -966,6 +985,7 @@ pub mod pallet {
         }
 
         /// Reduces reserves by transferring to receiver.
+        #[pallet::call_index(19)]
         #[pallet::weight(<T as Config>::WeightInfo::reduce_reserves())]
         #[transactional]
         pub fn reduce_reserves(
@@ -997,6 +1017,7 @@ pub mod pallet {
         }
 
         /// Cancel unstake
+        #[pallet::call_index(20)]
         #[pallet::weight(<T as Config>::WeightInfo::cancel_unstake())]
         #[transactional]
         pub fn cancel_unstake(
@@ -1017,6 +1038,7 @@ pub mod pallet {
         }
 
         /// Update commission rate
+        #[pallet::call_index(21)]
         #[pallet::weight(<T as Config>::WeightInfo::update_commission_rate())]
         #[transactional]
         pub fn update_commission_rate(
@@ -1042,6 +1064,7 @@ pub mod pallet {
         }
 
         /// Fast match unstake through matching pool
+        #[pallet::call_index(22)]
         #[pallet::weight(<T as Config>::WeightInfo::fast_match_unstake(unstaker_list.len() as u32))]
         #[transactional]
         pub fn fast_match_unstake(
@@ -1056,6 +1079,7 @@ pub mod pallet {
         }
 
         /// Update incentive amount
+        #[pallet::call_index(23)]
         #[pallet::weight(<T as Config>::WeightInfo::update_incentive())]
         #[transactional]
         pub fn update_incentive(
@@ -1166,22 +1190,22 @@ pub mod pallet {
         }
 
         fn total_bonded_of(index: DerivativeIndex) -> BalanceOf<T> {
-            Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| ledger.total)
+            Self::staking_ledger(index).map_or(Zero::zero(), |ledger| ledger.total)
         }
 
         fn active_bonded_of(index: DerivativeIndex) -> BalanceOf<T> {
-            Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| ledger.active)
+            Self::staking_ledger(index).map_or(Zero::zero(), |ledger| ledger.active)
         }
 
         fn unbonding_of(index: DerivativeIndex) -> BalanceOf<T> {
-            Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
+            Self::staking_ledger(index).map_or(Zero::zero(), |ledger| {
                 ledger.total.saturating_sub(ledger.active)
             })
         }
 
         fn unbonded_of(index: DerivativeIndex) -> BalanceOf<T> {
             let current_era = Self::current_era();
-            Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
+            Self::staking_ledger(index).map_or(Zero::zero(), |ledger| {
                 ledger.unlocking.iter().fold(Zero::zero(), |acc, chunk| {
                     if chunk.era <= current_era {
                         acc.saturating_add(chunk.value)
@@ -1224,7 +1248,7 @@ pub mod pallet {
                 return Ok(());
             }
 
-            if StakingLedgers::<T>::contains_key(&derivative_index) {
+            if StakingLedgers::<T>::contains_key(derivative_index) {
                 return Self::do_bond_extra(derivative_index, amount);
             }
 
@@ -1290,7 +1314,7 @@ pub mod pallet {
                 Error::<T>::InvalidDerivativeIndex
             );
             ensure!(
-                StakingLedgers::<T>::contains_key(&derivative_index),
+                StakingLedgers::<T>::contains_key(derivative_index),
                 Error::<T>::NotBonded
             );
             Self::ensure_staking_ledger_cap(derivative_index, amount)?;
@@ -1338,7 +1362,7 @@ pub mod pallet {
             );
 
             let ledger: StakingLedger<T::AccountId, BalanceOf<T>> =
-                Self::staking_ledger(&derivative_index).ok_or(Error::<T>::NotBonded)?;
+                Self::staking_ledger(derivative_index).ok_or(Error::<T>::NotBonded)?;
             ensure!(
                 ledger.unlocking.len() < MAX_UNLOCKING_CHUNKS,
                 Error::<T>::NoMoreChunks
@@ -1385,7 +1409,7 @@ pub mod pallet {
                 Error::<T>::InvalidDerivativeIndex
             );
             ensure!(
-                StakingLedgers::<T>::contains_key(&derivative_index),
+                StakingLedgers::<T>::contains_key(derivative_index),
                 Error::<T>::NotBonded
             );
 
@@ -1429,7 +1453,7 @@ pub mod pallet {
                 Error::<T>::InvalidDerivativeIndex
             );
             ensure!(
-                StakingLedgers::<T>::contains_key(&derivative_index),
+                StakingLedgers::<T>::contains_key(derivative_index),
                 Error::<T>::NotBonded
             );
 
@@ -1473,7 +1497,7 @@ pub mod pallet {
                 Error::<T>::InvalidDerivativeIndex
             );
             ensure!(
-                StakingLedgers::<T>::contains_key(&derivative_index),
+                StakingLedgers::<T>::contains_key(derivative_index),
                 Error::<T>::NotBonded
             );
 
@@ -1614,7 +1638,7 @@ pub mod pallet {
                     amount,
                 } => {
                     ensure!(
-                        !StakingLedgers::<T>::contains_key(&derivative_index),
+                        !StakingLedgers::<T>::contains_key(derivative_index),
                         Error::<T>::AlreadyBonded
                     );
                     let staking_ledger = <StakingLedger<T::AccountId, BalanceOf<T>>>::new(
@@ -1682,7 +1706,7 @@ pub mod pallet {
                 }
                 Nominate { targets: _, .. } => {}
             }
-            XcmRequests::<T>::remove(&query_id);
+            XcmRequests::<T>::remove(query_id);
             Ok(())
         }
 

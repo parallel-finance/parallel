@@ -144,6 +144,7 @@ pub mod pallet {
         /// - One DB write (event).
         /// - Weight of derivative `call` execution + 10_000_000.
         /// # </weight>
+        #[pallet::call_index(0)]
         #[pallet::weight({
             let dispatch_info = call.get_dispatch_info();
             (Weight::from_ref_time(10_000_000).saturating_add(dispatch_info.weight), dispatch_info.class)
@@ -193,6 +194,7 @@ pub mod pallet {
             Ok(Pays::No.into())
         }
 
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw(

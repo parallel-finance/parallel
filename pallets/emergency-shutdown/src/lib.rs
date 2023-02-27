@@ -84,6 +84,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Toggle the shutdown flag
+        #[pallet::call_index(0)]
         #[pallet::weight(Weight::from_ref_time(10_000).saturating_add(T::DbWeight::get().writes(1)))]
         pub fn toggle_pallet(origin: OriginFor<T>, pallet_idx: u8) -> DispatchResult {
             T::ShutdownOrigin::ensure_origin(origin)?;
@@ -96,6 +97,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[pallet::call_index(1)]
         #[pallet::weight(Weight::from_ref_time(10_000).saturating_add(T::DbWeight::get().writes(1)))]
         pub fn toggle_call(origin: OriginFor<T>, pallet_idx: u8, call_idx: u8) -> DispatchResult {
             T::ShutdownOrigin::ensure_origin(origin)?;

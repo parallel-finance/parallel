@@ -11,7 +11,7 @@ use frame_system::RawOrigin;
 use polkadot_parachain::primitives::{HeadData, ValidationCode};
 use primitives::{tokens::DOT, BlockNumber, ParaId, Rate};
 use sp_runtime::{
-    traits::{One, UniqueSaturatedInto, Zero},
+    traits::{One, Zero},
     DispatchError,
     MultiAddress::Id,
 };

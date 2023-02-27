@@ -138,6 +138,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Set emergency price
+        #[pallet::call_index(0)]
         #[pallet::weight((<T as Config>::WeightInfo::set_price(), DispatchClass::Operational))]
         #[transactional]
         pub fn set_price(
@@ -153,6 +154,7 @@ pub mod pallet {
         }
 
         /// Reset emergency price
+        #[pallet::call_index(1)]
         #[pallet::weight((<T as Config>::WeightInfo::reset_price(), DispatchClass::Operational))]
         #[transactional]
         pub fn reset_price(
@@ -165,6 +167,7 @@ pub mod pallet {
         }
 
         /// Set foreign vault token mapping
+        #[pallet::call_index(2)]
         #[pallet::weight((<T as Config>::WeightInfo::set_foreign_asset(), DispatchClass::Operational))]
         #[transactional]
         pub fn set_foreign_asset(

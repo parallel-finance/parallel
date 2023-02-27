@@ -211,6 +211,7 @@ pub mod pallet {
         /// - `pool`: Currency pool, in which liquidity will be added
         /// - `liquidity_amounts`: Liquidity amounts to be added in pool
         /// - `minimum_amounts`: specifying its "worst case" ratio when pool already exists
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::add_liquidity())]
         #[transactional]
         pub fn add_liquidity(
@@ -295,6 +296,7 @@ pub mod pallet {
         ///
         /// - `pair`: Currency pool, in which liquidity will be removed
         /// - `liquidity`: liquidity to be removed from user's liquidity
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::remove_liquidity())]
         #[transactional]
         pub fn remove_liquidity(
@@ -338,6 +340,8 @@ pub mod pallet {
                 Ok(())
             })
         }
+
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::create_pool())]
         #[transactional]
         pub fn create_pool(

@@ -226,6 +226,7 @@ pub mod pallet {
         /// - `reward_asset`: The identifier of the reward asset.
         /// - `lock_duration`: Lock block number after Deposit.
         /// - `cool_down_duration`: Lock block number after Withdraw.
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::create())]
         #[transactional]
         pub fn create(
@@ -270,6 +271,7 @@ pub mod pallet {
         /// - `reward_asset`: The identifier of the reward asset.
         /// - `lock_duration`: Lock block number after Deposit.
         /// - `is_active`: new active status.
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::set_pool_status())]
         #[transactional]
         pub fn set_pool_status(
@@ -308,6 +310,7 @@ pub mod pallet {
         /// - `reward_asset`: The identifier of the reward asset.
         /// - `lock_duration`: Lock block number after Deposit.
         /// - `cool_down_duration`: new lock block number after Withdraw.
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::set_pool_cool_down_duration())]
         #[transactional]
         pub fn set_pool_cool_down_duration(
@@ -353,6 +356,7 @@ pub mod pallet {
         /// - `asset`: The identifier of the staking asset.
         /// - `reward_asset`: The identifier of the reward asset.
         /// - `lock_duration`: Lock block number after Deposit.
+        #[pallet::call_index(3)]
         #[pallet::weight(T::WeightInfo::reset_pool_unlock_height())]
         #[transactional]
         pub fn reset_pool_unlock_height(
@@ -395,6 +399,7 @@ pub mod pallet {
         /// - `reward_asset`: The identifier of the reward asset.
         /// - `lock_duration`: Lock block number after Deposit.
         /// - `amount`: the amount of staking asset want to deposit.
+        #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::deposit())]
         #[transactional]
         pub fn deposit(
@@ -459,6 +464,7 @@ pub mod pallet {
         /// - `reward_asset`: The identifier of the reward asset.
         /// - `lock_duration`: Lock block number after Deposit.
         /// - `amount`: the amount of staking asset want to withdraw.
+        #[pallet::call_index(5)]
         #[pallet::weight(T::WeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw(
@@ -546,6 +552,7 @@ pub mod pallet {
         /// - `asset`: The identifier of the staking asset.
         /// - `reward_asset`: The identifier of the reward asset.
         /// - `lock_duration`: Lock block number after Deposit.
+        #[pallet::call_index(6)]
         #[pallet::weight(T::WeightInfo::redeem())]
         #[transactional]
         pub fn redeem(
@@ -601,6 +608,7 @@ pub mod pallet {
         /// - `asset`: The identifier of the staking asset.
         /// - `reward_asset`: The identifier of the reward asset.
         /// - `lock_duration`: Lock block number after Deposit.
+        #[pallet::call_index(7)]
         #[pallet::weight(T::WeightInfo::claim())]
         #[transactional]
         pub fn claim(
@@ -656,6 +664,7 @@ pub mod pallet {
         /// - `payer`: the payer of reward asset.
         /// - `amount`: the amount of reward asset to dispatch.
         /// - `duration`: the number of block this reward will last for.
+        #[pallet::call_index(8)]
         #[pallet::weight(T::WeightInfo::dispatch_reward())]
         #[transactional]
         pub fn dispatch_reward(

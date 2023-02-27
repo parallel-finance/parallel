@@ -542,7 +542,7 @@ impl<AssetIdInfoGetter: AssetTypeGetter<CurrencyId, AssetType>>
 {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         let multi_location =
-            AsAssetType::<CurrencyId, AssetType, AssetIdInfoGetter>::reverse_ref(&id).ok();
+            AsAssetType::<CurrencyId, AssetType, AssetIdInfoGetter>::reverse_ref(id).ok();
         log::trace!(
             target: "xcm::convert",
             "currency_id: {:?}, multi_location: {:?}",

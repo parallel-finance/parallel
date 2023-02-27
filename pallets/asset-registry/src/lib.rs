@@ -125,6 +125,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Register new asset with the asset registry
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::register_asset())]
         pub fn register_asset(
             origin: OriginFor<T>,
@@ -134,12 +135,12 @@ pub mod pallet {
             T::UpdateOrigin::ensure_origin(origin)?;
 
             ensure!(
-                !AssetIdType::<T>::contains_key(&asset_id),
+                !AssetIdType::<T>::contains_key(asset_id),
                 Error::<T>::AssetAlreadyExists
             );
 
-            AssetIdType::<T>::insert(&asset_id, &asset_type);
-            AssetTypeId::<T>::insert(&asset_type, &asset_id);
+            AssetIdType::<T>::insert(asset_id, &asset_type);
+            AssetTypeId::<T>::insert(&asset_type, asset_id);
 
             Self::deposit_event(Event::AssetRegistered {
                 asset_id,
@@ -149,6 +150,7 @@ pub mod pallet {
         }
 
         /// Change the amount of units we are charging per execution second for a given AssetType
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::update_asset_units_per_second())]
         pub fn update_asset_units_per_second(
             origin: OriginFor<T>,
@@ -171,7 +173,7 @@ pub mod pallet {
                 SupportedFeePaymentAssets::<T>::put(supported_assets);
             }
 
-            AssetTypeUnitsPerSecond::<T>::insert(&asset_type, &units_per_second);
+            AssetTypeUnitsPerSecond::<T>::insert(&asset_type, units_per_second);
 
             Self::deposit_event(Event::UnitsPerSecondUpdated {
                 asset_type,
@@ -183,6 +185,7 @@ pub mod pallet {
         /// Change the xcm type mapping for a given assetId
         /// We also change this if the previous units per second where pointing at the old
         /// assetType
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::update_asset_type())]
         pub fn update_asset_type(
             origin: OriginFor<T>,
@@ -195,11 +198,11 @@ pub mod pallet {
             let mut supported_assets = SupportedFeePaymentAssets::<T>::get();
 
             let previous_asset_type =
-                AssetIdType::<T>::get(&asset_id).ok_or(Error::<T>::AssetDoesNotExist)?;
+                AssetIdType::<T>::get(asset_id).ok_or(Error::<T>::AssetDoesNotExist)?;
 
             // Insert new asset type info
-            AssetIdType::<T>::insert(&asset_id, &new_asset_type);
-            AssetTypeId::<T>::insert(&new_asset_type, &asset_id);
+            AssetIdType::<T>::insert(asset_id, &new_asset_type);
+            AssetTypeId::<T>::insert(&new_asset_type, asset_id);
 
             // Remove previous asset type info
             AssetTypeId::<T>::remove(&previous_asset_type);
@@ -231,6 +234,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[pallet::call_index(3)]
         #[pallet::weight(T::WeightInfo::remove_fee_payment_asset())]
         pub fn remove_fee_payment_asset(
             origin: OriginFor<T>,
@@ -257,6 +261,7 @@ pub mod pallet {
         }
 
         /// Remove a given assetId -> assetType association
+        #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::deregister_asset())]
         pub fn deregister_asset(origin: OriginFor<T>, asset_id: T::AssetId) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
@@ -265,10 +270,10 @@ pub mod pallet {
             let mut supported_assets = SupportedFeePaymentAssets::<T>::get();
 
             let asset_type =
-                AssetIdType::<T>::get(&asset_id).ok_or(Error::<T>::AssetDoesNotExist)?;
+                AssetIdType::<T>::get(asset_id).ok_or(Error::<T>::AssetDoesNotExist)?;
 
             // Remove from AssetIdType
-            AssetIdType::<T>::remove(&asset_id);
+            AssetIdType::<T>::remove(asset_id);
             // Remove from AssetTypeId
             AssetTypeId::<T>::remove(&asset_type);
             // Remove previous asset type units per second
