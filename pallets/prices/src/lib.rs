@@ -214,7 +214,7 @@ impl<T: Config> Pallet<T> {
             Self::get_lp_vault_asset_price(asset_id, base_price)
         } else if is_auxiliary_token(asset_id) {
             Some(base_price)
-        } else if let Some(native_asset_id) = Self::foreign_to_native_asset(&asset_id) {
+        } else if let Some(native_asset_id) = Self::foreign_to_native_asset(asset_id) {
             Self::get_special_asset_price(native_asset_id, base_price)
         } else {
             None
