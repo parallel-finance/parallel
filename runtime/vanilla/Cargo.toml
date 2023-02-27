@@ -142,6 +142,7 @@ runtime-benchmarks = [
   'frame-system/runtime-benchmarks',
   'pallet-ethereum/runtime-benchmarks',
   'pallet-bridge/runtime-benchmarks',
+  'pallet-assets/runtime-benchmarks',
   'pallet-balances/runtime-benchmarks',
   'pallet-timestamp/runtime-benchmarks',
   'pallet-loans/runtime-benchmarks',
