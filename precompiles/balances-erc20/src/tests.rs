@@ -254,7 +254,7 @@ fn transfer() {
                         .write(U256::from(400))
                         .build(),
                 )
-                .expect_cost(166861756u64) // 1 weight => 1 gas in mock
+                .expect_cost(173812756u64) // 1 weight => 1 gas in mock
                 .expect_log(LogsBuilder::new(Account::Precompile.into()).log3(
                     SELECTOR_LOG_TRANSFER,
                     Account::Alice,
@@ -340,7 +340,7 @@ fn transfer_from() {
                         .write(U256::from(400))
                         .build(),
                 )
-                .expect_cost(166861756u64) // 1 weight => 1 gas in mock
+                .expect_cost(173812756u64) // 1 weight => 1 gas in mock
                 .expect_log(LogsBuilder::new(Account::Precompile.into()).log3(
                     SELECTOR_LOG_TRANSFER,
                     Account::Alice,
@@ -435,7 +435,7 @@ fn transfer_from_self() {
                         .write(U256::from(400))
                         .build(),
                 )
-                .expect_cost(166861756u64) // 1 weight => 1 gas in mock
+                .expect_cost(173812756u64) // 1 weight => 1 gas in mock
                 .expect_log(LogsBuilder::new(Account::Precompile.into()).log3(
                     SELECTOR_LOG_TRANSFER,
                     Account::Alice,

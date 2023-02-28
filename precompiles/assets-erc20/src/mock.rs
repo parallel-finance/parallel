@@ -110,7 +110,7 @@ impl AddressToAssetId<AssetId> for Runtime {
     fn asset_id_to_address(asset_id: AssetId) -> H160 {
         let mut data = [0u8; 20];
         data[0..4].copy_from_slice(ASSET_PRECOMPILE_ADDRESS_PREFIX);
-        data[4..20].copy_from_slice(&asset_id.to_be_bytes());
+        data[16..20].copy_from_slice(&asset_id.to_be_bytes());
         H160::from(data)
     }
 }
@@ -124,8 +124,8 @@ impl From<Account> for H160 {
             Account::AssetId(asset_id) => {
                 let mut data = [0u8; 20];
                 let id_as_bytes = asset_id.to_be_bytes();
-                data[0..4].copy_from_slice(&[255u8; 4]);
-                data[4..20].copy_from_slice(&id_as_bytes);
+                data[0..4].copy_from_slice(ASSET_PRECOMPILE_ADDRESS_PREFIX);
+                data[16..20].copy_from_slice(&id_as_bytes);
                 H160::from_slice(&data)
             }
             Account::Bogus => Default::default(),
