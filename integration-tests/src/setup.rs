@@ -56,7 +56,7 @@ pub const KAR_WEIGHT_PER_SEC: u128 = 30_000_000_000;
 pub const CLV_WEIGHT_PER_SEC: u128 = 1_000_000_000_000_000;
 
 pub const FEE_IN_STATEMINE: u128 = 15_540_916;
-pub const WEIGHT_IN_STATEMINE: u64 = 4_000_000_000;
+pub const WEIGHT_IN_STATEMINE: u64 = 10_000_000_000;
 
 pub fn ksm(n: f64) -> Balance {
     (n as u128) * 10u128.pow(KSM_DECIMAL)

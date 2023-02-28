@@ -88,7 +88,7 @@ test-crowdloans:
 
 .PHONY: integration-test
 integration-test:
-	RUST_LOG="xcm=trace,xcm-executor=trace,liquidStaking=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- --nocapture
+	SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- --nocapture
 
 .PHONY: integration-test-statemine
 integration-test-statemine:
