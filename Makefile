@@ -286,15 +286,15 @@ try-snapshot-upgrade:
 
 .PHONY: try-live-upgrade
 try-live-upgrade:
-	cargo run --bin parallel --release --features try-runtime --features runtime-benchmarks -- try-runtime --chain $(CHAIN) --wasm-execution=compiled --no-spec-check-panic on-runtime-upgrade live --uri=$(URL)
+	cargo run --bin parallel --release --features try-runtime --features runtime-benchmarks -- try-runtime --runtime ./target/release/wbuild/$(CHAIN)-runtime/$(CHAIN)_runtime.wasm --chain $(CHAIN)-dev --wasm-execution=compiled on-runtime-upgrade live --uri=$(URL)
 
 .PHONY: try-heiko-live-upgrade
 try-heiko-live-upgrade:
-	make CHAIN=heiko-dev URL=wss://heiko-rpc.parallel.fi:443 try-live-upgrade
+	make CHAIN=heiko URL=wss://heiko-rpc.parallel.fi:443 try-live-upgrade
 
 .PHONY: try-parallel-live-upgrade
 try-parallel-live-upgrade:
-	make CHAIN=parallel-dev URL=wss://rpc.parallel.fi:443 try-live-upgrade
+	make CHAIN=parallel URL=wss://rpc.parallel.fi:443 try-live-upgrade
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort
