@@ -3,7 +3,7 @@ name = "pallet-evm-precompile-balances-erc20"
 authors = [ "Parallel Team" ]
 description = "A Precompile to expose a Balances pallet through an ERC20-compliant interface."
 edition = "2021"
-version = "1.9.2"
+version = "1.9.5"
 
 [dependencies]
 log = "0.4"
@@ -26,7 +26,7 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v
 
 # Frontier
 fp-evm = { version='3.0.0-dev', default-features = false }
-pallet-evm = { version='6.0.0-dev', default-features = false }
+pallet-evm = { version='6.0.0-dev', default-features = false, features = ['forbid-evm-reentrancy'] }
 
 [dev-dependencies]
 derive_more = { version = "0.99" }

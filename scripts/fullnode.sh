@@ -18,7 +18,7 @@ PARA_CHAIN="${2:-heiko}"
 RELAY_CHAIN="${3:-kusama}"
 VOLUME="chains"
 NODE_NAME="$1"
-DOCKER_IMAGE="parallelfinance/parallel:v1.9.2"
+DOCKER_IMAGE="parallelfinance/parallel:v1.9.5"
 BASE_PATH="/data"
 
 if [ $# -lt 1 ]; then

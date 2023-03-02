@@ -117,8 +117,8 @@ fp-dynamic-fee = { version='1.0.0' }
 fp-rpc                          = { version='3.0.0-dev'}
 fp-self-contained               = { version='1.0.0-dev'}
 pallet-base-fee                 = { version='1.0.0'}
-pallet-ethereum                 = { version='4.0.0-dev'}
-pallet-evm                      = { version='6.0.0-dev'}
+pallet-ethereum                 = { version='4.0.0-dev', features = ['forbid-evm-reentrancy']}
+pallet-evm                      = { version='6.0.0-dev', features = ['forbid-evm-reentrancy']}
 
 
 [build-dependencies]

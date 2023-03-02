@@ -495,7 +495,7 @@ impl sp_blockchain::HeaderBackend<Block> for Client {
         }
     }
 
-    fn hash(&self, number: NumberFor<Block>) -> sp_blockchain::Result<Option<Hash>> {
+    fn hash(&self, number: BlockNumber) -> sp_blockchain::Result<Option<Hash>> {
         with_client! {
             self,
             client,
