@@ -75,7 +75,7 @@ pub mod v1 {
 
                 Vaults::<T>::insert((&ParaId::from(para_id), &lease_start, &lease_end), vault);
                 CTokensRegistry::<T>::insert((&lease_start, &lease_end), ctoken);
-                LeasesRegistry::<T>::insert(&ParaId::from(para_id), (lease_start, lease_end));
+                LeasesRegistry::<T>::insert(ParaId::from(para_id), (lease_start, lease_end));
             }
             NextTrieIndex::<T>::put(next_trie_index + 1);
             StorageVersion::<T>::put(Releases::V1_0_0);
@@ -207,7 +207,7 @@ pub mod v2 {
 
                 Vaults::<T>::insert((&ParaId::from(para_id), &lease_start, &lease_end), vault);
                 CTokensRegistry::<T>::insert((&lease_start, &lease_end), ctoken);
-                LeasesRegistry::<T>::insert(&ParaId::from(para_id), (lease_start, lease_end));
+                LeasesRegistry::<T>::insert(ParaId::from(para_id), (lease_start, lease_end));
             }
             NextTrieIndex::<T>::put(14);
             StorageVersion::<T>::put(Releases::V2_0_0);

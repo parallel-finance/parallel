@@ -415,6 +415,7 @@ pub mod pallet {
         /// - `contribution_strategy`: currently, only XCM strategy is supported.
         /// - `cap`: the capacity limit for the vault
         /// - `end_block`: the crowdloan end block for the vault
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as Config>::WeightInfo::create_vault())]
         #[transactional]
         pub fn create_vault(
@@ -482,7 +483,7 @@ pub mod pallet {
             NextTrieIndex::<T>::put(next_trie_index);
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), new_vault);
             CTokensRegistry::<T>::insert((&lease_start, &lease_end), ctoken);
-            LeasesRegistry::<T>::insert(&crowdloan, (lease_start, lease_end));
+            LeasesRegistry::<T>::insert(crowdloan, (lease_start, lease_end));
 
             Self::deposit_event(Event::<T>::VaultCreated(
                 crowdloan,
@@ -499,6 +500,7 @@ pub mod pallet {
         }
 
         /// Update an existing vault via a governance decision
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::update_vault())]
         #[transactional]
         pub fn update_vault(
@@ -552,6 +554,7 @@ pub mod pallet {
         }
 
         /// Mark the associated vault as ready for real contributions on the relaychain
+        #[pallet::call_index(2)]
         #[pallet::weight(<T as Config>::WeightInfo::open())]
         #[transactional]
         pub fn open(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
@@ -577,6 +580,7 @@ pub mod pallet {
 
         /// Contribute `amount` to the vault of `crowdloan` and receive some
         /// shares from it
+        #[pallet::call_index(3)]
         #[pallet::weight(<T as Config>::WeightInfo::contribute())]
         #[transactional]
         pub fn contribute(
@@ -675,6 +679,7 @@ pub mod pallet {
         }
 
         /// Set crowdloans which entered vrf period
+        #[pallet::call_index(4)]
         #[pallet::weight(<T as Config>::WeightInfo::set_vrf())]
         #[transactional]
         pub fn set_vrf(origin: OriginFor<T>, flag: bool) -> DispatchResult {
@@ -693,6 +698,7 @@ pub mod pallet {
         }
 
         /// Mark the associated vault as `Closed` and stop accepting contributions
+        #[pallet::call_index(5)]
         #[pallet::weight(<T as Config>::WeightInfo::close())]
         #[transactional]
         pub fn close(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
@@ -717,6 +723,7 @@ pub mod pallet {
         }
 
         /// Mark the associated vault as `Contributing` and continue to accept contributions
+        #[pallet::call_index(6)]
         #[pallet::weight(<T as Config>::WeightInfo::reopen())]
         #[transactional]
         pub fn reopen(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
@@ -741,6 +748,7 @@ pub mod pallet {
         }
 
         /// Mark the associated vault as `Succeed` if vault is `Closed`
+        #[pallet::call_index(7)]
         #[pallet::weight(<T as Config>::WeightInfo::auction_succeeded())]
         #[transactional]
         pub fn auction_succeeded(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
@@ -766,6 +774,7 @@ pub mod pallet {
 
         /// If a `crowdloan` failed, get the coins back and mark the vault as ready
         /// for distribution
+        #[pallet::call_index(8)]
         #[pallet::weight(<T as Config>::WeightInfo::auction_failed())]
         #[transactional]
         pub fn auction_failed(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
@@ -790,6 +799,7 @@ pub mod pallet {
 
         /// If a `crowdloan` succeeded, claim the liquid derivatives of the
         /// contributed assets
+        #[pallet::call_index(9)]
         #[pallet::weight(<T as Config>::WeightInfo::claim())]
         #[transactional]
         pub fn claim(
@@ -804,6 +814,7 @@ pub mod pallet {
 
         /// If a `crowdloan` succeeded, claim the liquid derivatives of the
         /// contributed assets for others
+        #[pallet::call_index(10)]
         #[pallet::weight(<T as Config>::WeightInfo::claim())]
         #[transactional]
         pub fn claim_for(
@@ -819,6 +830,7 @@ pub mod pallet {
         }
 
         /// If a `crowdloan` failed, withdraw the contributed assets
+        #[pallet::call_index(11)]
         #[pallet::weight(<T as Config>::WeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw(
@@ -832,6 +844,7 @@ pub mod pallet {
         }
 
         /// If a `crowdloan` failed, withdraw the contributed assets for others
+        #[pallet::call_index(12)]
         #[pallet::weight(<T as Config>::WeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw_for(
@@ -848,6 +861,7 @@ pub mod pallet {
 
         /// If a `crowdloan` expired, redeem the contributed assets
         /// using ctoken
+        #[pallet::call_index(13)]
         #[pallet::weight(<T as Config>::WeightInfo::redeem())]
         #[transactional]
         pub fn redeem(
@@ -909,6 +923,7 @@ pub mod pallet {
 
         /// If a `crowdloan` succeeded and its slot expired, use `call` to
         /// claim back the funds lent to the parachain
+        #[pallet::call_index(14)]
         #[pallet::weight(<T as Config>::WeightInfo::slot_expired())]
         #[transactional]
         pub fn slot_expired(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
@@ -932,6 +947,7 @@ pub mod pallet {
         }
 
         /// Migrate pending contribution by sending xcm
+        #[pallet::call_index(15)]
         #[pallet::weight(<T as Config>::WeightInfo::migrate_pending())]
         #[transactional]
         pub fn migrate_pending(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
@@ -993,6 +1009,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[pallet::call_index(16)]
         #[pallet::weight(<T as Config>::WeightInfo::notification_received())]
         #[transactional]
         pub fn notification_received(
@@ -1002,7 +1019,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let responder = ensure_response(<T as Config>::RuntimeOrigin::from(origin))?;
             if let Response::ExecutionResult(res) = response {
-                if let Some(request) = Self::xcm_request(&query_id) {
+                if let Some(request) = Self::xcm_request(query_id) {
                     Self::do_notification_received(query_id, request, res)?;
                 }
 
@@ -1016,6 +1033,7 @@ pub mod pallet {
         }
 
         /// Refund contributions
+        #[pallet::call_index(17)]
         #[pallet::weight(<T as Config>::WeightInfo::refund())]
         #[transactional]
         pub fn refund(
@@ -1066,6 +1084,7 @@ pub mod pallet {
         }
 
         /// Dissolve vault
+        #[pallet::call_index(18)]
         #[pallet::weight(<T as Config>::WeightInfo::dissolve_vault())]
         #[transactional]
         pub fn dissolve_vault(
@@ -1096,9 +1115,9 @@ pub mod pallet {
 
             Vaults::<T>::remove((&crowdloan, &lease_start, &lease_end));
 
-            if let Some(vault_id) = LeasesRegistry::<T>::get(&crowdloan) {
+            if let Some(vault_id) = LeasesRegistry::<T>::get(crowdloan) {
                 if vault_id == (lease_start, lease_end) {
-                    LeasesRegistry::<T>::remove(&crowdloan);
+                    LeasesRegistry::<T>::remove(crowdloan);
                 }
             }
 
@@ -1115,6 +1134,7 @@ pub mod pallet {
         /// Once relaychain is in vrf but parachain didn't update vrf in time.
         /// Contributions received during this period should be refund to users,
         /// especially for those succeeded parachains.
+        #[pallet::call_index(19)]
         #[pallet::weight(<T as Config>::WeightInfo::refund_for())]
         #[transactional]
         pub fn refund_for(
@@ -1156,6 +1176,7 @@ pub mod pallet {
         }
 
         /// Update crowdloans proxy address in relaychain
+        #[pallet::call_index(20)]
         #[pallet::weight(<T as Config>::WeightInfo::update_proxy())]
         #[transactional]
         pub fn update_proxy(origin: OriginFor<T>, proxy_address: AccountIdOf<T>) -> DispatchResult {
@@ -1173,6 +1194,7 @@ pub mod pallet {
         }
 
         /// Update crowdloans proxy address in relaychain
+        #[pallet::call_index(21)]
         #[pallet::weight(<T as Config>::WeightInfo::update_leases_bonus())]
         #[transactional]
         pub fn update_leases_bonus(
@@ -1430,7 +1452,7 @@ pub mod pallet {
             }
 
             if executed {
-                XcmRequests::<T>::remove(&query_id);
+                XcmRequests::<T>::remove(query_id);
             }
 
             Ok(())

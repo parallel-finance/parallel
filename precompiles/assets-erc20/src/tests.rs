@@ -31,14 +31,14 @@ fn selector_less_than_four_bytes() {
     ExtBuilder::default().build().execute_with(|| {
         assert_ok!(Assets::force_create(
             RuntimeOrigin::root(),
-            0u128,
+            0u32.into(),
             Account::Alice.into(),
             true,
             1
         ));
         // This selector is only three bytes long when four are required.
         precompiles()
-            .prepare_test(Account::Alice, Account::AssetId(0u128), vec![1u8, 2u8, 3u8])
+            .prepare_test(Account::Alice, Account::AssetId(0u32), vec![1u8, 2u8, 3u8])
             .execute_reverts(|output| output == b"tried to parse selector out of bounds");
     });
 }
@@ -48,7 +48,7 @@ fn no_selector_exists_but_length_is_right() {
     ExtBuilder::default().build().execute_with(|| {
         assert_ok!(Assets::force_create(
             RuntimeOrigin::root(),
-            0u128,
+            0u32.into(),
             Account::Alice.into(),
             true,
             1
@@ -57,7 +57,7 @@ fn no_selector_exists_but_length_is_right() {
         precompiles()
             .prepare_test(
                 Account::Alice,
-                Account::AssetId(0u128),
+                Account::AssetId(0u32),
                 vec![1u8, 2u8, 3u8, 4u8],
             )
             .execute_reverts(|output| output == b"unknown selector");
@@ -98,14 +98,14 @@ fn get_total_supply() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
             ));
             assert_ok!(Assets::mint(
                 RuntimeOrigin::signed(Account::Alice),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 1000
             ));
@@ -113,7 +113,7 @@ fn get_total_supply() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::TotalSupply).build(),
                 )
                 .expect_cost(0) // TODO: Test db read/write costs
@@ -130,14 +130,14 @@ fn get_balances_known_user() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
             ));
             assert_ok!(Assets::mint(
                 RuntimeOrigin::signed(Account::Alice),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 1000
             ));
@@ -145,7 +145,7 @@ fn get_balances_known_user() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::BalanceOf)
                         .write(Address(Account::Alice.into()))
                         .build(),
@@ -164,7 +164,7 @@ fn get_balances_unknown_user() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
@@ -173,7 +173,7 @@ fn get_balances_unknown_user() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::BalanceOf)
                         .write(Address(Account::Bob.into()))
                         .build(),
@@ -192,14 +192,14 @@ fn approve() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
             ));
             assert_ok!(Assets::mint(
                 RuntimeOrigin::signed(Account::Alice),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 1000
             ));
@@ -207,13 +207,13 @@ fn approve() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Approve)
                         .write(Address(Account::Bob.into()))
                         .write(U256::from(500))
                         .build(),
                 )
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::AssetId(0u32).into()).log3(
                     SELECTOR_LOG_APPROVAL,
                     Account::Alice,
                     Account::Bob,
@@ -231,14 +231,14 @@ fn approve_saturating() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
             ));
             assert_ok!(Assets::mint(
                 RuntimeOrigin::signed(Account::Alice),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 1000
             ));
@@ -246,13 +246,13 @@ fn approve_saturating() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Approve)
                         .write(Address(Account::Bob.into()))
                         .write(U256::MAX)
                         .build(),
                 )
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::AssetId(0u32).into()).log3(
                     SELECTOR_LOG_APPROVAL,
                     Account::Alice,
                     Account::Bob,
@@ -263,7 +263,7 @@ fn approve_saturating() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Allowance)
                         .write(Address(Account::Alice.into()))
                         .write(Address(Account::Bob.into()))
@@ -283,14 +283,14 @@ fn check_allowance_existing() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
             ));
             assert_ok!(Assets::mint(
                 RuntimeOrigin::signed(Account::Alice),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 1000
             ));
@@ -298,7 +298,7 @@ fn check_allowance_existing() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Approve)
                         .write(Address(Account::Bob.into()))
                         .write(U256::from(500))
@@ -309,7 +309,7 @@ fn check_allowance_existing() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Allowance)
                         .write(Address(Account::Alice.into()))
                         .write(Address(Account::Bob.into()))
@@ -329,7 +329,7 @@ fn check_allowance_not_existing() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
@@ -338,7 +338,7 @@ fn check_allowance_not_existing() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Allowance)
                         .write(Address(Account::Alice.into()))
                         .write(Address(Account::Bob.into()))
@@ -358,14 +358,14 @@ fn transfer() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
             ));
             assert_ok!(Assets::mint(
                 RuntimeOrigin::signed(Account::Alice),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 1000
             ));
@@ -373,13 +373,13 @@ fn transfer() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Transfer)
                         .write(Address(Account::Bob.into()))
                         .write(U256::from(400))
                         .build(),
                 )
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::AssetId(0u32).into()).log3(
                     SELECTOR_LOG_TRANSFER,
                     Account::Alice,
                     Account::Bob,
@@ -390,7 +390,7 @@ fn transfer() {
             precompiles()
                 .prepare_test(
                     Account::Bob,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::BalanceOf)
                         .write(Address(Account::Bob.into()))
                         .build(),
@@ -402,7 +402,7 @@ fn transfer() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::BalanceOf)
                         .write(Address(Account::Alice.into()))
                         .build(),
@@ -421,14 +421,14 @@ fn transfer_not_enough_founds() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
             ));
             assert_ok!(Assets::mint(
                 RuntimeOrigin::signed(Account::Alice),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 1
             ));
@@ -436,7 +436,7 @@ fn transfer_not_enough_founds() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Transfer)
                         .write(Address(Account::Charlie.into()))
                         .write(U256::from(50))
@@ -459,14 +459,14 @@ fn transfer_from() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
             ));
             assert_ok!(Assets::mint(
                 RuntimeOrigin::signed(Account::Alice),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 1000
             ));
@@ -474,7 +474,7 @@ fn transfer_from() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Approve)
                         .write(Address(Account::Bob.into()))
                         .write(U256::from(500))
@@ -485,7 +485,7 @@ fn transfer_from() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Approve)
                         .write(Address(Account::Bob.into()))
                         .write(U256::from(500))
@@ -496,14 +496,14 @@ fn transfer_from() {
             precompiles()
                 .prepare_test(
                     Account::Bob, // Bob is the one sending transferFrom!
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::TransferFrom)
                         .write(Address(Account::Alice.into()))
                         .write(Address(Account::Charlie.into()))
                         .write(U256::from(400))
                         .build(),
                 )
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::AssetId(0u32).into()).log3(
                     SELECTOR_LOG_TRANSFER,
                     Account::Alice,
                     Account::Charlie,
@@ -514,7 +514,7 @@ fn transfer_from() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::BalanceOf)
                         .write(Address(Account::Alice.into()))
                         .build(),
@@ -526,7 +526,7 @@ fn transfer_from() {
             precompiles()
                 .prepare_test(
                     Account::Bob,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::BalanceOf)
                         .write(Address(Account::Bob.into()))
                         .build(),
@@ -538,7 +538,7 @@ fn transfer_from() {
             precompiles()
                 .prepare_test(
                     Account::Charlie,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::BalanceOf)
                         .write(Address(Account::Charlie.into()))
                         .build(),
@@ -557,14 +557,14 @@ fn transfer_from_non_incremental_approval() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
             ));
             assert_ok!(Assets::mint(
                 RuntimeOrigin::signed(Account::Alice),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 1000
             ));
@@ -573,13 +573,13 @@ fn transfer_from_non_incremental_approval() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Approve)
                         .write(Address(Account::Bob.into()))
                         .write(U256::from(500))
                         .build(),
                 )
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::AssetId(0u32).into()).log3(
                     SELECTOR_LOG_APPROVAL,
                     Account::Alice,
                     Account::Bob,
@@ -594,13 +594,13 @@ fn transfer_from_non_incremental_approval() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Approve)
                         .write(Address(Account::Bob.into()))
                         .write(U256::from(300))
                         .build(),
                 )
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::AssetId(0u32).into()).log3(
                     SELECTOR_LOG_APPROVAL,
                     Account::Alice,
                     Account::Bob,
@@ -612,7 +612,7 @@ fn transfer_from_non_incremental_approval() {
             precompiles()
                 .prepare_test(
                     Account::Bob, // Bob is the one sending transferFrom!
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::TransferFrom)
                         .write(Address(Account::Alice.into()))
                         .write(Address(Account::Bob.into()))
@@ -637,14 +637,14 @@ fn transfer_from_above_allowance() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
             ));
             assert_ok!(Assets::mint(
                 RuntimeOrigin::signed(Account::Alice),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 1000
             ));
@@ -652,7 +652,7 @@ fn transfer_from_above_allowance() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Approve)
                         .write(Address(Account::Bob.into()))
                         .write(U256::from(300))
@@ -663,7 +663,7 @@ fn transfer_from_above_allowance() {
             precompiles()
                 .prepare_test(
                     Account::Bob, // Bob is the one sending transferFrom!
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::TransferFrom)
                         .write(Address(Account::Alice.into()))
                         .write(Address(Account::Bob.into()))
@@ -688,14 +688,14 @@ fn transfer_from_self() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
             ));
             assert_ok!(Assets::mint(
                 RuntimeOrigin::signed(Account::Alice),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 1000
             ));
@@ -703,14 +703,14 @@ fn transfer_from_self() {
             precompiles()
                 .prepare_test(
                     Account::Alice, // Alice sending transferFrom herself, no need for allowance.
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::TransferFrom)
                         .write(Address(Account::Alice.into()))
                         .write(Address(Account::Bob.into()))
                         .write(U256::from(400))
                         .build(),
                 )
-                .expect_log(LogsBuilder::new(Account::AssetId(0u128).into()).log3(
+                .expect_log(LogsBuilder::new(Account::AssetId(0u32).into()).log3(
                     SELECTOR_LOG_TRANSFER,
                     Account::Alice,
                     Account::Bob,
@@ -721,7 +721,7 @@ fn transfer_from_self() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::BalanceOf)
                         .write(Address(Account::Alice.into()))
                         .build(),
@@ -733,7 +733,7 @@ fn transfer_from_self() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::BalanceOf)
                         .write(Address(Account::Bob.into()))
                         .build(),
@@ -752,14 +752,14 @@ fn get_metadata() {
         .execute_with(|| {
             assert_ok!(Assets::force_create(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 Account::Alice.into(),
                 true,
                 1
             ));
             assert_ok!(Assets::force_set_metadata(
                 RuntimeOrigin::root(),
-                0u128,
+                0u32.into(),
                 b"TestToken".to_vec(),
                 b"Test".to_vec(),
                 12,
@@ -769,7 +769,7 @@ fn get_metadata() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Name).build(),
                 )
                 .expect_cost(0) // TODO: Test db read/write costs
@@ -783,7 +783,7 @@ fn get_metadata() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Symbol).build(),
                 )
                 .expect_cost(0) // TODO: Test db read/write costs
@@ -793,7 +793,7 @@ fn get_metadata() {
             precompiles()
                 .prepare_test(
                     Account::Alice,
-                    Account::AssetId(0u128),
+                    Account::AssetId(0u32),
                     EvmDataWriter::new_with_selector(Action::Decimals).build(),
                 )
                 .expect_cost(0) // TODO: Test db read/write costs
@@ -808,7 +808,7 @@ fn minimum_balance_is_right() {
         let expected_min_balance = 19;
         assert_ok!(Assets::force_create(
             RuntimeOrigin::root(),
-            0u128,
+            0u32.into(),
             Account::Alice.into(),
             true,
             expected_min_balance,
@@ -817,7 +817,7 @@ fn minimum_balance_is_right() {
         precompiles()
             .prepare_test(
                 Account::Alice,
-                Account::AssetId(0u128),
+                Account::AssetId(0u32),
                 EvmDataWriter::new_with_selector(Action::MinimumBalance).build(),
             )
             .expect_cost(0) // TODO: Test db read/write costs
@@ -832,7 +832,7 @@ fn mint_is_ok() {
         let asset_id = 0;
         assert_ok!(Assets::force_create(
             RuntimeOrigin::root(),
-            asset_id,
+            asset_id.into(),
             Account::Alice.into(),
             true,
             1,
@@ -866,7 +866,7 @@ fn mint_non_admin_is_not_ok() {
         let asset_id = 0;
         assert_ok!(Assets::force_create(
             RuntimeOrigin::root(),
-            asset_id,
+            asset_id.into(),
             Account::Alice.into(),
             true,
             1,
@@ -892,7 +892,7 @@ fn burn_is_ok() {
         let asset_id = 0;
         assert_ok!(Assets::force_create(
             RuntimeOrigin::root(),
-            asset_id,
+            asset_id.into(),
             Account::Alice.into(),
             true,
             1,
@@ -902,7 +902,7 @@ fn burn_is_ok() {
         let init_amount = 123;
         assert_ok!(Assets::mint(
             RuntimeOrigin::signed(Account::Alice),
-            asset_id,
+            asset_id.into(),
             Account::Bob.into(),
             init_amount,
         ));
@@ -936,14 +936,14 @@ fn burn_non_admin_is_not_ok() {
         let asset_id = 0;
         assert_ok!(Assets::force_create(
             RuntimeOrigin::root(),
-            asset_id,
+            asset_id.into(),
             Account::Alice.into(),
             true,
             1,
         ));
         assert_ok!(Assets::mint(
             RuntimeOrigin::signed(Account::Alice),
-            asset_id,
+            asset_id.into(),
             Account::Bob.into(),
             1000000,
         ));

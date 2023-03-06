@@ -254,7 +254,7 @@ fn transfer() {
                         .write(U256::from(400))
                         .build(),
                 )
-                .expect_cost(166861756u64) // 1 weight => 1 gas in mock
+                .expect_cost(173812756u64) // 1 weight => 1 gas in mock
                 .expect_log(LogsBuilder::new(Account::Precompile.into()).log3(
                     SELECTOR_LOG_TRANSFER,
                     Account::Alice,
@@ -305,10 +305,10 @@ fn transfer_not_enough_funds() {
                         .build(),
                 )
                 .execute_reverts(|output| {
-                    from_utf8(&output)
+                    from_utf8(output)
                         .unwrap()
                         .contains("Dispatched call failed with error: DispatchErrorWithPostInfo")
-                        && from_utf8(&output).unwrap().contains("InsufficientBalance")
+                        && from_utf8(output).unwrap().contains("InsufficientBalance")
                 });
         });
 }
@@ -340,7 +340,7 @@ fn transfer_from() {
                         .write(U256::from(400))
                         .build(),
                 )
-                .expect_cost(166861756u64) // 1 weight => 1 gas in mock
+                .expect_cost(173812756u64) // 1 weight => 1 gas in mock
                 .expect_log(LogsBuilder::new(Account::Precompile.into()).log3(
                     SELECTOR_LOG_TRANSFER,
                     Account::Alice,
@@ -435,7 +435,7 @@ fn transfer_from_self() {
                         .write(U256::from(400))
                         .build(),
                 )
-                .expect_cost(166861756u64) // 1 weight => 1 gas in mock
+                .expect_cost(173812756u64) // 1 weight => 1 gas in mock
                 .expect_log(LogsBuilder::new(Account::Precompile.into()).log3(
                     SELECTOR_LOG_TRANSFER,
                     Account::Alice,
@@ -864,7 +864,7 @@ fn permit_valid() {
                     SELECTOR_LOG_APPROVAL,
                     Account::Alice,
                     Account::Bob,
-                    EvmDataWriter::new().write(U256::from(value)).build(),
+                    EvmDataWriter::new().write(value).build(),
                 ))
                 .execute_returns(vec![]);
 

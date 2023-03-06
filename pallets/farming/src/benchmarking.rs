@@ -31,7 +31,7 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        ASSET,
+        ASSET.into(),
         account_id.clone(),
         true,
         One::one(),
@@ -40,7 +40,7 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        REWARD_ASSET,
+        REWARD_ASSET.into(),
         account_id,
         true,
         One::one(),

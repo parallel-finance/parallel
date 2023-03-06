@@ -51,7 +51,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        T::StakingCurrency::get(),
+        T::StakingCurrency::get().into(),
         account_id.clone(),
         true,
         1,
@@ -59,7 +59,7 @@ fn initial_set_up<
     .ok();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        T::StakingCurrency::get(),
+        T::StakingCurrency::get().into(),
         b"Staking Currency".to_vec(),
         b"Staking Currency".to_vec(),
         12,
@@ -69,7 +69,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        T::LiquidCurrency::get(),
+        T::LiquidCurrency::get().into(),
         account_id,
         true,
         1,
@@ -78,7 +78,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        T::LiquidCurrency::get(),
+        T::LiquidCurrency::get().into(),
         b"Liquid Currency".to_vec(),
         b"Liquid Currency".to_vec(),
         12,

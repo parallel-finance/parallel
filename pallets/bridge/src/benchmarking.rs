@@ -32,11 +32,17 @@ fn transfer_initial_balance<
     caller: T::AccountId,
 ) {
     let account_id = T::Lookup::unlookup(caller.clone());
-    pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), USDT, account_id, true, 1)
-        .ok();
+    pallet_assets::Pallet::<T>::force_create(
+        SystemOrigin::Root.into(),
+        USDT.into(),
+        account_id,
+        true,
+        1,
+    )
+    .ok();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        USDT,
+        USDT.into(),
         b"tether".to_vec(),
         b"USDT".to_vec(),
         6,

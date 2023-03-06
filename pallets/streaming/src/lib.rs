@@ -216,6 +216,7 @@ pub mod pallet {
         /// - `asset_id`: asset should be able to lookup.
         /// - `start_time`: the time when the stream will start
         /// - `end_time`: the time when the stream will end
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as Config>::WeightInfo::create())]
         #[transactional]
         pub fn create(
@@ -255,6 +256,7 @@ pub mod pallet {
         /// Can only be called by the sender
         ///
         /// - `stream_id`: the stream id which will be canceled
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::cancel())]
         #[transactional]
         pub fn cancel(origin: OriginFor<T>, stream_id: StreamId) -> DispatchResultWithPostInfo {
@@ -310,6 +312,7 @@ pub mod pallet {
         ///
         /// - `stream_id`: the stream id which will be withdraw from
         /// ` `amount`: the amount of asset to withdraw
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw(
@@ -370,6 +373,7 @@ pub mod pallet {
         ///
         /// - `asset_id`: the stream id which will be set the minimum deposit
         /// - `minimum_deposit`: the minimum deposit for a stream
+        #[pallet::call_index(3)]
         #[pallet::weight(T::WeightInfo::set_minimum_deposit())]
         #[transactional]
         pub fn set_minimum_deposit(
@@ -453,7 +457,7 @@ impl<T: Config> Pallet<T> {
                 Ok(())
             };
 
-        StreamLibrary::<T>::try_mutate(account, &kind, checked_push)?;
+        StreamLibrary::<T>::try_mutate(account, kind, checked_push)?;
         Ok(())
     }
 
@@ -475,7 +479,7 @@ impl<T: Config> Pallet<T> {
             };
 
         if let Some(k) = kind {
-            StreamLibrary::<T>::try_mutate(account, &k, checked_remove)?;
+            StreamLibrary::<T>::try_mutate(account, k, checked_remove)?;
         } else {
             StreamLibrary::<T>::try_mutate(account, StreamKind::Send, checked_remove)?;
             StreamLibrary::<T>::try_mutate(account, StreamKind::Receive, checked_remove)?;

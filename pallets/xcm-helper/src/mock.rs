@@ -4,12 +4,13 @@ use frame_support::{
     pallet_prelude::*,
     parameter_types, sp_io,
     traits::{
-        tokens::BalanceConversion, Everything, GenesisBuild, Nothing, OriginTrait, SortedMembers,
+        tokens::BalanceConversion, AsEnsureOriginWithArg, Everything, GenesisBuild, Nothing,
+        OriginTrait, SortedMembers,
     },
-    weights::constants::WEIGHT_PER_SECOND,
+    weights::constants::WEIGHT_REF_TIME_PER_SECOND,
     PalletId, WeakBoundedVec,
 };
-use frame_system::EnsureRoot;
+use frame_system::{EnsureRoot, EnsureSigned};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::{IsSystem, Sibling};
@@ -59,8 +60,8 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
 }
 
 parameter_types! {
-    pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND.saturating_div(4);
-    pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND.saturating_div(4);
+    pub const ReservedXcmpWeight: Weight = Weight::from_ref_time(WEIGHT_REF_TIME_PER_SECOND.saturating_div(4));
+    pub const ReservedDmpWeight: Weight = Weight::from_ref_time(WEIGHT_REF_TIME_PER_SECOND.saturating_div(4));
 }
 
 impl cumulus_pallet_parachain_system::Config for Test {
@@ -391,7 +392,9 @@ impl pallet_assets::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
+    type AssetIdParameter = codec::Compact<CurrencyId>;
     type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
@@ -402,6 +405,9 @@ impl pallet_assets::Config for Test {
     type Freezer = ();
     type WeightInfo = ();
     type Extra = ();
+    type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 construct_runtime!(
@@ -438,25 +444,25 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(RuntimeOrigin::root(), DOT, Id(ALICE), true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), SDOT, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), DOT.into(), Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SDOT.into(), Id(ALICE), true, 1).unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            DOT,
+            DOT.into(),
             Id(ALICE),
             100 * DOT_DECIMAL,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            SDOT,
+            SDOT.into(),
             Id(ALICE),
             100 * DOT_DECIMAL,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            DOT,
+            DOT.into(),
             Id(XcmHelpers::account_id()),
             dot(30f64),
         )
@@ -525,25 +531,25 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         System::set_block_number(1);
-        Assets::force_create(RuntimeOrigin::root(), DOT, Id(ALICE), true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), SDOT, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), DOT.into(), Id(ALICE), true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), SDOT.into(), Id(ALICE), true, 1).unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            DOT,
+            DOT.into(),
             Id(ALICE),
             100 * DOT_DECIMAL,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            SDOT,
+            SDOT.into(),
             Id(ALICE),
             100 * DOT_DECIMAL,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            DOT,
+            DOT.into(),
             Id(XcmHelpers::account_id()),
             dot(30f64),
         )

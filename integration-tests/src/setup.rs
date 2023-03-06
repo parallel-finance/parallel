@@ -56,7 +56,7 @@ pub const KAR_WEIGHT_PER_SEC: u128 = 30_000_000_000;
 pub const CLV_WEIGHT_PER_SEC: u128 = 1_000_000_000_000_000;
 
 pub const FEE_IN_STATEMINE: u128 = 15_540_916;
-pub const WEIGHT_IN_STATEMINE: u64 = 4_000_000_000;
+pub const WEIGHT_IN_STATEMINE: u64 = 10_000_000_000;
 
 pub fn ksm(n: f64) -> Balance {
     (n as u128) * 10u128.pow(KSM_DECIMAL)
@@ -129,7 +129,7 @@ impl ExtBuilder {
             System::set_block_number(1);
             Assets::force_create(
                 RuntimeOrigin::root(),
-                KSM,
+                KSM.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
                 1,
@@ -137,7 +137,7 @@ impl ExtBuilder {
             .unwrap();
             Assets::force_set_metadata(
                 RuntimeOrigin::root(),
-                KSM,
+                KSM.into(),
                 b"Kusama".to_vec(),
                 b"KSM".to_vec(),
                 12,
@@ -146,7 +146,7 @@ impl ExtBuilder {
             .unwrap();
             Assets::mint(
                 RuntimeOrigin::signed(AccountId::from(ALICE)),
-                KSM,
+                KSM.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 ksm(100f64),
             )
@@ -155,7 +155,7 @@ impl ExtBuilder {
             //initialize for statemine rmrk
             Assets::force_create(
                 RuntimeOrigin::root(),
-                RMRK,
+                RMRK.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
                 1,
@@ -163,7 +163,7 @@ impl ExtBuilder {
             .unwrap();
             Assets::force_set_metadata(
                 RuntimeOrigin::root(),
-                RMRK,
+                RMRK.into(),
                 b"RMRK".to_vec(),
                 b"RMRK".to_vec(),
                 RMRK_DECIMAL,
@@ -193,8 +193,12 @@ impl ExtBuilder {
 
             let ksm_asset_location = MultiLocation::parent();
             let ksm_asset_type = AssetType::Xcm(ksm_asset_location);
-            AssetRegistry::register_asset(RuntimeOrigin::root(), KSM, ksm_asset_type.clone())
-                .unwrap();
+            AssetRegistry::register_asset(
+                RuntimeOrigin::root(),
+                KSM.into(),
+                ksm_asset_type.clone(),
+            )
+            .unwrap();
             AssetRegistry::update_asset_units_per_second(
                 RuntimeOrigin::root(),
                 ksm_asset_type,
@@ -237,7 +241,7 @@ impl ExtBuilder {
             //initialize for statemine usdt
             Assets::force_create(
                 RuntimeOrigin::root(),
-                USDT,
+                USDT.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
                 1,
@@ -245,7 +249,7 @@ impl ExtBuilder {
             .unwrap();
             Assets::force_set_metadata(
                 RuntimeOrigin::root(),
-                USDT,
+                USDT.into(),
                 b"USDT".to_vec(),
                 b"USDT".to_vec(),
                 USDT_DECIMAL,
@@ -277,7 +281,7 @@ impl ExtBuilder {
             //initialize for acala kar as mock sibling
             Assets::force_create(
                 RuntimeOrigin::root(),
-                KAR,
+                KAR.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
                 1,
@@ -285,7 +289,7 @@ impl ExtBuilder {
             .unwrap();
             Assets::force_set_metadata(
                 RuntimeOrigin::root(),
-                KAR,
+                KAR.into(),
                 b"KAR".to_vec(),
                 b"KAR".to_vec(),
                 KAR_DECIMAL,
@@ -315,7 +319,7 @@ impl ExtBuilder {
             //initialize for liquidate staking
             Assets::force_create(
                 RuntimeOrigin::root(),
-                SKSM,
+                SKSM.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
                 1,
@@ -323,7 +327,7 @@ impl ExtBuilder {
             .unwrap();
             Assets::force_set_metadata(
                 RuntimeOrigin::root(),
-                SKSM,
+                SKSM.into(),
                 b"Parallel Kusama".to_vec(),
                 b"sKSM".to_vec(),
                 12,
@@ -333,7 +337,7 @@ impl ExtBuilder {
 
             Assets::mint(
                 RuntimeOrigin::signed(AccountId::from(ALICE)),
-                SKSM,
+                SKSM.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 ksm(100f64),
             )
@@ -342,7 +346,7 @@ impl ExtBuilder {
 
             Assets::mint(
                 RuntimeOrigin::signed(AccountId::from(ALICE)),
-                KSM,
+                KSM.into(),
                 MultiAddress::Id(XcmHelper::account_id()),
                 ksm(100f64),
             )
@@ -390,7 +394,7 @@ impl ExtBuilder {
             System::set_block_number(1);
             Assets::force_create(
                 RuntimeOrigin::root(),
-                DOT,
+                DOT.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
                 1,
@@ -398,7 +402,7 @@ impl ExtBuilder {
             .unwrap();
             Assets::force_set_metadata(
                 RuntimeOrigin::root(),
-                DOT,
+                DOT.into(),
                 b"Polkadot".to_vec(),
                 b"DOT".to_vec(),
                 12,
@@ -407,7 +411,7 @@ impl ExtBuilder {
             .unwrap();
             Assets::mint(
                 RuntimeOrigin::signed(AccountId::from(ALICE)),
-                DOT,
+                DOT.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 dot(100f64),
             )
@@ -416,7 +420,7 @@ impl ExtBuilder {
             //initialize for clv as mock sibling
             Assets::force_create(
                 RuntimeOrigin::root(),
-                CLV,
+                CLV.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
                 1,
@@ -424,7 +428,7 @@ impl ExtBuilder {
             .unwrap();
             Assets::force_set_metadata(
                 RuntimeOrigin::root(),
-                CLV,
+                CLV.into(),
                 b"CLV".to_vec(),
                 b"CLV".to_vec(),
                 CLV_DECIMAL,
@@ -452,8 +456,12 @@ impl ExtBuilder {
             .unwrap();
             let dot_asset_location = MultiLocation::parent();
             let dot_asset_type = AssetType::Xcm(dot_asset_location);
-            AssetRegistry::register_asset(RuntimeOrigin::root(), DOT, dot_asset_type.clone())
-                .unwrap();
+            AssetRegistry::register_asset(
+                RuntimeOrigin::root(),
+                DOT.into(),
+                dot_asset_type.clone(),
+            )
+            .unwrap();
             AssetRegistry::update_asset_units_per_second(
                 RuntimeOrigin::root(),
                 dot_asset_type,
@@ -471,8 +479,12 @@ impl ExtBuilder {
                 ),
             );
             let clv_asset_type = AssetType::Xcm(clv_asset_location);
-            AssetRegistry::register_asset(RuntimeOrigin::root(), CLV, clv_asset_type.clone())
-                .unwrap();
+            AssetRegistry::register_asset(
+                RuntimeOrigin::root(),
+                CLV.into(),
+                clv_asset_type.clone(),
+            )
+            .unwrap();
             AssetRegistry::update_asset_units_per_second(
                 RuntimeOrigin::root(),
                 clv_asset_type,
@@ -520,7 +532,7 @@ impl ExtBuilder {
             // prepare for rmrk
             Assets::force_create(
                 RuntimeOrigin::root(),
-                RMRK_ASSET_ID,
+                RMRK_ASSET_ID.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
                 1,
@@ -537,7 +549,7 @@ impl ExtBuilder {
             .unwrap();
             Assets::mint(
                 RuntimeOrigin::signed(AccountId::from(ALICE)),
-                RMRK_ASSET_ID,
+                RMRK_ASSET_ID.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 rmrk(10),
             )
@@ -546,7 +558,7 @@ impl ExtBuilder {
             // prepare for usdt
             Assets::force_create(
                 RuntimeOrigin::root(),
-                USDT_ASSET_ID,
+                USDT_ASSET_ID.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 true,
                 1,
@@ -554,7 +566,7 @@ impl ExtBuilder {
             .unwrap();
             Assets::force_set_metadata(
                 RuntimeOrigin::root(),
-                USDT_ASSET_ID,
+                USDT_ASSET_ID.into(),
                 b"USDT".to_vec(),
                 b"USDT".to_vec(),
                 USDT_DECIMAL,
@@ -563,7 +575,7 @@ impl ExtBuilder {
             .unwrap();
             Assets::mint(
                 RuntimeOrigin::signed(AccountId::from(ALICE)),
-                USDT_ASSET_ID,
+                USDT_ASSET_ID.into(),
                 MultiAddress::Id(AccountId::from(ALICE)),
                 usdt(10),
             )

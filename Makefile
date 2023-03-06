@@ -18,7 +18,7 @@ CUMULUS_DOCKER_TAG									:= v0.9.28
 init: submodules
 	git config advice.ignoredHook false
 	git config core.hooksPath .githooks
-	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly-2022-07-24 --component rust-src --component rustfmt --component clippy --target wasm32-unknown-unknown
+	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly-2022-11-15 --component rust-src --component rustfmt --component clippy --target wasm32-unknown-unknown
 	cargo install cargo-udeps --locked
 	cd scripts/helper && yarn
 	cd scripts/polkadot-launch && yarn
@@ -88,7 +88,7 @@ test-crowdloans:
 
 .PHONY: integration-test
 integration-test:
-	RUST_LOG="xcm=trace,xcm-executor=trace,liquidStaking=trace" SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- --nocapture
+	SKIP_WASM_BUILD= cargo test -p runtime-integration-tests -- --nocapture
 
 .PHONY: integration-test-statemine
 integration-test-statemine:
@@ -161,7 +161,7 @@ bench-asset-registry: build-release-if-not-exists
 .PHONY: lint
 lint:
 	SKIP_WASM_BUILD= cargo fmt --all -- --check
-	SKIP_WASM_BUILD= cargo clippy --workspace --features runtime-benchmarks --exclude parallel -- -D dead_code -A clippy::derivable_impls -A clippy::explicit_counter_loop -A clippy::unnecessary_cast -A clippy::unnecessary_mut_passed -A clippy::too_many_arguments -A clippy::type_complexity -A clippy::identity_op -D warnings
+	SKIP_WASM_BUILD= cargo clippy --workspace --features runtime-benchmarks --exclude parallel -- -D dead_code -A clippy::derivable_impls -A clippy::explicit_counter_loop -A clippy::unnecessary_cast -A clippy::unnecessary_mut_passed -A clippy::too_many_arguments -A clippy::type_complexity -A clippy::identity_op -A clippy::partialeq-to-none -D warnings
 	cd scripts/helper && yarn format -c && yarn lint
 
 .PHONY: fix
@@ -286,15 +286,15 @@ try-snapshot-upgrade:
 
 .PHONY: try-live-upgrade
 try-live-upgrade:
-	cargo run --bin parallel --release --features try-runtime --features runtime-benchmarks -- try-runtime --chain $(CHAIN) --wasm-execution=compiled --no-spec-check-panic on-runtime-upgrade live --uri=$(URL)
+	cargo run --bin parallel --release --features try-runtime --features runtime-benchmarks -- try-runtime --runtime ./target/release/wbuild/$(CHAIN)-runtime/$(CHAIN)_runtime.wasm --chain $(CHAIN)-dev --wasm-execution=compiled on-runtime-upgrade live --uri=$(URL)
 
 .PHONY: try-heiko-live-upgrade
 try-heiko-live-upgrade:
-	make CHAIN=heiko-dev URL=wss://heiko-rpc.parallel.fi:443 try-live-upgrade
+	make CHAIN=heiko URL=wss://heiko-rpc.parallel.fi:443 try-live-upgrade
 
 .PHONY: try-parallel-live-upgrade
 try-parallel-live-upgrade:
-	make CHAIN=parallel-dev URL=wss://rpc.parallel.fi:443 try-live-upgrade
+	make CHAIN=parallel URL=wss://rpc.parallel.fi:443 try-live-upgrade
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort

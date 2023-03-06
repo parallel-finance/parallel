@@ -16,7 +16,7 @@
 use super::*;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{construct_runtime, parameter_types, traits::Everything};
+use frame_support::{construct_runtime, dispatch::Weight, parameter_types, traits::Everything};
 use pallet_evm::{AddressMapping, EnsureAddressNever, EnsureAddressRoot, PrecompileSet};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
@@ -169,9 +169,9 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-        pub BlockGasLimit: U256 = U256::max_value();
-        pub const PrecompilesValue: Precompiles<Runtime> = Precompiles(PhantomData);
-        pub WeightPerGas: u64 = 1;
+    pub BlockGasLimit: U256 = U256::max_value();
+    pub const PrecompilesValue: Precompiles<Runtime> = Precompiles(PhantomData);
+    pub WeightPerGas: Weight = Weight::from_ref_time(1);
 }
 
 impl pallet_evm::Config for Runtime {

@@ -37,7 +37,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::SDOT,
+        tokens::SDOT.into(),
         account_id.clone(),
         true,
         One::one(),
@@ -46,7 +46,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::DOT,
+        tokens::DOT.into(),
         account_id.clone(),
         true,
         One::one(),
@@ -55,7 +55,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        ASSET_ID,
+        ASSET_ID.into(),
         account_id,
         true,
         One::one(),

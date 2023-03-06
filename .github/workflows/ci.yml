@@ -49,7 +49,7 @@ jobs:
     strategy:
       matrix:
         os: [self-hosted]
-        rust: [nightly-2022-07-24]
+        rust: [nightly-2022-11-15]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:

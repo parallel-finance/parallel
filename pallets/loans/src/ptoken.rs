@@ -120,6 +120,10 @@ impl<T: Config> Inspect<T::AccountId> for Pallet<T> {
 
         WithdrawConsequence::Success
     }
+
+    fn asset_exists(ptoken_id: Self::AssetId) -> bool {
+        Self::underlying_id(ptoken_id).is_ok()
+    }
 }
 
 impl<T: Config> Transfer<T::AccountId> for Pallet<T> {
@@ -177,7 +181,7 @@ impl<T: Config> Pallet<T> {
             },
         )?;
 
-        AccountDeposits::<T>::try_mutate(underlying_id, &dest, |deposits| -> DispatchResult {
+        AccountDeposits::<T>::try_mutate(underlying_id, dest, |deposits| -> DispatchResult {
             deposits.voucher_balance = deposits
                 .voucher_balance
                 .checked_add(amount)
@@ -196,7 +200,7 @@ impl<T: Config> Pallet<T> {
         let Deposits {
             is_collateral,
             voucher_balance,
-        } = Self::account_deposits(underlying_id, &who);
+        } = Self::account_deposits(underlying_id, who);
 
         if !is_collateral {
             return Ok(voucher_balance);

@@ -1,9 +1,11 @@
 use crate as pallet_stableswap;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
-    construct_runtime, parameter_types, traits::Everything, traits::SortedMembers, PalletId,
+    construct_runtime, parameter_types,
+    traits::{AsEnsureOriginWithArg, Everything, SortedMembers},
+    PalletId,
 };
-use frame_system::{self as system, Config, EnsureRoot};
+use frame_system::{self as system, Config, EnsureRoot, EnsureSigned};
 use primitives::{tokens, Balance, CurrencyId, Ratio};
 use scale_info::TypeInfo;
 use sp_core::H256;
@@ -152,7 +154,9 @@ impl pallet_assets::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
+    type AssetIdParameter = codec::Compact<CurrencyId>;
     type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type AssetAccountDeposit = AssetAccountDeposit;
@@ -163,6 +167,9 @@ impl pallet_assets::Config for Test {
     type Freezer = ();
     type Extra = ();
     type WeightInfo = ();
+    type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 parameter_types! {
@@ -226,15 +233,29 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(RuntimeOrigin::root(), tokens::DOT, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), tokens::SDOT, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), tokens::KSM, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), SAMPLE_LP_TOKEN, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), SAMPLE_LP_TOKEN_2, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::DOT.into(), ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::SDOT.into(), ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::KSM.into(), ALICE, true, 1).unwrap();
+        Assets::force_create(
+            RuntimeOrigin::root(),
+            SAMPLE_LP_TOKEN.into(),
+            ALICE,
+            true,
+            1,
+        )
+        .unwrap();
+        Assets::force_create(
+            RuntimeOrigin::root(),
+            SAMPLE_LP_TOKEN_2.into(),
+            ALICE,
+            true,
+            1,
+        )
+        .unwrap();
 
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::DOT,
+            tokens::DOT.into(),
             ALICE,
             100_000_000,
         )
@@ -242,22 +263,28 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::DOT,
+            tokens::DOT.into(),
             BOB,
             100_000_000_000_000_000_000,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::DOT,
+            tokens::DOT.into(),
             CHARLIE,
             1000_000_000,
         )
         .unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), tokens::DOT, EVE, 1000_000_000).unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::DOT,
+            tokens::DOT.into(),
+            EVE,
+            1000_000_000,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            tokens::DOT.into(),
             FRANK,
             100_000_000_000_000_000_000,
         )
@@ -265,28 +292,28 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::SDOT,
+            tokens::SDOT.into(),
             ALICE,
             100_000_000,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::SDOT,
+            tokens::SDOT.into(),
             BOB,
             100_000_000_000_000_000_000,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::SDOT,
+            tokens::SDOT.into(),
             CHARLIE,
             1000_000_000,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::SDOT,
+            tokens::SDOT.into(),
             EVE,
             1000_000_000,
         )
@@ -294,15 +321,21 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::KSM,
+            tokens::KSM.into(),
             ALICE,
             100_000_000,
         )
         .unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), tokens::KSM, BOB, 100_000_000).unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::KSM,
+            tokens::KSM.into(),
+            BOB,
+            100_000_000,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            tokens::KSM.into(),
             FRANK,
             100_000_000_000_000_000_000,
         )

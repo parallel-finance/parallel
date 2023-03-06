@@ -64,7 +64,7 @@ fn transfer_initial_balance<
     let account_id = T::Lookup::unlookup(caller.clone());
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        KSM,
+        KSM.into(),
         account_id.clone(),
         true,
         1,
@@ -72,7 +72,7 @@ fn transfer_initial_balance<
     .ok();
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        SKSM,
+        SKSM.into(),
         account_id.clone(),
         true,
         1,
@@ -80,7 +80,7 @@ fn transfer_initial_balance<
     .ok();
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        DOT,
+        DOT.into(),
         account_id.clone(),
         true,
         1,
@@ -88,7 +88,7 @@ fn transfer_initial_balance<
     .ok();
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        CDOT_6_13,
+        CDOT_6_13.into(),
         account_id.clone(),
         true,
         1,
@@ -96,7 +96,7 @@ fn transfer_initial_balance<
     .ok();
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        USDT,
+        USDT.into(),
         account_id.clone(),
         true,
         1,
@@ -104,7 +104,7 @@ fn transfer_initial_balance<
     .ok();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        KSM,
+        KSM.into(),
         b"kusama".to_vec(),
         b"KSM".to_vec(),
         12,
@@ -113,7 +113,7 @@ fn transfer_initial_balance<
     .ok();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        SKSM,
+        SKSM.into(),
         b"xkusama".to_vec(),
         b"sKSM".to_vec(),
         12,
@@ -122,7 +122,7 @@ fn transfer_initial_balance<
     .ok();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        DOT,
+        DOT.into(),
         b"polkadot".to_vec(),
         b"DOT".to_vec(),
         12,
@@ -131,7 +131,7 @@ fn transfer_initial_balance<
     .ok();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        CDOT_6_13,
+        CDOT_6_13.into(),
         b"cDot_6_13".to_vec(),
         b"cDot_6_13".to_vec(),
         12,
@@ -140,7 +140,7 @@ fn transfer_initial_balance<
     .ok();
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        USDT,
+        USDT.into(),
         b"tether".to_vec(),
         b"USDT".to_vec(),
         6,

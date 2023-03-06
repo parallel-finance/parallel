@@ -11,7 +11,7 @@ use frame_system::RawOrigin;
 use polkadot_parachain::primitives::{HeadData, ValidationCode};
 use primitives::{tokens::DOT, BlockNumber, ParaId, Rate};
 use sp_runtime::{
-    traits::{One, UniqueSaturatedInto, Zero},
+    traits::{One, Zero},
     DispatchError,
     MultiAddress::Id,
 };
@@ -32,7 +32,7 @@ fn create_new_vault_should_work() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -108,7 +108,7 @@ fn create_new_vault_should_not_work_if_ctoken_is_different() {
 
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -116,7 +116,7 @@ fn create_new_vault_should_not_work_if_ctoken_is_different() {
 
         Assets::mint(
             RuntimeOrigin::signed(Crowdloans::account_id()),
-            ctoken,
+            ctoken.into(),
             Id(ALICE),
             dot(100f64),
         )
@@ -164,7 +164,7 @@ fn open_should_work() {
         // create the ctoken asset
         (Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -229,7 +229,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -275,7 +275,7 @@ fn set_vrf_should_work() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -352,7 +352,7 @@ fn contribute_should_work() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -419,7 +419,7 @@ fn contribute_should_fail_insufficient_funds() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -599,7 +599,7 @@ fn claim_failed_should_work() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -691,7 +691,7 @@ fn claim_succeed_and_expired_should_work() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -940,7 +940,7 @@ fn xcm_contribute_should_work() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -1258,7 +1258,7 @@ fn claim_for_should_work() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -1342,7 +1342,7 @@ fn withdraw_for_should_work() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -1433,7 +1433,7 @@ fn get_ctoken_exchange_rate_should_work() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -1546,7 +1546,7 @@ fn get_ctoken_exchange_rate_with_partial_lease_should_work() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -1600,7 +1600,7 @@ fn get_ctoken_exchange_rate_with_minor_input_change_should_work() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),
@@ -1780,7 +1780,7 @@ fn xcm_proxy_contribute_should_work() {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
+            ctoken.into(),
             Id(Crowdloans::account_id()),
             true,
             One::one(),

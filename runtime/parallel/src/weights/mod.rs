@@ -15,7 +15,6 @@ pub mod pallet_xcm_helper;
 pub mod cumulus_pallet_xcmp_queue;
 pub mod orml_oracle;
 pub mod orml_vesting;
-pub mod pallet_assets;
 pub mod pallet_identity;
 pub mod pallet_preimage;
 pub mod pallet_treasury;

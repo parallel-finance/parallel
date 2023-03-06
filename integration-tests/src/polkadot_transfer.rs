@@ -72,7 +72,7 @@ fn transfer_to_relay_chain() {
         println!("parallel para account in relaychain:{:?}", para_acc);
         assert_eq!(
             polkadot_runtime::Balances::free_balance(&AccountId::from(BOB)),
-            99_573_469_824
+            99_591_353_032
         );
     });
 }

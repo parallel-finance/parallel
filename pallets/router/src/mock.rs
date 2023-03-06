@@ -18,9 +18,11 @@ use super::*;
 use crate as pallet_route;
 
 use frame_support::{
-    construct_runtime, parameter_types, traits::Everything, traits::SortedMembers, PalletId,
+    construct_runtime, parameter_types,
+    traits::{AsEnsureOriginWithArg, Everything, SortedMembers},
+    PalletId,
 };
-use frame_system::{EnsureRoot, EnsureSignedBy};
+use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
@@ -103,7 +105,9 @@ impl pallet_assets::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetId = CurrencyId;
+    type AssetIdParameter = parity_scale_codec::Compact<CurrencyId>;
     type Currency = Balances;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
@@ -114,6 +118,9 @@ impl pallet_assets::Config for Runtime {
     type Freezer = ();
     type Extra = ();
     type WeightInfo = ();
+    type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 // AMM instance initialization
@@ -207,44 +214,83 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(RuntimeOrigin::root(), tokens::DOT, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), tokens::SDOT, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), tokens::KSM, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), tokens::USDT, ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::DOT.into(), ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::SDOT.into(), ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::KSM.into(), ALICE, true, 1).unwrap();
+        Assets::force_create(RuntimeOrigin::root(), tokens::USDT.into(), ALICE, true, 1).unwrap();
 
         // lp tokens
-        Assets::force_create(RuntimeOrigin::root(), SAMPLE_LP_TOKEN, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), SAMPLE_LP_TOKEN_2, ALICE, true, 1).unwrap();
-        Assets::force_create(RuntimeOrigin::root(), SAMPLE_LP_TOKEN_3, ALICE, true, 1).unwrap();
+        Assets::force_create(
+            RuntimeOrigin::root(),
+            SAMPLE_LP_TOKEN.into(),
+            ALICE,
+            true,
+            1,
+        )
+        .unwrap();
+        Assets::force_create(
+            RuntimeOrigin::root(),
+            SAMPLE_LP_TOKEN_2.into(),
+            ALICE,
+            true,
+            1,
+        )
+        .unwrap();
+        Assets::force_create(
+            RuntimeOrigin::root(),
+            SAMPLE_LP_TOKEN_3.into(),
+            ALICE,
+            true,
+            1,
+        )
+        .unwrap();
 
-        Assets::mint(RuntimeOrigin::signed(ALICE), tokens::DOT, ALICE, 10_000).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), tokens::SDOT, ALICE, 10_000).unwrap();
-        Assets::mint(RuntimeOrigin::signed(ALICE), tokens::KSM, ALICE, 10_000).unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            tokens::DOT.into(),
+            ALICE,
+            10_000,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            tokens::SDOT.into(),
+            ALICE,
+            10_000,
+        )
+        .unwrap();
+        Assets::mint(
+            RuntimeOrigin::signed(ALICE),
+            tokens::KSM.into(),
+            ALICE,
+            10_000,
+        )
+        .unwrap();
 
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::DOT,
+            tokens::DOT.into(),
             DAVE,
             1000_000_000,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::KSM,
+            tokens::KSM.into(),
             DAVE,
             1000_000_000,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::SDOT,
+            tokens::SDOT.into(),
             DAVE,
             1000_000_000,
         )
         .unwrap();
         Assets::mint(
             RuntimeOrigin::signed(ALICE),
-            tokens::USDT,
+            tokens::USDT.into(),
             DAVE,
             1000_000_000,
         )

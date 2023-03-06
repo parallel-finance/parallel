@@ -1283,14 +1283,14 @@ fn create_pool_large_amount_should_work() {
     new_test_ext().execute_with(|| {
         Assets::mint(
             RawOrigin::Signed(ALICE).into(),
-            tokens::DOT,
+            tokens::DOT.into(),
             ALICE,
             3_000_000_000_000_000_000_000,
         )
         .ok();
         Assets::mint(
             RawOrigin::Signed(ALICE).into(),
-            tokens::SDOT,
+            tokens::SDOT.into(),
             ALICE,
             2_000_000_000_000_000_000_000,
         )
@@ -1330,14 +1330,14 @@ fn create_pool_large_amount_from_an_account_without_sufficient_amount_of_tokens_
     new_test_ext().execute_with(|| {
         Assets::mint(
             RawOrigin::Signed(ALICE).into(),
-            tokens::DOT,
+            tokens::DOT.into(),
             ALICE,
             3_000_000_000_000_000_000_000,
         )
         .ok();
         Assets::mint(
             RawOrigin::Signed(ALICE).into(),
-            tokens::SDOT,
+            tokens::SDOT.into(),
             ALICE,
             2_000_000_000_000_000_000_000,
         )
@@ -1371,7 +1371,7 @@ fn do_add_liquidity_exact_amounts_should_work() {
         // Already deposited 100000000
         Assets::mint(
             RawOrigin::Signed(ALICE).into(),
-            tokens::DOT,
+            tokens::DOT.into(),
             ALICE,
             999_999_999_999_900_000_000,
         )
@@ -1380,7 +1380,7 @@ fn do_add_liquidity_exact_amounts_should_work() {
         // Already deposited 100000000
         Assets::mint(
             RawOrigin::Signed(ALICE).into(),
-            tokens::SDOT,
+            tokens::SDOT.into(),
             ALICE,
             199_999_999_999_990_000_000_0,
         )
@@ -1416,14 +1416,14 @@ fn do_add_liquidity_large_amounts_should_work() {
     new_test_ext().execute_with(|| {
         Assets::mint(
             RawOrigin::Signed(ALICE).into(),
-            tokens::DOT,
+            tokens::DOT.into(),
             ALICE,
             3_000_000_000_000_000_000_000,
         )
         .ok();
         Assets::mint(
             RawOrigin::Signed(ALICE).into(),
-            tokens::SDOT,
+            tokens::SDOT.into(),
             ALICE,
             2_000_000_000_000_000_000_000,
         )

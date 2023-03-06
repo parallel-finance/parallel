@@ -21,9 +21,6 @@ use sp_runtime::{traits::AccountIdConversion, MultiAddress};
 use xcm::latest::prelude::*;
 use xcm_emulator::TestExt;
 
-// pub const FEE_IN_KUSAMA: u128 = 29_642_910;
-pub const STATEMINE_TOTAL_FEE_AMOUNT: u128 = 1_000_000_000; //still can be decreased further but we add some margin here
-
 #[test]
 fn transfer_statemine_rmrk() {
     //reserve transfer rmrk from statemine to heiko
@@ -57,14 +54,26 @@ fn transfer_statemine_rmrk() {
         assert_eq!(Assets::balance(RMRK, &AccountId::from(BOB)), 19988000000);
         assert_ok!(Assets::mint(
             RuntimeOrigin::signed(AccountId::from(ALICE)),
-            KSM,
+            KSM.into(),
             MultiAddress::Id(AccountId::from(BOB)),
             ksm(1f64),
         )); //mint some ksm to BOB to pay for the xcm fee
-        assert_ok!(XTokens::transfer_multicurrencies(
+        assert_ok!(XTokens::transfer_multiasset(
             RuntimeOrigin::signed(BOB.into()),
-            vec![(KSM, STATEMINE_TOTAL_FEE_AMOUNT), (RMRK, rmrk(1)),],
-            0,
+            Box::new(
+                (
+                    MultiLocation::new(
+                        1,
+                        X3(
+                            Parachain(1000),
+                            PalletInstance(50),
+                            GeneralIndex(RMRK_ASSET_ID as u128)
+                        )
+                    ),
+                    rmrk(1)
+                )
+                    .into()
+            ),
             Box::new(
                 MultiLocation::new(
                     1,
@@ -86,14 +95,13 @@ fn transfer_statemine_rmrk() {
         let heiko_sovereign: AccountId = ParaId::from(2085u32).into_account_truncating();
         let statemine_sovereign: AccountId = ParaId::from(1000u32).into_account_truncating();
         assert_eq!(
-            ksm(100f64) - (STATEMINE_TOTAL_FEE_AMOUNT - FEE_IN_STATEMINE),
+            ksm(100f64),
             kusama_runtime::Balances::free_balance(&heiko_sovereign)
         ); //fee deducted from heiko_sovereign
            // https://github.com/open-web3-stack/open-runtime-module-library/pull/786/files
            // teleport will bypass the statemine_sovereign so it'll always be zero
         assert_eq!(
             0,
-            // STATEMINE_TOTAL_FEE_AMOUNT - FEE_IN_STATEMINE - FEE_IN_KUSAMA,
             kusama_runtime::Balances::free_balance(&statemine_sovereign)
         ); // fee reserved into statemine_sovereign
     });
@@ -101,7 +109,7 @@ fn transfer_statemine_rmrk() {
     Statemine::execute_with(|| {
         use statemine_runtime::Assets;
         assert_eq!(
-            rmrk(1),
+            rmrk(1) - 1,
             Assets::balance(RMRK_ASSET_ID, &AccountId::from(BOB))
         );
     });
@@ -145,14 +153,26 @@ fn transfer_statemine_usdt() {
         assert_eq!(Assets::balance(USDT, &AccountId::from(BOB)), 1982000);
         assert_ok!(Assets::mint(
             RuntimeOrigin::signed(AccountId::from(ALICE)),
-            KSM,
+            KSM.into(),
             MultiAddress::Id(AccountId::from(BOB)),
             ksm(1f64),
         )); //mint some ksm to BOB to pay for the xcm fee
-        assert_ok!(XTokens::transfer_multicurrencies(
+        assert_ok!(XTokens::transfer_multiasset(
             RuntimeOrigin::signed(BOB.into()),
-            vec![(KSM, STATEMINE_TOTAL_FEE_AMOUNT), (USDT, usdt(1)),],
-            0,
+            Box::new(
+                (
+                    MultiLocation::new(
+                        1,
+                        X3(
+                            Parachain(1000),
+                            PalletInstance(50),
+                            GeneralIndex(USDT_ASSET_ID as u128)
+                        )
+                    ),
+                    usdt(1)
+                )
+                    .into()
+            ),
             Box::new(
                 MultiLocation::new(
                     1,
@@ -174,7 +194,7 @@ fn transfer_statemine_usdt() {
     Statemine::execute_with(|| {
         use statemine_runtime::Assets;
         assert_eq!(
-            usdt(1),
+            usdt(1) - 1,
             Assets::balance(USDT_ASSET_ID, &AccountId::from(BOB))
         );
     });

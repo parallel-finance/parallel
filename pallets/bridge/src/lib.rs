@@ -329,6 +329,7 @@ pub mod pallet {
         /// Only registered chains are allowed to do cross-chain
         ///
         /// - `chain_id`: should be unique.
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::register_chain())]
         #[transactional]
         pub fn register_chain(origin: OriginFor<T>, chain_id: ChainId) -> DispatchResult {
@@ -350,6 +351,7 @@ pub mod pallet {
         }
 
         /// Unregister the specified chain_id
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::unregister_chain())]
         #[transactional]
         pub fn unregister_chain(origin: OriginFor<T>, chain_id: ChainId) -> DispatchResult {
@@ -372,6 +374,7 @@ pub mod pallet {
         /// Only registered bridge_tokens are allowed to cross-chain
         ///
         /// - `bridge_token`: bridge_token_id should be unique.
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::register_bridge_token())]
         #[transactional]
         pub fn register_bridge_token(
@@ -405,6 +408,7 @@ pub mod pallet {
         }
 
         /// Unregister the specified bridge_token_id
+        #[pallet::call_index(3)]
         #[pallet::weight(T::WeightInfo::unregister_bridge_token())]
         #[transactional]
         pub fn unregister_bridge_token(
@@ -423,6 +427,7 @@ pub mod pallet {
         }
 
         /// Set the cross-chain transaction fee for a registered bridge token
+        #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::set_bridge_token_fee())]
         #[transactional]
         pub fn set_bridge_token_fee(
@@ -441,6 +446,7 @@ pub mod pallet {
         }
 
         /// Set the cross-chain transaction fee for a registered bridge token
+        #[pallet::call_index(5)]
         #[pallet::weight(T::WeightInfo::set_bridge_token_status())]
         #[transactional]
         pub fn set_bridge_token_status(
@@ -459,6 +465,7 @@ pub mod pallet {
         }
 
         /// Set the cross-chain transaction cap for a registered bridge token
+        #[pallet::call_index(6)]
         #[pallet::weight(T::WeightInfo::set_bridge_token_cap())]
         #[transactional]
         pub fn set_bridge_token_cap(
@@ -485,6 +492,7 @@ pub mod pallet {
         }
 
         /// Clean the accumulated cap value to make bridge work again
+        #[pallet::call_index(7)]
         #[pallet::weight(T::WeightInfo::clean_cap_accumulated_value())]
         #[transactional]
         pub fn clean_cap_accumulated_value(
@@ -518,6 +526,7 @@ pub mod pallet {
         /// - `bridge_token_id`: bridge token should be registered before teleport.
         /// - `to`: recipient of the bridge token of another chain
         /// - `amount`: amount to be teleported, the decimal of bridge token may be different
+        #[pallet::call_index(8)]
         #[pallet::weight(T::WeightInfo::teleport())]
         #[transactional]
         pub fn teleport(
@@ -566,6 +575,7 @@ pub mod pallet {
         /// - `to`: recipient of the bridge token of this chain
         /// - `amount`: amount to be materialized, the decimal of bridge token may be different
         /// - `favour`: whether to favour the cross-chain transaction or not, always be true for now.
+        #[pallet::call_index(9)]
         #[pallet::weight(T::WeightInfo::materialize())]
         #[transactional]
         pub fn materialize(
@@ -822,7 +832,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn has_bridged(chain_id: ChainId, chain_nonce: ChainNonce) -> bool {
-        Self::bridge_registry(&chain_id).map_or(false, |registry| {
+        Self::bridge_registry(chain_id).map_or(false, |registry| {
             registry
                 .iter()
                 .any(|&r| (chain_nonce >= r.0 && chain_nonce <= r.1))
@@ -831,7 +841,7 @@ impl<T: Config> Pallet<T> {
 
     /// Records completed bridge transactions
     fn update_bridge_registry(chain_id: ChainId, nonce: ChainNonce) {
-        match Self::bridge_registry(&chain_id) {
+        match Self::bridge_registry(chain_id) {
             None => {}
             Some(mut registry) => {
                 registry.iter_mut().for_each(|x| {

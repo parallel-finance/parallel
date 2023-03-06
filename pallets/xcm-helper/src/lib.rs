@@ -139,6 +139,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Update xcm fees amount to be used in xcm.Withdraw message
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as Config>::WeightInfo::update_xcm_weight_fee())]
         #[transactional]
         pub fn update_xcm_weight_fee(

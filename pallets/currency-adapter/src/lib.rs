@@ -79,6 +79,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
         #[pallet::weight(10_000)]
         pub fn force_set_lock(
             origin: OriginFor<T>,
@@ -95,6 +96,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[pallet::call_index(1)]
         #[pallet::weight(10_000)]
         pub fn force_remove_lock(
             origin: OriginFor<T>,
@@ -174,6 +176,13 @@ impl<T: Config> Inspects<T::AccountId> for Pallet<T> {
             T::Balances::can_withdraw(who, amount)
         } else {
             T::Assets::can_withdraw(asset, who, amount)
+        }
+    }
+    fn asset_exists(asset: Self::AssetId) -> bool {
+        if asset == T::GetNativeCurrencyId::get() {
+            true
+        } else {
+            T::Assets::asset_exists(asset)
         }
     }
 }
