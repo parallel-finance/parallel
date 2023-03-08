@@ -2,7 +2,7 @@
 name = "precompile-utils"
 authors = ['Parallel Team']
 edition = '2021'
-version = '1.9.5'
+version = '1.9.6'
 
 [dependencies]
 impl-trait-for-tuples = "0.2.2"
