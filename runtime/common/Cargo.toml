@@ -1,0 +1,14 @@
+[package]
+authors     = ['Parallel Team']
+description = 'A decentralized lending protocol which allow users to earn "double interests" from staking and lending'
+edition     = '2021'
+homepage    = 'https://parallel.fi'
+license     = 'Apache'
+name        = 'runtime-common'
+repository  = 'https://github.com/parallel-finance/parallel'
+version     = '1.9.6'
+
+[package.metadata.docs.rs]
+targets = ['x86_64-unknown-linux-gnu']
+
+[dependencies]
