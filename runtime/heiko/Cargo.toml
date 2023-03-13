@@ -102,7 +102,7 @@ pallet-evm                     = { version = '6.0.0-dev', default-features = fal
 # pallet-evm-precompile-simple   = { version = '2.0.0-dev', default-features = false }
 
 # Parallel dependencies
-runtime-common                = { path = '../common' }
+runtime-common                = { path = '../common', default-features = false }
 pallet-amm                    = { path = '../../pallets/amm', default-features = false }
 pallet-asset-registry         = { path = '../../pallets/asset-registry', default-features = false }
 pallet-bridge                 = { path = '../../pallets/bridge', default-features = false }
@@ -207,6 +207,7 @@ std                = [
   'xcm-builder/std',
   'xcm-executor/std',
   'primitives/std',
+  'runtime-common/std',
   'pallet-bridge/std',
   'pallet-loans/std',
   'pallet-loans-rpc-runtime-api/std',
