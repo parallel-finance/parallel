@@ -120,9 +120,8 @@ use primitives::{
 
 use pallet_evm_precompile_balances_erc20::Erc20Metadata;
 
-mod precompiles;
 use pallet_evm_precompile_assets_erc20::AddressToAssetId;
-pub use precompiles::{ParallelPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX};
+pub use runtime_common::precompiles::{ParallelPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX};
 
 pub struct NativeErc20Metadata;
 
