@@ -1,1 +1,1 @@
-// pub mod weights;
+pub mod precompiles;
