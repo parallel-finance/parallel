@@ -118,7 +118,7 @@ use primitives::{
     DOT_U,
 };
 
-pub use runtime_common::{
+use runtime_common::{
     fp_rpc, fp_self_contained,
     precompiles::{ParallelPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX},
     AddressToAssetId, Erc20Metadata,
