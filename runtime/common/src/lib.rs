@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod evm_migration;
 pub mod precompiles;
 
 pub use fp_rpc;
