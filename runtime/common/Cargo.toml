@@ -22,6 +22,9 @@ pallet-assets                              = { git = 'https://github.com/parityt
 pallet-balances                            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
 pallet-timestamp                           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
 
+# Polkadot dependencies
+polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36', default-features = false }
+
 # Frontier dependencies
 fp-rpc                         = { version = '3.0.0-dev', default-features = false }
 fp-self-contained              = { version = '1.0.0-dev', default-features = false }
@@ -51,6 +54,7 @@ std                = [
     'pallet-assets/std',
     'pallet-balances/std',
     'pallet-timestamp/std',
+    'polkadot-runtime-common/std',
     'fp-rpc/std',
     'fp-self-contained/std',
     'pallet-evm-precompile-blake2/std',
