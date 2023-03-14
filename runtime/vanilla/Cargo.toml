@@ -265,6 +265,7 @@ try-runtime        = [
   'cumulus-pallet-xcm/try-runtime',
   'cumulus-pallet-aura-ext/try-runtime',
   'cumulus-pallet-parachain-system/try-runtime',
+  'runtime-common/try-runtime',
   'pallet-crowdloans/try-runtime',
   'pallet-amm/try-runtime',
   'pallet-router/try-runtime',
