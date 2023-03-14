@@ -118,9 +118,6 @@ use primitives::{
     KSM_U,
 };
 
-// use pallet_evm_precompile_balances_erc20::Erc20Metadata;
-
-// use pallet_evm_precompile_assets_erc20::AddressToAssetId;
 pub use runtime_common::{
     fp_rpc, fp_self_contained,
     precompiles::{ParallelPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX},

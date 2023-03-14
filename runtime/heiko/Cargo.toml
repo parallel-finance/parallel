@@ -88,18 +88,9 @@ orml-xcm-support            = { version = '0.4.1-dev', default-features = false 
 orml-xtokens                = { version = '0.4.1-dev', default-features = false }
 
 # Frontier dependencies
-# fp-rpc                         = { version = '3.0.0-dev', default-features = false }
-# fp-self-contained              = { version = '1.0.0-dev', default-features = false }
 pallet-base-fee                = { version = '1.0.0', default-features = false }
 pallet-ethereum                = { version = '4.0.0-dev', default-features = false, features = ['forbid-evm-reentrancy'] }
 pallet-evm                     = { version = '6.0.0-dev', default-features = false, features = ['forbid-evm-reentrancy'] }
-# pallet-evm-precompile-blake2   = { version = '2.0.0-dev', default-features = false }
-# pallet-evm-precompile-bn128    = { version = '2.0.0-dev', default-features = false }
-# pallet-evm-precompile-dispatch = { version = '2.0.0-dev', default-features = false }
-# pallet-evm-precompile-ed25519  = { version = '2.0.0-dev', default-features = false }
-# pallet-evm-precompile-modexp   = { version = '2.0.0-dev', default-features = false }
-# pallet-evm-precompile-sha3fips = { version = '2.0.0-dev', default-features = false }
-# pallet-evm-precompile-simple   = { version = '2.0.0-dev', default-features = false }
 
 # Parallel dependencies
 runtime-common                = { path = '../common', default-features = false }
@@ -109,8 +100,6 @@ pallet-bridge                 = { path = '../../pallets/bridge', default-feature
 pallet-crowdloans             = { path = '../../pallets/crowdloans', default-features = false }
 pallet-currency-adapter       = { path = '../../pallets/currency-adapter', default-features = false }
 pallet-emergency-shutdown     = { path = '../../pallets/emergency-shutdown', default-features = false }
-# pallet-evm-precompile-assets-erc20   = { path = '../../precompiles/assets-erc20', default-features = false }
-# pallet-evm-precompile-balances-erc20 = { path = '../../precompiles/balances-erc20', default-features = false }
 pallet-evm-signatures                = { path = '../../pallets/evm-signatures', default-features = false }
 pallet-farming                = { path = '../../pallets/farming', default-features = false }
 pallet-liquid-staking         = { path = '../../pallets/liquid-staking', default-features = false }
@@ -247,21 +236,10 @@ std                = [
   'pallet-xcm-helper/std',
   'pallet-asset-registry/std',
   'pallet-traits/std',
-  # 'fp-rpc/std',
-  # 'fp-self-contained/std',
   'pallet-base-fee/std',
   'pallet-ethereum/std',
   'pallet-evm/std',
-  # 'pallet-evm-precompile-blake2/std',
-  # 'pallet-evm-precompile-simple/std',
-  # 'pallet-evm-precompile-bn128/std',
-  # 'pallet-evm-precompile-dispatch/std',
-  # 'pallet-evm-precompile-ed25519/std',
-  # 'pallet-evm-precompile-modexp/std',
-  # 'pallet-evm-precompile-sha3fips/std',
   'pallet-evm-signatures/std',
-  # 'pallet-evm-precompile-assets-erc20/std',
-  # 'pallet-evm-precompile-balances-erc20/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',
@@ -312,7 +290,6 @@ try-runtime        = [
   'pallet-crowdloans/try-runtime',
   'pallet-xcm-helper/try-runtime',
   'pallet-asset-registry/try-runtime',
-  # 'fp-self-contained/try-runtime',
   'pallet-ethereum/try-runtime',
   'pallet-evm/try-runtime',
   'pallet-base-fee/try-runtime',
