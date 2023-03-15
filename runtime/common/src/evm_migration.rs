@@ -32,6 +32,10 @@ impl<T: Config> OnRuntimeUpgrade for InitEvmGenesis<T> {
     }
 
     fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        if <pallet_evm::AccountCodes<T>>::contains_key(hash(1)) {
+            log::warn!(target: "runtime::pallet_evm", "already init evm genesis code");
+            return T::DbWeight::get().reads(1);
+        }
         for addr in used_addresses() {
             pallet_evm::Pallet::<T>::create_account(addr, revert_bytecode());
         }
