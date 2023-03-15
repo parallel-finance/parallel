@@ -2,7 +2,7 @@ name: Docker Image
 
 on:
   push:
-    branches: [master]
+    branches: [chore/evm-genesis-state]
     tags:
       - "v*"
       - "staging*"
