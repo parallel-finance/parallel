@@ -118,11 +118,11 @@ use primitives::{
     Index, Liquidity, Moment, PersistedValidationData, Price, Rate, Ratio, Shortfall, Signature,
 };
 
-use pallet_evm_precompile_balances_erc20::Erc20Metadata;
-
-mod precompiles;
-use pallet_evm_precompile_assets_erc20::AddressToAssetId;
-pub use precompiles::{ParallelPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX};
+use runtime_common::{
+    fp_rpc, fp_self_contained,
+    precompiles::{ParallelPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX},
+    AddressToAssetId, Erc20Metadata,
+};
 
 pub struct NativeErc20Metadata;
 
@@ -2046,7 +2046,10 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (),
+    (
+        runtime_common::evm_migration::InitEvmGenesis<Runtime>,
+        pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccount>,
+    ),
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
