@@ -15,10 +15,12 @@ heikoChain=heiko-dev
 
 pallets=(
   frame_system
+  pallet_assets
   pallet_balances
   pallet_timestamp
   pallet_multisig
   pallet_membership
+  pallet_collator_selection
   pallet_amm
   pallet_asset_registry
   pallet_bridge
@@ -34,6 +36,7 @@ pallets=(
   cumulus_pallet_xcmp_queue
   pallet_identity
   pallet_democracy
+  pallet_collective
   pallet_preimage
   pallet_scheduler
   pallet_treasury
