@@ -2043,7 +2043,10 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (runtime_common::evm_migration::InitEvmGenesis<Runtime>,),
+    (
+        runtime_common::evm_migration::InitEvmGenesis<Runtime>,
+        pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccount>,
+    ),
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
