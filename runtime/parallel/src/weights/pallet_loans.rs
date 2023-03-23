@@ -34,51 +34,51 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans ExchangeRate (r:0 w:1)
 	// Storage: Loans BorrowIndex (r:0 w:1)
 	fn add_market() -> Weight {
-		// Minimum execution time: 43_675 nanoseconds.
-		Weight::from_ref_time(44_899_000)
+		// Minimum execution time: 43_504 nanoseconds.
+		Weight::from_ref_time(44_243_000)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	// Storage: Loans Markets (r:1 w:1)
 	fn activate_market() -> Weight {
-		// Minimum execution time: 33_960 nanoseconds.
-		Weight::from_ref_time(34_847_000)
+		// Minimum execution time: 33_538 nanoseconds.
+		Weight::from_ref_time(34_110_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Loans Markets (r:1 w:1)
 	fn update_rate_model() -> Weight {
-		// Minimum execution time: 34_840 nanoseconds.
-		Weight::from_ref_time(35_751_000)
+		// Minimum execution time: 34_459 nanoseconds.
+		Weight::from_ref_time(35_170_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Loans Markets (r:1 w:1)
 	fn update_market() -> Weight {
-		// Minimum execution time: 37_722 nanoseconds.
-		Weight::from_ref_time(38_413_000)
+		// Minimum execution time: 36_977 nanoseconds.
+		Weight::from_ref_time(37_529_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Loans UnderlyingAssetId (r:1 w:1)
 	// Storage: Loans Markets (r:1 w:1)
 	fn force_update_market() -> Weight {
-		// Minimum execution time: 42_899 nanoseconds.
-		Weight::from_ref_time(43_907_000)
+		// Minimum execution time: 43_054 nanoseconds.
+		Weight::from_ref_time(43_700_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	// Storage: System Account (r:1 w:1)
 	fn add_reward() -> Weight {
-		// Minimum execution time: 72_588 nanoseconds.
-		Weight::from_ref_time(73_490_000)
+		// Minimum execution time: 71_989 nanoseconds.
+		Weight::from_ref_time(73_035_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: System Account (r:1 w:1)
 	fn withdraw_missing_reward() -> Weight {
-		// Minimum execution time: 59_451 nanoseconds.
-		Weight::from_ref_time(60_299_000)
+		// Minimum execution time: 58_660 nanoseconds.
+		Weight::from_ref_time(59_959_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -88,8 +88,8 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans RewardSupplyState (r:1 w:1)
 	// Storage: Loans RewardBorrowState (r:1 w:1)
 	fn update_market_reward_speed() -> Weight {
-		// Minimum execution time: 61_874 nanoseconds.
-		Weight::from_ref_time(62_822_000)
+		// Minimum execution time: 61_328 nanoseconds.
+		Weight::from_ref_time(62_083_000)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -108,8 +108,8 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans AccountBorrows (r:1 w:0)
 	// Storage: System Account (r:1 w:1)
 	fn claim_reward() -> Weight {
-		// Minimum execution time: 168_963 nanoseconds.
-		Weight::from_ref_time(170_544_000)
+		// Minimum execution time: 169_737 nanoseconds.
+		Weight::from_ref_time(171_380_000)
 			.saturating_add(T::DbWeight::get().reads(15))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
@@ -127,8 +127,8 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans AccountBorrows (r:1 w:0)
 	// Storage: System Account (r:1 w:1)
 	fn claim_reward_for_market() -> Weight {
-		// Minimum execution time: 154_473 nanoseconds.
-		Weight::from_ref_time(156_627_000)
+		// Minimum execution time: 155_189 nanoseconds.
+		Weight::from_ref_time(157_827_000)
 			.saturating_add(T::DbWeight::get().reads(13))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
@@ -148,8 +148,8 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans AccountEarned (r:1 w:1)
 	// Storage: System Account (r:1 w:1)
 	fn mint() -> Weight {
-		// Minimum execution time: 180_694 nanoseconds.
-		Weight::from_ref_time(182_117_000)
+		// Minimum execution time: 180_759 nanoseconds.
+		Weight::from_ref_time(182_409_000)
 			.saturating_add(T::DbWeight::get().reads(17))
 			.saturating_add(T::DbWeight::get().writes(11))
 	}
@@ -172,8 +172,8 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans RewardAccured (r:1 w:1)
 	// Storage: Loans BorrowIndex (r:1 w:0)
 	fn borrow() -> Weight {
-		// Minimum execution time: 263_207 nanoseconds.
-		Weight::from_ref_time(264_956_000)
+		// Minimum execution time: 261_445 nanoseconds.
+		Weight::from_ref_time(264_588_000)
 			.saturating_add(T::DbWeight::get().reads(23))
 			.saturating_add(T::DbWeight::get().writes(9))
 	}
@@ -192,8 +192,8 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans RewardSupplierIndex (r:1 w:1)
 	// Storage: Loans RewardAccured (r:1 w:1)
 	fn redeem() -> Weight {
-		// Minimum execution time: 213_821 nanoseconds.
-		Weight::from_ref_time(216_020_000)
+		// Minimum execution time: 214_463 nanoseconds.
+		Weight::from_ref_time(215_989_000)
 			.saturating_add(T::DbWeight::get().reads(16))
 			.saturating_add(T::DbWeight::get().writes(10))
 	}
@@ -213,8 +213,8 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans RewardAccured (r:1 w:1)
 	// Storage: System Account (r:1 w:1)
 	fn redeem_all() -> Weight {
-		// Minimum execution time: 230_820 nanoseconds.
-		Weight::from_ref_time(234_114_000)
+		// Minimum execution time: 228_801 nanoseconds.
+		Weight::from_ref_time(231_325_000)
 			.saturating_add(T::DbWeight::get().reads(17))
 			.saturating_add(T::DbWeight::get().writes(11))
 	}
@@ -231,8 +231,8 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: Loans TotalBorrows (r:1 w:1)
 	fn repay_borrow() -> Weight {
-		// Minimum execution time: 173_871 nanoseconds.
-		Weight::from_ref_time(175_428_000)
+		// Minimum execution time: 174_718 nanoseconds.
+		Weight::from_ref_time(177_366_000)
 			.saturating_add(T::DbWeight::get().reads(14))
 			.saturating_add(T::DbWeight::get().writes(9))
 	}
@@ -249,16 +249,16 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: Loans TotalBorrows (r:1 w:1)
 	fn repay_borrow_all() -> Weight {
-		// Minimum execution time: 188_293 nanoseconds.
-		Weight::from_ref_time(190_149_000)
+		// Minimum execution time: 189_632 nanoseconds.
+		Weight::from_ref_time(191_955_000)
 			.saturating_add(T::DbWeight::get().reads(14))
 			.saturating_add(T::DbWeight::get().writes(9))
 	}
 	// Storage: Loans Markets (r:2 w:0)
 	// Storage: Loans AccountDeposits (r:1 w:1)
 	fn collateral_asset() -> Weight {
-		// Minimum execution time: 68_710 nanoseconds.
-		Weight::from_ref_time(69_661_000)
+		// Minimum execution time: 69_592 nanoseconds.
+		Weight::from_ref_time(71_207_000)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -284,8 +284,8 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Loans RewardSupplySpeed (r:1 w:0)
 	// Storage: Loans RewardSupplierIndex (r:3 w:3)
 	fn liquidate_borrow() -> Weight {
-		// Minimum execution time: 473_499 nanoseconds.
-		Weight::from_ref_time(477_476_000)
+		// Minimum execution time: 472_500 nanoseconds.
+		Weight::from_ref_time(478_429_000)
 			.saturating_add(T::DbWeight::get().reads(42))
 			.saturating_add(T::DbWeight::get().writes(19))
 	}
@@ -295,8 +295,8 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	// Storage: Loans TotalReserves (r:1 w:1)
 	fn add_reserves() -> Weight {
-		// Minimum execution time: 111_681 nanoseconds.
-		Weight::from_ref_time(112_854_000)
+		// Minimum execution time: 112_055 nanoseconds.
+		Weight::from_ref_time(113_210_000)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
@@ -305,15 +305,15 @@ impl<T: frame_system::Config> pallet_loans::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Account (r:2 w:2)
 	fn reduce_reserves() -> Weight {
-		// Minimum execution time: 103_163 nanoseconds.
-		Weight::from_ref_time(104_953_000)
+		// Minimum execution time: 102_595 nanoseconds.
+		Weight::from_ref_time(104_490_000)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	// Storage: Loans LiquidationFreeCollaterals (r:1 w:1)
 	fn update_liquidation_free_collateral() -> Weight {
-		// Minimum execution time: 29_490 nanoseconds.
-		Weight::from_ref_time(30_170_000)
+		// Minimum execution time: 29_469 nanoseconds.
+		Weight::from_ref_time(30_268_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}

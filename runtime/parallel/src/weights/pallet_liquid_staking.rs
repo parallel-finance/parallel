@@ -40,8 +40,8 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking MatchingPool (r:1 w:1)
 	// Storage: LiquidStaking TotalReserves (r:1 w:1)
 	fn stake() -> Weight {
-		// Minimum execution time: 195_304 nanoseconds.
-		Weight::from_ref_time(197_025_000)
+		// Minimum execution time: 194_526 nanoseconds.
+		Weight::from_ref_time(195_854_000)
 			.saturating_add(T::DbWeight::get().reads(16))
 			.saturating_add(T::DbWeight::get().writes(10))
 	}
@@ -53,8 +53,8 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: Assets Account (r:1 w:1)
 	// Storage: LiquidStaking MatchingPool (r:1 w:1)
 	fn unstake() -> Weight {
-		// Minimum execution time: 91_932 nanoseconds.
-		Weight::from_ref_time(92_912_000)
+		// Minimum execution time: 91_265 nanoseconds.
+		Weight::from_ref_time(92_839_000)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -74,8 +74,8 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn bond() -> Weight {
-		// Minimum execution time: 150_346 nanoseconds.
-		Weight::from_ref_time(151_317_000)
+		// Minimum execution time: 149_562 nanoseconds.
+		Weight::from_ref_time(152_938_000)
 			.saturating_add(T::DbWeight::get().reads(13))
 			.saturating_add(T::DbWeight::get().writes(8))
 	}
@@ -93,8 +93,8 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn nominate() -> Weight {
-		// Minimum execution time: 144_089 nanoseconds.
-		Weight::from_ref_time(145_371_000)
+		// Minimum execution time: 143_299 nanoseconds.
+		Weight::from_ref_time(144_624_000)
 			.saturating_add(T::DbWeight::get().reads(11))
 			.saturating_add(T::DbWeight::get().writes(7))
 	}
@@ -114,8 +114,8 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn bond_extra() -> Weight {
-		// Minimum execution time: 157_169 nanoseconds.
-		Weight::from_ref_time(160_056_000)
+		// Minimum execution time: 156_276 nanoseconds.
+		Weight::from_ref_time(158_294_000)
 			.saturating_add(T::DbWeight::get().reads(13))
 			.saturating_add(T::DbWeight::get().writes(8))
 	}
@@ -123,8 +123,8 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking IsUpdated (r:1 w:1)
 	// Storage: LiquidStaking XcmRequests (r:1 w:0)
 	fn force_set_staking_ledger() -> Weight {
-		// Minimum execution time: 54_240 nanoseconds.
-		Weight::from_ref_time(55_217_000)
+		// Minimum execution time: 54_309 nanoseconds.
+		Weight::from_ref_time(55_301_000)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -143,8 +143,8 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn unbond() -> Weight {
-		// Minimum execution time: 147_176 nanoseconds.
-		Weight::from_ref_time(149_109_000)
+		// Minimum execution time: 147_720 nanoseconds.
+		Weight::from_ref_time(149_498_000)
 			.saturating_add(T::DbWeight::get().reads(12))
 			.saturating_add(T::DbWeight::get().writes(8))
 	}
@@ -163,8 +163,8 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn rebond() -> Weight {
-		// Minimum execution time: 148_292 nanoseconds.
-		Weight::from_ref_time(149_587_000)
+		// Minimum execution time: 148_708 nanoseconds.
+		Weight::from_ref_time(150_529_000)
 			.saturating_add(T::DbWeight::get().reads(12))
 			.saturating_add(T::DbWeight::get().writes(8))
 	}
@@ -183,34 +183,34 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn withdraw_unbonded() -> Weight {
-		// Minimum execution time: 154_063 nanoseconds.
-		Weight::from_ref_time(155_281_000)
+		// Minimum execution time: 153_097 nanoseconds.
+		Weight::from_ref_time(154_529_000)
 			.saturating_add(T::DbWeight::get().reads(12))
 			.saturating_add(T::DbWeight::get().writes(7))
 	}
 	// Storage: LiquidStaking ReserveFactor (r:1 w:1)
 	fn update_reserve_factor() -> Weight {
-		// Minimum execution time: 30_780 nanoseconds.
-		Weight::from_ref_time(31_397_000)
+		// Minimum execution time: 30_395 nanoseconds.
+		Weight::from_ref_time(31_159_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: LiquidStaking CommissionRate (r:0 w:1)
 	fn update_commission_rate() -> Weight {
-		// Minimum execution time: 25_687 nanoseconds.
-		Weight::from_ref_time(26_318_000)
+		// Minimum execution time: 25_216 nanoseconds.
+		Weight::from_ref_time(26_132_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: LiquidStaking Incentive (r:0 w:1)
 	fn update_incentive() -> Weight {
-		// Minimum execution time: 25_760 nanoseconds.
-		Weight::from_ref_time(26_254_000)
+		// Minimum execution time: 25_247 nanoseconds.
+		Weight::from_ref_time(25_966_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: LiquidStaking StakingLedgerCap (r:1 w:1)
 	fn update_staking_ledger_cap() -> Weight {
-		// Minimum execution time: 28_719 nanoseconds.
-		Weight::from_ref_time(29_428_000)
+		// Minimum execution time: 28_431 nanoseconds.
+		Weight::from_ref_time(29_239_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -222,8 +222,8 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Account (r:1 w:1)
 	fn notification_received() -> Weight {
-		// Minimum execution time: 106_715 nanoseconds.
-		Weight::from_ref_time(107_902_000)
+		// Minimum execution time: 107_389 nanoseconds.
+		Weight::from_ref_time(109_367_000)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
@@ -235,30 +235,30 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking TotalReserves (r:1 w:0)
 	// Storage: LiquidStaking MatchingPool (r:1 w:0)
 	fn claim_for() -> Weight {
-		// Minimum execution time: 117_526 nanoseconds.
-		Weight::from_ref_time(118_422_000)
+		// Minimum execution time: 117_820 nanoseconds.
+		Weight::from_ref_time(119_137_000)
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	// Storage: LiquidStaking EraStartBlock (r:0 w:1)
 	fn force_set_era_start_block() -> Weight {
-		// Minimum execution time: 9_654 nanoseconds.
-		Weight::from_ref_time(9_851_000)
+		// Minimum execution time: 9_755 nanoseconds.
+		Weight::from_ref_time(9_893_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: LiquidStaking CurrentEra (r:0 w:1)
 	// Storage: LiquidStaking IsMatched (r:0 w:1)
 	fn force_set_current_era() -> Weight {
-		// Minimum execution time: 10_808 nanoseconds.
-		Weight::from_ref_time(11_196_000)
+		// Minimum execution time: 10_722 nanoseconds.
+		Weight::from_ref_time(11_111_000)
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	// Storage: ParachainSystem ValidationData (r:1 w:0)
 	// Storage: LiquidStaking IsMatched (r:1 w:0)
 	// Storage: LiquidStaking EraStartBlock (r:1 w:0)
 	fn on_initialize() -> Weight {
-		// Minimum execution time: 14_179 nanoseconds.
-		Weight::from_ref_time(14_454_000)
+		// Minimum execution time: 13_747 nanoseconds.
+		Weight::from_ref_time(14_007_000)
 			.saturating_add(T::DbWeight::get().reads(3))
 	}
 	// Storage: LiquidStaking StakingLedgers (r:7 w:0)
@@ -283,8 +283,8 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:2)
 	// Storage: PolkadotXcm Queries (r:0 w:2)
 	fn force_advance_era() -> Weight {
-		// Minimum execution time: 340_093 nanoseconds.
-		Weight::from_ref_time(342_725_000)
+		// Minimum execution time: 337_233 nanoseconds.
+		Weight::from_ref_time(344_180_000)
 			.saturating_add(T::DbWeight::get().reads(25))
 			.saturating_add(T::DbWeight::get().writes(14))
 	}
@@ -306,8 +306,8 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: LiquidStaking XcmRequests (r:0 w:2)
 	// Storage: PolkadotXcm Queries (r:0 w:2)
 	fn force_matching() -> Weight {
-		// Minimum execution time: 294_751 nanoseconds.
-		Weight::from_ref_time(298_106_000)
+		// Minimum execution time: 293_095 nanoseconds.
+		Weight::from_ref_time(295_458_000)
 			.saturating_add(T::DbWeight::get().reads(21))
 			.saturating_add(T::DbWeight::get().writes(11))
 	}
@@ -316,8 +316,8 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Account (r:2 w:2)
 	fn reduce_reserves() -> Weight {
-		// Minimum execution time: 93_425 nanoseconds.
-		Weight::from_ref_time(94_675_000)
+		// Minimum execution time: 93_859 nanoseconds.
+		Weight::from_ref_time(94_882_000)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -326,8 +326,8 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: Assets Asset (r:1 w:0)
 	// Storage: Assets Account (r:1 w:0)
 	fn cancel_unstake() -> Weight {
-		// Minimum execution time: 59_109 nanoseconds.
-		Weight::from_ref_time(59_803_000)
+		// Minimum execution time: 59_288 nanoseconds.
+		Weight::from_ref_time(60_330_000)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -340,10 +340,10 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 	// Storage: System Account (r:2 w:2)
 	/// The range of component `n` is `[1, 50]`.
 	fn fast_match_unstake(n: u32, ) -> Weight {
-		// Minimum execution time: 205_487 nanoseconds.
-		Weight::from_ref_time(82_036_482)
-			// Standard Error: 36_862
-			.saturating_add(Weight::from_ref_time(130_448_142).saturating_mul(n.into()))
+		// Minimum execution time: 207_083 nanoseconds.
+		Weight::from_ref_time(81_085_157)
+			// Standard Error: 29_875
+			.saturating_add(Weight::from_ref_time(131_010_684).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().reads((4_u64).saturating_mul(n.into())))
 			.saturating_add(T::DbWeight::get().writes(6))

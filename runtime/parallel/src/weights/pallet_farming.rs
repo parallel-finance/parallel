@@ -31,29 +31,29 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_farming::WeightInfo for WeightInfo<T> {
 	// Storage: Farming Pools (r:1 w:1)
 	fn create() -> Weight {
-		// Minimum execution time: 38_804 nanoseconds.
-		Weight::from_ref_time(39_612_000)
+		// Minimum execution time: 38_233 nanoseconds.
+		Weight::from_ref_time(38_976_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Farming Pools (r:1 w:1)
 	fn set_pool_status() -> Weight {
-		// Minimum execution time: 39_079 nanoseconds.
-		Weight::from_ref_time(39_694_000)
+		// Minimum execution time: 38_840 nanoseconds.
+		Weight::from_ref_time(39_377_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Farming Pools (r:1 w:1)
 	fn set_pool_cool_down_duration() -> Weight {
-		// Minimum execution time: 39_297 nanoseconds.
-		Weight::from_ref_time(39_998_000)
+		// Minimum execution time: 38_653 nanoseconds.
+		Weight::from_ref_time(39_417_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Farming Pools (r:1 w:1)
 	fn reset_pool_unlock_height() -> Weight {
-		// Minimum execution time: 40_162 nanoseconds.
-		Weight::from_ref_time(40_765_000)
+		// Minimum execution time: 39_968 nanoseconds.
+		Weight::from_ref_time(40_614_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -63,16 +63,16 @@ impl<T: frame_system::Config> pallet_farming::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn deposit() -> Weight {
-		// Minimum execution time: 132_925 nanoseconds.
-		Weight::from_ref_time(133_883_000)
+		// Minimum execution time: 131_941 nanoseconds.
+		Weight::from_ref_time(133_683_000)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
 	// Storage: Farming Pools (r:1 w:1)
 	// Storage: Farming Positions (r:1 w:1)
 	fn withdraw() -> Weight {
-		// Minimum execution time: 84_745 nanoseconds.
-		Weight::from_ref_time(86_054_000)
+		// Minimum execution time: 84_922 nanoseconds.
+		Weight::from_ref_time(86_226_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -81,8 +81,8 @@ impl<T: frame_system::Config> pallet_farming::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Account (r:2 w:2)
 	fn redeem() -> Weight {
-		// Minimum execution time: 104_304 nanoseconds.
-		Weight::from_ref_time(104_957_000)
+		// Minimum execution time: 103_424 nanoseconds.
+		Weight::from_ref_time(104_521_000)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -91,8 +91,8 @@ impl<T: frame_system::Config> pallet_farming::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Account (r:2 w:2)
 	fn claim() -> Weight {
-		// Minimum execution time: 125_473 nanoseconds.
-		Weight::from_ref_time(126_892_000)
+		// Minimum execution time: 125_278 nanoseconds.
+		Weight::from_ref_time(125_779_000)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
@@ -101,8 +101,8 @@ impl<T: frame_system::Config> pallet_farming::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn dispatch_reward() -> Weight {
-		// Minimum execution time: 115_914 nanoseconds.
-		Weight::from_ref_time(117_103_000)
+		// Minimum execution time: 114_330 nanoseconds.
+		Weight::from_ref_time(115_534_000)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}

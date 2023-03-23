@@ -34,8 +34,8 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:3 w:3)
 	// Storage: Assets Account (r:5 w:5)
 	fn add_liquidity() -> Weight {
-		// Minimum execution time: 170_308 nanoseconds.
-		Weight::from_ref_time(171_651_000)
+		// Minimum execution time: 169_170 nanoseconds.
+		Weight::from_ref_time(170_803_000)
 			.saturating_add(T::DbWeight::get().reads(10))
 			.saturating_add(T::DbWeight::get().writes(9))
 	}
@@ -44,8 +44,8 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:3 w:3)
 	// Storage: Assets Account (r:5 w:5)
 	fn remove_liquidity() -> Weight {
-		// Minimum execution time: 185_633 nanoseconds.
-		Weight::from_ref_time(187_805_000)
+		// Minimum execution time: 185_333 nanoseconds.
+		Weight::from_ref_time(187_112_000)
 			.saturating_add(T::DbWeight::get().reads(10))
 			.saturating_add(T::DbWeight::get().writes(9))
 	}
@@ -55,21 +55,21 @@ impl<T: frame_system::Config> pallet_amm::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:2 w:2)
 	// Storage: AMM ProtocolFee (r:1 w:0)
 	fn create_pool() -> Weight {
-		// Minimum execution time: 212_463 nanoseconds.
-		Weight::from_ref_time(214_017_000)
+		// Minimum execution time: 210_443 nanoseconds.
+		Weight::from_ref_time(212_980_000)
 			.saturating_add(T::DbWeight::get().reads(13))
 			.saturating_add(T::DbWeight::get().writes(12))
 	}
 	// Storage: AMM ProtocolFee (r:0 w:1)
 	fn update_protocol_fee() -> Weight {
-		// Minimum execution time: 24_010 nanoseconds.
-		Weight::from_ref_time(24_681_000)
+		// Minimum execution time: 23_863 nanoseconds.
+		Weight::from_ref_time(24_369_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: AMM ProtocolFeeReceiver (r:0 w:1)
 	fn update_protocol_fee_receiver() -> Weight {
-		// Minimum execution time: 25_003 nanoseconds.
-		Weight::from_ref_time(25_590_000)
+		// Minimum execution time: 25_079 nanoseconds.
+		Weight::from_ref_time(25_461_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 }

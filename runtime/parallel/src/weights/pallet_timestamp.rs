@@ -31,13 +31,13 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_timestamp::WeightInfo for WeightInfo<T> {
 	// Storage: Timestamp Now (r:1 w:1)
 	fn set() -> Weight {
-		// Minimum execution time: 13_347 nanoseconds.
-		Weight::from_ref_time(13_685_000)
+		// Minimum execution time: 13_181 nanoseconds.
+		Weight::from_ref_time(13_540_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn on_finalize() -> Weight {
-		// Minimum execution time: 7_299 nanoseconds.
-		Weight::from_ref_time(7_497_000)
+		// Minimum execution time: 7_627 nanoseconds.
+		Weight::from_ref_time(7_793_000)
 	}
 }

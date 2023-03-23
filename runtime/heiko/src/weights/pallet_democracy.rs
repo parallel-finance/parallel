@@ -34,15 +34,15 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	// Storage: Democracy Blacklist (r:1 w:0)
 	// Storage: Democracy DepositOf (r:0 w:1)
 	fn propose() -> Weight {
-		// Minimum execution time: 83_831 nanoseconds.
-		Weight::from_ref_time(87_495_000)
+		// Minimum execution time: 85_600 nanoseconds.
+		Weight::from_ref_time(87_532_000)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	// Storage: Democracy DepositOf (r:1 w:1)
 	fn second() -> Weight {
-		// Minimum execution time: 75_710 nanoseconds.
-		Weight::from_ref_time(77_404_000)
+		// Minimum execution time: 76_382 nanoseconds.
+		Weight::from_ref_time(78_596_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -50,8 +50,8 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	// Storage: Democracy VotingOf (r:1 w:1)
 	// Storage: Balances Locks (r:1 w:1)
 	fn vote_new() -> Weight {
-		// Minimum execution time: 94_674 nanoseconds.
-		Weight::from_ref_time(95_693_000)
+		// Minimum execution time: 95_512 nanoseconds.
+		Weight::from_ref_time(97_101_000)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -59,16 +59,16 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	// Storage: Democracy VotingOf (r:1 w:1)
 	// Storage: Balances Locks (r:1 w:1)
 	fn vote_existing() -> Weight {
-		// Minimum execution time: 93_999 nanoseconds.
-		Weight::from_ref_time(95_535_000)
+		// Minimum execution time: 95_444 nanoseconds.
+		Weight::from_ref_time(96_912_000)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	// Storage: Democracy ReferendumInfoOf (r:1 w:1)
 	// Storage: Democracy Cancellations (r:1 w:1)
 	fn emergency_cancel() -> Weight {
-		// Minimum execution time: 36_906 nanoseconds.
-		Weight::from_ref_time(37_633_000)
+		// Minimum execution time: 37_012 nanoseconds.
+		Weight::from_ref_time(38_071_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -79,45 +79,45 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	// Storage: Democracy ReferendumInfoOf (r:1 w:1)
 	// Storage: Democracy Blacklist (r:0 w:1)
 	fn blacklist() -> Weight {
-		// Minimum execution time: 151_288 nanoseconds.
-		Weight::from_ref_time(153_264_000)
+		// Minimum execution time: 150_093 nanoseconds.
+		Weight::from_ref_time(151_781_000)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(7))
 	}
 	// Storage: Democracy NextExternal (r:1 w:1)
 	// Storage: Democracy Blacklist (r:1 w:0)
 	fn external_propose() -> Weight {
-		// Minimum execution time: 27_175 nanoseconds.
-		Weight::from_ref_time(28_011_000)
+		// Minimum execution time: 27_401 nanoseconds.
+		Weight::from_ref_time(28_255_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Democracy NextExternal (r:0 w:1)
 	fn external_propose_majority() -> Weight {
-		// Minimum execution time: 8_149 nanoseconds.
-		Weight::from_ref_time(8_513_000)
+		// Minimum execution time: 8_247 nanoseconds.
+		Weight::from_ref_time(8_465_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Democracy NextExternal (r:0 w:1)
 	fn external_propose_default() -> Weight {
-		// Minimum execution time: 8_041 nanoseconds.
-		Weight::from_ref_time(8_420_000)
+		// Minimum execution time: 8_251 nanoseconds.
+		Weight::from_ref_time(8_434_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Democracy NextExternal (r:1 w:1)
 	// Storage: Democracy ReferendumCount (r:1 w:1)
 	// Storage: Democracy ReferendumInfoOf (r:0 w:1)
 	fn fast_track() -> Weight {
-		// Minimum execution time: 36_792 nanoseconds.
-		Weight::from_ref_time(37_299_000)
+		// Minimum execution time: 36_717 nanoseconds.
+		Weight::from_ref_time(37_340_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	// Storage: Democracy NextExternal (r:1 w:1)
 	// Storage: Democracy Blacklist (r:1 w:1)
 	fn veto_external() -> Weight {
-		// Minimum execution time: 45_469 nanoseconds.
-		Weight::from_ref_time(46_276_000)
+		// Minimum execution time: 45_364 nanoseconds.
+		Weight::from_ref_time(46_057_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -125,15 +125,15 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	// Storage: Democracy DepositOf (r:1 w:1)
 	// Storage: System Account (r:2 w:2)
 	fn cancel_proposal() -> Weight {
-		// Minimum execution time: 128_027 nanoseconds.
-		Weight::from_ref_time(131_724_000)
+		// Minimum execution time: 129_084 nanoseconds.
+		Weight::from_ref_time(132_167_000)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	// Storage: Democracy ReferendumInfoOf (r:0 w:1)
 	fn cancel_referendum() -> Weight {
-		// Minimum execution time: 24_146 nanoseconds.
-		Weight::from_ref_time(24_852_000)
+		// Minimum execution time: 24_206 nanoseconds.
+		Weight::from_ref_time(24_804_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Democracy LowestUnbaked (r:1 w:1)
@@ -141,10 +141,10 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	// Storage: Democracy ReferendumInfoOf (r:2 w:0)
 	/// The range of component `r` is `[0, 99]`.
 	fn on_initialize_base(r: u32, ) -> Weight {
-		// Minimum execution time: 11_203 nanoseconds.
-		Weight::from_ref_time(14_873_918)
-			// Standard Error: 5_794
-			.saturating_add(Weight::from_ref_time(3_715_407).saturating_mul(r.into()))
+		// Minimum execution time: 11_287 nanoseconds.
+		Weight::from_ref_time(14_317_351)
+			// Standard Error: 5_541
+			.saturating_add(Weight::from_ref_time(3_763_789).saturating_mul(r.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(r.into())))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -157,10 +157,10 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	// Storage: Democracy ReferendumInfoOf (r:2 w:0)
 	/// The range of component `r` is `[0, 99]`.
 	fn on_initialize_base_with_launch_period(r: u32, ) -> Weight {
-		// Minimum execution time: 15_747 nanoseconds.
-		Weight::from_ref_time(19_650_957)
-			// Standard Error: 6_084
-			.saturating_add(Weight::from_ref_time(3_721_659).saturating_mul(r.into()))
+		// Minimum execution time: 15_637 nanoseconds.
+		Weight::from_ref_time(19_229_528)
+			// Standard Error: 5_993
+			.saturating_add(Weight::from_ref_time(3_765_282).saturating_mul(r.into()))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(r.into())))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -170,10 +170,10 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	// Storage: Democracy ReferendumInfoOf (r:2 w:2)
 	/// The range of component `r` is `[0, 99]`.
 	fn delegate(r: u32, ) -> Weight {
-		// Minimum execution time: 74_146 nanoseconds.
-		Weight::from_ref_time(82_453_335)
-			// Standard Error: 7_569
-			.saturating_add(Weight::from_ref_time(5_554_671).saturating_mul(r.into()))
+		// Minimum execution time: 74_229 nanoseconds.
+		Weight::from_ref_time(81_662_587)
+			// Standard Error: 8_523
+			.saturating_add(Weight::from_ref_time(5_633_635).saturating_mul(r.into()))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(r.into())))
 			.saturating_add(T::DbWeight::get().writes(4))
@@ -183,10 +183,10 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	// Storage: Democracy ReferendumInfoOf (r:2 w:2)
 	/// The range of component `r` is `[0, 99]`.
 	fn undelegate(r: u32, ) -> Weight {
-		// Minimum execution time: 44_907 nanoseconds.
-		Weight::from_ref_time(47_689_622)
-			// Standard Error: 7_803
-			.saturating_add(Weight::from_ref_time(5_524_842).saturating_mul(r.into()))
+		// Minimum execution time: 44_636 nanoseconds.
+		Weight::from_ref_time(47_410_981)
+			// Standard Error: 9_065
+			.saturating_add(Weight::from_ref_time(5_544_080).saturating_mul(r.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(r.into())))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -194,8 +194,8 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	}
 	// Storage: Democracy PublicProps (r:0 w:1)
 	fn clear_public_proposals() -> Weight {
-		// Minimum execution time: 9_305 nanoseconds.
-		Weight::from_ref_time(9_631_000)
+		// Minimum execution time: 9_340 nanoseconds.
+		Weight::from_ref_time(9_679_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Democracy VotingOf (r:1 w:1)
@@ -203,10 +203,10 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	/// The range of component `r` is `[0, 99]`.
 	fn unlock_remove(r: u32, ) -> Weight {
-		// Minimum execution time: 42_279 nanoseconds.
-		Weight::from_ref_time(54_305_846)
-			// Standard Error: 2_801
-			.saturating_add(Weight::from_ref_time(131_721).saturating_mul(r.into()))
+		// Minimum execution time: 42_213 nanoseconds.
+		Weight::from_ref_time(54_002_792)
+			// Standard Error: 2_861
+			.saturating_add(Weight::from_ref_time(141_889).saturating_mul(r.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -215,10 +215,10 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	/// The range of component `r` is `[0, 99]`.
 	fn unlock_set(r: u32, ) -> Weight {
-		// Minimum execution time: 51_384 nanoseconds.
-		Weight::from_ref_time(53_605_385)
-			// Standard Error: 1_501
-			.saturating_add(Weight::from_ref_time(190_818).saturating_mul(r.into()))
+		// Minimum execution time: 50_833 nanoseconds.
+		Weight::from_ref_time(52_818_688)
+			// Standard Error: 2_001
+			.saturating_add(Weight::from_ref_time(206_672).saturating_mul(r.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -226,10 +226,10 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	// Storage: Democracy VotingOf (r:1 w:1)
 	/// The range of component `r` is `[1, 100]`.
 	fn remove_vote(r: u32, ) -> Weight {
-		// Minimum execution time: 27_990 nanoseconds.
-		Weight::from_ref_time(31_554_577)
-			// Standard Error: 1_533
-			.saturating_add(Weight::from_ref_time(186_681).saturating_mul(r.into()))
+		// Minimum execution time: 27_768 nanoseconds.
+		Weight::from_ref_time(31_021_781)
+			// Standard Error: 1_598
+			.saturating_add(Weight::from_ref_time(195_233).saturating_mul(r.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -237,10 +237,10 @@ impl<T: frame_system::Config> pallet_democracy::WeightInfo for WeightInfo<T> {
 	// Storage: Democracy VotingOf (r:1 w:1)
 	/// The range of component `r` is `[1, 100]`.
 	fn remove_other_vote(r: u32, ) -> Weight {
-		// Minimum execution time: 28_358 nanoseconds.
-		Weight::from_ref_time(31_816_288)
-			// Standard Error: 1_588
-			.saturating_add(Weight::from_ref_time(190_195).saturating_mul(r.into()))
+		// Minimum execution time: 27_623 nanoseconds.
+		Weight::from_ref_time(31_365_279)
+			// Standard Error: 1_683
+			.saturating_add(Weight::from_ref_time(193_815).saturating_mul(r.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}

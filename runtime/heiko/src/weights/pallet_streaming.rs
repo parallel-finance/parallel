@@ -38,8 +38,8 @@ impl<T: frame_system::Config> pallet_streaming::WeightInfo for WeightInfo<T> {
 	// Storage: Streaming StreamLibrary (r:4 w:4)
 	// Storage: Streaming Streams (r:0 w:1)
 	fn create() -> Weight {
-		// Minimum execution time: 121_862 nanoseconds.
-		Weight::from_ref_time(122_874_000)
+		// Minimum execution time: 122_435 nanoseconds.
+		Weight::from_ref_time(123_639_000)
 			.saturating_add(T::DbWeight::get().reads(11))
 			.saturating_add(T::DbWeight::get().writes(10))
 	}
@@ -50,8 +50,8 @@ impl<T: frame_system::Config> pallet_streaming::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	// Storage: Streaming StreamLibrary (r:2 w:2)
 	fn cancel() -> Weight {
-		// Minimum execution time: 132_828 nanoseconds.
-		Weight::from_ref_time(133_666_000)
+		// Minimum execution time: 133_147 nanoseconds.
+		Weight::from_ref_time(135_351_000)
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().writes(7))
 	}
@@ -61,15 +61,15 @@ impl<T: frame_system::Config> pallet_streaming::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn withdraw() -> Weight {
-		// Minimum execution time: 108_762 nanoseconds.
-		Weight::from_ref_time(109_419_000)
+		// Minimum execution time: 109_576 nanoseconds.
+		Weight::from_ref_time(110_425_000)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
 	// Storage: Streaming MinimumDeposits (r:0 w:1)
 	fn set_minimum_deposit() -> Weight {
-		// Minimum execution time: 26_201 nanoseconds.
-		Weight::from_ref_time(26_797_000)
+		// Minimum execution time: 26_906 nanoseconds.
+		Weight::from_ref_time(27_811_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 }

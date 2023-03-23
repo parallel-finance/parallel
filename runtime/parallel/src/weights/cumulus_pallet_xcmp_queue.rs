@@ -31,15 +31,15 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> cumulus_pallet_xcmp_queue::WeightInfo for WeightInfo<T> {
 	// Storage: XcmpQueue QueueConfig (r:1 w:1)
 	fn set_config_with_u32() -> Weight {
-		// Minimum execution time: 11_799 nanoseconds.
-		Weight::from_ref_time(11_976_000)
+		// Minimum execution time: 11_870 nanoseconds.
+		Weight::from_ref_time(12_136_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: XcmpQueue QueueConfig (r:1 w:1)
 	fn set_config_with_weight() -> Weight {
-		// Minimum execution time: 11_620 nanoseconds.
-		Weight::from_ref_time(11_927_000)
+		// Minimum execution time: 11_955 nanoseconds.
+		Weight::from_ref_time(12_130_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}

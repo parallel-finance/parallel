@@ -31,8 +31,8 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_xcm_helper::WeightInfo for WeightInfo<T> {
 	// Storage: XcmHelper XcmWeightFee (r:1 w:1)
 	fn update_xcm_weight_fee() -> Weight {
-		// Minimum execution time: 29_849 nanoseconds.
-		Weight::from_ref_time(30_370_000)
+		// Minimum execution time: 29_959 nanoseconds.
+		Weight::from_ref_time(30_589_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
