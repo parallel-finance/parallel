@@ -35,10 +35,10 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 99]`.
 	fn add_member(m: u32, ) -> Weight {
-		// Minimum execution time: 35_661 nanoseconds.
-		Weight::from_ref_time(36_771_594)
-			// Standard Error: 590
-			.saturating_add(Weight::from_ref_time(55_623).saturating_mul(m.into()))
+		// Minimum execution time: 35_836 nanoseconds.
+		Weight::from_ref_time(37_120_705)
+			// Standard Error: 631
+			.saturating_add(Weight::from_ref_time(54_185).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -49,10 +49,10 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[2, 100]`.
 	fn remove_member(m: u32, ) -> Weight {
-		// Minimum execution time: 39_522 nanoseconds.
-		Weight::from_ref_time(41_212_226)
-			// Standard Error: 660
-			.saturating_add(Weight::from_ref_time(49_261).saturating_mul(m.into()))
+		// Minimum execution time: 39_557 nanoseconds.
+		Weight::from_ref_time(41_320_702)
+			// Standard Error: 635
+			.saturating_add(Weight::from_ref_time(47_322).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -63,10 +63,10 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[2, 100]`.
 	fn swap_member(m: u32, ) -> Weight {
-		// Minimum execution time: 39_652 nanoseconds.
-		Weight::from_ref_time(41_390_071)
-			// Standard Error: 780
-			.saturating_add(Weight::from_ref_time(64_984).saturating_mul(m.into()))
+		// Minimum execution time: 39_936 nanoseconds.
+		Weight::from_ref_time(41_420_892)
+			// Standard Error: 761
+			.saturating_add(Weight::from_ref_time(66_911).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -77,10 +77,10 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 100]`.
 	fn reset_member(m: u32, ) -> Weight {
-		// Minimum execution time: 39_095 nanoseconds.
-		Weight::from_ref_time(41_558_422)
+		// Minimum execution time: 38_859 nanoseconds.
+		Weight::from_ref_time(41_493_670)
 			// Standard Error: 1_199
-			.saturating_add(Weight::from_ref_time(219_761).saturating_mul(m.into()))
+			.saturating_add(Weight::from_ref_time(221_691).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -91,10 +91,10 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 100]`.
 	fn change_key(m: u32, ) -> Weight {
-		// Minimum execution time: 41_605 nanoseconds.
-		Weight::from_ref_time(42_903_692)
-			// Standard Error: 707
-			.saturating_add(Weight::from_ref_time(63_299).saturating_mul(m.into()))
+		// Minimum execution time: 41_010 nanoseconds.
+		Weight::from_ref_time(43_084_312)
+			// Standard Error: 758
+			.saturating_add(Weight::from_ref_time(62_938).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -103,10 +103,10 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 100]`.
 	fn set_prime(m: u32, ) -> Weight {
-		// Minimum execution time: 15_138 nanoseconds.
-		Weight::from_ref_time(15_654_570)
-			// Standard Error: 344
-			.saturating_add(Weight::from_ref_time(13_913).saturating_mul(m.into()))
+		// Minimum execution time: 15_154 nanoseconds.
+		Weight::from_ref_time(15_691_013)
+			// Standard Error: 257
+			.saturating_add(Weight::from_ref_time(11_952).saturating_mul(m.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -114,8 +114,8 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: TechnicalCommittee Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 100]`.
 	fn clear_prime(_m: u32, ) -> Weight {
-		// Minimum execution time: 8_887 nanoseconds.
-		Weight::from_ref_time(9_353_035)
+		// Minimum execution time: 8_843 nanoseconds.
+		Weight::from_ref_time(9_330_865)
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 }

@@ -35,8 +35,8 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: ParachainSystem ValidationData (r:1 w:0)
 	// Storage: Crowdloans NextTrieIndex (r:1 w:1)
 	fn create_vault() -> Weight {
-		// Minimum execution time: 61_898 nanoseconds.
-		Weight::from_ref_time(62_629_000)
+		// Minimum execution time: 62_736 nanoseconds.
+		Weight::from_ref_time(63_051_000)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -44,8 +44,8 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Crowdloans Vaults (r:1 w:1)
 	// Storage: ParachainSystem ValidationData (r:1 w:0)
 	fn update_vault() -> Weight {
-		// Minimum execution time: 54_529 nanoseconds.
-		Weight::from_ref_time(55_359_000)
+		// Minimum execution time: 54_771 nanoseconds.
+		Weight::from_ref_time(55_980_000)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -68,58 +68,58 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:1 w:1)
 	fn contribute() -> Weight {
-		// Minimum execution time: 220_167 nanoseconds.
-		Weight::from_ref_time(222_723_000)
+		// Minimum execution time: 221_628 nanoseconds.
+		Weight::from_ref_time(224_197_000)
 			.saturating_add(T::DbWeight::get().reads(18))
 			.saturating_add(T::DbWeight::get().writes(12))
 	}
 	// Storage: Crowdloans LeasesRegistry (r:1 w:0)
 	// Storage: Crowdloans Vaults (r:1 w:1)
 	fn open() -> Weight {
-		// Minimum execution time: 50_920 nanoseconds.
-		Weight::from_ref_time(51_919_000)
+		// Minimum execution time: 51_719 nanoseconds.
+		Weight::from_ref_time(52_743_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Crowdloans LeasesRegistry (r:1 w:0)
 	// Storage: Crowdloans Vaults (r:1 w:1)
 	fn close() -> Weight {
-		// Minimum execution time: 51_328 nanoseconds.
-		Weight::from_ref_time(51_970_000)
+		// Minimum execution time: 51_288 nanoseconds.
+		Weight::from_ref_time(52_233_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Crowdloans IsVrf (r:0 w:1)
 	fn set_vrf() -> Weight {
-		// Minimum execution time: 24_991 nanoseconds.
-		Weight::from_ref_time(25_338_000)
+		// Minimum execution time: 25_046 nanoseconds.
+		Weight::from_ref_time(25_446_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Crowdloans ProxyAddress (r:0 w:1)
 	fn update_proxy() -> Weight {
-		// Minimum execution time: 26_467 nanoseconds.
-		Weight::from_ref_time(26_968_000)
+		// Minimum execution time: 26_324 nanoseconds.
+		Weight::from_ref_time(26_792_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Crowdloans LeasesBonus (r:0 w:1)
 	fn update_leases_bonus() -> Weight {
-		// Minimum execution time: 30_331 nanoseconds.
-		Weight::from_ref_time(30_886_000)
+		// Minimum execution time: 30_102 nanoseconds.
+		Weight::from_ref_time(30_553_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Crowdloans LeasesRegistry (r:1 w:0)
 	// Storage: Crowdloans Vaults (r:1 w:1)
 	fn reopen() -> Weight {
-		// Minimum execution time: 50_805 nanoseconds.
-		Weight::from_ref_time(52_003_000)
+		// Minimum execution time: 51_433 nanoseconds.
+		Weight::from_ref_time(52_186_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Crowdloans LeasesRegistry (r:1 w:0)
 	// Storage: Crowdloans Vaults (r:1 w:1)
 	fn auction_succeeded() -> Weight {
-		// Minimum execution time: 50_861 nanoseconds.
-		Weight::from_ref_time(51_775_000)
+		// Minimum execution time: 51_341 nanoseconds.
+		Weight::from_ref_time(51_918_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -138,8 +138,8 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Crowdloans XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn auction_failed() -> Weight {
-		// Minimum execution time: 163_396 nanoseconds.
-		Weight::from_ref_time(165_021_000)
+		// Minimum execution time: 161_351 nanoseconds.
+		Weight::from_ref_time(163_385_000)
 			.saturating_add(T::DbWeight::get().reads(12))
 			.saturating_add(T::DbWeight::get().writes(8))
 	}
@@ -151,8 +151,8 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Metadata (r:1 w:0)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:1 w:1)
 	fn claim() -> Weight {
-		// Minimum execution time: 109_553 nanoseconds.
-		Weight::from_ref_time(110_722_000)
+		// Minimum execution time: 111_876 nanoseconds.
+		Weight::from_ref_time(113_383_000)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -161,8 +161,8 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:1 w:1)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:1 w:1)
 	fn withdraw() -> Weight {
-		// Minimum execution time: 95_856 nanoseconds.
-		Weight::from_ref_time(96_902_000)
+		// Minimum execution time: 96_743 nanoseconds.
+		Weight::from_ref_time(98_157_000)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -171,8 +171,8 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:2 w:2)
 	// Storage: Assets Account (r:2 w:2)
 	fn redeem() -> Weight {
-		// Minimum execution time: 135_598 nanoseconds.
-		Weight::from_ref_time(136_420_000)
+		// Minimum execution time: 136_165 nanoseconds.
+		Weight::from_ref_time(137_409_000)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
@@ -191,8 +191,8 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Crowdloans XcmRequests (r:0 w:1)
 	// Storage: PolkadotXcm Queries (r:0 w:1)
 	fn slot_expired() -> Weight {
-		// Minimum execution time: 163_522 nanoseconds.
-		Weight::from_ref_time(165_324_000)
+		// Minimum execution time: 161_419 nanoseconds.
+		Weight::from_ref_time(164_050_000)
 			.saturating_add(T::DbWeight::get().reads(12))
 			.saturating_add(T::DbWeight::get().writes(8))
 	}
@@ -214,8 +214,8 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: unknown [0x] (r:1 w:0)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:2 w:2)
 	fn migrate_pending() -> Weight {
-		// Minimum execution time: 219_120 nanoseconds.
-		Weight::from_ref_time(222_205_000)
+		// Minimum execution time: 227_184 nanoseconds.
+		Weight::from_ref_time(231_998_000)
 			.saturating_add(T::DbWeight::get().reads(16))
 			.saturating_add(T::DbWeight::get().writes(10))
 	}
@@ -226,8 +226,8 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:2 w:2)
 	fn notification_received() -> Weight {
-		// Minimum execution time: 138_005 nanoseconds.
-		Weight::from_ref_time(140_065_000)
+		// Minimum execution time: 140_376 nanoseconds.
+		Weight::from_ref_time(141_233_000)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(7))
 	}
@@ -237,8 +237,8 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: unknown [0x] (r:3 w:0)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:1 w:1)
 	fn refund() -> Weight {
-		// Minimum execution time: 159_074 nanoseconds.
-		Weight::from_ref_time(179_019_000)
+		// Minimum execution time: 183_032 nanoseconds.
+		Weight::from_ref_time(184_672_000)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -246,8 +246,8 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: Crowdloans LeasesRegistry (r:1 w:1)
 	// Storage: unknown [0x] (r:3 w:0)
 	fn dissolve_vault() -> Weight {
-		// Minimum execution time: 116_259 nanoseconds.
-		Weight::from_ref_time(118_810_000)
+		// Minimum execution time: 120_715 nanoseconds.
+		Weight::from_ref_time(122_535_000)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -257,8 +257,8 @@ impl<T: frame_system::Config> pallet_crowdloans::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	// Storage: unknown [0xd861ea1ebf4800d4b89f4ff787ad79ee96d9a708c85b57da7eb8f9ddeda61291] (r:1 w:1)
 	fn refund_for() -> Weight {
-		// Minimum execution time: 131_360 nanoseconds.
-		Weight::from_ref_time(132_900_000)
+		// Minimum execution time: 132_624 nanoseconds.
+		Weight::from_ref_time(134_515_000)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}

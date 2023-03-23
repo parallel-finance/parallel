@@ -33,8 +33,8 @@ impl<T: frame_system::Config> pallet_router::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:4 w:4)
 	// Storage: AMM Pools (r:1 w:1)
 	fn swap_exact_tokens_for_tokens() -> Weight {
-		// Minimum execution time: 163_302 nanoseconds.
-		Weight::from_ref_time(165_054_000)
+		// Minimum execution time: 162_033 nanoseconds.
+		Weight::from_ref_time(163_500_000)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(7))
 	}
@@ -42,8 +42,8 @@ impl<T: frame_system::Config> pallet_router::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:2 w:2)
 	// Storage: Assets Account (r:4 w:4)
 	fn swap_tokens_for_exact_tokens() -> Weight {
-		// Minimum execution time: 163_380 nanoseconds.
-		Weight::from_ref_time(165_502_000)
+		// Minimum execution time: 162_807 nanoseconds.
+		Weight::from_ref_time(164_482_000)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(7))
 	}

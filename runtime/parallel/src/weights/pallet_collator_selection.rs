@@ -33,23 +33,23 @@ impl<T: frame_system::Config> pallet_collator_selection::WeightInfo for WeightIn
 	// Storage: CollatorSelection Invulnerables (r:0 w:1)
 	/// The range of component `b` is `[1, 100]`.
 	fn set_invulnerables(b: u32, ) -> Weight {
-		// Minimum execution time: 33_883 nanoseconds.
-		Weight::from_ref_time(36_786_291)
-			// Standard Error: 5_147
-			.saturating_add(Weight::from_ref_time(4_155_774).saturating_mul(b.into()))
+		// Minimum execution time: 34_135 nanoseconds.
+		Weight::from_ref_time(37_271_714)
+			// Standard Error: 5_518
+			.saturating_add(Weight::from_ref_time(4_116_870).saturating_mul(b.into()))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(b.into())))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: CollatorSelection DesiredCandidates (r:0 w:1)
 	fn set_desired_candidates() -> Weight {
-		// Minimum execution time: 21_745 nanoseconds.
-		Weight::from_ref_time(22_433_000)
+		// Minimum execution time: 21_565 nanoseconds.
+		Weight::from_ref_time(22_145_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: CollatorSelection CandidacyBond (r:0 w:1)
 	fn set_candidacy_bond() -> Weight {
-		// Minimum execution time: 22_063 nanoseconds.
-		Weight::from_ref_time(22_936_000)
+		// Minimum execution time: 22_039 nanoseconds.
+		Weight::from_ref_time(22_671_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: CollatorSelection Candidates (r:1 w:1)
@@ -60,10 +60,10 @@ impl<T: frame_system::Config> pallet_collator_selection::WeightInfo for WeightIn
 	// Storage: CollatorSelection LastAuthoredBlock (r:0 w:1)
 	/// The range of component `c` is `[1, 999]`.
 	fn register_as_candidate(c: u32, ) -> Weight {
-		// Minimum execution time: 77_113 nanoseconds.
-		Weight::from_ref_time(77_183_693)
-			// Standard Error: 2_321
-			.saturating_add(Weight::from_ref_time(230_502).saturating_mul(c.into()))
+		// Minimum execution time: 76_656 nanoseconds.
+		Weight::from_ref_time(76_272_615)
+			// Standard Error: 2_132
+			.saturating_add(Weight::from_ref_time(212_237).saturating_mul(c.into()))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -71,10 +71,10 @@ impl<T: frame_system::Config> pallet_collator_selection::WeightInfo for WeightIn
 	// Storage: CollatorSelection LastAuthoredBlock (r:0 w:1)
 	/// The range of component `c` is `[2, 1000]`.
 	fn leave_intent(c: u32, ) -> Weight {
-		// Minimum execution time: 56_814 nanoseconds.
-		Weight::from_ref_time(53_440_872)
-			// Standard Error: 2_232
-			.saturating_add(Weight::from_ref_time(204_559).saturating_mul(c.into()))
+		// Minimum execution time: 56_988 nanoseconds.
+		Weight::from_ref_time(52_627_619)
+			// Standard Error: 2_094
+			.saturating_add(Weight::from_ref_time(207_030).saturating_mul(c.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -82,8 +82,8 @@ impl<T: frame_system::Config> pallet_collator_selection::WeightInfo for WeightIn
 	// Storage: System BlockWeight (r:1 w:1)
 	// Storage: CollatorSelection LastAuthoredBlock (r:0 w:1)
 	fn note_author() -> Weight {
-		// Minimum execution time: 60_871 nanoseconds.
-		Weight::from_ref_time(61_385_000)
+		// Minimum execution time: 60_976 nanoseconds.
+		Weight::from_ref_time(61_530_000)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -95,10 +95,10 @@ impl<T: frame_system::Config> pallet_collator_selection::WeightInfo for WeightIn
 	/// The range of component `r` is `[1, 1000]`.
 	/// The range of component `c` is `[1, 1000]`.
 	fn new_session(_r: u32, c: u32, ) -> Weight {
-		// Minimum execution time: 35_827 nanoseconds.
-		Weight::from_ref_time(36_549_000)
-			// Standard Error: 1_130_503
-			.saturating_add(Weight::from_ref_time(40_809_248).saturating_mul(c.into()))
+		// Minimum execution time: 35_619 nanoseconds.
+		Weight::from_ref_time(36_271_000)
+			// Standard Error: 1_139_502
+			.saturating_add(Weight::from_ref_time(40_968_371).saturating_mul(c.into()))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(c.into())))
 			.saturating_add(T::DbWeight::get().writes(1))

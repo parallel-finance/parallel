@@ -31,22 +31,22 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// The range of component `z` is `[0, 10000]`.
 	fn as_multi_threshold_1(z: u32, ) -> Weight {
-		// Minimum execution time: 29_049 nanoseconds.
-		Weight::from_ref_time(30_882_191)
+		// Minimum execution time: 29_409 nanoseconds.
+		Weight::from_ref_time(30_777_700)
 			// Standard Error: 6
-			.saturating_add(Weight::from_ref_time(991).saturating_mul(z.into()))
+			.saturating_add(Weight::from_ref_time(1_022).saturating_mul(z.into()))
 	}
 	// Storage: Multisig Multisigs (r:1 w:1)
 	// Storage: unknown [0x3a65787472696e7369635f696e646578] (r:1 w:0)
 	/// The range of component `s` is `[2, 100]`.
 	/// The range of component `z` is `[0, 10000]`.
 	fn as_multi_create(s: u32, z: u32, ) -> Weight {
-		// Minimum execution time: 84_276 nanoseconds.
-		Weight::from_ref_time(66_421_298)
-			// Standard Error: 1_301
-			.saturating_add(Weight::from_ref_time(207_496).saturating_mul(s.into()))
-			// Standard Error: 12
-			.saturating_add(Weight::from_ref_time(2_187).saturating_mul(z.into()))
+		// Minimum execution time: 83_490 nanoseconds.
+		Weight::from_ref_time(64_807_382)
+			// Standard Error: 1_511
+			.saturating_add(Weight::from_ref_time(204_537).saturating_mul(s.into()))
+			// Standard Error: 14
+			.saturating_add(Weight::from_ref_time(2_184).saturating_mul(z.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -54,12 +54,12 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// The range of component `s` is `[3, 100]`.
 	/// The range of component `z` is `[0, 10000]`.
 	fn as_multi_approve(s: u32, z: u32, ) -> Weight {
-		// Minimum execution time: 63_727 nanoseconds.
-		Weight::from_ref_time(45_259_752)
-			// Standard Error: 1_110
-			.saturating_add(Weight::from_ref_time(197_852).saturating_mul(s.into()))
-			// Standard Error: 10
-			.saturating_add(Weight::from_ref_time(2_228).saturating_mul(z.into()))
+		// Minimum execution time: 62_915 nanoseconds.
+		Weight::from_ref_time(45_262_981)
+			// Standard Error: 1_150
+			.saturating_add(Weight::from_ref_time(194_869).saturating_mul(s.into()))
+			// Standard Error: 11
+			.saturating_add(Weight::from_ref_time(2_187).saturating_mul(z.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -68,12 +68,12 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	/// The range of component `s` is `[2, 100]`.
 	/// The range of component `z` is `[0, 10000]`.
 	fn as_multi_complete(s: u32, z: u32, ) -> Weight {
-		// Minimum execution time: 90_127 nanoseconds.
-		Weight::from_ref_time(69_083_092)
-			// Standard Error: 1_400
-			.saturating_add(Weight::from_ref_time(229_876).saturating_mul(s.into()))
+		// Minimum execution time: 89_794 nanoseconds.
+		Weight::from_ref_time(67_893_633)
+			// Standard Error: 1_405
+			.saturating_add(Weight::from_ref_time(231_623).saturating_mul(s.into()))
 			// Standard Error: 13
-			.saturating_add(Weight::from_ref_time(2_491).saturating_mul(z.into()))
+			.saturating_add(Weight::from_ref_time(2_494).saturating_mul(z.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -81,30 +81,30 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 	// Storage: unknown [0x3a65787472696e7369635f696e646578] (r:1 w:0)
 	/// The range of component `s` is `[2, 100]`.
 	fn approve_as_multi_create(s: u32, ) -> Weight {
-		// Minimum execution time: 61_508 nanoseconds.
-		Weight::from_ref_time(64_305_135)
-			// Standard Error: 1_749
-			.saturating_add(Weight::from_ref_time(214_289).saturating_mul(s.into()))
+		// Minimum execution time: 59_536 nanoseconds.
+		Weight::from_ref_time(62_378_046)
+			// Standard Error: 1_956
+			.saturating_add(Weight::from_ref_time(217_406).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Multisig Multisigs (r:1 w:1)
 	/// The range of component `s` is `[2, 100]`.
 	fn approve_as_multi_approve(s: u32, ) -> Weight {
-		// Minimum execution time: 42_179 nanoseconds.
-		Weight::from_ref_time(43_929_792)
-			// Standard Error: 1_488
-			.saturating_add(Weight::from_ref_time(203_055).saturating_mul(s.into()))
+		// Minimum execution time: 41_388 nanoseconds.
+		Weight::from_ref_time(43_201_626)
+			// Standard Error: 1_458
+			.saturating_add(Weight::from_ref_time(202_373).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Multisig Multisigs (r:1 w:1)
 	/// The range of component `s` is `[2, 100]`.
 	fn cancel_as_multi(s: u32, ) -> Weight {
-		// Minimum execution time: 60_032 nanoseconds.
-		Weight::from_ref_time(62_332_422)
-			// Standard Error: 1_697
-			.saturating_add(Weight::from_ref_time(206_082).saturating_mul(s.into()))
+		// Minimum execution time: 58_305 nanoseconds.
+		Weight::from_ref_time(60_790_190)
+			// Standard Error: 1_392
+			.saturating_add(Weight::from_ref_time(210_558).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}

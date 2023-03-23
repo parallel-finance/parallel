@@ -31,50 +31,50 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_balances::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:2 w:2)
 	fn transfer() -> Weight {
-		// Minimum execution time: 93_127 nanoseconds.
-		Weight::from_ref_time(94_410_000)
+		// Minimum execution time: 92_568 nanoseconds.
+		Weight::from_ref_time(93_939_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	// Storage: System Account (r:1 w:1)
 	fn transfer_keep_alive() -> Weight {
-		// Minimum execution time: 59_755 nanoseconds.
-		Weight::from_ref_time(60_617_000)
+		// Minimum execution time: 58_415 nanoseconds.
+		Weight::from_ref_time(59_369_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: System Account (r:1 w:1)
 	fn set_balance_creating() -> Weight {
-		// Minimum execution time: 41_057 nanoseconds.
-		Weight::from_ref_time(41_763_000)
+		// Minimum execution time: 40_299 nanoseconds.
+		Weight::from_ref_time(41_060_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: System Account (r:1 w:1)
 	fn set_balance_killing() -> Weight {
-		// Minimum execution time: 46_658 nanoseconds.
-		Weight::from_ref_time(47_557_000)
+		// Minimum execution time: 46_157 nanoseconds.
+		Weight::from_ref_time(46_995_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: System Account (r:3 w:3)
 	fn force_transfer() -> Weight {
-		// Minimum execution time: 93_513 nanoseconds.
-		Weight::from_ref_time(94_266_000)
+		// Minimum execution time: 92_012 nanoseconds.
+		Weight::from_ref_time(93_374_000)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	// Storage: System Account (r:1 w:1)
 	fn transfer_all() -> Weight {
-		// Minimum execution time: 69_706 nanoseconds.
-		Weight::from_ref_time(71_105_000)
+		// Minimum execution time: 68_981 nanoseconds.
+		Weight::from_ref_time(69_975_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: System Account (r:1 w:1)
 	fn force_unreserve() -> Weight {
-		// Minimum execution time: 36_511 nanoseconds.
-		Weight::from_ref_time(37_433_000)
+		// Minimum execution time: 36_203 nanoseconds.
+		Weight::from_ref_time(36_595_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}

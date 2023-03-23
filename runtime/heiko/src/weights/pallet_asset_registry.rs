@@ -32,8 +32,8 @@ impl<T: frame_system::Config> pallet_asset_registry::WeightInfo for WeightInfo<T
 	// Storage: AssetRegistry AssetIdType (r:1 w:1)
 	// Storage: AssetRegistry AssetTypeId (r:0 w:1)
 	fn register_asset() -> Weight {
-		// Minimum execution time: 32_417 nanoseconds.
-		Weight::from_ref_time(33_603_000)
+		// Minimum execution time: 33_621 nanoseconds.
+		Weight::from_ref_time(34_077_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -41,8 +41,8 @@ impl<T: frame_system::Config> pallet_asset_registry::WeightInfo for WeightInfo<T
 	// Storage: AssetRegistry SupportedFeePaymentAssets (r:1 w:1)
 	// Storage: AssetRegistry AssetTypeUnitsPerSecond (r:0 w:1)
 	fn update_asset_units_per_second() -> Weight {
-		// Minimum execution time: 40_550 nanoseconds.
-		Weight::from_ref_time(41_243_000)
+		// Minimum execution time: 40_651 nanoseconds.
+		Weight::from_ref_time(40_972_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -51,16 +51,16 @@ impl<T: frame_system::Config> pallet_asset_registry::WeightInfo for WeightInfo<T
 	// Storage: AssetRegistry AssetTypeUnitsPerSecond (r:1 w:2)
 	// Storage: AssetRegistry AssetTypeId (r:0 w:2)
 	fn update_asset_type() -> Weight {
-		// Minimum execution time: 51_787 nanoseconds.
-		Weight::from_ref_time(52_903_000)
+		// Minimum execution time: 52_289 nanoseconds.
+		Weight::from_ref_time(53_014_000)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
 	// Storage: AssetRegistry SupportedFeePaymentAssets (r:1 w:1)
 	// Storage: AssetRegistry AssetTypeUnitsPerSecond (r:0 w:1)
 	fn remove_fee_payment_asset() -> Weight {
-		// Minimum execution time: 34_552 nanoseconds.
-		Weight::from_ref_time(35_040_000)
+		// Minimum execution time: 34_741 nanoseconds.
+		Weight::from_ref_time(35_328_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -69,8 +69,8 @@ impl<T: frame_system::Config> pallet_asset_registry::WeightInfo for WeightInfo<T
 	// Storage: AssetRegistry AssetTypeUnitsPerSecond (r:0 w:1)
 	// Storage: AssetRegistry AssetTypeId (r:0 w:1)
 	fn deregister_asset() -> Weight {
-		// Minimum execution time: 41_444 nanoseconds.
-		Weight::from_ref_time(41_943_000)
+		// Minimum execution time: 41_282 nanoseconds.
+		Weight::from_ref_time(41_717_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}

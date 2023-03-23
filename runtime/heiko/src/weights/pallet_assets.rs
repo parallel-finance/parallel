@@ -32,22 +32,22 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: System Account (r:1 w:1)
 	fn create() -> Weight {
-		// Minimum execution time: 49_666 nanoseconds.
-		Weight::from_ref_time(50_999_000)
+		// Minimum execution time: 50_781 nanoseconds.
+		Weight::from_ref_time(51_781_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	// Storage: Assets Asset (r:1 w:1)
 	fn force_create() -> Weight {
-		// Minimum execution time: 30_106 nanoseconds.
-		Weight::from_ref_time(30_902_000)
+		// Minimum execution time: 30_818 nanoseconds.
+		Weight::from_ref_time(31_274_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Assets Asset (r:1 w:1)
 	fn start_destroy() -> Weight {
-		// Minimum execution time: 32_230 nanoseconds.
-		Weight::from_ref_time(32_802_000)
+		// Minimum execution time: 32_815 nanoseconds.
+		Weight::from_ref_time(33_530_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -56,10 +56,10 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:20 w:20)
 	/// The range of component `c` is `[0, 1000]`.
 	fn destroy_accounts(c: u32, ) -> Weight {
-		// Minimum execution time: 37_170 nanoseconds.
-		Weight::from_ref_time(37_483_000)
-			// Standard Error: 21_990
-			.saturating_add(Weight::from_ref_time(23_479_268).saturating_mul(c.into()))
+		// Minimum execution time: 38_358 nanoseconds.
+		Weight::from_ref_time(38_691_000)
+			// Standard Error: 29_592
+			.saturating_add(Weight::from_ref_time(24_122_280).saturating_mul(c.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().reads((2_u64).saturating_mul(c.into())))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -69,10 +69,10 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Approvals (r:1 w:0)
 	/// The range of component `a` is `[0, 1000]`.
 	fn destroy_approvals(a: u32, ) -> Weight {
-		// Minimum execution time: 40_507 nanoseconds.
-		Weight::from_ref_time(40_989_000)
-			// Standard Error: 10_037
-			.saturating_add(Weight::from_ref_time(24_188_869).saturating_mul(a.into()))
+		// Minimum execution time: 40_804 nanoseconds.
+		Weight::from_ref_time(41_366_000)
+			// Standard Error: 10_968
+			.saturating_add(Weight::from_ref_time(24_497_562).saturating_mul(a.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(a.into())))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -81,24 +81,24 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Metadata (r:1 w:0)
 	fn finish_destroy() -> Weight {
-		// Minimum execution time: 32_326 nanoseconds.
-		Weight::from_ref_time(32_874_000)
+		// Minimum execution time: 32_935 nanoseconds.
+		Weight::from_ref_time(33_565_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Account (r:1 w:1)
 	fn mint() -> Weight {
-		// Minimum execution time: 53_615 nanoseconds.
-		Weight::from_ref_time(54_562_000)
+		// Minimum execution time: 55_206 nanoseconds.
+		Weight::from_ref_time(56_132_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Account (r:1 w:1)
 	fn burn() -> Weight {
-		// Minimum execution time: 67_101 nanoseconds.
-		Weight::from_ref_time(68_124_000)
+		// Minimum execution time: 67_766 nanoseconds.
+		Weight::from_ref_time(69_031_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -106,8 +106,8 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn transfer() -> Weight {
-		// Minimum execution time: 87_585 nanoseconds.
-		Weight::from_ref_time(89_102_000)
+		// Minimum execution time: 88_694 nanoseconds.
+		Weight::from_ref_time(90_066_000)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -115,8 +115,8 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn transfer_keep_alive() -> Weight {
-		// Minimum execution time: 74_759 nanoseconds.
-		Weight::from_ref_time(76_252_000)
+		// Minimum execution time: 76_373 nanoseconds.
+		Weight::from_ref_time(77_185_000)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -124,53 +124,53 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn force_transfer() -> Weight {
-		// Minimum execution time: 87_960 nanoseconds.
-		Weight::from_ref_time(89_146_000)
+		// Minimum execution time: 89_111 nanoseconds.
+		Weight::from_ref_time(90_066_000)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	// Storage: Assets Asset (r:1 w:0)
 	// Storage: Assets Account (r:1 w:1)
 	fn freeze() -> Weight {
-		// Minimum execution time: 37_971 nanoseconds.
-		Weight::from_ref_time(38_709_000)
+		// Minimum execution time: 38_649 nanoseconds.
+		Weight::from_ref_time(39_468_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Assets Asset (r:1 w:0)
 	// Storage: Assets Account (r:1 w:1)
 	fn thaw() -> Weight {
-		// Minimum execution time: 38_151 nanoseconds.
-		Weight::from_ref_time(38_945_000)
+		// Minimum execution time: 38_695 nanoseconds.
+		Weight::from_ref_time(39_294_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Assets Asset (r:1 w:1)
 	fn freeze_asset() -> Weight {
-		// Minimum execution time: 31_223 nanoseconds.
-		Weight::from_ref_time(32_020_000)
+		// Minimum execution time: 32_478 nanoseconds.
+		Weight::from_ref_time(33_064_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Assets Asset (r:1 w:1)
 	fn thaw_asset() -> Weight {
-		// Minimum execution time: 31_583 nanoseconds.
-		Weight::from_ref_time(32_501_000)
+		// Minimum execution time: 32_663 nanoseconds.
+		Weight::from_ref_time(33_598_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Metadata (r:1 w:0)
 	fn transfer_ownership() -> Weight {
-		// Minimum execution time: 33_565 nanoseconds.
-		Weight::from_ref_time(34_228_000)
+		// Minimum execution time: 34_275 nanoseconds.
+		Weight::from_ref_time(34_967_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Assets Asset (r:1 w:1)
 	fn set_team() -> Weight {
-		// Minimum execution time: 31_707 nanoseconds.
-		Weight::from_ref_time(32_214_000)
+		// Minimum execution time: 32_129 nanoseconds.
+		Weight::from_ref_time(32_948_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -178,21 +178,19 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Metadata (r:1 w:1)
 	/// The range of component `n` is `[0, 50]`.
 	/// The range of component `s` is `[0, 50]`.
-	fn set_metadata(n: u32, s: u32, ) -> Weight {
-		// Minimum execution time: 54_483 nanoseconds.
-		Weight::from_ref_time(56_033_244)
-			// Standard Error: 973
-			.saturating_add(Weight::from_ref_time(1_316).saturating_mul(n.into()))
-			// Standard Error: 973
-			.saturating_add(Weight::from_ref_time(5_652).saturating_mul(s.into()))
+	fn set_metadata(_n: u32, s: u32, ) -> Weight {
+		// Minimum execution time: 55_468 nanoseconds.
+		Weight::from_ref_time(56_905_993)
+			// Standard Error: 916
+			.saturating_add(Weight::from_ref_time(4_711).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Assets Asset (r:1 w:0)
 	// Storage: Assets Metadata (r:1 w:1)
 	fn clear_metadata() -> Weight {
-		// Minimum execution time: 55_539 nanoseconds.
-		Weight::from_ref_time(56_853_000)
+		// Minimum execution time: 56_573 nanoseconds.
+		Weight::from_ref_time(57_773_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -201,33 +199,33 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	/// The range of component `n` is `[0, 50]`.
 	/// The range of component `s` is `[0, 50]`.
 	fn force_set_metadata(_n: u32, s: u32, ) -> Weight {
-		// Minimum execution time: 32_409 nanoseconds.
-		Weight::from_ref_time(33_300_179)
-			// Standard Error: 677
-			.saturating_add(Weight::from_ref_time(5_771).saturating_mul(s.into()))
+		// Minimum execution time: 32_933 nanoseconds.
+		Weight::from_ref_time(33_961_329)
+			// Standard Error: 633
+			.saturating_add(Weight::from_ref_time(4_120).saturating_mul(s.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Assets Asset (r:1 w:0)
 	// Storage: Assets Metadata (r:1 w:1)
 	fn force_clear_metadata() -> Weight {
-		// Minimum execution time: 55_314 nanoseconds.
-		Weight::from_ref_time(56_215_000)
+		// Minimum execution time: 56_060 nanoseconds.
+		Weight::from_ref_time(56_891_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Assets Asset (r:1 w:1)
 	fn force_asset_status() -> Weight {
-		// Minimum execution time: 30_201 nanoseconds.
-		Weight::from_ref_time(30_696_000)
+		// Minimum execution time: 30_940 nanoseconds.
+		Weight::from_ref_time(31_379_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Approvals (r:1 w:1)
 	fn approve_transfer() -> Weight {
-		// Minimum execution time: 61_092 nanoseconds.
-		Weight::from_ref_time(61_940_000)
+		// Minimum execution time: 62_116 nanoseconds.
+		Weight::from_ref_time(62_891_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -236,24 +234,24 @@ impl<T: frame_system::Config> pallet_assets::WeightInfo for WeightInfo<T> {
 	// Storage: Assets Account (r:2 w:2)
 	// Storage: System Account (r:1 w:1)
 	fn transfer_approved() -> Weight {
-		// Minimum execution time: 113_721 nanoseconds.
-		Weight::from_ref_time(115_243_000)
+		// Minimum execution time: 114_741 nanoseconds.
+		Weight::from_ref_time(116_009_000)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Approvals (r:1 w:1)
 	fn cancel_approval() -> Weight {
-		// Minimum execution time: 65_604 nanoseconds.
-		Weight::from_ref_time(66_491_000)
+		// Minimum execution time: 66_961 nanoseconds.
+		Weight::from_ref_time(67_617_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	// Storage: Assets Asset (r:1 w:1)
 	// Storage: Assets Approvals (r:1 w:1)
 	fn force_cancel_approval() -> Weight {
-		// Minimum execution time: 66_918 nanoseconds.
-		Weight::from_ref_time(67_593_000)
+		// Minimum execution time: 67_833 nanoseconds.
+		Weight::from_ref_time(68_883_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}

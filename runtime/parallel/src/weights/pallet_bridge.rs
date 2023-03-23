@@ -32,64 +32,64 @@ impl<T: frame_system::Config> pallet_bridge::WeightInfo for WeightInfo<T> {
 	// Storage: Bridge ChainNonces (r:1 w:1)
 	// Storage: Bridge BridgeRegistry (r:0 w:1)
 	fn register_chain() -> Weight {
-		// Minimum execution time: 32_273 nanoseconds.
-		Weight::from_ref_time(32_915_000)
+		// Minimum execution time: 32_794 nanoseconds.
+		Weight::from_ref_time(33_594_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	// Storage: Bridge ChainNonces (r:1 w:1)
 	// Storage: Bridge BridgeRegistry (r:0 w:1)
 	fn unregister_chain() -> Weight {
-		// Minimum execution time: 33_965 nanoseconds.
-		Weight::from_ref_time(34_370_000)
+		// Minimum execution time: 34_087 nanoseconds.
+		Weight::from_ref_time(34_754_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	// Storage: Bridge BridgeTokens (r:1 w:1)
 	// Storage: Bridge AssetIds (r:1 w:1)
 	fn register_bridge_token() -> Weight {
-		// Minimum execution time: 35_515 nanoseconds.
-		Weight::from_ref_time(36_427_000)
+		// Minimum execution time: 35_985 nanoseconds.
+		Weight::from_ref_time(36_410_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	// Storage: Bridge AssetIds (r:1 w:1)
 	// Storage: Bridge BridgeTokens (r:0 w:1)
 	fn unregister_bridge_token() -> Weight {
-		// Minimum execution time: 35_210 nanoseconds.
-		Weight::from_ref_time(35_990_000)
+		// Minimum execution time: 35_108 nanoseconds.
+		Weight::from_ref_time(35_730_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	// Storage: Bridge AssetIds (r:1 w:0)
 	// Storage: Bridge BridgeTokens (r:1 w:1)
 	fn set_bridge_token_fee() -> Weight {
-		// Minimum execution time: 39_804 nanoseconds.
-		Weight::from_ref_time(40_671_000)
+		// Minimum execution time: 39_933 nanoseconds.
+		Weight::from_ref_time(40_985_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Bridge AssetIds (r:1 w:0)
 	// Storage: Bridge BridgeTokens (r:1 w:1)
 	fn set_bridge_token_status() -> Weight {
-		// Minimum execution time: 39_541 nanoseconds.
-		Weight::from_ref_time(40_130_000)
+		// Minimum execution time: 40_238 nanoseconds.
+		Weight::from_ref_time(40_926_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Bridge AssetIds (r:1 w:0)
 	// Storage: Bridge BridgeTokens (r:1 w:1)
 	fn set_bridge_token_cap() -> Weight {
-		// Minimum execution time: 39_910 nanoseconds.
-		Weight::from_ref_time(40_538_000)
+		// Minimum execution time: 39_895 nanoseconds.
+		Weight::from_ref_time(40_410_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Bridge AssetIds (r:1 w:0)
 	// Storage: Bridge BridgeTokens (r:1 w:1)
 	fn clean_cap_accumulated_value() -> Weight {
-		// Minimum execution time: 39_804 nanoseconds.
-		Weight::from_ref_time(40_451_000)
+		// Minimum execution time: 39_735 nanoseconds.
+		Weight::from_ref_time(40_535_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -98,8 +98,8 @@ impl<T: frame_system::Config> pallet_bridge::WeightInfo for WeightInfo<T> {
 	// Storage: Bridge BridgeTokens (r:1 w:1)
 	// Storage: System Account (r:1 w:1)
 	fn teleport() -> Weight {
-		// Minimum execution time: 99_229 nanoseconds.
-		Weight::from_ref_time(100_423_000)
+		// Minimum execution time: 100_459 nanoseconds.
+		Weight::from_ref_time(101_460_000)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -113,8 +113,8 @@ impl<T: frame_system::Config> pallet_bridge::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:2 w:1)
 	// Storage: Assets Metadata (r:1 w:0)
 	fn materialize() -> Weight {
-		// Minimum execution time: 156_648 nanoseconds.
-		Weight::from_ref_time(158_235_000)
+		// Minimum execution time: 158_397 nanoseconds.
+		Weight::from_ref_time(159_940_000)
 			.saturating_add(T::DbWeight::get().reads(10))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}

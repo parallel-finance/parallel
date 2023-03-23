@@ -30,22 +30,22 @@ use sp_std::marker::PhantomData;
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 	fn spend() -> Weight {
-		// Minimum execution time: 394 nanoseconds.
-		Weight::from_ref_time(451_000)
+		// Minimum execution time: 354 nanoseconds.
+		Weight::from_ref_time(395_000)
 	}
 	// Storage: Treasury ProposalCount (r:1 w:1)
 	// Storage: Treasury Proposals (r:0 w:1)
 	fn propose_spend() -> Weight {
-		// Minimum execution time: 49_261 nanoseconds.
-		Weight::from_ref_time(50_384_000)
+		// Minimum execution time: 49_717 nanoseconds.
+		Weight::from_ref_time(50_339_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	// Storage: Treasury Proposals (r:1 w:1)
 	// Storage: System Account (r:1 w:1)
 	fn reject_proposal() -> Weight {
-		// Minimum execution time: 57_114 nanoseconds.
-		Weight::from_ref_time(57_876_000)
+		// Minimum execution time: 57_815 nanoseconds.
+		Weight::from_ref_time(58_702_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -53,17 +53,17 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 	// Storage: Treasury Approvals (r:1 w:1)
 	/// The range of component `p` is `[0, 99]`.
 	fn approve_proposal(p: u32, ) -> Weight {
-		// Minimum execution time: 17_982 nanoseconds.
-		Weight::from_ref_time(25_246_156)
-			// Standard Error: 2_865
-			.saturating_add(Weight::from_ref_time(146_225).saturating_mul(p.into()))
+		// Minimum execution time: 17_886 nanoseconds.
+		Weight::from_ref_time(24_992_144)
+			// Standard Error: 3_090
+			.saturating_add(Weight::from_ref_time(167_081).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Treasury Approvals (r:1 w:1)
 	fn remove_approval() -> Weight {
-		// Minimum execution time: 14_565 nanoseconds.
-		Weight::from_ref_time(14_969_000)
+		// Minimum execution time: 14_590 nanoseconds.
+		Weight::from_ref_time(15_002_000)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -74,10 +74,10 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 	// Storage: Treasury Proposals (r:2 w:2)
 	/// The range of component `p` is `[0, 100]`.
 	fn on_initialize_proposals(p: u32, ) -> Weight {
-		// Minimum execution time: 52_455 nanoseconds.
-		Weight::from_ref_time(76_727_324)
-			// Standard Error: 14_704
-			.saturating_add(Weight::from_ref_time(51_708_821).saturating_mul(p.into()))
+		// Minimum execution time: 52_370 nanoseconds.
+		Weight::from_ref_time(68_334_278)
+			// Standard Error: 20_756
+			.saturating_add(Weight::from_ref_time(51_789_111).saturating_mul(p.into()))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().reads((3_u64).saturating_mul(p.into())))
 			.saturating_add(T::DbWeight::get().writes(4))
