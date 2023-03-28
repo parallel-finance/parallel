@@ -72,6 +72,8 @@ pallet-traits                 = { path = '../pallets/traits' }
 pallet-xcm-helper             = { path = '../pallets/xcm-helper' }
 parallel-runtime              = { path = '../runtime/parallel', features = ['runtime-benchmarks'] }
 primitives                    = { package = 'parallel-primitives', path = '../primitives' }
+vanilla-runtime               = { path = '../runtime/vanilla', features = ['runtime-benchmarks'] }
+kerria-runtime                = { path = '../runtime/kerria', features = ['runtime-benchmarks'] }
 
 [dev-dependencies]
 cumulus-primitives-parachain-inherent = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
