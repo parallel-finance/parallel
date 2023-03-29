@@ -1,4 +1,11 @@
 pub mod frame_system;
+pub mod pallet_assets;
+pub mod pallet_collator_selection;
+pub mod pallet_collective;
+pub mod pallet_democracy;
+pub mod pallet_multisig;
+pub mod pallet_proxy;
+pub mod pallet_scheduler;
 pub mod pallet_amm;
 pub mod pallet_asset_registry;
 pub mod pallet_balances;
