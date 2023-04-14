@@ -2,7 +2,7 @@
 authors = ['Parallel Team']
 edition = '2021'
 name    = 'pallet-asset-registry'
-version = '1.9.6'
+version = '1.9.7'
 
 [dependencies]
 log   = { version = '0.4', default-features = false }

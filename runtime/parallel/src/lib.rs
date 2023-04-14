@@ -184,7 +184,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 196,
+    spec_version: 197,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -2046,10 +2046,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (
-        runtime_common::evm_migration::InitEvmGenesis<Runtime>,
-        pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccount>,
-    ),
+    (),
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
