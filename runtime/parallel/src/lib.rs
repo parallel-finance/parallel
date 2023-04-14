@@ -26,7 +26,7 @@ use frame_support::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
         AsEnsureOriginWithArg, ChangeMembers, ConstU32, Contains, EitherOfDiverse,
-        EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, Nothing,
+        EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, NeverEnsureOrigin, Nothing,
     },
     weights::{
         constants::{
@@ -1647,7 +1647,7 @@ impl pallet_treasury::Config for Runtime {
     type SpendFunds = ();
     type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
     type MaxApprovals = MaxApprovals;
-    type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
+    type SpendOrigin = NeverEnsureOrigin<Balance>;
 }
 
 parameter_types! {
@@ -1741,7 +1741,7 @@ impl orml_vesting::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type MinVestedTransfer = MinVestedTransfer;
-    type VestedTransferOrigin = EnsureSigned<AccountId>;
+    type VestedTransferOrigin = NeverEnsureOrigin<AccountId>;
     type WeightInfo = weights::orml_vesting::WeightInfo<Runtime>;
     type MaxVestingSchedules = MaxVestingSchedules;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
