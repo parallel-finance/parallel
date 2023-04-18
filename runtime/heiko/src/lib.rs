@@ -83,10 +83,6 @@ use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 // re-exports
 mod weights;
 
-use currency::*;
-use fee::*;
-use time::*;
-
 pub use pallet_amm;
 pub use pallet_asset_registry;
 pub use pallet_bridge;
@@ -121,6 +117,11 @@ use runtime_common::{
     precompiles::{ParallelPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX},
     AddressToAssetId, Erc20Metadata,
 };
+
+use currency::*;
+use fee::*;
+use time::*;
+pub const EXISTENTIAL_DEPOSIT: u128 = CENTS; // 0.01 Native Token Balance
 
 pub struct NativeErc20Metadata;
 
