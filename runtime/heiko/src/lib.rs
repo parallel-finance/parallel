@@ -83,9 +83,6 @@ use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 // re-exports
 mod weights;
 
-pub mod constants;
-
-use constants::{currency, fee, time};
 use currency::*;
 use fee::*;
 use time::*;
@@ -119,6 +116,7 @@ use primitives::{
 };
 
 use runtime_common::{
+    constants::{currency, fee, time},
     fp_rpc, fp_self_contained,
     precompiles::{ParallelPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX},
     AddressToAssetId, Erc20Metadata,
