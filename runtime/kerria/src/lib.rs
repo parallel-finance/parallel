@@ -733,7 +733,7 @@ impl pallet_aura::Config for Runtime {
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
-    pub const ExistentialDeposit: u128 = currency::EXISTENTIAL_DEPOSIT;
+    pub const ExistentialDeposit: u128 = EXISTENTIAL_DEPOSIT;
     pub const MaxLocks: u32 = 50;
 }
 
