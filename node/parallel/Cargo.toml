@@ -108,7 +108,7 @@ polkadot-service    = { git = 'https://github.com/paritytech/polkadot.git', bran
 fc-consensus = { version='2.0.0-dev' }
 fc-db = { version='2.0.0-dev' }
 fc-mapping-sync = { version='2.0.0-dev' }
-fc-rpc = { version='2.0.0-dev', features = ["rpc_binary_search_estimate"] }
+fc-rpc = { version='2.0.0-dev', features = ["rpc-binary-search-estimate"] }
 fc-rpc-core = { version='1.1.0-dev' }
 fp-consensus = { version='2.0.0-dev' }
 fp-evm = { version='3.0.0-dev', default-features = false }
