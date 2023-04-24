@@ -1017,7 +1017,10 @@ pub mod pallet {
             query_id: QueryId,
             response: Response,
         ) -> DispatchResultWithPostInfo {
-            let responder = ensure_response(<T as Config>::RuntimeOrigin::from(origin))?;
+            let responder = ensure_response(<T as Config>::RuntimeOrigin::from(origin.clone()))
+                .or_else(|_| {
+                    T::UpdateOrigin::ensure_origin(origin).map(|_| MultiLocation::here())
+                })?;
             if let Response::ExecutionResult(res) = response {
                 if let Some(request) = Self::xcm_request(query_id) {
                     Self::do_notification_received(query_id, request, res)?;
