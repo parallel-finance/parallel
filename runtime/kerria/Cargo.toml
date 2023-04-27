@@ -16,7 +16,6 @@ targets = ['x86_64-unknown-linux-gnu']
 codec             = { package = 'parity-scale-codec', version = '3.1.5', default-features = false, features = ['derive'] }
 hex-literal       = '0.3.3'
 serde             = { version = '1.0.136', features = ['derive'], optional = true }
-smallvec          = '1.6.1'
 static_assertions = '1.1.0'
 
 # Substrate dependencies

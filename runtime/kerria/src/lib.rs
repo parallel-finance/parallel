@@ -84,13 +84,6 @@ use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 // re-exports
 mod weights;
 
-pub mod constants;
-
-use constants::{currency, fee, time};
-use currency::*;
-use fee::*;
-use time::*;
-
 pub use pallet_amm;
 pub use pallet_asset_registry;
 pub use pallet_bridge;
@@ -119,10 +112,16 @@ use primitives::{
 };
 
 use runtime_common::{
+    constants::{currency, fee, time},
     fp_rpc, fp_self_contained,
     precompiles::{ParallelPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX},
     AddressToAssetId, Erc20Metadata,
 };
+
+use currency::*;
+use fee::*;
+use time::*;
+pub const EXISTENTIAL_DEPOSIT: u128 = 10 * CENTS; // 0.1 Native Token Balance
 
 pub struct NativeErc20Metadata;
 
@@ -734,7 +733,7 @@ impl pallet_aura::Config for Runtime {
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
-    pub const ExistentialDeposit: u128 = currency::EXISTENTIAL_DEPOSIT;
+    pub const ExistentialDeposit: u128 = EXISTENTIAL_DEPOSIT;
     pub const MaxLocks: u32 = 50;
 }
 
