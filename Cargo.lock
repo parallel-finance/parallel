@@ -92,6 +92,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "aho-corasick"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67fc08ce920c31afb70f013dcce1bfc3a3195de6a228474e45e1f145b36f8d04"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "always-assert"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -117,9 +126,9 @@ dependencies = [
 
 [[package]]
 name = "anstream"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e579a7752471abc2a8268df8b20005e3eadd975f585398f17efcfd8d4927371"
+checksum = "6342bd4f5a1205d7f41e94a41a901f5647c938cdfa96036338e8533c9d6c2450"
 dependencies = [
  "anstyle",
  "anstyle-parse",
@@ -156,9 +165,9 @@ dependencies = [
 
 [[package]]
 name = "anstyle-wincon"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bcd8291a340dd8ac70e18878bc4501dd7b4ff970cfa21c207d36ece51ea88fd"
+checksum = "180abfa45703aebe0093f79badacc01b8fd4ea2e35118747e5811127f926e188"
 dependencies = [
  "anstyle",
  "windows-sys 0.48.0",
@@ -285,7 +294,7 @@ dependencies = [
  "log",
  "parking",
  "polling",
- "rustix 0.37.12",
+ "rustix 0.37.15",
  "slab",
  "socket2",
  "waker-fn",
@@ -313,7 +322,7 @@ dependencies = [
  "cfg-if",
  "event-listener",
  "futures-lite",
- "rustix 0.37.12",
+ "rustix 0.37.15",
  "signal-hook",
  "windows-sys 0.48.0",
 ]
@@ -730,9 +739,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.12.0"
+version = "3.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d261e256854913907f67ed06efbc3338dfe6179796deefc1ff763fc1aee5535"
+checksum = "9b1ce199063694f33ffb7dd4e0ee620741495c32833cde5aa08f02a0bf96f0c8"
 
 [[package]]
 name = "byte-slice-cast"
@@ -923,9 +932,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.2.3"
+version = "4.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49f9152d70e42172fdb87de2efd7327160beee37886027cf86f30a233d5b30b4"
+checksum = "956ac1f6381d8d82ab4684768f89c0ea3afe66925ceadb4eeb3fc452ffc55d62"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -934,9 +943,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.2.3"
+version = "4.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e067b220911598876eb55d52725ddcc201ffe3f0904018195973bc5b012ea2ca"
+checksum = "84080e799e54cff944f4b4a4b0e71630b0e0443b25b985175c7dddc1a859b749"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1087,9 +1096,9 @@ dependencies = [
 
 [[package]]
 name = "cpufeatures"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "280a9f2d8b3a38871a3c8a46fb80db65e5e5ed97da80c4d08bf27fb63e35e181"
+checksum = "3e4c1eaa2012c47becbbad2ab175484c2a84d1185b566fb2cc5b8707343dfe58"
 dependencies = [
  "libc",
 ]
@@ -2501,7 +2510,7 @@ dependencies = [
 [[package]]
 name = "fc-consensus"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "async-trait",
  "fc-db",
@@ -2520,7 +2529,7 @@ dependencies = [
 [[package]]
 name = "fc-db"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "fp-storage",
  "kvdb-rocksdb",
@@ -2539,7 +2548,7 @@ dependencies = [
 [[package]]
 name = "fc-mapping-sync"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "fc-db",
  "fp-consensus",
@@ -2556,7 +2565,7 @@ dependencies = [
 [[package]]
 name = "fc-rpc"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -2564,7 +2573,6 @@ dependencies = [
  "fc-db",
  "fc-rpc-core",
  "fp-ethereum",
- "fp-evm",
  "fp-rpc",
  "fp-storage",
  "futures 0.3.28",
@@ -2599,12 +2607,11 @@ dependencies = [
 [[package]]
 name = "fc-rpc-core"
 version = "1.1.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "ethereum",
  "ethereum-types",
  "jsonrpsee",
- "rlp",
  "rustc-hex",
  "serde",
  "serde_json",
@@ -2737,7 +2744,7 @@ dependencies = [
 [[package]]
 name = "fp-consensus"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "ethereum",
  "parity-scale-codec",
@@ -2749,7 +2756,7 @@ dependencies = [
 [[package]]
 name = "fp-dynamic-fee"
 version = "1.0.0"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "async-trait",
  "sp-core",
@@ -2759,7 +2766,7 @@ dependencies = [
 [[package]]
 name = "fp-ethereum"
 version = "1.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -2767,14 +2774,13 @@ dependencies = [
  "frame-support",
  "num_enum",
  "parity-scale-codec",
- "sp-core",
  "sp-std",
 ]
 
 [[package]]
 name = "fp-evm"
 version = "3.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "evm",
  "frame-support",
@@ -2787,7 +2793,7 @@ dependencies = [
 [[package]]
 name = "fp-rpc"
 version = "3.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -2796,7 +2802,6 @@ dependencies = [
  "scale-info",
  "sp-api",
  "sp-core",
- "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -2804,9 +2809,8 @@ dependencies = [
 [[package]]
 name = "fp-self-contained"
 version = "1.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
- "ethereum",
  "frame-support",
  "parity-scale-codec",
  "scale-info",
@@ -2817,7 +2821,7 @@ dependencies = [
 [[package]]
 name = "fp-storage"
 version = "2.0.0"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "parity-scale-codec",
  "serde",
@@ -3358,7 +3362,7 @@ version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "029d74589adefde59de1a0c4f4732695c32805624aec7b68d91503d4dba79afc"
 dependencies = [
- "aho-corasick",
+ "aho-corasick 0.7.20",
  "bstr 1.4.0",
  "fnv",
  "log",
@@ -3946,7 +3950,7 @@ checksum = "adcf93614601c8129ddf72e2d5633df827ba6551541c6d8c59520a371475be1f"
 dependencies = [
  "hermit-abi 0.3.1",
  "io-lifetimes 1.0.10",
- "rustix 0.37.12",
+ "rustix 0.37.15",
  "windows-sys 0.48.0",
 ]
 
@@ -4431,9 +4435,9 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "libc"
-version = "0.2.141"
+version = "0.2.142"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3304a64d199bb964be99741b7a14d26972741915b3649639149b2479bb46f4b5"
+checksum = "6a987beff54b60ffa6d51982e1aa1146bc42f19bd26be28b0586f252fccf5317"
 
 [[package]]
 name = "libloading"
@@ -4905,9 +4909,9 @@ checksum = "d4d2456c373231a208ad294c33dc5bff30051eafd954cd4caae83a712b12854d"
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.3.2"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f508063cc7bb32987c71511216bd5a32be15bccb6a80b52df8b9d7f01fc3aa2"
+checksum = "36eb31c1778188ae1e64398743890d0877fef36d11521ac60406b42016e8c2cf"
 
 [[package]]
 name = "lock_api"
@@ -4999,9 +5003,9 @@ checksum = "2532096657941c2fea9c289d370a250971c689d4f143798ff67113ec042024a5"
 
 [[package]]
 name = "matrixmultiply"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "add85d4dd35074e6fedc608f8c8f513a3548619a9024b751949ef0e8e45a4d84"
+checksum = "bb99c395ae250e1bf9133673f03ca9f97b7e71b705436bf8f089453445d1e9fe"
 dependencies = [
  "rawpointer",
 ]
@@ -5018,7 +5022,7 @@ version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ffc89ccdc6e10d6907450f753537ebc5c5d3460d2e4e62ea74bd571db62c0f9e"
 dependencies = [
- "rustix 0.37.12",
+ "rustix 0.37.15",
 ]
 
 [[package]]
@@ -5938,14 +5942,13 @@ dependencies = [
 [[package]]
 name = "pallet-base-fee"
 version = "1.0.0"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "fp-evm",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
  "scale-info",
- "serde",
  "sp-core",
  "sp-runtime",
 ]
@@ -6248,7 +6251,7 @@ dependencies = [
 [[package]]
 name = "pallet-ethereum"
 version = "4.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -6266,7 +6269,6 @@ dependencies = [
  "parity-scale-codec",
  "rlp",
  "scale-info",
- "serde",
  "sp-io",
  "sp-runtime",
  "sp-std",
@@ -6275,7 +6277,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm"
 version = "6.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "environmental",
  "evm",
@@ -6287,10 +6289,8 @@ dependencies = [
  "log",
  "pallet-timestamp",
  "parity-scale-codec",
- "primitive-types",
  "rlp",
  "scale-info",
- "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -6355,7 +6355,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-blake2"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "fp-evm",
 ]
@@ -6363,7 +6363,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-bn128"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "fp-evm",
  "sp-core",
@@ -6373,7 +6373,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-dispatch"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -6383,7 +6383,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-ed25519"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "ed25519-dalek",
  "fp-evm",
@@ -6392,7 +6392,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-modexp"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "fp-evm",
  "num",
@@ -6401,7 +6401,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-sha3fips"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "fp-evm",
  "tiny-keccak",
@@ -6410,7 +6410,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm-precompile-simple"
 version = "2.0.0-dev"
-source = "git+https://github.com/parallel-finance/frontier.git?rev=e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e#e8a21e99d47cb2b6e57d981d2a0302af5dd6b97e"
+source = "git+https://github.com/parallel-finance/frontier.git?rev=977dab0774152e0be5779b73cccb6756ce48de38#977dab0774152e0be5779b73cccb6756ce48de38"
 dependencies = [
  "fp-evm",
  "ripemd",
@@ -7831,9 +7831,9 @@ checksum = "478c572c3d73181ff3c2539045f6eb99e5491218eae919370993b890cdbdd98e"
 
 [[package]]
 name = "pest"
-version = "2.5.7"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b1403e8401ad5dedea73c626b99758535b342502f8d1e361f4a2dd952749122"
+checksum = "e68e84bfb01f0507134eac1e9b410a12ba379d064eab48c50ba4ce329a527b70"
 dependencies = [
  "thiserror",
  "ucd-trie",
@@ -7841,9 +7841,9 @@ dependencies = [
 
 [[package]]
 name = "pest_derive"
-version = "2.5.7"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be99c4c1d2fc2769b1d00239431d711d08f6efedcecb8b6e30707160aee99c15"
+checksum = "6b79d4c71c865a25a4322296122e3924d30bc8ee0834c8bfc8b95f7f054afbfb"
 dependencies = [
  "pest",
  "pest_generator",
@@ -7851,9 +7851,9 @@ dependencies = [
 
 [[package]]
 name = "pest_generator"
-version = "2.5.7"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e56094789873daa36164de2e822b3888c6ae4b4f9da555a1103587658c805b1e"
+checksum = "6c435bf1076437b851ebc8edc3a18442796b30f1728ffea6262d59bbe28b077e"
 dependencies = [
  "pest",
  "pest_meta",
@@ -7864,9 +7864,9 @@ dependencies = [
 
 [[package]]
 name = "pest_meta"
-version = "2.5.7"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6733073c7cff3d8459fda0e42f13a047870242aed8b509fe98000928975f359e"
+checksum = "745a452f8eb71e39ffd8ee32b3c5f51d03845f99786fa9b68db6ff509c505411"
 dependencies = [
  "once_cell",
  "pest",
@@ -9085,9 +9085,9 @@ dependencies = [
 
 [[package]]
 name = "polling"
-version = "2.7.0"
+version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4be1c66a6add46bff50935c313dae30a5030cf8385c5206e8a95e9e9def974aa"
+checksum = "4b2d323e8ca7996b3e23126511a523f7e62924d93ecd5ae73b333815b0eb3dce"
 dependencies = [
  "autocfg",
  "bitflags",
@@ -9643,13 +9643,13 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.7.3"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b1f693b24f6ac912f4893ef08244d70b6067480d2f1a46e950c9691e6749d1d"
+checksum = "af83e617f331cc6ae2da5443c602dfa5af81e517212d9d611a5b3ba1777b5370"
 dependencies = [
- "aho-corasick",
+ "aho-corasick 1.0.1",
  "memchr",
- "regex-syntax",
+ "regex-syntax 0.7.1",
 ]
 
 [[package]]
@@ -9658,7 +9658,7 @@ version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c230d73fb8d8c1b9c0b3135c5142a8acee3a0558fb8db5cf1cb65f8d7862132"
 dependencies = [
- "regex-syntax",
+ "regex-syntax 0.6.29",
 ]
 
 [[package]]
@@ -9666,6 +9666,12 @@ name = "regex-syntax"
 version = "0.6.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
+
+[[package]]
+name = "regex-syntax"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5996294f19bd3aae0453a862ad728f60e6600695733dd5df01da90c54363a3c"
 
 [[package]]
 name = "resolv-conf"
@@ -10034,15 +10040,15 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.37.12"
+version = "0.37.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "722529a737f5a942fdbac3a46cee213053196737c5eaa3386d52e85b786f2659"
+checksum = "a0661814f891c57c930a610266415528da53c4933e6dea5fb350cbfe048a9ece"
 dependencies = [
  "bitflags",
  "errno 0.3.1",
  "io-lifetimes 1.0.10",
  "libc",
- "linux-raw-sys 0.3.2",
+ "linux-raw-sys 0.3.4",
  "windows-sys 0.48.0",
 ]
 
@@ -11215,9 +11221,9 @@ dependencies = [
 
 [[package]]
 name = "scale-info"
-version = "2.5.0"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cfdffd972d76b22f3d7f81c8be34b2296afd3a25e0a547bd9abe340a4dbbe97"
+checksum = "dfdef77228a4c05dc94211441595746732131ad7f6530c6c18f045da7b7ab937"
 dependencies = [
  "bitvec",
  "cfg-if",
@@ -11229,9 +11235,9 @@ dependencies = [
 
 [[package]]
 name = "scale-info-derive"
-version = "2.5.0"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61fa974aea2d63dd18a4ec3a49d59af9f34178c73a4f56d2f18205628d00681e"
+checksum = "53012eae69e5aa5c14671942a5dd47de59d4cdcff8532a6dd0e081faf1119482"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2 1.0.56",
@@ -12890,9 +12896,9 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "target-lexicon"
-version = "0.12.6"
+version = "0.12.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ae9980cab1db3fceee2f6c6f643d5d8de2997c58ee8d25fb0cc8a9e9e7348e5"
+checksum = "fd1ba337640d60c3e96bc6f0638a939b9c9a7f2c316a1598c279828b3d1dc8c5"
 
 [[package]]
 name = "tempfile"
@@ -12903,7 +12909,7 @@ dependencies = [
  "cfg-if",
  "fastrand",
  "redox_syscall 0.3.5",
- "rustix 0.37.12",
+ "rustix 0.37.15",
  "windows-sys 0.45.0",
 ]
 
@@ -13057,9 +13063,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.27.0"
+version = "1.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0de47a4eecbe11f498978a9b29d792f0d2692d1dd003650c24c76510e3bc001"
+checksum = "c3c786bf8134e5a3a166db9b29ab8f48134739014a3eca7bc6bfa95d673b136f"
 dependencies = [
  "autocfg",
  "bytes",
@@ -13071,14 +13077,14 @@ dependencies = [
  "signal-hook-registry",
  "socket2",
  "tokio-macros",
- "windows-sys 0.45.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
 name = "tokio-macros"
-version = "2.0.0"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61a573bdc87985e9d6ddeed1b3d864e8a302c847e40d647746df2f1de209d1ce"
+checksum = "630bdcf245f78637c13ec01ffae6187cca34625e8c63150d424b59e55af2675e"
 dependencies = [
  "proc-macro2 1.0.56",
  "quote 1.0.26",
@@ -13098,9 +13104,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-stream"
-version = "0.1.12"
+version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fb52b74f05dbf495a8fba459fdc331812b96aa086d9eb78101fa0d4569c3313"
+checksum = "397c988d37662c7dda6d2208364a706264bf3d6138b11d436cbac0ad38832842"
 dependencies = [
  "futures-core",
  "pin-project-lite 0.2.9",
@@ -13109,9 +13115,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.7"
+version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5427d89453009325de0d8f342c9490009f76e999cb7672d77e46267448f7e6b2"
+checksum = "806fe8c2c87eccc8b3267cbae29ed3ab2d0bd37fca70ab622e46aaa9375ddb7d"
 dependencies = [
  "bytes",
  "futures-core",
@@ -13191,11 +13197,10 @@ checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 
 [[package]]
 name = "tracing"
-version = "0.1.37"
+version = "0.1.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ce8c33a8d48bd45d624a6e523445fd21ec13d3653cd51f681abf67418f54eb8"
+checksum = "cf9cf6a813d3f40c88b0b6b6f29a5c95c6cdbf97c1f9cc53fb820200f5ad814d"
 dependencies = [
- "cfg-if",
  "log",
  "pin-project-lite 0.2.9",
  "tracing-attributes",
@@ -13204,13 +13209,13 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4017f8f45139870ca7e672686113917c71c7a6e02d4924eda67186083c03081a"
+checksum = "0f57e3ca2a01450b1a921183a9c9cbfda207fd822cef4ccb00a65402cbba7a74"
 dependencies = [
  "proc-macro2 1.0.56",
  "quote 1.0.26",
- "syn 1.0.109",
+ "syn 2.0.15",
 ]
 
 [[package]]
