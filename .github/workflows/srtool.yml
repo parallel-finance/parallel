@@ -20,6 +20,8 @@ jobs:
         id: srtool_build
         uses: chevdor/srtool-actions@v0.6.0
         with:
+          image: paritytech/srtool
+          tag: 1.66.1
           chain: ${{ matrix.chain }}
           runtime_dir: runtime/${{ matrix.chain }}
       - name: Summary
