@@ -2,7 +2,7 @@
 name = "pallet-evm-signatures"
 authors = ['Parallel Team']
 edition = '2021'
-version = '1.9.7'
+version = '1.9.8'
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"], default-features = false }
