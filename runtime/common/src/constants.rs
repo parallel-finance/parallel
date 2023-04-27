@@ -19,8 +19,6 @@ pub mod currency {
     pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
     pub const DOLLARS: Balance = 100 * CENTS;
 
-    pub const EXISTENTIAL_DEPOSIT: u128 = CENTS; // 0.01 Native Token Balance
-
     pub const fn deposit(items: u32, bytes: u32) -> Balance {
         items as Balance * 15 * CENTS + (bytes as Balance) * 6 * CENTS
     }
@@ -71,7 +69,7 @@ pub mod fee {
     impl WeightToFeePolynomial for WeightToFee {
         type Balance = Balance;
         fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-            // in heiko, extrinsic base weight (smallest non-zero weight) is mapped to 12 CENTS
+            // extrinsic base weight (smallest non-zero weight) is mapped to 12 CENTS
             let p = super::currency::CENTS * 12;
             let q = Balance::from(ExtrinsicBaseWeight::get().ref_time());
             smallvec![WeightToFeeCoefficient {
