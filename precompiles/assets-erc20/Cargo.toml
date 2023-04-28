@@ -2,7 +2,7 @@
 name    = 'pallet-evm-precompile-assets-erc20'
 authors = ['Parallel Team']
 edition = '2021'
-version = '1.9.7'
+version = '1.9.8'
 
 [dependencies]
 log = "0.4.16"
