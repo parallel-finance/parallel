@@ -22,7 +22,8 @@
       "decimal": 10,
       "balances": [
         ["5EYCAe5iie3JmgLB4rm1NHQtyYGiaYYBEB1jt7p35dXjQWJ8", "1000000000000000"],
-        ["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000"]
+        ["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000"],
+	["5HZ85sC7mcv9Fpi5UhE7NkmMHUkmy1BNYuX4b3bbFPr3KPuA", "100000000000000"]
       ]
     },
     {
@@ -30,7 +31,10 @@
       "symbol": "USDT",
       "assetId": 102,
       "decimal": 6,
-      "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
+      "balances": [
+	["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"],
+      	["5HZ85sC7mcv9Fpi5UhE7NkmMHUkmy1BNYuX4b3bbFPr3KPuA", "100000000000000000000"]
+      ]
     },
     {
       "name": "Acala Dollar",
@@ -88,7 +92,8 @@
       "decimal": 10,
       "balances": [
         ["5EYCAe5iie3JmgLB4rm1NHQtyYGiaYYBEB1jt7p35dXjQWJ8", "1000000000000000"],
-        ["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000"]
+        ["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000"],
+	["5HZ85sC7mcv9Fpi5UhE7NkmMHUkmy1BNYuX4b3bbFPr3KPuA", "1000000000000000"]
       ]
     },
     {
@@ -138,7 +143,9 @@
       "symbol": "GLMR",
       "assetId": 114,
       "decimal": 18,
-      "balances": []
+      "balances": [
+      	["5HZ85sC7mcv9Fpi5UhE7NkmMHUkmy1BNYuX4b3bbFPr3KPuA", "10000000000000"]
+      ]
     }
   ],
   "markets": [
