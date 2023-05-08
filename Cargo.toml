@@ -11,12 +11,12 @@ inherits      = 'release'
 lto           = true
 
 [workspace]
-version = '1.9.8'
 members = ['node/*', 'pallets/*', 'runtime/*', 'support', 'precompiles/*','integration-tests']
 
 [workspace.package]
-authors = ['Parallel Team']
-repository = 'https://github.com/parallel-finance/parallel'
+authors     = ['Parallel Team']
+repository  = 'https://github.com/parallel-finance/parallel'
+version     = '1.9.8'
 
 [workspace.dependencies]
 
