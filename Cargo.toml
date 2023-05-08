@@ -11,6 +11,7 @@ inherits      = 'release'
 lto           = true
 
 [workspace]
+version = '1.9.8'
 members = ['node/*', 'pallets/*', 'runtime/*', 'support', 'precompiles/*','integration-tests']
 
 [workspace.package]

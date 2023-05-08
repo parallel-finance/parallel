@@ -2,7 +2,7 @@
 name = "precompile-utils"
 authors = { workspace = true }
 edition = '2021'
-version = '1.9.8'
+version = { workspace = true }
 
 [dependencies]
 impl-trait-for-tuples = "0.2.2"
