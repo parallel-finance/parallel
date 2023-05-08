@@ -1,6 +1,6 @@
 [package]
 name    = 'pallet-evm-precompile-assets-erc20'
-authors = ['Parallel Team']
+authors = { workspace = true }
 edition = '2021'
 version = '1.9.8'
 

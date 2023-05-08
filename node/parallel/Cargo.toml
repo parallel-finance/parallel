@@ -1,12 +1,12 @@
 [package]
-authors     = ['Parallel Team']
+authors     = { workspace = true }
 build       = 'build.rs'
 description = 'A decentralized lending protocol which allow users to earn "double interests" from staking and lending'
 edition     = '2021'
 homepage    = 'https://parallel.fi'
 license     = 'Apache'
 name        = 'parallel'
-repository  = 'https://github.com/parallel-finance/parallel'
+repository  = { workspace = true }
 version     = '1.9.8'
 
 [package.metadata.docs.rs]

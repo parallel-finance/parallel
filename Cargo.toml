@@ -13,6 +13,13 @@ lto           = true
 [workspace]
 members = ['node/*', 'pallets/*', 'runtime/*', 'support', 'precompiles/*','integration-tests']
 
+[workspace.package]
+authors = { workspace = true }
+repository = 'https://github.com/parallel-finance/parallel'
+
+[workspace.dependencies]
+
+
 [patch.crates-io]
 #orml
 orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = 'db0381f6363e0c8e781082b6f552c092b688fb1c' }

@@ -1,5 +1,5 @@
 [package]
-authors = ['Parallel Team']
+authors = { workspace = true }
 edition = '2021'
 name    = 'pallet-currency-adapter'
 version = '1.9.8'
