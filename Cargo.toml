@@ -168,8 +168,8 @@ fp-consensus = { version='2.0.0-dev' }
 fp-evm = { version='3.0.0-dev', default-features = false }
 fp-storage = { version='2.0.0' }
 fp-dynamic-fee = { version='1.0.0' }
-fp-rpc                         = { version = '3.0.0-dev', default-features = false }
-fp-self-contained              = { version = '1.0.0-dev', default-features = false }
+fp-rpc                         = { version = '3.0.0-dev' }
+fp-self-contained              = { version = '1.0.0-dev' }
 
 pallet-base-fee                = { version = '1.0.0', default-features = false }
 pallet-ethereum                = { version = '4.0.0-dev', default-features = false, features = ['forbid-evm-reentrancy'] }

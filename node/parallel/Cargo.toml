@@ -114,8 +114,8 @@ fp-consensus = { workspace = true }
 fp-evm = { workspace = true }
 fp-storage = { workspace = true }
 fp-dynamic-fee = { workspace = true }
-fp-rpc                          = { workspace = true, features = ["std"] }
-fp-self-contained               = { workspace = true, features = ["std"] }
+fp-rpc                          = { workspace = true }
+fp-self-contained               = { workspace = true }
 pallet-base-fee                 = { workspace = true, features = ["std"] }
 pallet-ethereum                 = { workspace = true, features = ['forbid-evm-reentrancy','std']}
 pallet-evm                      = { workspace = true, features = ['forbid-evm-reentrancy','std']}

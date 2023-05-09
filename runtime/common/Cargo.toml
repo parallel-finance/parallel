@@ -28,8 +28,8 @@ pallet-timestamp                           = { workspace = true }
 polkadot-runtime-common = { workspace = true }
 
 # Frontier dependencies
-fp-rpc                         = { workspace = true }
-fp-self-contained              = { workspace = true}
+fp-rpc                         = { workspace = true, default-features = false }
+fp-self-contained              = { workspace = true, default-features = false }
 pallet-evm                     = { workspace = true, features = ['forbid-evm-reentrancy'] }
 pallet-evm-precompile-blake2   = { workspace = true }
 pallet-evm-precompile-bn128    = { workspace = true }
