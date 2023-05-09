@@ -53,13 +53,13 @@ sc-network-common       = { git = 'https://github.com/paritytech/substrate.git',
 sc-consensus-aura       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
 sc-consensus-manual-seal = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
 
-frame-benchmarking                         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false, optional = true }
+frame-benchmarking                         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
 frame-executive                            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
 frame-support                              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
 frame-system                               = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-frame-system-benchmarking                  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false, optional = true }
+frame-system-benchmarking                  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
 frame-system-rpc-runtime-api               = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-frame-try-runtime                          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false, optional = true }
+frame-try-runtime                          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
 pallet-assets                              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
 pallet-aura                                = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
 pallet-authorship                          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
@@ -78,7 +78,7 @@ pallet-transaction-payment                 = { git = 'https://github.com/parityt
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
 pallet-treasury                            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
 pallet-utility                             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-scale-info                                 = { version = '2.1', default-features = false, features = ['derive'] }
+scale-info                                 = { version = '2.1', default-features = false }
 sp-api                                     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
 sp-block-builder                           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
 sp-consensus-aura                          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
@@ -107,6 +107,7 @@ sp-trie             = { git = 'https://github.com/paritytech/substrate.git', bra
 sp-io               = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
 
 substrate-build-script-utils = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
+substrate-wasm-builder       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
 
 # Polkadot dependencies
 polkadot-cli        = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
@@ -153,7 +154,7 @@ orml-vesting                = { version = '0.4.1-dev', default-features = false 
 orml-xcm                    = { version = '0.4.1-dev', default-features = false }
 orml-xcm-support            = { version = '0.4.1-dev', default-features = false }
 orml-xtokens                = { version = '0.4.1-dev', default-features = false }
-orml-oracle-rpc            = { version = '0.4.1-dev', default-features = false }
+orml-oracle-rpc             = { version = '0.4.1-dev', default-features = false }
 
 # Frontier dependencies
 fc-consensus = { version='2.0.0-dev' }
