@@ -15,7 +15,7 @@ targets = ['x86_64-unknown-linux-gnu']
 [dependencies]
 codec                  = { workspace = true, features = ["std"] }
 derive_more            = { workspace = true }
-frame-benchmarking     = { workspace = true }
+frame-benchmarking     = { workspace = true, features = ["std"] }
 frame-benchmarking-cli = { workspace = true }
 hex-literal            = { workspace = true }
 jsonrpsee              = { workspace = true, features = ["server", "macros"] }
@@ -23,12 +23,12 @@ log                    = { workspace = true }
 futures                = { workspace = true, features = ["compat"] }
 async-trait            = { workspace = true }
 
-primitives = { workspace = true }
+primitives = { workspace = true, features = ["std"] }
 
 pallet-loans-rpc                           = { workspace = true }
 pallet-router-rpc                          = { workspace = true }
 pallet-transaction-payment-rpc             = { workspace = true }
-pallet-transaction-payment-rpc-runtime-api = { workspace = true }
+pallet-transaction-payment-rpc-runtime-api = { workspace = true, features = ["std"] }
 
 # runtimes
 heiko-runtime                              = { workspace = true }
@@ -55,7 +55,7 @@ sc-network-common       = { workspace = true }
 sc-consensus-aura       = { workspace = true }
 sc-consensus-manual-seal = { workspace = true }
 
-frame-system-rpc-runtime-api = { workspace = true }
+frame-system-rpc-runtime-api = { workspace = true, features = ["std"] }
 try-runtime-cli              = { workspace = true, optional = true }
 
 clap         = { workspace = true, features = ['derive'] }
@@ -67,21 +67,21 @@ orml-oracle-rpc            = { workspace = true }
 substrate-frame-rpc-system = { workspace = true }
 substrate-prometheus-endpoint = { workspace = true }
 
-sp-api              = { workspace = true }
-sp-block-builder    = { workspace = true }
+sp-api              = { workspace = true, features = ["std"] }
+sp-block-builder    = { workspace = true, features = ["std"] }
 sp-blockchain       = { workspace = true }
 sp-consensus        = { workspace = true }
-sp-consensus-aura   = { workspace = true }
-sp-core             = { workspace = true }
-sp-inherents        = { workspace = true }
+sp-consensus-aura   = { workspace = true, features = ["std"] }
+sp-core             = { workspace = true, features = ["std"] }
+sp-inherents        = { workspace = true, features = ["std"] }
 sp-keystore         = { workspace = true }
-sp-offchain         = { workspace = true }
-sp-runtime          = { workspace = true }
-sp-session          = { workspace = true }
-sp-std              = { workspace = true }
+sp-offchain         = { workspace = true, features = ["std"] }
+sp-runtime          = { workspace = true, features = ["std"] }
+sp-session          = { workspace = true, features = ["std"] }
+sp-std              = { workspace = true, features = ["std"] }
 sp-storage          = { workspace = true }
 sp-timestamp        = { workspace = true }
-sp-transaction-pool = { workspace = true }
+sp-transaction-pool = { workspace = true, features = ["std"] }
 sp-trie             = { workspace = true }
 sp-io               = { workspace = true, optional = true }
 
@@ -90,7 +90,7 @@ cumulus-client-collator                 = { workspace = true }
 cumulus-client-consensus-aura           = { workspace = true }
 cumulus-client-network                  = { workspace = true }
 cumulus-client-service                  = { workspace = true }
-cumulus-primitives-core                 = { workspace = true }
+cumulus-primitives-core                 = { workspace = true, features = ["std"] }
 cumulus-primitives-parachain-inherent   = { workspace = true }
 cumulus-relay-chain-inprocess-interface = { workspace = true }
 cumulus-relay-chain-interface           = { workspace = true }
@@ -100,7 +100,7 @@ cumulus-client-consensus-relay-chain    = { workspace = true }
 cumulus-relay-chain-minimal-node        = { workspace = true }
 
 polkadot-cli        = { workspace = true, features = ['kusama-native'] }
-polkadot-parachain  = { workspace = true }
+polkadot-parachain  = { workspace = true, features = ["std"] }
 polkadot-primitives = { workspace = true }
 polkadot-service    = { workspace = true }
 
@@ -116,9 +116,9 @@ fp-storage = { workspace = true }
 fp-dynamic-fee = { workspace = true }
 fp-rpc                          = { workspace = true }
 fp-self-contained               = { workspace = true }
-pallet-base-fee                 = { workspace = true }
-pallet-ethereum                 = { workspace = true, features = ['forbid-evm-reentrancy']}
-pallet-evm                      = { workspace = true, features = ['forbid-evm-reentrancy']}
+pallet-base-fee                 = { workspace = true, features = ["std"] }
+pallet-ethereum                 = { workspace = true, features = ['forbid-evm-reentrancy','std']}
+pallet-evm                      = { workspace = true, features = ['forbid-evm-reentrancy','std']}
 
 
 [build-dependencies]
