@@ -110,7 +110,7 @@ pallet-streaming              = { workspace = true }
 pallet-traits                 = { workspace = true }
 pallet-xcm-helper             = { workspace = true }
 primitives                    = { workspace = true }
-pallet-evm-signatures                = { workspace = true }
+pallet-evm-signatures         = { workspace = true }
 
 [build-dependencies.substrate-wasm-builder]
 workspace = true
