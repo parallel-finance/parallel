@@ -13,7 +13,7 @@ version     = { workspace = true }
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-codec                  = { workspace = true }
+codec                  = { workspace = true, features = ["std"] }
 derive_more            = { workspace = true }
 frame-benchmarking     = { workspace = true }
 frame-benchmarking-cli = { workspace = true }
