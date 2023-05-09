@@ -189,6 +189,7 @@ pallet-loans-rpc-runtime-api  = { path = './pallets/loans/rpc/runtime-api', defa
 pallet-prices                 = { path = './pallets/prices', default-features = false }
 pallet-router                 = { path = './pallets/router', default-features = false }
 pallet-router-rpc-runtime-api = { path = './pallets/router/rpc/runtime-api', default-features = false }
+pallet-stableswap             = { path = './pallets/stableswap', default-features = false }
 pallet-streaming              = { path = './pallets/streaming', default-features = false }
 pallet-traits                 = { path = './pallets/traits', default-features = false }
 pallet-xcm-helper             = { path = './pallets/xcm-helper', default-features = false }
