@@ -13,8 +13,7 @@ version     = { workspace = true }
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-# codec             = { workspace = true, default-features = false, features = ['derive'] }
-codec             = { package = 'parity-scale-codec', version = '3.1.5', default-features = false, features = ['derive'] }
+codec             = { workspace = true, features = ['derive'] }
 hex-literal       = { workspace = true }
 serde             = { workspace = true, features = ['derive'], optional = true }
 static_assertions = { workspace = true }
