@@ -33,9 +33,16 @@ tracing-core           = '0.1.30'
 static_assertions      = '1.1.0'
 smallvec               = '1.6.1'
 env_logger             = '0.9.0'
+paste                  = '1.0.6'
+slices                 = '0.2.0'
+sha3                   = '0.10.1'
+libsecp256k1           = '0.7'
+impl-trait-for-tuples  = '0.2.2'
+similar-asserts        = '1.1.0'
 log                    = { version = '0.4', default-features = false }
 num-bigint             = { version = '0.4', default-features = false }
 num-traits             = { version = '0.2', default-features = false }
+num_enum               = { version = '0.5.3', default-features = false }
 
 substrate-fixed = { git = 'https://github.com/encointer/substrate-fixed.git', default-features = false }
 xcm-emulator    = { git = 'https://github.com/shaunxw/xcm-simulator.git', rev = '64d8822f6ebc1af50092677a80a9bdb74860e9a9' }
@@ -220,6 +227,8 @@ primitives                    = { package = 'parallel-primitives', path = './pri
 pallet-evm-signatures                = { path = './pallets/evm-signatures', default-features = false }
 pallet-evm-precompile-assets-erc20   = { path = './precompiles/assets-erc20', default-features = false }
 pallet-evm-precompile-balances-erc20 = { path = './precompiles/balances-erc20', default-features = false }
+precompile-utils                     = { path = './precompiles/utils', default-features = false }
+
 
 pallet-loans-rpc                           = { path = './pallets/loans/rpc' }
 pallet-router-rpc                          = { path = './pallets/router/rpc' }
