@@ -1,90 +1,91 @@
 [package]
-authors    = ['Parallel Team']
+authors    = { workspace = true }
 edition    = '2021'
 homepage   = 'https://parallel.fi'
 license    = 'Apache'
 name       = 'runtime-integration-tests'
-repository = 'https://github.com/parallel-finance/parallel'
+repository = { workspace = true }
 version    = { workspace = true }
 
 [dependencies]
+# codec             = { workspace = true, features = ["derive"] }
 codec             = { package = 'parity-scale-codec', version = '3.1.5', default-features = false, features = ['derive'] }
-hex               = { version = '0.4' }
-hex-literal       = '0.3.3'
-serde             = { version = '1.0.136', features = ['derive'], optional = true }
-serde_json        = '1.0.79'
-static_assertions = '1.1.0'
-scale-info        = { version = "2.1", default-features = false, features = ["derive"] }
+hex               = { workspace = true }
+hex-literal       = { workspace = true }
+serde             = { workspace = true, features = ['derive'], optional = true }
+serde_json        = { workspace = true }
+static_assertions = { workspace = true }
+scale-info        = { workspace = true, features = ["derive"] }
 
 # Substrate
-frame-support   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-frame-system    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-pallet-balances = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-pallet-staking  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-sp-runtime      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-sp-std          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-sp-core         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
+frame-support   = { workspace = true }
+frame-system    = { workspace = true }
+pallet-balances = { workspace = true }
+pallet-staking  = { workspace = true }
+sp-runtime      = { workspace = true }
+sp-std          = { workspace = true }
+sp-core         = { workspace = true }
 
 # Polkadot dependencies
-pallet-xcm              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
-polkadot-parachain      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
-polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
-xcm                     = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
-xcm-builder             = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
-xcm-executor            = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
+pallet-xcm              = { workspace = true }
+polkadot-parachain      = { workspace = true }
+polkadot-runtime-common = { workspace = true }
+xcm                     = { workspace = true }
+xcm-builder             = { workspace = true }
+xcm-executor            = { workspace = true }
 
 # Cumulus dependencies
-cumulus-pallet-dmp-queue        = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-cumulus-pallet-parachain-system = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-cumulus-pallet-xcm              = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-cumulus-pallet-xcmp-queue       = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-cumulus-primitives-core         = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-cumulus-primitives-timestamp    = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-cumulus-primitives-utility      = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-pallet-collator-selection       = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-parachain-info                  = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
+cumulus-pallet-dmp-queue        = { workspace = true }
+cumulus-pallet-parachain-system = { workspace = true }
+cumulus-pallet-xcm              = { workspace = true }
+cumulus-pallet-xcmp-queue       = { workspace = true }
+cumulus-primitives-core         = { workspace = true }
+cumulus-primitives-timestamp    = { workspace = true }
+cumulus-primitives-utility      = { workspace = true }
+pallet-collator-selection       = { workspace = true }
+parachain-info                  = { workspace = true }
 
 # ORML dependencies
-orml-oracle      = { version = '0.4.1-dev' }
-orml-traits      = { version = '0.4.1-dev' }
-orml-vesting     = { version = '0.4.1-dev' }
-orml-xcm         = { version = '0.4.1-dev' }
-orml-xcm-support = { version = '0.4.1-dev' }
-orml-xtokens     = { version = '0.4.1-dev' }
+orml-oracle      = { workspace = true }
+orml-traits      = { workspace = true }
+orml-vesting     = { workspace = true }
+orml-xcm         = { workspace = true }
+orml-xcm-support = { workspace = true }
+orml-xtokens     = { workspace = true }
 
 # Parallel dependencies
-heiko-runtime                 = { path = '../runtime/heiko', features = ['runtime-benchmarks'] }
-pallet-amm                    = { path = '../pallets/amm' }
-pallet-asset-registry         = { path = '../pallets/asset-registry' }
-pallet-bridge                 = { path = '../pallets/bridge' }
-pallet-crowdloans             = { path = '../pallets/crowdloans' }
-pallet-currency-adapter       = { path = '../pallets/currency-adapter' }
-pallet-emergency-shutdown     = { path = '../pallets/emergency-shutdown' }
-pallet-farming                = { path = '../pallets/farming' }
-pallet-liquid-staking         = { path = '../pallets/liquid-staking' }
-pallet-loans                  = { path = '../pallets/loans' }
-pallet-loans-rpc-runtime-api  = { path = '../pallets/loans/rpc/runtime-api' }
-pallet-prices                 = { path = '../pallets/prices' }
-pallet-router                 = { path = '../pallets/router' }
-pallet-router-rpc-runtime-api = { path = '../pallets/router/rpc/runtime-api' }
-pallet-traits                 = { path = '../pallets/traits' }
-pallet-xcm-helper             = { path = '../pallets/xcm-helper' }
-parallel-runtime              = { path = '../runtime/parallel', features = ['runtime-benchmarks'] }
-primitives                    = { package = 'parallel-primitives', path = '../primitives' }
-vanilla-runtime               = { path = '../runtime/vanilla', features = ['runtime-benchmarks'] }
-kerria-runtime                = { path = '../runtime/kerria', features = ['runtime-benchmarks'] }
+heiko-runtime                 = { workspace = true, features = ['runtime-benchmarks'] }
+pallet-amm                    = { workspace = true }
+pallet-asset-registry         = { workspace = true }
+pallet-bridge                 = { workspace = true }
+pallet-crowdloans             = { workspace = true }
+pallet-currency-adapter       = { workspace = true }
+pallet-emergency-shutdown     = { workspace = true }
+pallet-farming                = { workspace = true }
+pallet-liquid-staking         = { workspace = true }
+pallet-loans                  = { workspace = true }
+pallet-loans-rpc-runtime-api  = { workspace = true }
+pallet-prices                 = { workspace = true }
+pallet-router                 = { workspace = true }
+pallet-router-rpc-runtime-api = { workspace = true }
+pallet-traits                 = { workspace = true }
+pallet-xcm-helper             = { workspace = true }
+parallel-runtime              = { workspace = true, features = ['runtime-benchmarks'] }
+primitives                    = { workspace = true }
+vanilla-runtime               = { workspace = true, features = ['runtime-benchmarks'] }
+kerria-runtime                = { workspace = true, features = ['runtime-benchmarks'] }
 
 [dev-dependencies]
-cumulus-primitives-parachain-inherent = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-cumulus-test-relay-sproof-builder     = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-env_logger                            = '0.9.0'
-kusama-runtime                        = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36', features = ['runtime-benchmarks'] }
-log                                   = '0.4.14'
-polkadot-primitives                   = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
-polkadot-runtime                      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
-polkadot-runtime-parachains           = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
-sp-io                                 = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-sp-trie                               = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-statemine-runtime                     = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36', features = ['runtime-benchmarks'] }
-statemint-runtime                     = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36', features = ['runtime-benchmarks'] }
-xcm-emulator                          = { git = 'https://github.com/shaunxw/xcm-simulator.git', rev = '64d8822f6ebc1af50092677a80a9bdb74860e9a9' }
+cumulus-primitives-parachain-inherent = { workspace = true }
+cumulus-test-relay-sproof-builder     = { workspace = true }
+env_logger                            = { workspace = true }
+kusama-runtime                        = { workspace = true, features = ['runtime-benchmarks'] }
+log                                   = { workspace = true }
+polkadot-primitives                   = { workspace = true }
+polkadot-runtime                      = { workspace = true }
+polkadot-runtime-parachains           = { workspace = true }
+sp-io                                 = { workspace = true }
+sp-trie                               = { workspace = true }
+statemine-runtime                     = { workspace = true, features = ['runtime-benchmarks'] }
+statemint-runtime                     = { workspace = true, features = ['runtime-benchmarks'] }
+xcm-emulator                          = { workspace = true }
