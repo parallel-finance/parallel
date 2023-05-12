@@ -181,6 +181,7 @@ orml-xtokens                = { version = '0.4.1-dev', default-features = false 
 orml-oracle-rpc             = { version = '0.4.1-dev', default-features = false }
 
 # Frontier dependencies
+evm = { version = '0.37.0', default-features = false}
 fc-consensus = { version='2.0.0-dev' }
 fc-db = { version='2.0.0-dev' }
 fc-mapping-sync = { version='2.0.0-dev' }
