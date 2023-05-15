@@ -22,9 +22,9 @@ sp-runtime        = { workspace = true }
 sp-std            = { workspace = true }
 
 [dev-dependencies]
-pallet-currency-adapter = { workspace = true }
-sp-core                 = { workspace = true }
-sp-io                   = { workspace = true }
+pallet-currency-adapter = { workspace = true, features = ['std'] }
+sp-core                 = { workspace = true, features = ['std'] }
+sp-io                   = { workspace = true, features = ['std'] }
 
 [features]
 default            = ['std']

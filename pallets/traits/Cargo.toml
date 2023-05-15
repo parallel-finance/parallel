@@ -26,7 +26,7 @@ xcm-builder   = { workspace = true }
 xcm-executor  = { workspace = true }
 
 [dev-dependencies]
-sp-core = { workspace = true }
+sp-core = { workspace = true, features = ['std'] }
 
 [features]
 default = ['std']

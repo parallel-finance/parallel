@@ -27,37 +27,37 @@ xcm                = { workspace = true }
 primitives = { workspace = true }
 
 [dev-dependencies]
-pallet-babe      = { workspace = true }
-pallet-balances  = { workspace = true }
-pallet-session   = { workspace = true }
-pallet-staking   = { workspace = true }
-pallet-timestamp = { workspace = true }
+pallet-babe      = { workspace = true, features = ['std'] }
+pallet-balances  = { workspace = true, features = ['std'] }
+pallet-session   = { workspace = true, features = ['std'] }
+pallet-staking   = { workspace = true, features = ['std'] }
+pallet-timestamp = { workspace = true, features = ['std'] }
 serde            = { workspace = true }
-sp-core          = { workspace = true }
-sp-io            = { workspace = true }
+sp-core          = { workspace = true, features = ['std'] }
+sp-io            = { workspace = true, features = ['std'] }
 sp-state-machine = { workspace = true }
 
 kusama-runtime              = { workspace = true, features = ['runtime-benchmarks'] }
 polkadot-core-primitives    = { workspace = true }
-polkadot-parachain          = { workspace = true }
+polkadot-parachain          = { workspace = true, features = ['std'] }
 polkadot-runtime-parachains = { workspace = true }
-xcm-builder                 = { workspace = true }
-xcm-executor                = { workspace = true }
+xcm-builder                 = { workspace = true, features = ['std'] }
+xcm-executor                = { workspace = true, features = ['std'] }
 xcm-simulator               = { workspace = true }
 
-cumulus-pallet-dmp-queue        = { workspace = true }
-cumulus-pallet-parachain-system = { workspace = true }
-cumulus-pallet-xcm              = { workspace = true }
-cumulus-pallet-xcmp-queue       = { workspace = true }
-parachain-info                  = { workspace = true }
+cumulus-pallet-dmp-queue        = { workspace = true, features = ['std'] }
+cumulus-pallet-parachain-system = { workspace = true, features = ['std'] }
+cumulus-pallet-xcm              = { workspace = true, features = ['std'] }
+cumulus-pallet-xcmp-queue       = { workspace = true, features = ['std'] }
+parachain-info                  = { workspace = true, features = ['std'] }
 
 hex              = '0.4.3'
-orml-traits      = { version = '0.4.1-dev' }
-orml-xcm-support = { version = '0.4.1-dev' }
-orml-xtokens     = { version = '0.4.1-dev' }
+orml-traits      = { version = '0.4.1-dev', features = ['std'] }
+orml-xcm-support = { version = '0.4.1-dev', features = ['std'] }
+orml-xtokens     = { version = '0.4.1-dev', features = ['std'] }
 
-pallet-loans            = { path = '../loans' }
-pallet-currency-adapter = { path = '../currency-adapter' }
+pallet-loans            = { workspace = true, features = ['std'] }
+pallet-currency-adapter = { workspace = true, features = ['std'] }
 
 [features]
 default            = ['std']
