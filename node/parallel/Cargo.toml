@@ -82,7 +82,7 @@ sp-std              = { workspace = true, features = ["std"] }
 sp-storage          = { workspace = true }
 sp-timestamp        = { workspace = true }
 sp-transaction-pool = { workspace = true, features = ["std"] }
-sp-trie             = { workspace = true }
+sp-trie             = { workspace = true, features = ["std"]  }
 sp-io               = { workspace = true, features = ["std"], optional = true }
 
 cumulus-client-cli                      = { workspace = true }
