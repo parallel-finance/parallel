@@ -31,9 +31,9 @@ pub use weights::WeightInfo;
 #[pallet]
 pub mod pallet {
     use super::*;
+    use codec::HasCompact;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
-    use parity_scale_codec::HasCompact;
     use sp_runtime::traits::AtLeast32BitUnsigned;
     use sp_std::vec::Vec;
 
