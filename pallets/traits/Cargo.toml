@@ -8,25 +8,25 @@ version = { workspace = true }
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-serde         = { version = '1.0.136', features = ['derive'], optional = true }
+serde         = { workspace = true, features = ['derive'], optional = true }
 codec         = { package = 'parity-scale-codec', version = '3.1.5', features = ['max-encoded-len'], default-features = false }
-frame-support = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-frame-system  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-log           = { version = "0.4", default-features = false }
-num-bigint    = { default-features = false, version = '0.4' }
-num-traits    = { default-features = false, version = '0.2' }
-primitives    = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
-scale-info    = { version = '2.1', default-features = false, features = ['derive'] }
-sp-core       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-sp-io         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-sp-runtime    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-sp-std        = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-xcm           = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36', default-features = false }
-xcm-builder   = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36', default-features = false }
-xcm-executor  = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36', default-features = false }
+frame-support = { workspace = true }
+frame-system  = { workspace = true }
+log           = { workspace = true }
+num-bigint    = { workspace = true }
+num-traits    = { workspace = true }
+primitives    = { workspace = true }
+scale-info    = { workspace = true, features = ['derive'] }
+sp-core       = { workspace = true }
+sp-io         = { workspace = true }
+sp-runtime    = { workspace = true }
+sp-std        = { workspace = true }
+xcm           = { workspace = true }
+xcm-builder   = { workspace = true }
+xcm-executor  = { workspace = true }
 
 [dev-dependencies]
-sp-core = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
+sp-core = { workspace = true }
 
 [features]
 default = ['std']
