@@ -8,23 +8,23 @@ version = { workspace = true }
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false, optional = true }
-frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-pallet-amm         = { path = '../amm', default-features = false }
-pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-pallet-traits      = { path = '../traits', default-features = false }
-parity-scale-codec = { version = '3.1.5', default-features = false, features = ['derive'] }
-primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
-scale-info         = { version = '2.1', default-features = false, features = ['derive'] }
-sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
+frame-benchmarking = { workspace = true, optional = true }
+frame-support      = { workspace = true }
+frame-system       = { workspace = true }
+pallet-amm         = { workspace = true }
+pallet-assets      = { workspace = true }
+pallet-traits      = { workspace = true }
+codec = { package = 'parity-scale-codec', version = '3.1.5', default-features = false, features = ['derive'] }
+primitives         = { workspace = true }
+scale-info         = { workspace = true, features = ['derive'] }
+sp-runtime         = { workspace = true }
+sp-std             = { workspace = true }
 
 [dev-dependencies]
-pallet-balances         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-pallet-currency-adapter = { path = '../currency-adapter' }
-sp-core                 = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-sp-io                   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
+pallet-balances         = { workspace = true }
+pallet-currency-adapter = { workspace = true }
+sp-core                 = { workspace = true }
+sp-io                   = { workspace = true }
 
 [features]
 default            = ['std']
@@ -34,7 +34,7 @@ std                = [
   'frame-system/std',
   'pallet-amm/std',
   'pallet-assets/std',
-  'parity-scale-codec/std',
+  'codec/std',
   'primitives/std',
   'sp-std/std',
   'sp-runtime/std',
