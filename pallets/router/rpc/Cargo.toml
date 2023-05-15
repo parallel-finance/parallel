@@ -5,7 +5,7 @@ name    = 'pallet-router-rpc'
 version = { workspace = true }
 
 [dependencies]
-codec               = { package = 'parity-scale-codec', version = '3.1.5' }
+codec               = { workspace = true, features = ['std'] }
 jsonrpsee           = { workspace = true, features = ["server", "macros"] }
 primitives          = { workspace = true }
 serde               = { workspace = true, features = ['derive'] }

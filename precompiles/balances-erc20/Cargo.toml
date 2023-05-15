@@ -15,7 +15,7 @@ slices = { workspace = true }
 precompile-utils = { workspace = true }
 
 # Substrate
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [ "max-encoded-len" ] }
+codec = { workspace = true, features = [ "max-encoded-len" ] }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 pallet-balances = { workspace = true }

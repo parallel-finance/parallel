@@ -5,7 +5,7 @@ name    = 'pallet-loans-rpc'
 version = { workspace = true }
 
 [dependencies]
-codec               = { package = 'parity-scale-codec', version = '3.1.5' }
+codec               = { workspace = true, features = ['std'] }
 jsonrpsee           = { version = "0.16.2", features = ["server", "macros"] }
 primitives          = { workspace = true }
 serde               = { workspace = true, features = ['derive'] }

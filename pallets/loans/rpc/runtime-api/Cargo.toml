@@ -5,7 +5,7 @@ name    = 'pallet-loans-rpc-runtime-api'
 version = { workspace = true }
 
 [dependencies]
-codec      = { package = 'parity-scale-codec', version = '3.1.5', default-features = false, features = ['derive'] }
+codec      = { workspace = true, features = ['derive'] }
 primitives = { workspace = true }
 sp-api     = { workspace = true }
 sp-runtime = { workspace = true }
