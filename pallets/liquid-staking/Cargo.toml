@@ -1,63 +1,63 @@
 [package]
-authors = ['Parallel Team']
+authors = { workspace = true }
 edition = '2021'
 name    = 'pallet-liquid-staking'
-version = '1.9.8'
+version = { workspace = true }
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-codec              = { package = 'parity-scale-codec', version = '3.1.5', features = ['max-encoded-len'], default-features = false }
-frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false, optional = true }
-frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-pallet-traits      = { path = '../traits', default-features = false }
-pallet-utility     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-pallet-xcm         = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36', default-features = false }
-pallet-xcm-helper  = { path = '../xcm-helper', default-features = false }
-scale-info         = { version = '2.1', default-features = false, features = ['derive'] }
-sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-sp-trie            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-xcm                = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36', default-features = false }
+codec              = { workspace = true, package = 'parity-scale-codec', features = ['max-encoded-len'] }
+frame-benchmarking = { workspace = true, optional = true }
+frame-support      = { workspace = true }
+frame-system       = { workspace = true }
+pallet-assets      = { workspace = true }
+pallet-traits      = { workspace = true }
+pallet-utility     = { workspace = true }
+pallet-xcm         = { workspace = true }
+pallet-xcm-helper  = { workspace = true }
+scale-info         = { workspace = true, features = ['derive'] }
+sp-runtime         = { workspace = true }
+sp-std             = { workspace = true }
+sp-trie            = { workspace = true }
+xcm                = { workspace = true }
 
 # parallel pallets
-primitives = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+primitives = { workspace = true }
 
 [dev-dependencies]
-pallet-babe      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-pallet-balances  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-pallet-session   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-pallet-staking   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-pallet-timestamp = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-serde            = { version = '1.0.136' }
-sp-core          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-sp-io            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-sp-state-machine = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
+pallet-babe      = { workspace = true, features = ['std'] }
+pallet-balances  = { workspace = true, features = ['std'] }
+pallet-session   = { workspace = true, features = ['std'] }
+pallet-staking   = { workspace = true, features = ['std'] }
+pallet-timestamp = { workspace = true, features = ['std'] }
+serde            = { workspace = true }
+sp-core          = { workspace = true, features = ['std'] }
+sp-io            = { workspace = true, features = ['std'] }
+sp-state-machine = { workspace = true }
 
-kusama-runtime              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36', features = ['runtime-benchmarks'] }
-polkadot-core-primitives    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
-polkadot-parachain          = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
-polkadot-runtime-parachains = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
-xcm-builder                 = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
-xcm-executor                = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
-xcm-simulator               = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.36' }
+kusama-runtime              = { workspace = true, features = ['runtime-benchmarks'] }
+polkadot-core-primitives    = { workspace = true }
+polkadot-parachain          = { workspace = true, features = ['std'] }
+polkadot-runtime-parachains = { workspace = true }
+xcm-builder                 = { workspace = true, features = ['std'] }
+xcm-executor                = { workspace = true, features = ['std'] }
+xcm-simulator               = { workspace = true }
 
-cumulus-pallet-dmp-queue        = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-cumulus-pallet-parachain-system = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-cumulus-pallet-xcm              = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-cumulus-pallet-xcmp-queue       = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
-parachain-info                  = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.36' }
+cumulus-pallet-dmp-queue        = { workspace = true, features = ['std'] }
+cumulus-pallet-parachain-system = { workspace = true, features = ['std'] }
+cumulus-pallet-xcm              = { workspace = true, features = ['std'] }
+cumulus-pallet-xcmp-queue       = { workspace = true, features = ['std'] }
+parachain-info                  = { workspace = true, features = ['std'] }
 
 hex              = '0.4.3'
-orml-traits      = { version = '0.4.1-dev' }
-orml-xcm-support = { version = '0.4.1-dev' }
-orml-xtokens     = { version = '0.4.1-dev' }
+orml-traits      = { version = '0.4.1-dev', features = ['std'] }
+orml-xcm-support = { version = '0.4.1-dev', features = ['std'] }
+orml-xtokens     = { version = '0.4.1-dev', features = ['std'] }
 
-pallet-loans            = { path = '../loans' }
-pallet-currency-adapter = { path = '../currency-adapter' }
+pallet-loans            = { workspace = true, features = ['std'] }
+pallet-currency-adapter = { workspace = true, features = ['std'] }
 
 [features]
 default            = ['std']

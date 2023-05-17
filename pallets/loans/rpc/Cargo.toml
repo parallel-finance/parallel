@@ -1,19 +1,19 @@
 [package]
-authors = ['Parallel Team']
+authors = { workspace = true }
 edition = '2021'
 name    = 'pallet-loans-rpc'
-version = '1.9.8'
+version = { workspace = true }
 
 [dependencies]
-codec               = { package = 'parity-scale-codec', version = '3.1.5' }
+codec               = { workspace = true, features = ['std'] }
 jsonrpsee           = { version = "0.16.2", features = ["server", "macros"] }
-primitives          = { package = 'parallel-primitives', path = '../../../primitives', default-features = false }
-serde               = { version = '1.0.136', features = ['derive'] }
-sp-api              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-sp-blockchain       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-sp-core             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
-sp-rpc              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-sp-runtime          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
+primitives          = { workspace = true }
+serde               = { workspace = true, features = ['derive'] }
+sp-api              = { workspace = true, features = ['std'] }
+sp-blockchain       = { workspace = true }
+sp-core             = { workspace = true, features = ['std'] }
+sp-rpc              = { workspace = true }
+sp-runtime          = { workspace = true, features = ['std'] }
 
 pallet-loans-rpc-runtime-api = { path = 'runtime-api', default-features = false }
 
