@@ -1,46 +1,46 @@
 [package]
 name = "pallet-evm-precompile-balances-erc20"
-authors = [ "Parallel Team" ]
+authors = { workspace = true }
 description = "A Precompile to expose a Balances pallet through an ERC20-compliant interface."
 edition = "2021"
-version = "1.9.8"
+version = { workspace = true }
 
 [dependencies]
-log = "0.4"
-num_enum = { version = "0.5.3", default-features = false }
-paste = "1.0.6"
-slices = "0.2.0"
+log = { workspace = true }
+num_enum = { workspace = true }
+paste = { workspace = true }
+slices = { workspace = true }
 
 # Moonbeam
-precompile-utils = { path = "../utils", default-features = false }
+precompile-utils = { workspace = true }
 
 # Substrate
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [ "max-encoded-len" ] }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
+codec = { workspace = true, package = 'parity-scale-codec', features = [ "max-encoded-len" ] }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+pallet-balances = { workspace = true }
+pallet-timestamp = { workspace = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+sp-std = { workspace = true }
 
 # Frontier
-fp-evm = { version='3.0.0-dev', default-features = false }
-pallet-evm = { version='6.0.0-dev', default-features = false, features = ['forbid-evm-reentrancy'] }
+fp-evm = { workspace = true }
+pallet-evm = { workspace = true, features = ['forbid-evm-reentrancy'] }
 
 [dev-dependencies]
-derive_more = { version = "0.99" }
-hex-literal = "0.3.4"
-libsecp256k1 = "0.7"
-serde = { version = "1.0.100" }
-sha3 = "0.8"
+derive_more = { workspace = true }
+hex-literal = { workspace = true }
+libsecp256k1 = { workspace = true }
+serde = { workspace = true }
+sha3 = { workspace = true }
 
 # Moonbeam
-precompile-utils = { path = "../utils", features = [ "testing" ] }
+precompile-utils = { workspace = true, features = [ "testing" ] }
 
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
-scale-info = { version = "2.0", default-features = false, features = [ "derive" ] }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36" }
+pallet-timestamp = { workspace = true }
+scale-info = { workspace = true, features = [ "derive" ] }
+sp-runtime = { workspace = true }
 
 [features]
 default = [ "std" ]

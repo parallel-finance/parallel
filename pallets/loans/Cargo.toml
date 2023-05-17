@@ -1,36 +1,36 @@
 [package]
-authors = ['Parallel Team']
+authors = { workspace = true }
 edition = '2021'
 name    = 'pallet-loans'
-version = '1.9.8'
+version = { workspace = true }
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-codec              = { package = 'parity-scale-codec', version = '3.1.5', default-features = false }
-frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false, optional = true }
-frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-num-traits         = { default-features = false, version = '0.2' }
-orml-traits        = { version = '0.4.1-dev', default-features = false }
-pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-pallet-balances    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-pallet-prices      = { path = '../prices', default-features = false }
-pallet-timestamp   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-pallet-traits      = { path = '../traits', default-features = false }
-primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
-scale-info         = { version = '2.1', default-features = false, features = ['derive'] }
-serde              = { version = '1.0.136', features = ['derive'], optional = true }
-sp-io              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
-sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36', default-features = false }
+codec              = { workspace = true, package = 'parity-scale-codec' }
+frame-benchmarking = { workspace = true, optional = true }
+frame-support      = { workspace = true }
+frame-system       = { workspace = true }
+num-traits         = { workspace = true }
+orml-traits        = { workspace = true }
+pallet-assets      = { workspace = true }
+pallet-balances    = { workspace = true }
+pallet-prices      = { workspace = true }
+pallet-timestamp   = { workspace = true }
+pallet-traits      = { workspace = true }
+primitives         = { workspace = true }
+scale-info         = { workspace = true, features = ['derive'] }
+serde              = { workspace = true, features = ['derive'], optional = true }
+sp-io              = { workspace = true }
+sp-runtime         = { workspace = true }
+sp-std             = { workspace = true }
 
 [dev-dependencies]
-orml-oracle             = { version = '0.4.1-dev' }
-pallet-amm              = { path = '../amm' }
-pallet-currency-adapter = { path = '../currency-adapter' }
-sp-core                 = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.36' }
+orml-oracle             = { workspace = true, features = ['std'] }
+pallet-amm              = { workspace = true, features = ['std'] }
+pallet-currency-adapter = { workspace = true, features = ['std'] }
+sp-core                 = { workspace = true, features = ['std'] }
 
 [features]
 default            = ['std']
