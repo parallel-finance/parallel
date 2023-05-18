@@ -285,6 +285,22 @@ impl<T: Config> Pallet<T> {
         let call = XcmCall::TransferToSiblingchain(Box::new(location));
         Self::xcm_weight_fee(call)
     }
+
+    // Since xcm v3 doesn't support utility.batch_all
+    // instead, here append one more transact msg
+    //
+    // NOTE: index here is 3,
+    // must append before 'report_outcome_notify' that index is 2
+    pub fn append_transact(message: &mut Xcm<()>, call: DoubleEncoded<()>, weight: Weight) {
+        message.0.insert(
+            3,
+            Transact {
+                origin_type: OriginKind::SovereignAccount,
+                require_weight_at_most: weight.ref_time(),
+                call,
+            },
+        );
+    }
 }
 
 impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
@@ -487,29 +503,12 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
         let real =
             AccountId::try_from(&who.encode()[..]).map_err(|_| Error::<T>::ConvertAccountError)?;
         Ok(switch_relay!({
-            let call = RelaychainCall::<T>::Utility(Box::new(UtilityCall::BatchAll(
-                UtilityBatchAllCall {
-                    calls: vec![
-                        RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
-                            BalancesTransferKeepAliveCall {
-                                dest: T::Lookup::unlookup(who.clone()),
-                                value: amount,
-                            },
-                        )),
-                        RelaychainCall::Proxy(Box::new(ProxyCall::Proxy(ProxyProxyCall {
-                            real,
-                            force_proxy_type: None,
-                            call: RelaychainCall::Crowdloans(CrowdloansCall::Contribute(
-                                CrowdloansContributeCall {
-                                    index: para_id,
-                                    value: amount,
-                                    signature: None,
-                                },
-                            )),
-                        }))),
-                    ],
+            let call = RelaychainCall::<T>::Balances(BalancesCall::TransferKeepAlive(
+                BalancesTransferKeepAliveCall {
+                    dest: T::Lookup::unlookup(who.clone()),
+                    value: amount,
                 },
-            )));
+            ));
 
             let mut msg = Self::do_ump_transact(
                 call.encode().into(),
@@ -517,6 +516,19 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 Self::refund_location(),
                 xcm_weight_fee_misc.fee,
             )?;
+
+            let call = RelaychainCall::<T>::Proxy(Box::new(ProxyCall::Proxy(ProxyProxyCall {
+                real,
+                force_proxy_type: None,
+                call: RelaychainCall::Crowdloans(CrowdloansCall::Contribute(
+                    CrowdloansContributeCall {
+                        index: para_id,
+                        value: amount,
+                        signature: None,
+                    },
+                )),
+            })));
+            Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             let query_id = Self::report_outcome_notify(
                 &mut msg,
@@ -543,36 +555,30 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
         let controller = stash.clone();
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Bond);
         Ok(switch_relay!({
-            let call =
-                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                    calls: vec![
-                        RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
-                            BalancesTransferKeepAliveCall {
-                                dest: T::Lookup::unlookup(stash),
-                                value,
-                            },
-                        )),
-                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                            UtilityAsDerivativeCall {
-                                index,
-                                call: RelaychainCall::Staking::<T>(StakingCall::Bond(
-                                    StakingBondCall {
-                                        controller: T::Lookup::unlookup(controller),
-                                        value,
-                                        payee,
-                                    },
-                                )),
-                            },
-                        ))),
-                    ],
-                })));
-
+            let call = RelaychainCall::<T>::Balances(BalancesCall::TransferKeepAlive(
+                BalancesTransferKeepAliveCall {
+                    dest: T::Lookup::unlookup(stash),
+                    value,
+                },
+            ));
             let mut msg = Self::do_ump_transact(
                 call.encode().into(),
                 xcm_weight_fee_misc.weight,
                 Self::refund_location(),
                 xcm_weight_fee_misc.fee,
             )?;
+            let call = RelaychainCall::<T>::Utility(Box::new(UtilityCall::AsDerivative(
+                UtilityAsDerivativeCall {
+                    index,
+                    call: RelaychainCall::Staking::<T>(StakingCall::Bond(StakingBondCall {
+                        controller: T::Lookup::unlookup(controller),
+                        value,
+                        payee,
+                    })),
+                },
+            )));
+
+            Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             let query_id = Self::report_outcome_notify(
                 &mut msg,
@@ -597,25 +603,12 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::BondExtra);
         Ok(switch_relay!({
-            let call =
-                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                    calls: vec![
-                        RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
-                            BalancesTransferKeepAliveCall {
-                                dest: T::Lookup::unlookup(stash),
-                                value,
-                            },
-                        )),
-                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                            UtilityAsDerivativeCall {
-                                index,
-                                call: RelaychainCall::Staking::<T>(StakingCall::BondExtra(
-                                    StakingBondExtraCall { value },
-                                )),
-                            },
-                        ))),
-                    ],
-                })));
+            let call = RelaychainCall::<T>::Balances(BalancesCall::TransferKeepAlive(
+                BalancesTransferKeepAliveCall {
+                    dest: T::Lookup::unlookup(stash),
+                    value,
+                },
+            ));
 
             let mut msg = Self::do_ump_transact(
                 call.encode().into(),
@@ -623,6 +616,16 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 Self::refund_location(),
                 xcm_weight_fee_misc.fee,
             )?;
+
+            let call = RelaychainCall::<T>::Utility(Box::new(UtilityCall::AsDerivative(
+                UtilityAsDerivativeCall {
+                    index,
+                    call: RelaychainCall::Staking::<T>(StakingCall::BondExtra(
+                        StakingBondExtraCall { value },
+                    )),
+                },
+            )));
+            Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             let query_id = Self::report_outcome_notify(
                 &mut msg,
@@ -723,30 +726,14 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
     ) -> Result<QueryId, DispatchError> {
         let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::WithdrawUnbonded);
         Ok(switch_relay!({
-            let call =
-                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                    calls: vec![
-                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                            UtilityAsDerivativeCall {
-                                index,
-                                call: RelaychainCall::Staking::<T>(StakingCall::WithdrawUnbonded(
-                                    StakingWithdrawUnbondedCall { num_slashing_spans },
-                                )),
-                            },
-                        ))),
-                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                            UtilityAsDerivativeCall {
-                                index,
-                                call: RelaychainCall::Balances::<T>(BalancesCall::TransferAll(
-                                    BalancesTransferAllCall {
-                                        dest: T::Lookup::unlookup(para_account_id),
-                                        keep_alive: true,
-                                    },
-                                )),
-                            },
-                        ))),
-                    ],
-                })));
+            let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                UtilityAsDerivativeCall {
+                    index,
+                    call: RelaychainCall::Staking::<T>(StakingCall::WithdrawUnbonded(
+                        StakingWithdrawUnbondedCall { num_slashing_spans },
+                    )),
+                },
+            )));
 
             let mut msg = Self::do_ump_transact(
                 call.encode().into(),
@@ -754,6 +741,19 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 Self::refund_location(),
                 xcm_weight_fee_misc.fee,
             )?;
+
+            let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                UtilityAsDerivativeCall {
+                    index,
+                    call: RelaychainCall::Balances::<T>(BalancesCall::TransferAll(
+                        BalancesTransferAllCall {
+                            dest: T::Lookup::unlookup(para_account_id),
+                            keep_alive: true,
+                        },
+                    )),
+                },
+            )));
+            Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             let query_id = Self::report_outcome_notify(
                 &mut msg,
