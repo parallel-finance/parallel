@@ -863,6 +863,7 @@ impl pallet_evm::Config for Runtime {
     type BlockGasLimit = BlockGasLimit;
     type FindAuthor = FindAuthorTruncated<Aura>;
     type WeightPerGas = WeightPerGas;
+    type OnCreate = ();
 }
 
 impl pallet_ethereum::Config for Runtime {
