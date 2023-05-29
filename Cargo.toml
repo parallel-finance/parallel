@@ -67,7 +67,6 @@ pallet-transaction-payment                 = { git = 'https://github.com/parityt
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.37', default-features = false }
 pallet-treasury                            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.37', default-features = false }
 pallet-utility                             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.37', default-features = false }
-scale-info                                 = { version = '2.1', default-features = false }
 sp-api                                     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.37', default-features = false }
 sp-block-builder                           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.37', default-features = false }
 sp-consensus-aura                          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.37', default-features = false }
@@ -246,6 +245,7 @@ log                    = { version = '0.4.17', default-features = false }
 num-bigint             = { version = '0.4.3', default-features = false }
 num-traits             = { version = '0.2.15', default-features = false }
 num_enum               = { version = '0.5.3', default-features = false }
+scale-info             = { version = '2.1.2', default-features = false }
 
 xcm-emulator    = { git = 'https://github.com/shaunxw/xcm-simulator.git', rev = '6847a58888e483f0ed2e0b72f90e00767ea0ecac' }
 substrate-fixed = { git = 'https://github.com/encointer/substrate-fixed.git', default-features = false }

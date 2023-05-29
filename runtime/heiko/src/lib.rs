@@ -2044,7 +2044,12 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (),
+    (
+        pallet_balances::migration::ResetInactive<Runtime>,
+        // We need to apply this migration again, because `ResetInactive` resets the state again.
+        pallet_balances::migration::MigrateToTrackInactive<Runtime, xcm_config::CheckAccount>,
+        pallet_scheduler::migration::v4::CleanupAgendas<Runtime>,
+    ),
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
