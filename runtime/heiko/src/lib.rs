@@ -2047,7 +2047,7 @@ pub type Executive = frame_executive::Executive<
     (
         pallet_balances::migration::ResetInactive<Runtime>,
         // We need to apply this migration again, because `ResetInactive` resets the state again.
-        pallet_balances::migration::MigrateToTrackInactive<Runtime, xcm_config::CheckAccount>,
+        pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccount>,
         pallet_scheduler::migration::v4::CleanupAgendas<Runtime>,
     ),
 >;
