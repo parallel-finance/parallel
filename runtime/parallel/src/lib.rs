@@ -501,6 +501,7 @@ impl pallet_assets::Config for Runtime {
     type WeightInfo = weights::pallet_assets::WeightInfo<Runtime>;
     type Extra = ();
     type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    type CallbackHandle = ();
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }
@@ -862,6 +863,7 @@ impl pallet_evm::Config for Runtime {
     type BlockGasLimit = BlockGasLimit;
     type FindAuthor = FindAuthorTruncated<Aura>;
     type WeightPerGas = WeightPerGas;
+    type OnCreate = ();
 }
 
 impl pallet_ethereum::Config for Runtime {
@@ -2045,7 +2047,12 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (),
+    (
+        pallet_balances::migration::ResetInactive<Runtime>,
+        // We need to apply this migration again, because `ResetInactive` resets the state again.
+        pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccount>,
+        pallet_scheduler::migration::v4::CleanupAgendas<Runtime>,
+    ),
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
@@ -2523,7 +2530,7 @@ impl_runtime_apis! {
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {
-        fn on_runtime_upgrade(checks: bool) -> (Weight, Weight) {
+        fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
             log::info!("try-runtime::on_runtime_upgrade.");
             let weight = Executive::try_runtime_upgrade(checks).unwrap();
             (weight, RuntimeBlockWeights::get().max_block)

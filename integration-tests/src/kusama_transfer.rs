@@ -72,7 +72,7 @@ fn transfer_to_relay_chain() {
         println!("heiko para account in relaychain:{:?}", para_acc);
         assert_eq!(
             kusama_runtime::Balances::free_balance(&AccountId::from(BOB)),
-            999_896_665_870
+            999_895_428_355
         );
     });
 }

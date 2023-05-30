@@ -225,22 +225,25 @@ impl sc_client_api::BlockBackend<Block> for Client {
         }
     }
 
-    fn block(&self, id: &BlockId) -> sp_blockchain::Result<Option<SignedBlock<Block>>> {
+    fn block(
+        &self,
+        hash: <Block as BlockT>::Hash,
+    ) -> sp_blockchain::Result<Option<SignedBlock<Block>>> {
         with_client! {
             self,
             client,
             {
-                client.block(id)
+                client.block(hash)
             }
         }
     }
 
-    fn block_status(&self, id: &BlockId) -> sp_blockchain::Result<BlockStatus> {
+    fn block_status(&self, hash: <Block as BlockT>::Hash) -> sp_blockchain::Result<BlockStatus> {
         with_client! {
             self,
             client,
             {
-                client.block_status(id)
+                client.block_status(hash)
             }
         }
     }
@@ -455,12 +458,12 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
 }
 
 impl sp_blockchain::HeaderBackend<Block> for Client {
-    fn header(&self, id: BlockId) -> sp_blockchain::Result<Option<Header>> {
+    fn header(&self, hash: Hash) -> sp_blockchain::Result<Option<Header>> {
         with_client! {
             self,
             client,
             {
-                client.header(&id)
+                client.header(hash)
             }
         }
     }
@@ -475,12 +478,12 @@ impl sp_blockchain::HeaderBackend<Block> for Client {
         }
     }
 
-    fn status(&self, id: BlockId) -> sp_blockchain::Result<sp_blockchain::BlockStatus> {
+    fn status(&self, hash: Hash) -> sp_blockchain::Result<sp_blockchain::BlockStatus> {
         with_client! {
             self,
             client,
             {
-                client.status(id)
+                client.status(hash)
             }
         }
     }

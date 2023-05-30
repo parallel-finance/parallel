@@ -43,7 +43,7 @@ impl ::std::fmt::Debug for Bytes {
 pub fn keccak256(input: TokenStream) -> TokenStream {
     let lit_str = parse_macro_input!(input as LitStr);
 
-    let hash = Keccak256::digest(lit_str.value().as_ref());
+    let hash = Keccak256::digest(lit_str.value().as_bytes());
 
     let bytes = Bytes(hash.to_vec());
     let eval_str = format!("{:?}", bytes);
@@ -100,7 +100,7 @@ pub fn generate_function_selector(_: TokenStream, input: TokenStream) -> TokenSt
             Some((_, Expr::Lit(ExprLit { lit, .. }))) => {
                 if let Lit::Str(lit_str) = lit {
                     let selector = u32::from_be_bytes(
-                        Keccak256::digest(lit_str.value().as_ref())[..4]
+                        Keccak256::digest(lit_str.value().as_bytes())[..4]
                             .try_into()
                             .unwrap(),
                     );
