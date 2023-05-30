@@ -485,6 +485,7 @@ impl pallet_assets::Config for Runtime {
     type WeightInfo = ();
     type Extra = ();
     type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    type CallbackHandle = ();
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }
@@ -847,6 +848,7 @@ impl pallet_evm::Config for Runtime {
     type BlockGasLimit = BlockGasLimit;
     type FindAuthor = FindAuthorTruncated<Aura>;
     type WeightPerGas = WeightPerGas;
+    type OnCreate = ();
 }
 
 impl pallet_ethereum::Config for Runtime {
@@ -2529,7 +2531,7 @@ impl_runtime_apis! {
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {
-        fn on_runtime_upgrade(checks: bool) -> (Weight, Weight) {
+        fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
             log::info!("try-runtime::on_runtime_upgrade.");
             let weight = Executive::try_runtime_upgrade(checks).unwrap();
             (weight, RuntimeBlockWeights::get().max_block)

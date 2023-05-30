@@ -222,6 +222,7 @@ impl pallet_evm::Config for Runtime {
     type BlockHashMapping = pallet_evm::SubstrateBlockHashMapping<Self>;
     type FindAuthor = ();
     type WeightPerGas = WeightPerGas;
+    type OnCreate = ();
 }
 
 // These parameters dont matter much as this will only be called by root with the forced arguments
@@ -253,6 +254,7 @@ impl pallet_assets::Config for Runtime {
     type Extra = ();
     type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
     type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
+    type CallbackHandle = ();
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }
