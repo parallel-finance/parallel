@@ -1,8 +1,8 @@
-PARA_ID        											:= 2012
-CHAIN          											:= kerria-dev
-RELAY_CHAIN                         := polkadot-local
+PARA_ID        											:= 2085
+CHAIN          											:= vanilla-dev
+RELAY_CHAIN                         := kusama-local
 CUMULUS_CHAIN     									:= statemint-dev
-RUNTIME        											:= kerria-runtime
+RUNTIME        											:= vanilla-runtime
 BLOCK_AT       											:= 0x0000000000000000000000000000000000000000000000000000000000000000
 URL            											:= ws://localhost:9948
 KEYSTORE_PATH  											:= keystore
@@ -12,7 +12,7 @@ LAUNCH_CONFIG_JSON	  							:= config.json
 DOCKER_OVERRIDE_YAML                := docker-compose.override.yml
 DOCKER_TAG     											:= v1.9.8-rc0
 # DOCKER_TAG     											:= v1.9.6
-RELAY_DOCKER_TAG										:= v0.9.37
+RELAY_DOCKER_TAG										:= v0.9.42
 CUMULUS_DOCKER_TAG									:= v0.9.28
 
 .PHONY: init
