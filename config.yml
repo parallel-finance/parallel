@@ -14,7 +14,7 @@ relaychain:
     - name: charlie
     - name: dave
 parachains:
-  - image: parallelfinance/parallel:v1.9.8-rc0
+  - image: parallelfinance/parallel:latest
     chain:
       base: vanilla-dev
       collators:
