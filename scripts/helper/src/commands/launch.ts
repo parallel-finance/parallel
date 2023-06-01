@@ -139,6 +139,7 @@ async function para({ logger, options: { paraWs, network } }: ActionParameters) 
 }
 
 async function relay({ logger, options: { relayWs, network } }: ActionParameters) {
+  return
   const config = getConfig(network.valueOf() as string)
   const api = await getRelayApi(relayWs.toString())
 
