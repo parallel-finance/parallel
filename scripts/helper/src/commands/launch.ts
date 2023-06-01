@@ -149,49 +149,49 @@ async function relay({ logger, options: { relayWs, network } }: ActionParameters
   const keyring = new Keyring({ type: 'sr25519' })
   const signer = keyring.addFromUri(`${process.env.RELAY_CHAIN_SUDO_KEY || ''}`)
 
-  // for (const { paraId, image, derivativeIndex, chain } of config.crowdloans) {
-  //   const state = exec(
-  //     `docker run --rm ${image} export-genesis-state --chain ${chain}`
-  //   ).stdout.trim()
-  //   const wasm = exec(`docker run --rm ${image} export-genesis-wasm --chain ${chain}`).stdout.trim()
+  for (const { paraId, image, derivativeIndex, chain } of config.crowdloans) {
+    const state = exec(
+      `docker run --rm ${image} export-genesis-state --chain ${chain}`
+    ).stdout.trim()
+    const wasm = exec(`docker run --rm ${image} export-genesis-wasm --chain ${chain}`).stdout.trim()
 
-  //   logger.info(`Registering parathread: ${paraId}.`)
-  //   await api.tx.sudo
-  //     .sudo(
-  //       api.tx.registrar.forceRegister(
-  //         subAccountId(signer.address, derivativeIndex),
-  //         config.paraDeposit,
-  //         paraId,
-  //         state,
-  //         wasm
-  //       )
-  //     )
-  //     .signAndSend(signer, { nonce: await nextNonce(api, signer) })
-  // }
+    logger.info(`Registering parathread: ${paraId}.`)
+    await api.tx.sudo
+      .sudo(
+        api.tx.registrar.forceRegister(
+          subAccountId(signer.address, derivativeIndex),
+          config.paraDeposit,
+          paraId,
+          state,
+          wasm
+        )
+      )
+      .signAndSend(signer, { nonce: await nextNonce(api, signer) })
+  }
 
-  // logger.info('Wait parathread to be onboarded.')
-  // await sleep(360000)
+  logger.info('Wait parathread to be onboarded.')
+  await sleep(360000)
 
   logger.info('Start new auction.')
   const call = []
   call.push(api.tx.sudo.sudo(api.tx.xcmPallet.forceXcmVersion(config.location, config.xcmVersion)))
-  // call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(config.auctionDuration, config.leaseIndex)))
-  // call.push(
-  //   ...config.crowdloans.map(({ derivativeIndex }) =>
-  //     api.tx.balances.transfer(
-  //       subAccountId(signer.address, derivativeIndex),
-  //       config.crowdloanDeposit
-  //     )
-  //   )
-  // )
-  // call.push(
-  //   ...config.crowdloans.map(({ paraId, derivativeIndex, cap, endBlock, leaseStart, leaseEnd }) =>
-  //     api.tx.utility.asDerivative(
-  //       derivativeIndex,
-  //       api.tx.crowdloan.create(paraId, cap, leaseStart, leaseEnd, endBlock, null)
-  //     )
-  //   )
-  // )
+  call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(config.auctionDuration, config.leaseIndex)))
+  call.push(
+    ...config.crowdloans.map(({ derivativeIndex }) =>
+      api.tx.balances.transfer(
+        subAccountId(signer.address, derivativeIndex),
+        config.crowdloanDeposit
+      )
+    )
+  )
+  call.push(
+    ...config.crowdloans.map(({ paraId, derivativeIndex, cap, endBlock, leaseStart, leaseEnd }) =>
+      api.tx.utility.asDerivative(
+        derivativeIndex,
+        api.tx.crowdloan.create(paraId, cap, leaseStart, leaseEnd, endBlock, null)
+      )
+    )
+  )
 
   const relayAsset = config.assets.find(a => a.assetId === config.relayAsset)
   if (relayAsset && relayAsset.balances.length) {

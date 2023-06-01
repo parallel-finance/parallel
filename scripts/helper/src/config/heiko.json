@@ -6,7 +6,7 @@
   "gift": "1000000000000000",
   "stakingLedgerCap": "10000000000000000",
   "paraDeposit": "0",
-  "crowdloanDeposit": "50000000000000",
+  "crowdloanDeposit": "500000000000000",
   "location": {"parents":0, "interior":{"X1":{"Parachain": 2085}}},
   "xcmVersion": "2",
   "assets": [

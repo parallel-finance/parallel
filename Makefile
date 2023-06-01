@@ -11,7 +11,6 @@ LAUNCH_CONFIG_YAML	  							:= config.yml
 LAUNCH_CONFIG_JSON	  							:= config.json
 DOCKER_OVERRIDE_YAML                := docker-compose.override.yml
 DOCKER_TAG     											:= v1.9.8-rc0
-# DOCKER_TAG     											:= v1.9.6
 RELAY_DOCKER_TAG										:= v0.9.42
 CUMULUS_DOCKER_TAG									:= v0.9.28
 
@@ -210,8 +209,7 @@ launch: shutdown
 		&& cp docker-compose.override.yml output \
 		&& cd output \
 		&& DOCKER_CLIENT_TIMEOUT=1080 COMPOSE_HTTP_TIMEOUT=1080 PARA_ID=$(PARA_ID) docker-compose up -d --build
-	
-# cd scripts/helper && yarn start launch --network $(CHAIN)
+		cd scripts/helper && yarn start launch --network $(CHAIN)
 
 .PHONY: launch-vanilla
 launch-vanilla:
