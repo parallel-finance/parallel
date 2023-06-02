@@ -1,17 +1,6 @@
 relaychain:
-  image: parallelfinance/polkadot:v0.9.28
-  chain: polkadot-local
-  runtimeGenesisConfig:
-    hrmp:
-      preopenHrmpChannels:
-        - sender: 2012
-          recipient: 1000
-          maxCapacity: 8
-          maxMessageSize: 102400
-        - sender: 1000
-          recipient: 2012
-          maxCapacity: 8
-          maxMessageSize: 102400
+  image: parallelfinance/polkadot:v0.9.42
+  chain: kusama-local
   env:
     RUST_LOG: xcm=trace
   flags:
@@ -27,11 +16,11 @@ relaychain:
 parachains:
   - image: parallelfinance/parallel:latest
     chain:
-      base: kerria-dev
+      base: vanilla-dev
       collators:
         - alice
       sudo: dave
-    id: 2012
+    id: 2085
     parachain: true
     flags:
       - --rpc-methods=unsafe
@@ -47,29 +36,6 @@ parachains:
       - --state-cache-size=0
     env:
       RUST_LOG: eth=trace,xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace,stableswap=trace,router=trace,bridge=trace,prices=trace
-    nodes:
-      - flags:
-          - --alice
-  - image: parallelfinance/cumulus:v0.9.28
-    chain:
-      base: statemint-local
-      collators:
-        - alice
-      sudo: dave
-    id: 1000
-    parachain: true
-    flags:
-      - --rpc-methods=unsafe
-      - --force-authoring
-      - --wasm-execution=compiled
-      - --execution=wasm
-      - --state-cache-size=0
-    relaychainFlags:
-      - --wasm-execution=compiled
-      - --execution=wasm
-      - --state-cache-size=0
-    env:
-      RUST_LOG: xcm=trace
     nodes:
       - flags:
           - --alice

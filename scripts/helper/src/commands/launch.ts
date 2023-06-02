@@ -174,6 +174,7 @@ async function relay({ logger, options: { relayWs, network } }: ActionParameters
 
   logger.info('Start new auction.')
   const call = []
+  call.push(api.tx.sudo.sudo(api.tx.xcmPallet.forceXcmVersion(config.location, config.xcmVersion)))
   call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(config.auctionDuration, config.leaseIndex)))
   call.push(
     ...config.crowdloans.map(({ derivativeIndex }) =>

@@ -1,18 +1,16 @@
-PARA_ID        											:= 2012
-CHAIN          											:= kerria-dev
-RELAY_CHAIN                         := polkadot-local
-CUMULUS_CHAIN     									:= statemint-dev
-RUNTIME        											:= kerria-runtime
+PARA_ID        											:= 2085
+CHAIN          											:= vanilla-dev
+RELAY_CHAIN                         					:= kusama-local
+RUNTIME        											:= vanilla-runtime
 BLOCK_AT       											:= 0x0000000000000000000000000000000000000000000000000000000000000000
 URL            											:= ws://localhost:9948
 KEYSTORE_PATH  											:= keystore
 SURI           											:= //Alice
-LAUNCH_CONFIG_YAML	  							:= config.yml
-LAUNCH_CONFIG_JSON	  							:= config.json
-DOCKER_OVERRIDE_YAML                := docker-compose.override.yml
+LAUNCH_CONFIG_YAML	  									:= config.yml
+LAUNCH_CONFIG_JSON	  									:= config.json
+DOCKER_OVERRIDE_YAML                					:= docker-compose.override.yml
 DOCKER_TAG     											:= latest
-RELAY_DOCKER_TAG										:= v0.9.28
-CUMULUS_DOCKER_TAG									:= v0.9.28
+RELAY_DOCKER_TAG										:= v0.9.42
 
 .PHONY: init
 init: submodules
@@ -199,13 +197,9 @@ shutdown:
 launch: shutdown
 	yq -i eval '.relaychain.image = "parallelfinance/polkadot:$(RELAY_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.relaychain.chain = "$(RELAY_CHAIN)"' $(LAUNCH_CONFIG_YAML)
-	yq -i eval '.relaychain.runtimeGenesisConfig.hrmp.preopenHrmpChannels[0].sender = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
-	yq -i eval '.relaychain.runtimeGenesisConfig.hrmp.preopenHrmpChannels[1].recipient = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].image = "parallelfinance/parallel:$(DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].id = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].chain.base = "$(CHAIN)"' $(LAUNCH_CONFIG_YAML)
-	yq -i eval '.parachains[1].image = "parallelfinance/cumulus:$(CUMULUS_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
-	yq -i eval '.parachains[1].chain.base = "$(CUMULUS_CHAIN)"' $(LAUNCH_CONFIG_YAML)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
@@ -222,7 +216,7 @@ launch: shutdown
 
 .PHONY: launch-vanilla
 launch-vanilla:
-	make PARA_ID=2085 CHAIN=vanilla-dev RELAY_CHAIN=kusama-local CUMULUS_CHAIN=statemine-dev launch
+	make PARA_ID=2085 CHAIN=vanilla-dev RELAY_CHAIN=kusama-local launch
 
 .PHONY: dev-launch
 dev-launch: shutdown
