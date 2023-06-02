@@ -6,7 +6,9 @@
   "gift": "1000000000000000",
   "stakingLedgerCap": "10000000000000000",
   "paraDeposit": "0",
-  "crowdloanDeposit": "50000000000000",
+  "crowdloanDeposit": "500000000000000",
+  "location": {"parents":0, "interior":{"X1":{"Parachain": 2085}}},
+  "xcmVersion": "2",
   "assets": [
     {
       "name": "Kusama Unbonding",
@@ -269,7 +271,7 @@
       "pool": [1000, 100],
       "liquidityAmounts": ["10000000000", "10000000000"],
       "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
-      "liquidityProviderToken": 6003
+      "liquidityProviderToken": 5003
     }
   ],
   "crowdloans": [
