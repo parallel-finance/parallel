@@ -175,6 +175,7 @@ std                = [
   'frame-executive/std',
   'frame-system/std',
   'frame-benchmarking/std',
+  'frame-try-runtime/std',
   'frame-system-rpc-runtime-api/std',
   'pallet-balances/std',
   'pallet-xcm/std',
