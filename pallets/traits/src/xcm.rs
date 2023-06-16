@@ -32,7 +32,7 @@ use sp_runtime::traits::{BlakeTwo256, Convert, Hash as THash, SaturatedConversio
 use sp_std::{borrow::Borrow, marker::PhantomData, result};
 use xcm::latest::{
     prelude::*, AssetId as xcmAssetId, Error as XcmError, Fungibility, Junction::AccountId32,
-    MultiLocation, NetworkId, Weight,
+    MultiLocation, Weight,
 };
 use xcm_builder::TakeRevenue;
 use xcm_executor::traits::{
@@ -86,7 +86,7 @@ where
         MultiLocation {
             parents: 0,
             interior: X1(AccountId32 {
-                network: NetworkId::Any,
+                network: None,
                 id: account.into(),
             }),
         }
@@ -112,7 +112,7 @@ impl<
     > WeightTrader for FirstAssetTrader<AssetType, AssetIdInfoGetter, R>
 {
     fn new() -> Self {
-        FirstAssetTrader(0, None, PhantomData)
+        FirstAssetTrader(Weight::zero(), None, PhantomData)
     }
 
     fn buy_weight(
@@ -139,7 +139,8 @@ impl<
 
                 let units_per_second = AssetIdInfoGetter::get_units_per_second(asset_type)
                     .ok_or(XcmError::TooExpensive)?;
-                let amount = units_per_second.saturating_mul(weight as u128)
+                // TODO handle proof size payment
+                let amount = units_per_second.saturating_mul(weight.ref_time() as u128)
                     / (WEIGHT_REF_TIME_PER_SECOND as u128);
 
                 // We dont need to proceed if the amount is 0
@@ -202,7 +203,8 @@ impl<
         if let Some((id, prev_amount, units_per_second)) = self.1.clone() {
             let weight = weight.min(self.0);
             self.0 -= weight;
-            let amount = units_per_second * (weight as u128) / (WEIGHT_REF_TIME_PER_SECOND as u128);
+            let amount = units_per_second * (weight.ref_time() as u128)
+                / (WEIGHT_REF_TIME_PER_SECOND as u128);
             self.1 = Some((
                 id.clone(),
                 prev_amount.saturating_sub(amount),
@@ -407,7 +409,11 @@ impl<
         GiftConvert,
     >
 {
-    fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> XcmResult {
+    fn deposit_asset(
+        asset: &MultiAsset,
+        location: &MultiLocation,
+        _context: &XcmContext,
+    ) -> XcmResult {
         match (
             AccountIdConvert::convert_ref(location),
             CurrencyIdConvert::convert(asset.clone()),
@@ -479,6 +485,7 @@ impl<
     fn withdraw_asset(
         asset: &MultiAsset,
         location: &MultiLocation,
+        _maybe_context: Option<&XcmContext>,
     ) -> result::Result<xcm_executor::Assets, XcmError> {
         // throw AssetNotFound error here if not match in order to reach the next foreign transact in tuple
         let amount: MultiCurrency::Balance = Match::matches_fungible(asset)
@@ -507,6 +514,7 @@ impl<
         asset: &MultiAsset,
         from: &MultiLocation,
         to: &MultiLocation,
+        _context: &XcmContext,
     ) -> result::Result<xcm_executor::Assets, XcmError> {
         let from_account = AccountIdConvert::convert_ref(from)
             .map_err(|_| XcmError::from(Error::AccountIdConversionFailed))?;

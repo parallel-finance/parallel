@@ -29,7 +29,6 @@ use frame_system::pallet_prelude::BlockNumberFor;
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup};
 use sp_std::{boxed::Box, prelude::*, vec, vec::Vec};
 use xcm::{latest::prelude::*, DoubleEncoded};
-use xcm_executor::traits::InvertLocation;
 
 pub use pallet::*;
 use pallet_traits::{switch_relay, ump::*};
@@ -263,16 +262,17 @@ impl<T: Config> Pallet<T> {
         timeout: BlockNumberFor<T>,
     ) -> Result<QueryId, DispatchError> {
         let responder = responder.into();
-        let dest = <T as pallet_xcm::Config>::LocationInverter::invert_location(&responder)
+        let destination = <T as pallet_xcm::Config>::UniversalLocation::get()
+            .invert_target(&responder)
             .map_err(|()| Error::<T>::MultiLocationNotInvertible)?;
         let notify: <T as pallet_xcm::Config>::RuntimeCall = notify.into();
-        let max_response_weight = notify.get_dispatch_info().weight.ref_time();
-        let query_id = pallet_xcm::Pallet::<T>::new_notify_query(responder, notify, timeout);
-        let report_error = Xcm(vec![ReportError {
-            dest,
+        let max_weight = notify.get_dispatch_info().weight;
+        let query_id = pallet_xcm::Pallet::<T>::new_notify_query(responder, notify, timeout, Here);
+        let report_error = Xcm(vec![ReportError(QueryResponseInfo {
+            destination,
             query_id,
-            max_response_weight,
-        }]);
+            max_weight,
+        })]);
         // Prepend SetAppendix(Xcm(vec![ReportError])) wont be able to pass barrier check
         // so we need to insert it after Withdraw, BuyExecution
         message.0.insert(2, SetAppendix(report_error));
@@ -295,8 +295,8 @@ impl<T: Config> Pallet<T> {
         message.0.insert(
             3,
             Transact {
-                origin_type: OriginKind::SovereignAccount,
-                require_weight_at_most: weight.ref_time(),
+                origin_kind: OriginKind::SovereignAccount,
+                require_weight_at_most: weight,
                 call,
             },
         );
@@ -332,14 +332,13 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 weight_limit: Unlimited,
             },
             Transact {
-                origin_type: OriginKind::SovereignAccount,
-                require_weight_at_most: weight.ref_time(),
+                origin_kind: OriginKind::SovereignAccount,
+                require_weight_at_most: weight,
                 call,
             },
             RefundSurplus,
             DepositAsset {
                 assets: asset.into(),
-                max_assets: 1,
                 beneficiary,
             },
         ]))
@@ -374,7 +373,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 T::NotifyTimeout::get(),
             )?;
 
-            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+            if let Err(_e) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
 
@@ -412,7 +411,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 T::NotifyTimeout::get(),
             )?;
 
-            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+            if let Err(_e) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
 
@@ -447,7 +446,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 T::NotifyTimeout::get(),
             )?;
 
-            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+            if let Err(_e) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
 
@@ -485,7 +484,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 T::NotifyTimeout::get(),
             )?;
 
-            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+            if let Err(_e) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
 
@@ -537,7 +536,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 T::NotifyTimeout::get(),
             )?;
 
-            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+            if let Err(_e) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
 
@@ -587,7 +586,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 T::NotifyTimeout::get(),
             )?;
 
-            if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+            if let Err(_err) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
 
@@ -634,7 +633,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 T::NotifyTimeout::get(),
             )?;
 
-            if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+            if let Err(_err) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
 
@@ -672,7 +671,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 T::NotifyTimeout::get(),
             )?;
 
-            if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+            if let Err(_err) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
 
@@ -710,7 +709,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 T::NotifyTimeout::get(),
             )?;
 
-            if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+            if let Err(_err) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
 
@@ -762,7 +761,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 T::NotifyTimeout::get(),
             )?;
 
-            if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+            if let Err(_err) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
 
@@ -803,7 +802,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 T::NotifyTimeout::get(),
             )?;
 
-            if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+            if let Err(_err) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
             }
 
