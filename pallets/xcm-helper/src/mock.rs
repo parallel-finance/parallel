@@ -8,7 +8,7 @@ use frame_support::{
         OriginTrait, SortedMembers,
     },
     weights::constants::WEIGHT_REF_TIME_PER_SECOND,
-    PalletId, WeakBoundedVec,
+    BoundedSlice, PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSigned};
 use orml_xcm_support::IsNativeConcrete;
@@ -29,9 +29,9 @@ pub use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
     ChildParachainAsNative, ChildParachainConvertsVia, ChildSystemParachainAsSuperuser,
     CurrencyAdapter as XcmCurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds,
-    IsConcrete, LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsPreset,
-    RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+    IsConcrete, NativeAsset, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
+    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
 use xcm_executor::{traits::ConvertOrigin, Config, XcmExecutor};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
@@ -82,7 +82,7 @@ parameter_types! {
     pub RelayNetwork: NetworkId = NetworkId::Kusama;
     pub RelayCurrency: CurrencyId = DOT;
     pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
-    pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
+    pub UniversalLocation: InteriorMultiLocation = X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
 }
 
 pub type LocationToAccountId = (
@@ -101,7 +101,7 @@ pub type XcmOriginToCallOrigin = (
 
 parameter_types! {
     pub const UnitWeightCost: u64 = 1;
-    pub DotPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), 1);
+    pub DotPerSecond: (AssetId, u128, u128) = (AssetId::Concrete(MultiLocation::parent()), 1, 1);
 }
 
 parameter_types! {
@@ -141,7 +141,7 @@ impl Config for XcmConfig {
     type OriginConverter = XcmOriginToCallOrigin;
     type IsReserve = NativeAsset;
     type IsTeleporter = ();
-    type LocationInverter = LocationInverter<Ancestry>;
+    type UniversalLocation = UniversalLocation;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
     type Trader = FixedRateOfFungible<DotPerSecond, ()>;
@@ -149,6 +149,15 @@ impl Config for XcmConfig {
     type SubscriptionService = PolkadotXcm;
     type AssetTrap = PolkadotXcm;
     type AssetClaims = PolkadotXcm;
+    type AssetLocker = ();
+    type AssetExchanger = ();
+    type PalletInstancesInfo = ();
+    type MaxAssetsIntoHolding = ConstU32<64>;
+    type FeeManager = ();
+    type MessageExporter = ();
+    type UniversalAliases = Nothing;
+    type CallDispatcher = RuntimeCall;
+    type SafeCallFilter = Everything;
 }
 
 pub struct SystemParachainAsSuperuser<Origin>(PhantomData<Origin>);
@@ -183,6 +192,7 @@ impl cumulus_pallet_xcmp_queue::Config for Test {
     type ControllerOrigin = EnsureRoot<AccountId>;
     type ControllerOriginConverter = SystemParachainAsSuperuser<RuntimeOrigin>;
     type WeightInfo = cumulus_pallet_xcmp_queue::weights::SubstrateWeight<Test>;
+    type PriceForSiblingDelivery = ();
 }
 
 impl cumulus_pallet_dmp_queue::Config for Test {
@@ -197,6 +207,11 @@ impl cumulus_pallet_xcm::Config for Test {
 }
 
 pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
+
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+    pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
+}
 
 impl pallet_xcm::Config for Test {
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
@@ -213,8 +228,16 @@ impl pallet_xcm::Config for Test {
 
     type XcmReserveTransferFilter = Everything;
     type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
-    type LocationInverter = LocationInverter<Ancestry>;
+    type UniversalLocation = UniversalLocation;
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
+    type Currency = Balances;
+    type CurrencyMatcher = ();
+    type TrustedLockers = ();
+    type SovereignAccountOf = ();
+    type MaxLockers = ConstU32<8>;
+    type WeightInfo = pallet_xcm::TestWeightInfo;
+    #[cfg(feature = "runtime-benchmarks")]
+    type ReachableDest = ReachableDest;
 }
 
 pub struct CurrencyIdConvert;
@@ -226,10 +249,8 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"sDOT".to_vec(),
-                        None,
-                    )),
+                    BoundedSlice::<u8, ConstU32<32>>::truncate_from(b"sDOT".to_vec().as_ref())
+                        .into(),
                 ),
             )),
             _ => None,
@@ -246,9 +267,13 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             } => Some(DOT),
             MultiLocation {
                 parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"sDOT".to_vec() => {
-                Some(SDOT)
+                interior: X2(Parachain(id), GeneralKey { data, length }),
+            } => {
+                let key = &data[..data.len().min(length as usize)];
+                if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"sDOT".to_vec() {
+                    return Some(SDOT);
+                }
+                None
             }
             _ => None,
         }
@@ -273,7 +298,7 @@ pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
     fn convert(account_id: AccountId) -> MultiLocation {
         MultiLocation::from(Junction::AccountId32 {
-            network: NetworkId::Any,
+            network: None,
             id: account_id.into(),
         })
     }
