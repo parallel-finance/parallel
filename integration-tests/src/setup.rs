@@ -14,7 +14,7 @@
 
 use frame_support::traits::ConstU32;
 use frame_support::traits::GenesisBuild;
-use frame_support::WeakBoundedVec;
+use frame_support::BoundedSlice;
 
 pub use frame_support::pallet_prelude::Weight;
 use frame_support::traits::Currency;
@@ -175,10 +175,8 @@ impl ExtBuilder {
                 1,
                 X2(
                     Parachain(2085),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"HKO".to_vec(),
-                        None,
-                    )),
+                    BoundedSlice::<u8, ConstU32<32>>::truncate_from(b"HKO".to_vec().as_ref())
+                        .into(),
                 ),
             );
             let hko_asset_type = AssetType::Xcm(hko_asset_location);
@@ -230,7 +228,7 @@ impl ExtBuilder {
 
             XcmHelper::update_xcm_weight_fee(
                 RuntimeOrigin::root(),
-                XcmCall::TransferToSiblingchain(Box::new((1, Parachain(1000)).into())),
+                XcmCall::TransferToSiblingchain(Box::new(MultiLocation::new(1u8, Parachain(1000)))),
                 XcmWeightFeeMisc {
                     weight: Weight::from_ref_time(WEIGHT_IN_STATEMINE),
                     fee: FEE_IN_STATEMINE,
@@ -300,10 +298,8 @@ impl ExtBuilder {
                 1,
                 X2(
                     Parachain(2000),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"KAR".to_vec(),
-                        None,
-                    )),
+                    BoundedSlice::<u8, ConstU32<32>>::truncate_from(b"KAR".to_vec().as_ref())
+                        .into(),
                 ),
             );
             let kar_asset_type = AssetType::Xcm(kar_asset_location);
@@ -439,10 +435,8 @@ impl ExtBuilder {
                 1,
                 X2(
                     Parachain(2012),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"PARA".to_vec(),
-                        None,
-                    )),
+                    BoundedSlice::<u8, ConstU32<32>>::truncate_from(b"PARA".to_vec().as_ref())
+                        .into(),
                 ),
             );
             let para_asset_type = AssetType::Xcm(para_asset_location);
@@ -472,10 +466,8 @@ impl ExtBuilder {
                 1,
                 X2(
                     Parachain(2002),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"CLV".to_vec(),
-                        None,
-                    )),
+                    BoundedSlice::<u8, ConstU32<32>>::truncate_from(b"CLV".to_vec().as_ref())
+                        .into(),
                 ),
             );
             let clv_asset_type = AssetType::Xcm(clv_asset_location);
@@ -593,10 +585,8 @@ impl ExtBuilder {
                 1,
                 X2(
                     Parachain(2000),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"KAR".to_vec(),
-                        None,
-                    )),
+                    BoundedSlice::<u8, ConstU32<32>>::truncate_from(b"KAR".to_vec().as_ref())
+                        .into(),
                 ),
             );
             let kar_asset_type = AssetType::Xcm(kar_asset_location);
@@ -622,10 +612,8 @@ impl ExtBuilder {
                 1,
                 X2(
                     Parachain(2002),
-                    GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"CLV".to_vec(),
-                        None,
-                    )),
+                    BoundedSlice::<u8, ConstU32<32>>::truncate_from(b"CLV".to_vec().as_ref())
+                        .into(),
                 ),
             );
             let clv_asset_type = AssetType::Xcm(clv_asset_location);

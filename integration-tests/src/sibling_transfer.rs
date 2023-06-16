@@ -15,7 +15,7 @@
 use crate::{kusama_test_net::*, setup::*};
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{assert_ok, traits::ConstU32, WeakBoundedVec};
+use frame_support::{assert_ok, traits::ConstU32, BoundedSlice};
 use primitives::{AccountId, BlockNumber, KAR};
 use scale_info::TypeInfo;
 use sp_core::{hexdisplay::HexDisplay, RuntimeDebug};
@@ -56,14 +56,13 @@ fn transfer_sibling_chain_asset() {
 
     MockSibling::execute_with(|| {
         let mut general_key =
-            WeakBoundedVec::<u8, ConstU32<32>>::force_from([4, 13].to_vec(), None).to_vec();
+            BoundedSlice::<u8, ConstU32<32>>::truncate_from([4, 13].to_vec().as_ref()).to_vec();
         assert_eq!(general_key, vec![4, 13]);
         let mut general_key_hex = format!("0x{:?}", HexDisplay::from(&general_key));
         assert_eq!(general_key_hex, "0x040d");
 
-        general_key = WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-            CurrencyId::LiquidCrowdloan(13).encode(),
-            None,
+        general_key = BoundedSlice::<u8, ConstU32<32>>::truncate_from(
+            CurrencyId::LiquidCrowdloan(13).encode().as_ref(),
         )
         .to_vec();
         assert_eq!(general_key, vec![4, 13, 0, 0, 0]);
@@ -74,19 +73,21 @@ fn transfer_sibling_chain_asset() {
             RuntimeOrigin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2085))).into()),
             Box::new(
-                Junction::AccountId32 {
-                    id: BOB,
-                    network: NetworkId::Any
-                }
-                .into()
+                MultiLocation::new(
+                    0,
+                    X1(Junction::AccountId32 {
+                        id: BOB,
+                        network: None
+                    })
+                )
                 .into()
             ),
             Box::new(
                 (
-                    X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"KAR".to_vec(),
-                        None
-                    ))),
+                    X1(
+                        BoundedSlice::<u8, ConstU32<32>>::truncate_from(b"KAR".to_vec().as_ref())
+                            .into()
+                    ),
                     heiko(10)
                 )
                     .into()
@@ -113,14 +114,14 @@ fn transfer_sibling_chain_asset() {
                     X2(
                         Parachain(2000), //Sibling chain
                         Junction::AccountId32 {
-                            network: NetworkId::Any,
+                            network: None,
                             id: BOB.into(),
                         }
                     )
                 )
                 .into()
             ),
-            WeightLimit::Limited(4_000_000_000),
+            WeightLimit::Limited(4_000_000_000.into()),
         ));
 
         assert_eq!(

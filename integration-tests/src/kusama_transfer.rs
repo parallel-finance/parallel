@@ -29,15 +29,15 @@ fn transfer_from_relay_chain() {
     KusamaNet::execute_with(|| {
         assert_ok!(kusama_runtime::XcmPallet::reserve_transfer_assets(
             kusama_runtime::RuntimeOrigin::signed(ALICE.into()),
-            Box::new(VersionedMultiLocation::V1(X1(Parachain(2085)).into())),
-            Box::new(VersionedMultiLocation::V1(
+            Box::new(VersionedMultiLocation::V3(X1(Parachain(2085)).into())),
+            Box::new(VersionedMultiLocation::V3(
                 X1(Junction::AccountId32 {
                     id: BOB,
-                    network: NetworkId::Any
+                    network: None
                 })
                 .into()
             )),
-            Box::new(VersionedMultiAssets::V1((Here, ksm(1f64)).into())),
+            Box::new(VersionedMultiAssets::V3((Here, ksm(1f64)).into())),
             0,
         ));
     });
@@ -56,14 +56,14 @@ fn transfer_to_relay_chain() {
             RuntimeOrigin::signed(ALICE.into()),
             KSM,
             ksm(1f64),
-            Box::new(xcm::VersionedMultiLocation::V1(MultiLocation::new(
+            Box::new(xcm::VersionedMultiLocation::V3(MultiLocation::new(
                 1,
                 X1(Junction::AccountId32 {
                     id: BOB,
-                    network: NetworkId::Any
+                    network: None
                 })
             ))),
-            WeightLimit::Limited(4_000_000_000)
+            WeightLimit::Limited(4_000_000_000.into())
         ));
     });
 
