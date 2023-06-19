@@ -30,7 +30,7 @@ use xcm::latest::{Junction, Junctions, MultiLocation, NetworkId};
 // end to recover the name
 pub(crate) fn network_id_to_bytes(network_id: Option<NetworkId>) -> Vec<u8> {
     let mut encoded: Vec<u8> = Vec::new();
-    match network_id.clone() {
+    match network_id {
         None => {
             encoded.push(0u8);
             encoded
@@ -117,10 +117,10 @@ pub(crate) fn network_id_from_bytes(encoded_bytes: Vec<u8>) -> EvmResult<Option<
         3 => Ok(Some(NetworkId::Kusama)),
         4 => {
             let mut block_number: [u8; 8] = Default::default();
-            block_number.copy_from_slice(&encoded_network_id.read_raw_bytes(8)?);
+            block_number.copy_from_slice(encoded_network_id.read_raw_bytes(8)?);
 
             let mut block_hash: [u8; 32] = Default::default();
-            block_hash.copy_from_slice(&encoded_network_id.read_raw_bytes(32)?);
+            block_hash.copy_from_slice(encoded_network_id.read_raw_bytes(32)?);
             Ok(Some(NetworkId::ByFork {
                 block_number: u64::from_be_bytes(block_number),
                 block_hash,
@@ -131,7 +131,7 @@ pub(crate) fn network_id_from_bytes(encoded_bytes: Vec<u8>) -> EvmResult<Option<
         7 => Ok(Some(NetworkId::Wococo)),
         8 => {
             let mut chain_id: [u8; 8] = Default::default();
-            chain_id.copy_from_slice(&encoded_network_id.read_raw_bytes(8)?);
+            chain_id.copy_from_slice(encoded_network_id.read_raw_bytes(8)?);
             Ok(Some(NetworkId::Ethereum {
                 chain_id: u64::from_be_bytes(chain_id),
             }))
@@ -218,7 +218,7 @@ impl EvmData for Junction {
                 );
 
                 let mut data: [u8; 32] = Default::default();
-                data.copy_from_slice(&encoded_junction.read_till_end()?);
+                data.copy_from_slice(encoded_junction.read_till_end()?);
 
                 Ok(Junction::GeneralKey {
                     length: u8::from_be_bytes(length),
