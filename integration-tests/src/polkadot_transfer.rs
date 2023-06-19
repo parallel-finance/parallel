@@ -50,6 +50,9 @@ fn transfer_from_relay_chain() {
 
 #[test]
 fn transfer_to_relay_chain() {
+    let _ = env_logger::builder().is_test(true).try_init();
+    TestNet::reset();
+
     use parallel_runtime::{RuntimeOrigin, XTokens};
     Parallel::execute_with(|| {
         assert_ok!(XTokens::transfer(
@@ -72,7 +75,7 @@ fn transfer_to_relay_chain() {
         println!("parallel para account in relaychain:{:?}", para_acc);
         assert_eq!(
             polkadot_runtime::Balances::free_balance(&AccountId::from(BOB)),
-            99_578_565_860
+            99637471000
         );
     });
 }

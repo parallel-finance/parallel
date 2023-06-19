@@ -81,7 +81,7 @@ env_logger                            = { workspace = true }
 kusama-runtime                        = { workspace = true, features = ['runtime-benchmarks'] }
 log                                   = { workspace = true }
 polkadot-primitives                   = { workspace = true }
-polkadot-runtime                      = { workspace = true }
+polkadot-runtime                      = { workspace = true, features = ['runtime-benchmarks'] }
 polkadot-runtime-parachains           = { workspace = true }
 sp-io                                 = { workspace = true }
 sp-trie                               = { workspace = true }

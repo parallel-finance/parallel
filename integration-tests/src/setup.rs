@@ -370,7 +370,7 @@ impl ExtBuilder {
 
         <pallet_xcm::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
             &pallet_xcm::GenesisConfig {
-                safe_xcm_version: Some(2),
+                safe_xcm_version: Some(3),
             },
             &mut t,
         )
@@ -504,7 +504,7 @@ impl ExtBuilder {
 
         <pallet_xcm::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
             &pallet_xcm::GenesisConfig {
-                safe_xcm_version: Some(2),
+                safe_xcm_version: Some(3),
             },
             &mut t,
         )
@@ -645,7 +645,7 @@ impl ExtBuilder {
 
         <pallet_xcm::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
             &pallet_xcm::GenesisConfig {
-                safe_xcm_version: Some(2),
+                safe_xcm_version: Some(3),
             },
             &mut t,
         )
