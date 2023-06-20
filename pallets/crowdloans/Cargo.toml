@@ -53,7 +53,11 @@ bytes                           = { workspace = true }
 
 [features]
 default            = ['std']
-runtime-benchmarks = ['frame-benchmarking']
+runtime-benchmarks = [
+  'frame-benchmarking',
+  'kusama-runtime/runtime-benchmarks',
+  'polkadot-cli/runtime-benchmarks'
+  ]
 std                = [
   'codec/std',
   'frame-support/std',

@@ -61,7 +61,10 @@ pallet-currency-adapter = { workspace = true, features = ['std'] }
 
 [features]
 default            = ['std']
-runtime-benchmarks = ['frame-benchmarking']
+runtime-benchmarks = [
+  'frame-benchmarking',
+  'kusama-runtime/runtime-benchmarks',
+  ]
 std                = [
   'codec/std',
   'frame-support/std',
