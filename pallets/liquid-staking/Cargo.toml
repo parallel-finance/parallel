@@ -37,7 +37,7 @@ sp-core          = { workspace = true, features = ['std'] }
 sp-io            = { workspace = true, features = ['std'] }
 sp-state-machine = { workspace = true }
 
-kusama-runtime              = { workspace = true, features = ['runtime-benchmarks'] }
+kusama-runtime              = { workspace = true, features = ['std'] }
 polkadot-core-primitives    = { workspace = true }
 polkadot-parachain          = { workspace = true, features = ['std'] }
 polkadot-runtime-parachains = { workspace = true }

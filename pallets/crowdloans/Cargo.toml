@@ -28,7 +28,7 @@ cumulus-pallet-dmp-queue        = { workspace = true, features = ['std'] }
 cumulus-pallet-parachain-system = { workspace = true, features = ['std'] }
 cumulus-pallet-xcm              = { workspace = true, features = ['std'] }
 cumulus-pallet-xcmp-queue       = { workspace = true, features = ['std'] }
-kusama-runtime                  = { workspace = true, features = ['runtime-benchmarks'] }
+kusama-runtime                  = { workspace = true, features = ['std'] }
 orml-traits                     = { workspace = true, features = ['std'] }
 orml-xcm-support                = { workspace = true, features = ['std'] }
 orml-xtokens                    = { workspace = true, features = ['std'] }
@@ -42,7 +42,7 @@ polkadot-core-primitives        = { workspace = true }
 polkadot-parachain              = { workspace = true, features = ['std'] }
 polkadot-runtime-common         = { workspace = true, features = ['std'] }
 polkadot-runtime-parachains     = { workspace = true }
-polkadot-cli                    = { workspace = true, features = ['runtime-benchmarks'] }
+polkadot-cli                    = { workspace = true }
 serde                           = { workspace = true }
 sp-core                         = { workspace = true, features = ['std'] }
 sp-io                           = { workspace = true, features = ['std'] }

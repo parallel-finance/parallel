@@ -273,7 +273,7 @@
 - Integrate parachain-launch (#325)
 - Split docker images (#325)
 - Add subwasm (#325)
-- Annonce new release to discord channel (#325)
+- Announce new release to discord channel (#325)
 
 ## 2021.07.22
 
