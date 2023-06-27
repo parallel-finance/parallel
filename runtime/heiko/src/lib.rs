@@ -2070,10 +2070,9 @@ pub type Executive = frame_executive::Executive<
     Runtime,
     AllPalletsWithSystem,
     (
-        pallet_balances::migration::ResetInactive<Runtime>,
-        // We need to apply this migration again, because `ResetInactive` resets the state again.
-        pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccount>,
-        pallet_scheduler::migration::v4::CleanupAgendas<Runtime>,
+        // "Use 2D weights in XCM v3" <https://github.com/paritytech/polkadot/pull/6134>
+        pallet_xcm::migration::v1::MigrateToV1<Runtime>,
+        pallet_asset_registry::migration::XcmV2ToV3AssetManager<Runtime>,
     ),
 >;
 
