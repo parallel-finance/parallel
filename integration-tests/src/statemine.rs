@@ -31,11 +31,13 @@ fn transfer_statemine_rmrk() {
             RuntimeOrigin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2085))).into()),
             Box::new(
-                Junction::AccountId32 {
-                    id: BOB,
-                    network: NetworkId::Any
-                }
-                .into()
+                MultiLocation::new(
+                    0,
+                    X1(Junction::AccountId32 {
+                        id: BOB,
+                        network: None
+                    })
+                )
                 .into()
             ),
             Box::new((X2(PalletInstance(50), GeneralIndex(8)), rmrk(2)).into()),
@@ -80,14 +82,14 @@ fn transfer_statemine_rmrk() {
                     X2(
                         Parachain(1000),
                         Junction::AccountId32 {
-                            network: NetworkId::Any,
+                            network: None,
                             id: BOB.into(),
                         }
                     )
                 )
                 .into()
             ),
-            WeightLimit::Limited(WEIGHT_IN_STATEMINE as u64)
+            WeightLimit::Limited(WEIGHT_IN_STATEMINE.into())
         ));
     });
     // check reserved ksm move from heiko sovereign to statemine sovereign
@@ -125,11 +127,13 @@ fn transfer_statemine_usdt() {
             RuntimeOrigin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2085))).into()),
             Box::new(
-                Junction::AccountId32 {
-                    id: BOB,
-                    network: NetworkId::Any
-                }
-                .into()
+                MultiLocation::new(
+                    0,
+                    X1(Junction::AccountId32 {
+                        id: BOB,
+                        network: None
+                    })
+                )
                 .into()
             ),
             Box::new(
@@ -179,14 +183,14 @@ fn transfer_statemine_usdt() {
                     X2(
                         Parachain(1000),
                         Junction::AccountId32 {
-                            network: NetworkId::Any,
+                            network: None,
                             id: BOB.into(),
                         }
                     )
                 )
                 .into()
             ),
-            WeightLimit::Limited(WEIGHT_IN_STATEMINE as u64)
+            WeightLimit::Limited(WEIGHT_IN_STATEMINE.into())
         ));
     });
 

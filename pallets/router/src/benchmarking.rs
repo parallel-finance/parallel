@@ -76,7 +76,8 @@ fn initial_set_up<
 
     if pallet_amm::Pallet::<T>::pools(SDOT, DOT) == None {
         assert_ok!(pallet_amm::Pallet::<T>::create_pool(
-            T::CreatePoolOrigin::successful_origin(),
+            T::CreatePoolOrigin::try_successful_origin()
+                .expect("No origin exists which can satisfy the guard"),
             (DOT, SDOT),
             (100_000_000u128, 100_000_000u128),
             pool_creator.clone(),

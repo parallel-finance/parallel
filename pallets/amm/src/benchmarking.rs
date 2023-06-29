@@ -76,7 +76,7 @@ benchmarks_instance_pallet! {
         initial_set_up::<T, I>(caller.clone());
         let base_amount = 100_000u128;
         let quote_amount = 200_000u128;
-        assert_ok!(AMM::<T, I>::create_pool(T::CreatePoolOrigin::successful_origin(),
+        assert_ok!(AMM::<T, I>::create_pool(T::CreatePoolOrigin::try_successful_origin().expect("No origin exists which can satisfy the guard"),
             (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
             caller.clone(), ASSET_ID));
     }: _(
@@ -103,7 +103,7 @@ benchmarks_instance_pallet! {
         initial_set_up::<T, I>(caller.clone());
         let base_amount = 100_000u128;
         let quote_amount = 900_000u128;
-        assert_ok!(AMM::<T, I>::create_pool(T::CreatePoolOrigin::successful_origin(),
+        assert_ok!(AMM::<T, I>::create_pool(T::CreatePoolOrigin::try_successful_origin().expect("No origin exists which can satisfy the guard"),
             (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
             caller.clone(), ASSET_ID));
     }: _(
@@ -130,7 +130,7 @@ benchmarks_instance_pallet! {
         initial_set_up::<T, I>(caller.clone());
         let base_amount = 100_000u128;
         let quote_amount = 200_000u128;
-        let origin = T::CreatePoolOrigin::successful_origin();
+        let origin = T::CreatePoolOrigin::try_successful_origin().expect("No origin exists which can satisfy the guard");
         let call = Call::<T, I>::create_pool {
             pair: (BASE_ASSET, QUOTE_ASSET),
             liquidity_amounts: (base_amount, quote_amount),
@@ -154,7 +154,7 @@ benchmarks_instance_pallet! {
     }
 
     update_protocol_fee {
-        let origin = T::ProtocolFeeUpdateOrigin::successful_origin();
+        let origin = T::ProtocolFeeUpdateOrigin::try_successful_origin().expect("No origin exists which can satisfy the guard");
         let call = Call::<T, I>::update_protocol_fee {
             protocol_fee: Ratio::from_percent(20)
         };
@@ -166,7 +166,7 @@ benchmarks_instance_pallet! {
 
     update_protocol_fee_receiver {
         let caller: T::AccountId = whitelisted_caller();
-        let origin = T::ProtocolFeeUpdateOrigin::successful_origin();
+        let origin = T::ProtocolFeeUpdateOrigin::try_successful_origin().expect("No origin exists which can satisfy the guard");
         let call = Call::<T, I>::update_protocol_fee_receiver {
             protocol_fee_receiver: caller
         };

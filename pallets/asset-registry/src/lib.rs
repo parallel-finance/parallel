@@ -20,6 +20,7 @@ use frame_support::pallet;
 
 #[cfg(any(test, feature = "runtime-benchmarks"))]
 mod benchmarks;
+pub mod migration;
 #[cfg(test)]
 pub mod mock;
 #[cfg(test)]
