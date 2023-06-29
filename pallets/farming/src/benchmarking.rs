@@ -122,7 +122,7 @@ benchmarks! {
         initial_set_up::<T>(caller.clone());
         assert_ok!(Farming::<T>::deposit(SystemOrigin::Signed(caller.clone()).into(), ASSET, REWARD_ASSET, T::BlockNumber::from(7200u32), STAKING_AMOUNT));
         assert_ok!(Farming::<T>::withdraw(SystemOrigin::Signed(caller.clone()).into(), ASSET, REWARD_ASSET, T::BlockNumber::from(7200u32), WITHDRAW_AMOUNT));
-        assert_ok!(Farming::<T>::set_pool_cool_down_duration(T::UpdateOrigin::successful_origin(), ASSET, REWARD_ASSET, T::BlockNumber::from(7200u32), T::BlockNumber::from(0u32)));
+        assert_ok!(Farming::<T>::set_pool_cool_down_duration(T::UpdateOrigin::try_successful_origin().expect("No origin exists which can satisfy the guard"), ASSET, REWARD_ASSET, T::BlockNumber::from(7200u32), T::BlockNumber::from(0u32)));
     }: _(SystemOrigin::Signed(caller.clone()), ASSET, REWARD_ASSET, T::BlockNumber::from(7200u32))
     verify {
         assert_last_event::<T>(Event::AssetsRedeem(caller, ASSET, REWARD_ASSET, T::BlockNumber::from(7200u32), WITHDRAW_AMOUNT).into());
@@ -133,7 +133,7 @@ benchmarks! {
         let payer = T::Lookup::unlookup(caller.clone());
         initial_set_up::<T>(caller.clone());
         assert_ok!(Farming::<T>::dispatch_reward(
-            T::UpdateOrigin::successful_origin(),
+            T::UpdateOrigin::try_successful_origin().expect("No origin exists which can satisfy the guard"),
             ASSET,
             REWARD_ASSET,
             T::BlockNumber::from(7200u32),

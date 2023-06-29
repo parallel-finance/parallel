@@ -34,7 +34,7 @@ use frame_support::{
         },
         ConstantMultiplier,
     },
-    ConsensusEngineId, PalletId, WeakBoundedVec,
+    ConsensusEngineId, PalletId,
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
@@ -45,6 +45,7 @@ use orml_traits::{
     DataProviderExtended,
 };
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
+use pallet_ethereum::PostLogContent;
 use pallet_evm::{FeeCalculator, Runner};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
@@ -74,8 +75,8 @@ use sp_version::RuntimeVersion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-    AllowTopLevelPaidExecutionFrom, ConvertedConcreteAssetId, EnsureXcmOrigin, FixedWeightBounds,
-    FungiblesAdapter, LocationInverter, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
+    AllowTopLevelPaidExecutionFrom, ConvertedConcreteId, EnsureXcmOrigin, FixedWeightBounds,
+    FungiblesAdapter, NoChecking, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
     SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
     SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
 };
@@ -219,7 +220,7 @@ const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 /// We allow for 500 ms of compute with parachain block.
 const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
     WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
-    cumulus_primitives_core::relay_chain::v2::MAX_POV_SIZE as u64,
+    cumulus_primitives_core::relay_chain::MAX_POV_SIZE as u64,
 );
 
 parameter_types! {
@@ -280,7 +281,7 @@ impl Contains<RuntimeCall> for WhiteListFilter {
             RuntimeCall::PolkadotXcm(pallet_xcm::Call::force_unsubscribe_version_notify { .. }) |
             RuntimeCall::CumulusXcm(_) |
             // Consensus
-            RuntimeCall::Authorship(_) |
+            // RuntimeCall::Authorship(_) |
             RuntimeCall::Session(_) |
             // RuntimeCall::CollatorSelection(_) |
             // Utility
@@ -418,7 +419,7 @@ parameter_types! {
 
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
-    pub const BaseXcmWeight: u64 = 150_000_000;
+    pub const BaseXcmWeight: Weight = Weight::from_ref_time(150_000_000);
     pub const MaxInstructions: u32 = 100;
     pub const MaxAssetsForTransfer: usize = 2;
 }
@@ -429,7 +430,7 @@ parameter_type_with_key! {
     pub ParachainMinFee: |location: MultiLocation| -> Option<u128> {
         #[allow(clippy::match_ref_pats)] // false positive
         match (location.parents, location.first_interior()) {
-            (1, Some(Parachain(paras::statemint::ID))) => Some(XcmHelper::get_xcm_weight_fee_to_sibling(location.clone()).fee),//default fee should be enough even if not configured
+            (1, Some(Parachain(paras::statemint::ID))) => Some(XcmHelper::get_xcm_weight_fee_to_sibling(*location).fee),//default fee should be enough even if not configured
             _ => None,
         }
     };
@@ -445,7 +446,7 @@ impl orml_xtokens::Config for Runtime {
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type Weigher = FixedWeightBounds<BaseXcmWeight, RuntimeCall, MaxInstructions>;
     type BaseXcmWeight = BaseXcmWeight;
-    type LocationInverter = LocationInverter<Ancestry>;
+    type UniversalLocation = UniversalLocation;
     type MaxAssetsForTransfer = MaxAssetsForTransfer;
     type MinXcmFee = ParachainMinFee;
     type MultiLocationsFilter = Everything;
@@ -689,9 +690,7 @@ parameter_types! {
 
 impl pallet_authorship::Config for Runtime {
     type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
-    type UncleGenerations = UncleGenerations;
-    type FilterUncle = ();
-    type EventHandler = (CollatorSelection,);
+    type EventHandler = CollatorSelection;
 }
 
 parameter_types! {
@@ -866,9 +865,14 @@ impl pallet_evm::Config for Runtime {
     type OnCreate = ();
 }
 
+parameter_types! {
+    pub const PostBlockAndTxnHashes: PostLogContent = PostLogContent::BlockAndTxnHashes;
+}
+
 impl pallet_ethereum::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type StateRoot = pallet_ethereum::IntermediateStateRoot<Self>;
+    type PostLogContent = PostBlockAndTxnHashes;
 }
 
 parameter_types! {
@@ -1070,10 +1074,15 @@ pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, R
 /// queues.
 pub type XcmRouter = (
     // Two routers - use UMP to communicate with the relay chain:
-    cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm>,
+    cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm, ()>,
     // ..and XCMP to communicate with the sibling chains.
     XcmpQueue,
 );
+
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+    pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
+}
 
 impl pallet_xcm::Config for Runtime {
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
@@ -1090,8 +1099,16 @@ impl pallet_xcm::Config for Runtime {
     // Teleporting is disabled.
     type XcmTeleportFilter = Nothing;
     type Weigher = FixedWeightBounds<BaseXcmWeight, RuntimeCall, MaxInstructions>;
-    type LocationInverter = LocationInverter<Ancestry>;
+    type UniversalLocation = UniversalLocation;
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
+    type Currency = Balances;
+    type CurrencyMatcher = ();
+    type TrustedLockers = ();
+    type SovereignAccountOf = ();
+    type MaxLockers = ConstU32<8>;
+    type WeightInfo = weights::pallet_xcm::WeightInfo<Runtime>;
+    #[cfg(feature = "runtime-benchmarks")]
+    type ReachableDest = ReachableDest;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {
@@ -1108,6 +1125,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
     type ControllerOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
     type WeightInfo = weights::cumulus_pallet_xcmp_queue::WeightInfo<Runtime>;
+    type PriceForSiblingDelivery = ();
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
@@ -1136,12 +1154,10 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 impl parachain_info::Config for Runtime {}
 
 parameter_types! {
-    pub RelayLocation: MultiLocation = MultiLocation::parent();
     pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
     pub RelayCurrency: CurrencyId = DOT;
-    pub ParallelNetwork: NetworkId = NetworkId::Named(WeakBoundedVec::<u8, ConstU32<32>>::force_from("parallel".into(), None));
     pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
-    pub Ancestry: MultiLocation = MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
+    pub UniversalLocation: InteriorMultiLocation = X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -1265,7 +1281,7 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
     Assets,
     // Use this currency when it is a fungible asset matching the given location or name:
     (
-        ConvertedConcreteAssetId<
+        ConvertedConcreteId<
             CurrencyId,
             Balance,
             AsAssetType<CurrencyId, AssetType, WrapAssetRegistry>,
@@ -1277,7 +1293,7 @@ pub type ForeignFungiblesTransactor = FungiblesAdapter<
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
     // We dont allow teleports.
-    Nothing,
+    NoChecking,
     // We dont track any teleports
     CheckingAccount,
 >;
@@ -1292,7 +1308,7 @@ pub type AssetTransactors = (LocalAssetTransactor, ForeignFungiblesTransactor);
 pub type XcmFeesToAccount = pallet_traits::xcm::XcmFeesToAccount<
     CurrencyAdapter,
     (
-        ConvertedConcreteAssetId<
+        ConvertedConcreteId<
             CurrencyId,
             Balance,
             AsAssetType<CurrencyId, AssetType, WrapAssetRegistry>,
@@ -1313,7 +1329,7 @@ impl Config for XcmConfig {
     type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
     // Teleporting is disabled.
     type IsTeleporter = ();
-    type LocationInverter = LocationInverter<Ancestry>;
+    type UniversalLocation = UniversalLocation;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<BaseXcmWeight, RuntimeCall, MaxInstructions>;
     type Trader = FirstAssetTrader<AssetType, WrapAssetRegistry, XcmFeesToAccount>;
@@ -1321,6 +1337,15 @@ impl Config for XcmConfig {
     type SubscriptionService = PolkadotXcm;
     type AssetTrap = PolkadotXcm;
     type AssetClaims = PolkadotXcm;
+    type AssetLocker = ();
+    type AssetExchanger = ();
+    type PalletInstancesInfo = AllPalletsWithSystem;
+    type MaxAssetsIntoHolding = ConstU32<64>;
+    type FeeManager = ();
+    type MessageExporter = ();
+    type UniversalAliases = Nothing;
+    type CallDispatcher = RuntimeCall;
+    type SafeCallFilter = Everything;
 }
 
 impl pallet_asset_registry::Config for Runtime {
@@ -1959,7 +1984,7 @@ construct_runtime!(
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Event<T>, Origin} = 25,
 
         // Consensus
-        Authorship: pallet_authorship::{Pallet, Call, Storage} = 30,
+        Authorship: pallet_authorship::{Pallet, Storage} = 30,
         CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 31,
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 32,
         Aura: pallet_aura::{Pallet, Config<T>, Storage} = 33,
@@ -2048,10 +2073,8 @@ pub type Executive = frame_executive::Executive<
     Runtime,
     AllPalletsWithSystem,
     (
-        pallet_balances::migration::ResetInactive<Runtime>,
-        // We need to apply this migration again, because `ResetInactive` resets the state again.
-        pallet_balances::migration::MigrateToTrackInactive<Runtime, CheckingAccount>,
-        pallet_scheduler::migration::v4::CleanupAgendas<Runtime>,
+        pallet_xcm::migration::v1::MigrateToV1<Runtime>,
+        pallet_asset_registry::migration::XcmV2ToV3AssetManager<Runtime>,
     ),
 >;
 
@@ -2206,11 +2229,19 @@ impl_runtime_apis! {
         ) -> pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo<Balance> {
             TransactionPayment::query_info(uxt, len)
         }
+
         fn query_fee_details(
             uxt: <Block as BlockT>::Extrinsic,
             len: u32,
         ) -> pallet_transaction_payment::FeeDetails<Balance> {
             TransactionPayment::query_fee_details(uxt, len)
+        }
+        fn query_weight_to_fee(weight: Weight) -> Balance {
+            TransactionPayment::weight_to_fee(weight)
+        }
+
+        fn query_length_to_fee(length: u32) -> Balance {
+            TransactionPayment::length_to_fee(length)
         }
     }
 

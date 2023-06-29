@@ -32,7 +32,7 @@ use sp_runtime::traits::{BlakeTwo256, Convert, Hash as THash, SaturatedConversio
 use sp_std::{borrow::Borrow, marker::PhantomData, result};
 use xcm::latest::{
     prelude::*, AssetId as xcmAssetId, Error as XcmError, Fungibility, Junction::AccountId32,
-    MultiLocation, NetworkId, Weight,
+    MultiLocation, Weight,
 };
 use xcm_builder::TakeRevenue;
 use xcm_executor::traits::{
@@ -55,7 +55,7 @@ where
     AssetIdInfoGetter: AssetTypeGetter<AssetId, AssetType>,
 {
     fn convert_ref(id: impl Borrow<MultiLocation>) -> Result<AssetId, ()> {
-        if let Some(asset_id) = AssetIdInfoGetter::get_asset_id(id.borrow().clone().into()) {
+        if let Some(asset_id) = AssetIdInfoGetter::get_asset_id((*id.borrow()).into()) {
             Ok(asset_id)
         } else {
             Err(())
@@ -86,7 +86,7 @@ where
         MultiLocation {
             parents: 0,
             interior: X1(AccountId32 {
-                network: NetworkId::Any,
+                network: None,
                 id: account.into(),
             }),
         }
@@ -112,7 +112,7 @@ impl<
     > WeightTrader for FirstAssetTrader<AssetType, AssetIdInfoGetter, R>
 {
     fn new() -> Self {
-        FirstAssetTrader(0, None, PhantomData)
+        FirstAssetTrader(Weight::zero(), None, PhantomData)
     }
 
     fn buy_weight(
@@ -129,7 +129,7 @@ impl<
         // transfers. We will see later if we change this.
         match (first_asset.id, first_asset.fun) {
             (xcmAssetId::Concrete(id), Fungibility::Fungible(_)) => {
-                let asset_type: AssetType = id.clone().into();
+                let asset_type: AssetType = id.into();
                 // Shortcut if we know the asset is not supported
                 // This involves the same db read per block, mitigating any attack based on
                 // non-supported assets
@@ -139,7 +139,8 @@ impl<
 
                 let units_per_second = AssetIdInfoGetter::get_units_per_second(asset_type)
                     .ok_or(XcmError::TooExpensive)?;
-                let amount = units_per_second.saturating_mul(weight as u128)
+                // TODO handle proof size payment
+                let amount = units_per_second.saturating_mul(weight.ref_time() as u128)
                     / (WEIGHT_REF_TIME_PER_SECOND as u128);
 
                 // We dont need to proceed if the amount is 0
@@ -156,7 +157,7 @@ impl<
 
                 let required = MultiAsset {
                     fun: Fungibility::Fungible(amount),
-                    id: xcmAssetId::Concrete(id.clone()),
+                    id: xcmAssetId::Concrete(id),
                 };
                 let unused = payment
                     .checked_sub(required)
@@ -176,7 +177,7 @@ impl<
                     "asset_type: {:?}",
                     id,
                 );
-                let new_asset = match self.1.clone() {
+                let new_asset = match self.1 {
                     Some((prev_id, prev_amount, units_per_second)) => {
                         if prev_id == id {
                             Some((id, prev_amount.saturating_add(amount), units_per_second))
@@ -199,15 +200,12 @@ impl<
     }
 
     fn refund_weight(&mut self, weight: Weight) -> Option<MultiAsset> {
-        if let Some((id, prev_amount, units_per_second)) = self.1.clone() {
+        if let Some((id, prev_amount, units_per_second)) = self.1 {
             let weight = weight.min(self.0);
             self.0 -= weight;
-            let amount = units_per_second * (weight as u128) / (WEIGHT_REF_TIME_PER_SECOND as u128);
-            self.1 = Some((
-                id.clone(),
-                prev_amount.saturating_sub(amount),
-                units_per_second,
-            ));
+            let amount = units_per_second * (weight.ref_time() as u128)
+                / (WEIGHT_REF_TIME_PER_SECOND as u128);
+            self.1 = Some((id, prev_amount.saturating_sub(amount), units_per_second));
             log::trace!(
                 target: "xcm::refund_weight",
                 "id: {:?}",
@@ -231,7 +229,7 @@ impl<
     > Drop for FirstAssetTrader<AssetType, AssetIdInfoGetter, R>
 {
     fn drop(&mut self) {
-        if let Some((id, amount, _)) = self.1.clone() {
+        if let Some((id, amount, _)) = self.1 {
             R::take_revenue((id, amount).into());
         }
     }
@@ -407,7 +405,11 @@ impl<
         GiftConvert,
     >
 {
-    fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> XcmResult {
+    fn deposit_asset(
+        asset: &MultiAsset,
+        location: &MultiLocation,
+        _context: &XcmContext,
+    ) -> XcmResult {
         match (
             AccountIdConvert::convert_ref(location),
             CurrencyIdConvert::convert(asset.clone()),
@@ -479,6 +481,7 @@ impl<
     fn withdraw_asset(
         asset: &MultiAsset,
         location: &MultiLocation,
+        _maybe_context: Option<&XcmContext>,
     ) -> result::Result<xcm_executor::Assets, XcmError> {
         // throw AssetNotFound error here if not match in order to reach the next foreign transact in tuple
         let amount: MultiCurrency::Balance = Match::matches_fungible(asset)
@@ -507,6 +510,7 @@ impl<
         asset: &MultiAsset,
         from: &MultiLocation,
         to: &MultiLocation,
+        _context: &XcmContext,
     ) -> result::Result<xcm_executor::Assets, XcmError> {
         let from_account = AccountIdConvert::convert_ref(from)
             .map_err(|_| XcmError::from(Error::AccountIdConversionFailed))?;
@@ -558,7 +562,7 @@ impl<AssetIdInfoGetter: AssetTypeGetter<CurrencyId, AssetType>>
 {
     fn convert(location: MultiLocation) -> Option<CurrencyId> {
         let currency_id =
-            AsAssetType::<CurrencyId, AssetType, AssetIdInfoGetter>::convert_ref(&location).ok();
+            AsAssetType::<CurrencyId, AssetType, AssetIdInfoGetter>::convert_ref(location).ok();
         log::trace!(
             target: "xcm::convert",
             "multi_location: {:?}. currency_id: {:?}",
@@ -606,11 +610,11 @@ where
             if location.parents != 0 {
                 return asset_type;
             }
-            let mut new_location = location.clone();
+            let mut new_location = location;
             new_location.parents = 1;
             new_location = new_location
                 .pushed_front_with_interior(Parachain(ParachainId::get().into()))
-                .unwrap_or_else(|_| location.clone());
+                .unwrap_or(location);
             log::trace!(
                 target: "xcm::asset_registry_convert",
                 "old_location: {:?}, new_location: {:?}",

@@ -15,7 +15,7 @@
 //! Cross-chain transfer tests within Polkadot network.
 
 use cumulus_primitives_core::ParaId;
-use frame_support::{assert_ok, traits::ConstU32, WeakBoundedVec};
+use frame_support::{assert_ok, traits::ConstU32, BoundedSlice};
 use parallel_runtime::Assets;
 use primitives::{tokens::*, AccountId};
 use sp_runtime::traits::AccountIdConversion;
@@ -29,15 +29,15 @@ fn transfer_from_relay_chain() {
     PolkadotNet::execute_with(|| {
         assert_ok!(polkadot_runtime::XcmPallet::reserve_transfer_assets(
             polkadot_runtime::RuntimeOrigin::signed(ALICE.into()),
-            Box::new(VersionedMultiLocation::V1(X1(Parachain(2012)).into())),
-            Box::new(VersionedMultiLocation::V1(
+            Box::new(VersionedMultiLocation::V3(X1(Parachain(2012)).into())),
+            Box::new(VersionedMultiLocation::V3(
                 X1(Junction::AccountId32 {
                     id: BOB,
-                    network: NetworkId::Any
+                    network: None
                 })
                 .into()
             )),
-            Box::new(VersionedMultiAssets::V1((Here, dot(1f64)).into())),
+            Box::new(VersionedMultiAssets::V3((Here, dot(1f64)).into())),
             0,
         ));
     });
@@ -50,20 +50,23 @@ fn transfer_from_relay_chain() {
 
 #[test]
 fn transfer_to_relay_chain() {
+    let _ = env_logger::builder().is_test(true).try_init();
+    TestNet::reset();
+
     use parallel_runtime::{RuntimeOrigin, XTokens};
     Parallel::execute_with(|| {
         assert_ok!(XTokens::transfer(
             RuntimeOrigin::signed(ALICE.into()),
             DOT,
             dot(10f64),
-            Box::new(xcm::VersionedMultiLocation::V1(MultiLocation::new(
+            Box::new(xcm::VersionedMultiLocation::V3(MultiLocation::new(
                 1,
                 X1(Junction::AccountId32 {
                     id: BOB,
-                    network: NetworkId::Any
+                    network: None
                 })
             ))),
-            WeightLimit::Limited(4_000_000_000)
+            WeightLimit::Limited(4_000_000_000.into())
         ));
     });
 
@@ -72,7 +75,7 @@ fn transfer_to_relay_chain() {
         println!("parallel para account in relaychain:{:?}", para_acc);
         assert_eq!(
             polkadot_runtime::Balances::free_balance(&AccountId::from(BOB)),
-            99_578_565_860
+            99637471000
         );
     });
 }
@@ -90,19 +93,21 @@ fn transfer_sibling_chain_asset() {
             RuntimeOrigin::signed(ALICE.into()).clone(),
             Box::new(MultiLocation::new(1, X1(Parachain(2012))).into()),
             Box::new(
-                Junction::AccountId32 {
-                    id: BOB,
-                    network: NetworkId::Any
-                }
-                .into()
+                MultiLocation::new(
+                    0,
+                    X1(Junction::AccountId32 {
+                        id: BOB,
+                        network: None
+                    })
+                )
                 .into()
             ),
             Box::new(
                 (
-                    X1(GeneralKey(WeakBoundedVec::<u8, ConstU32<32>>::force_from(
-                        b"CLV".to_vec(),
-                        None
-                    ))),
+                    X1(
+                        BoundedSlice::<u8, ConstU32<32>>::truncate_from(b"CLV".to_vec().as_ref())
+                            .into()
+                    ),
                     para(10)
                 )
                     .into()
@@ -129,14 +134,14 @@ fn transfer_sibling_chain_asset() {
                     X2(
                         Parachain(2002), //Sibling chain
                         Junction::AccountId32 {
-                            network: NetworkId::Any,
+                            network: None,
                             id: BOB.into(),
                         }
                     )
                 )
                 .into()
             ),
-            WeightLimit::Limited(4_000_000_000),
+            WeightLimit::Limited(4_000_000_000.into()),
         ));
 
         assert_eq!(

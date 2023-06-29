@@ -35,7 +35,7 @@ use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use cumulus_client_cli::CollatorOptions;
 use cumulus_relay_chain_inprocess_interface::build_inprocess_relay_chain;
-use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface, RelayChainResult};
+use cumulus_relay_chain_interface::{RelayChainInterface, RelayChainResult};
 use cumulus_relay_chain_minimal_node::build_minimal_relay_chain_node;
 
 use fc_consensus::FrontierBlockImport;
@@ -340,10 +340,7 @@ where
         collator_options.clone(),
     )
     .await
-    .map_err(|e| match e {
-        RelayChainError::ServiceError(polkadot_service::Error::Sub(x)) => x,
-        s => s.to_string().into(),
-    })?;
+    .map_err(|e| sc_service::Error::Application(Box::new(e) as Box<_>))?;
 
     let block_announce_validator = BlockAnnounceValidator::new(relay_chain_interface.clone(), id);
     let force_authoring = parachain_config.force_authoring;
@@ -379,6 +376,7 @@ where
             Duration::new(6, 0),
             client.clone(),
             backend.clone(),
+            overrides.clone(),
             frontier_backend.clone(),
             3,
             0,
@@ -746,6 +744,7 @@ where
             Duration::new(6, 0),
             client.clone(),
             backend.clone(),
+            overrides.clone(),
             frontier_backend.clone(),
             3,
             0,
