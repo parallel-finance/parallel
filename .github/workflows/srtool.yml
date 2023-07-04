@@ -3,7 +3,7 @@ name: Srtool build
 on:
   push:
     branches:
-      - master
+      - chore/update-scripts
     tags:
       - "v*"
 
