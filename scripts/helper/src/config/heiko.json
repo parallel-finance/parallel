@@ -396,7 +396,7 @@
     },
     {
       "assetId": 109,
-      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2000},{"GeneralKey": "0x0083"}]}}},
+      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2000},{"GeneralKey": {"length":2, "data": "0x0083000000000000000000000000000000000000000000000000000000000000"}}]}}},
       "unitsPerSecond":"6638783774812"
     },
     {
@@ -411,12 +411,12 @@
     },
     {
       "assetId": 119,
-      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2092},{"GeneralKey": "0x000c"}]}}},
+      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2092},{"GeneralKey": {"length":2, "data": "0x000c000000000000000000000000000000000000000000000000000000000000"}}]}}},
       "unitsPerSecond":"27724638886578"
     },
     {
       "assetId": 121,
-      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2092},{"GeneralKey": "0x000b"}]}}},
+      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2092},{"GeneralKey": {"length":2, "data": "0x000b000000000000000000000000000000000000000000000000000000000000"}}]}}},
       "unitsPerSecond":"172577"
     },
     {
