@@ -1,7 +1,7 @@
-PARA_ID        											:= 2085
-CHAIN          											:= vanilla-dev
-RELAY_CHAIN                         					:= kusama-local
-RUNTIME        											:= vanilla-runtime
+PARA_ID        											:= 2012
+CHAIN          											:= kerria-dev
+RELAY_CHAIN                         					:= polkadot-local
+RUNTIME        											:= kerria-runtime
 BLOCK_AT       											:= 0x0000000000000000000000000000000000000000000000000000000000000000
 URL            											:= ws://localhost:9948
 KEYSTORE_PATH  											:= keystore

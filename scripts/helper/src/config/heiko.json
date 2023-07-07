@@ -8,7 +8,7 @@
   "paraDeposit": "0",
   "crowdloanDeposit": "500000000000000",
   "location": {"parents":0, "interior":{"X1":{"Parachain": 2085}}},
-  "xcmVersion": "2",
+  "xcmVersion": "3",
   "assets": [
     {
       "name": "Kusama Unbonding",
@@ -376,7 +376,7 @@
   "assetsRegistry":[
     {
       "assetId": 0,
-      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2085},{"GeneralKey": "HKO"}]}}},
+      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2085},{"GeneralKey": {"length":3,"data":"0x484b4f0000000000000000000000000000000000000000000000000000000000"}}]}}},
       "unitsPerSecond":"485908649173955"
     },
     {
@@ -391,8 +391,38 @@
     },
     {
       "assetId": 107,
-      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2000},{"GeneralKey": "0x0080"}]}}},
+      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2000},{"GeneralKey":  {"length":2,"data":"0x0080000000000000000000000000000000000000000000000000000000000000"}}]}}},
       "unitsPerSecond":"123456790123456"
+    },
+    {
+      "assetId": 109,
+      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2000},{"GeneralKey": {"length":2, "data": "0x0083000000000000000000000000000000000000000000000000000000000000"}}]}}},
+      "unitsPerSecond":"6638783774812"
+    },
+    {
+      "assetId": 113,
+      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2023},{"PalletInstance": 10}]}}},
+      "unitsPerSecond":"3159557661927330300"
+    },
+    {
+      "assetId": 115,
+      "assetType": {"Xcm":{"parents":1, "interior":{"X1":{"Parachain": 2004}}}},
+      "unitsPerSecond":"418235048097030"
+    },
+    {
+      "assetId": 119,
+      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2092},{"GeneralKey": {"length":2, "data": "0x000c000000000000000000000000000000000000000000000000000000000000"}}]}}},
+      "unitsPerSecond":"27724638886578"
+    },
+    {
+      "assetId": 121,
+      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2092},{"GeneralKey": {"length":2, "data": "0x000b000000000000000000000000000000000000000000000000000000000000"}}]}}},
+      "unitsPerSecond":"172577"
+    },
+    {
+      "assetId": 1000,
+      "assetType": {"Xcm":{"parents":1, "interior":{"X3":[{"Parachain": 2085},{"PalletInstance": 6},{"GeneralIndex": 1000}]}}},
+      "unitsPerSecond":"731957253696"
     }
   ]
 }
