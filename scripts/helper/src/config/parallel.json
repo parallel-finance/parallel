@@ -8,7 +8,7 @@
   "paraDeposit": "0",
   "crowdloanDeposit": "50000000000000",
   "location": {"parents":0, "interior":{"X1":{"Parachain": 2012}}},
-  "xcmVersion": "2",
+  "xcmVersion": "3",
   "assets": [
     {
       "name": "Polkadot Unbonding",
@@ -436,7 +436,7 @@
   "assetsRegistry":[
     {
       "assetId": 1,
-      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2012},{"GeneralKey": "PARA"}]}}},
+      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2012},{"GeneralKey": {"length":4,"data":"0x5041524100000000000000000000000000000000000000000000000000000000"}}]}}},
       "unitsPerSecond":"1883239171374764"
     },
     {
@@ -451,7 +451,7 @@
     },
     {
       "assetId": 108,
-      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2000},{"GeneralKey": "0x0000"}]}}},
+      "assetType": {"Xcm":{"parents":1, "interior":{"X2":[{"Parachain": 2000},{"GeneralKey": {"length":2,"data":"0x0000000000000000000000000000000000000000000000000000000000000000"}}]}}},
       "unitsPerSecond":"196078431372549"
     }
   ]
