@@ -809,7 +809,7 @@ pub mod pallet {
             lease_end: LeasePeriod,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            Self::do_claim_for(who, crowdloan, lease_start, lease_end)
+            Self::do_claim_for(who, crowdloan, lease_start, lease_end, false)
         }
 
         /// If a `crowdloan` succeeded, claim the liquid derivatives of the
@@ -826,7 +826,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let _ = ensure_signed(origin)?;
             let who = T::Lookup::lookup(dest)?;
-            Self::do_claim_for(who, crowdloan, lease_start, lease_end)
+            Self::do_claim_for(who, crowdloan, lease_start, lease_end, false)
         }
 
         /// If a `crowdloan` failed, withdraw the contributed assets
@@ -1219,6 +1219,23 @@ pub mod pallet {
                 bonus_config,
             ));
             Ok(())
+        }
+
+        /// If a `crowdloan` expired, force claim the liquid derivatives for users
+        /// who didn't claim it during succeed phase
+        #[pallet::call_index(22)]
+        #[pallet::weight(<T as Config>::WeightInfo::claim())]
+        #[transactional]
+        pub fn force_claim_for(
+            origin: OriginFor<T>,
+            dest: <T::Lookup as StaticLookup>::Source,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            ensure_origin!(SlotExpiredOrigin, origin)?;
+            let who = T::Lookup::lookup(dest)?;
+            Self::do_claim_for(who, crowdloan, lease_start, lease_end, true)
         }
     }
 
@@ -1642,16 +1659,19 @@ pub mod pallet {
             crowdloan: ParaId,
             lease_start: LeasePeriod,
             lease_end: LeasePeriod,
+            force: bool,
         ) -> DispatchResult {
             let ctoken = Self::ctoken_of((&lease_start, &lease_end))
                 .ok_or(Error::<T>::CTokenDoesNotExist)?;
             let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
 
-            ensure!(
-                vault.phase == VaultPhase::Succeeded,
-                Error::<T>::IncorrectVaultPhase
-            );
+            if !force {
+                ensure!(
+                    vault.phase == VaultPhase::Succeeded,
+                    Error::<T>::IncorrectVaultPhase
+                );
+            }
 
             let (amount, _) =
                 Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Contributed);
