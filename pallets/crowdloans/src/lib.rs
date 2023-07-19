@@ -1220,6 +1220,23 @@ pub mod pallet {
             ));
             Ok(())
         }
+
+        /// If a `crowdloan` expired, force claim the liquid derivatives for users
+        /// who didn't claim it during succeed phase
+        #[pallet::call_index(22)]
+        #[pallet::weight(<T as Config>::WeightInfo::claim())]
+        #[transactional]
+        pub fn force_claim_for(
+            origin: OriginFor<T>,
+            dest: <T::Lookup as StaticLookup>::Source,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            ensure_origin!(SlotExpiredOrigin, origin)?;
+            let who = T::Lookup::lookup(dest)?;
+            Self::do_claim_for(who, crowdloan, lease_start, lease_end, true)
+        }
     }
 
     impl<T: Config> Pallet<T> {
