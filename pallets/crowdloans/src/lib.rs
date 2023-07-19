@@ -809,7 +809,7 @@ pub mod pallet {
             lease_end: LeasePeriod,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            Self::do_claim_for(who, crowdloan, lease_start, lease_end)
+            Self::do_claim_for(who, crowdloan, lease_start, lease_end, false)
         }
 
         /// If a `crowdloan` succeeded, claim the liquid derivatives of the
@@ -826,7 +826,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let _ = ensure_signed(origin)?;
             let who = T::Lookup::lookup(dest)?;
-            Self::do_claim_for(who, crowdloan, lease_start, lease_end)
+            Self::do_claim_for(who, crowdloan, lease_start, lease_end, false)
         }
 
         /// If a `crowdloan` failed, withdraw the contributed assets
@@ -1642,16 +1642,19 @@ pub mod pallet {
             crowdloan: ParaId,
             lease_start: LeasePeriod,
             lease_end: LeasePeriod,
+            force: bool,
         ) -> DispatchResult {
             let ctoken = Self::ctoken_of((&lease_start, &lease_end))
                 .ok_or(Error::<T>::CTokenDoesNotExist)?;
             let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
 
-            ensure!(
-                vault.phase == VaultPhase::Succeeded,
-                Error::<T>::IncorrectVaultPhase
-            );
+            if !force {
+                ensure!(
+                    vault.phase == VaultPhase::Succeeded,
+                    Error::<T>::IncorrectVaultPhase
+                );
+            }
 
             let (amount, _) =
                 Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Contributed);
