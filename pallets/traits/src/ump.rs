@@ -296,8 +296,8 @@ pub struct XcmWeightFeeMisc<Weight, Balance> {
 
 impl Default for XcmWeightFeeMisc<Weight, Balance> {
     fn default() -> Self {
-        let default_weight = 10_000_000_000u64;
-        let default_fee = 10_000_000_000;
+        let default_weight = 20_000_000_000u64;
+        let default_fee = 15_000_000_000;
         let default_proof_size: u64 = 64 * 1024;
         XcmWeightFeeMisc {
             weight: Weight::from_parts(default_weight, default_proof_size),
