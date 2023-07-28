@@ -134,6 +134,11 @@ async function para({ logger, options: { paraWs, network } }: ActionParameters) 
     )
   }
 
+  for (const { xcmCall, feeMisc } of config.xcmHelper) {
+    logger.info(`Update ${xcmCall} WeightFeeMisc`)
+    call.push(api.tx.sudo.sudo(api.tx.xcmHelper.updateXcmWeightFee(xcmCall, feeMisc)))
+  }
+
   logger.info('Submit parachain batches.')
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextNonce(api, signer) })
 }

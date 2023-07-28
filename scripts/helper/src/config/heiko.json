@@ -424,5 +424,39 @@
       "assetType": {"Xcm":{"parents":1, "interior":{"X3":[{"Parachain": 2085},{"PalletInstance": 6},{"GeneralIndex": 1000}]}}},
       "unitsPerSecond":"731957253696"
     }
+  ],
+  "xcmHelper":[
+    {
+      "xcmCall": "Bond",
+      "feeMisc": {"weight": {"refTime":20000000000,"proofSize":65536},"fee":20000000000}
+    },
+    {
+      "xcmCall": "BondExtra",
+      "feeMisc": {"weight": {"refTime":20000000000,"proofSize":65536},"fee":20000000000}
+    },
+    {
+      "xcmCall": "UnBond",
+      "feeMisc": {"weight": {"refTime":20000000000,"proofSize":65536},"fee":20000000000}
+    },
+    {
+      "xcmCall": "ReBond",
+      "feeMisc": {"weight": {"refTime":20000000000,"proofSize":65536},"fee":20000000000}
+    },
+    {
+      "xcmCall": "WithdrawUnbonded",
+      "feeMisc": {"weight": {"refTime":20000000000,"proofSize":65536},"fee":20000000000}
+    },
+    {
+      "xcmCall": "Nominate",
+      "feeMisc": {"weight": {"refTime":20000000000,"proofSize":65536},"fee":20000000000}
+    },
+    {
+      "xcmCall": "Contribute",
+      "feeMisc": {"weight": {"refTime":20000000000,"proofSize":65536},"fee":20000000000}
+    },
+    {
+      "xcmCall": "Withdraw",
+      "feeMisc": {"weight": {"refTime":20000000000,"proofSize":65536},"fee":20000000000}
+    }
   ]
 }
