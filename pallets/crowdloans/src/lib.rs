@@ -68,7 +68,8 @@ pub mod pallet {
     use xcm::latest::prelude::*;
 
     use pallet_traits::{
-        DecimalProvider, Streaming, VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider,
+        DecimalProvider, Loans, Streaming, VaultTokenCurrenciesFilter,
+        VaultTokenExchangeRateProvider,
     };
 
     use parallel_support::math_helper::f64::{
@@ -202,6 +203,9 @@ pub mod pallet {
 
         /// Decimal provider.
         type Decimal: DecimalProvider<CurrencyId>;
+
+        /// Money market
+        type Loans: Loans<AssetIdOf<Self>, Self::AccountId, BalanceOf<Self>>;
     }
 
     #[pallet::event]
@@ -1208,9 +1212,7 @@ pub mod pallet {
             ensure_origin!(SlotExpiredOrigin, origin)?;
             let who = T::Lookup::lookup(dest)?;
             Self::do_redeem(who, crowdloan, lease_start, lease_end, amount)?;
-
-            //TODO: lend to MM
-
+            T::Loans::do_mint(&who, T::RelayCurrency::get(), amount)?;
             Ok(())
         }
     }
