@@ -1213,7 +1213,7 @@ pub mod pallet {
             let who = T::Lookup::lookup(dest)?;
 
             ensure!(
-                frame_system::Pallet::<T>::account_nonce(who.clone()) > 0,
+                frame_system::Pallet::<T>::account_nonce(who.clone()) > Zero::zero(),
                 Error::<T>::InvalidParams,
             );
 
