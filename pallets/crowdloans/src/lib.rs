@@ -1211,7 +1211,13 @@ pub mod pallet {
         ) -> DispatchResult {
             ensure_origin!(SlotExpiredOrigin, origin)?;
             let who = T::Lookup::lookup(dest)?;
-            Self::do_redeem(who, crowdloan, lease_start, lease_end, amount)?;
+
+            ensure!(
+                frame_system::Pallet::<T>::account_nonce(who.clone()) > 0,
+                Error::<T>::InvalidParams,
+            );
+
+            Self::do_redeem(who.clone(), crowdloan, lease_start, lease_end, amount)?;
             T::Loans::do_mint(&who, T::RelayCurrency::get(), amount)?;
             Ok(())
         }
