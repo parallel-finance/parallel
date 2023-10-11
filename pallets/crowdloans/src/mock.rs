@@ -46,7 +46,7 @@ pub use kusama_runtime;
 use pallet_traits::{
     ump::{XcmCall, XcmWeightFeeMisc},
     xcm::MultiCurrencyAdapter,
-    DecimalProvider,
+    DecimalProvider, Loans,
 };
 
 pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
@@ -560,6 +560,48 @@ impl crate::Config for Test {
     type Streaming = ();
     type GetNativeCurrencyId = NativeCurrencyId;
     type Decimal = Decimal;
+    type Loans = MockLoans;
+}
+
+pub struct MockLoans;
+
+#[allow(unused)]
+impl Loans<CurrencyId, AccountId, Balance> for MockLoans {
+    fn do_mint(
+        supplier: &AccountId,
+        asset_id: CurrencyId,
+        amount: Balance,
+    ) -> Result<(), DispatchError> {
+        Ok(())
+    }
+    fn do_borrow(
+        borrower: &AccountId,
+        asset_id: CurrencyId,
+        amount: Balance,
+    ) -> Result<(), DispatchError> {
+        Ok(())
+    }
+    fn do_collateral_asset(
+        supplier: &AccountId,
+        asset_id: CurrencyId,
+        enable: bool,
+    ) -> Result<(), DispatchError> {
+        Ok(())
+    }
+    fn do_repay_borrow(
+        borrower: &AccountId,
+        asset_id: CurrencyId,
+        amount: Balance,
+    ) -> Result<(), DispatchError> {
+        Ok(())
+    }
+    fn do_redeem(
+        supplier: &AccountId,
+        asset_id: CurrencyId,
+        amount: Balance,
+    ) -> Result<(), DispatchError> {
+        Ok(())
+    }
 }
 
 pub struct Decimal;

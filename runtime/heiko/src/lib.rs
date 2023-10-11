@@ -1858,6 +1858,7 @@ impl pallet_crowdloans::Config for Runtime {
     type Streaming = ();
     type GetNativeCurrencyId = NativeCurrencyId;
     type Decimal = Decimal;
+    type Loans = Loans;
 }
 
 parameter_types! {

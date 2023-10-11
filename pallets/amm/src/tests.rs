@@ -1162,7 +1162,7 @@ fn handling_fees_should_work() {
 
         // we can check the total balance
         //
-        // no extra fees should be minted becuase liquidty has not been added or removed
+        // no extra fees should be minted because liquidty has not been added or removed
         //
         assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 100_000_000_000);
 

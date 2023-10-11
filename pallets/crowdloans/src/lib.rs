@@ -68,7 +68,8 @@ pub mod pallet {
     use xcm::latest::prelude::*;
 
     use pallet_traits::{
-        DecimalProvider, Streaming, VaultTokenCurrenciesFilter, VaultTokenExchangeRateProvider,
+        DecimalProvider, Loans, Streaming, VaultTokenCurrenciesFilter,
+        VaultTokenExchangeRateProvider,
     };
 
     use parallel_support::math_helper::f64::{
@@ -202,6 +203,9 @@ pub mod pallet {
 
         /// Decimal provider.
         type Decimal: DecimalProvider<CurrencyId>;
+
+        /// Money market
+        type Loans: Loans<AssetIdOf<Self>, Self::AccountId, BalanceOf<Self>>;
     }
 
     #[pallet::event]
@@ -872,53 +876,7 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-
-            let ctoken = Self::ctoken_of((&lease_start, &lease_end))
-                .ok_or(Error::<T>::CTokenDoesNotExist)?;
-            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
-                .ok_or(Error::<T>::VaultDoesNotExist)?;
-
-            ensure!(
-                vault.phase == VaultPhase::Expired,
-                Error::<T>::IncorrectVaultPhase
-            );
-
-            log::trace!(
-                target: "crowdloans::redeem",
-                "who: {:?}, ctoken: {:?}, amount: {:?}, para_id: {:?}, lease_start: {:?}, lease_end: {:?}",
-                &who,
-                &ctoken,
-                &amount,
-                &crowdloan,
-                &lease_start,
-                &lease_end
-            );
-
-            let ctoken_balance = T::Assets::reducible_balance(ctoken, &who, false);
-            ensure!(ctoken_balance >= amount, Error::<T>::InsufficientBalance);
-
-            vault.contributed = vault
-                .contributed
-                .checked_sub(amount)
-                .ok_or(ArithmeticError::Underflow)?;
-
-            T::Assets::burn_from(ctoken, &who, amount)?;
-            // SovereignAccount on relaychain must have
-            // withdrawn the contribution
-            T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
-
-            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
-
-            Self::deposit_event(Event::<T>::VaultRedeemed(
-                crowdloan,
-                (lease_start, lease_end),
-                ctoken,
-                who,
-                amount,
-                VaultPhase::Expired,
-            ));
-
-            Ok(())
+            Self::do_redeem(who, crowdloan, lease_start, lease_end, amount)
         }
 
         /// If a `crowdloan` succeeded and its slot expired, use `call` to
@@ -1236,6 +1194,32 @@ pub mod pallet {
             ensure_origin!(SlotExpiredOrigin, origin)?;
             let who = T::Lookup::lookup(dest)?;
             Self::do_claim_for(who, crowdloan, lease_start, lease_end, true)
+        }
+
+        /// If a `crowdloan` expired, redeem the contributed assets
+        /// and lend it to Money market
+        #[pallet::call_index(23)]
+        #[pallet::weight(<T as Config>::WeightInfo::redeem())]
+        #[transactional]
+        pub fn redeem_and_lend_for(
+            origin: OriginFor<T>,
+            dest: <T::Lookup as StaticLookup>::Source,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            ensure_origin!(SlotExpiredOrigin, origin)?;
+            let who = T::Lookup::lookup(dest)?;
+
+            ensure!(
+                frame_system::Pallet::<T>::account_nonce(who.clone()) > Zero::zero(),
+                Error::<T>::InvalidParams,
+            );
+
+            Self::do_redeem(who.clone(), crowdloan, lease_start, lease_end, amount)?;
+            T::Loans::do_mint(&who, T::RelayCurrency::get(), amount)?;
+            Ok(())
         }
     }
 
@@ -1813,6 +1797,62 @@ pub mod pallet {
                 ArithmeticKind::Subtraction,
                 kind,
             )?;
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_redeem(
+            who: T::AccountId,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+            amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            let ctoken = Self::ctoken_of((&lease_start, &lease_end))
+                .ok_or(Error::<T>::CTokenDoesNotExist)?;
+            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            ensure!(
+                vault.phase == VaultPhase::Expired,
+                Error::<T>::IncorrectVaultPhase
+            );
+
+            log::trace!(
+                target: "crowdloans::redeem",
+                "who: {:?}, ctoken: {:?}, amount: {:?}, para_id: {:?}, lease_start: {:?}, lease_end: {:?}",
+                &who,
+                &ctoken,
+                &amount,
+                &crowdloan,
+                &lease_start,
+                &lease_end
+            );
+
+            let ctoken_balance = T::Assets::reducible_balance(ctoken, &who, false);
+            ensure!(ctoken_balance >= amount, Error::<T>::InsufficientBalance);
+
+            vault.contributed = vault
+                .contributed
+                .checked_sub(amount)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            T::Assets::burn_from(ctoken, &who, amount)?;
+            // SovereignAccount on relaychain must have
+            // withdrawn the contribution
+            T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
+
+            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
+
+            Self::deposit_event(Event::<T>::VaultRedeemed(
+                crowdloan,
+                (lease_start, lease_end),
+                ctoken,
+                who,
+                amount,
+                VaultPhase::Expired,
+            ));
+
             Ok(())
         }
 
