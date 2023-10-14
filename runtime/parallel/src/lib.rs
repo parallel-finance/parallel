@@ -2073,10 +2073,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (
-        pallet_xcm::migration::v1::MigrateToV1<Runtime>,
-        pallet_asset_registry::migration::XcmV2ToV3AssetManager<Runtime>,
-    ),
+    (),
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
