@@ -180,7 +180,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("heiko"),
     impl_name: create_runtime_str!("heiko"),
     authoring_version: 1,
-    spec_version: 200,
+    spec_version: 201,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -2070,11 +2070,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (
-        // "Use 2D weights in XCM v3" <https://github.com/paritytech/polkadot/pull/6134>
-        pallet_xcm::migration::v1::MigrateToV1<Runtime>,
-        pallet_asset_registry::migration::XcmV2ToV3AssetManager<Runtime>,
-    ),
+    (),
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
