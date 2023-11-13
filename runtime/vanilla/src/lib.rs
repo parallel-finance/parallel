@@ -69,11 +69,11 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
-    AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-    AllowTopLevelPaidExecutionFrom, ConvertedConcreteId, EnsureXcmOrigin, FixedWeightBounds,
-    FungiblesAdapter, NoChecking, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
-    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
+    AccountId32Aliases, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
+    ConvertedConcreteId, EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, NoChecking,
+    ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
+    SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+    SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
 };
 use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 
@@ -116,7 +116,7 @@ use runtime_common::{
     constants::{currency, fee, time},
     fp_rpc, fp_self_contained,
     precompiles::{ParallelPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX},
-    AddressToAssetId, Erc20Metadata,
+    AddressToAssetId, AllowKnownQueryResponses, Erc20Metadata,
 };
 
 use currency::*;
