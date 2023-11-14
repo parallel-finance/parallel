@@ -1358,7 +1358,7 @@ impl pallet_asset_registry::Config for Runtime {
 }
 
 parameter_types! {
-      pub const MinimumCount: u32 = 3;
+      pub const MinimumCount: u32 = 2;
       pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
       pub const MaxHasDispatchedSize: u32 = 100;
       pub OneAccount: AccountId = AccountId::from([1u8; 32]);
