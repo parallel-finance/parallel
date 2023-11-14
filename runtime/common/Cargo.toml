@@ -26,6 +26,8 @@ pallet-timestamp                           = { workspace = true }
 
 # Polkadot dependencies
 polkadot-runtime-common = { workspace = true }
+xcm                     = { workspace = true }
+xcm-executor            = { workspace = true }
 
 # Frontier dependencies
 fp-rpc                         = { workspace = true }
