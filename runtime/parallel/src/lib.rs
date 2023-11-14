@@ -184,7 +184,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 201,
+    spec_version: 202,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -1358,7 +1358,7 @@ impl pallet_asset_registry::Config for Runtime {
 }
 
 parameter_types! {
-      pub const MinimumCount: u32 = 3;
+      pub const MinimumCount: u32 = 2;
       pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
       pub const MaxHasDispatchedSize: u32 = 100;
       pub OneAccount: AccountId = AccountId::from([1u8; 32]);
