@@ -946,10 +946,9 @@ pub mod pallet {
                 {
                     log::trace!(
                         target: "liquidStaking::set_staking_ledger::invalidStakingLedger",
-                        "index: {:?}, staking_ledger: {:?}, xcm_request: {:?}",
+                        "index: {:?}, staking_ledger: {:?}",
                         &derivative_index,
                         &staking_ledger,
-                        requests,
                     );
                     Self::deposit_event(Event::<T>::NonIdealStakingLedger(derivative_index));
                 }
