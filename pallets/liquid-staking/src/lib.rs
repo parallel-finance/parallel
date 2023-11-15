@@ -936,21 +936,19 @@ pub mod pallet {
 
             Self::do_update_ledger(derivative_index, |ledger| {
                 ensure!(
-                    !Self::is_updated(derivative_index),
+                    !Self::is_updated(derivative_index)
+                        && XcmRequests::<T>::iter().count().is_zero(),
                     Error::<T>::StakingLedgerLocked
                 );
-                let requests = XcmRequests::<T>::iter().count();
                 if staking_ledger.total < ledger.total
                     || staking_ledger.active < ledger.active
                     || staking_ledger.unlocking != ledger.unlocking
-                    || !requests.is_zero()
                 {
                     log::trace!(
                         target: "liquidStaking::set_staking_ledger::invalidStakingLedger",
-                        "index: {:?}, staking_ledger: {:?}, xcm_request: {:?}",
+                        "index: {:?}, staking_ledger: {:?}",
                         &derivative_index,
                         &staking_ledger,
-                        requests,
                     );
                     Self::deposit_event(Event::<T>::NonIdealStakingLedger(derivative_index));
                 }
