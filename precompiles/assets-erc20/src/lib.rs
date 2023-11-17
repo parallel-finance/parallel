@@ -15,7 +15,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(test, feature(assert_matches))]
 
-use fp_evm::{PrecompileHandle, PrecompileOutput};
+use fp_evm::{PrecompileFailure, PrecompileHandle, PrecompileOutput};
 use frame_support::traits::fungibles::approvals::Inspect as ApprovalInspect;
 use frame_support::traits::fungibles::metadata::Inspect as MetadataInspect;
 use frame_support::traits::fungibles::Inspect;
@@ -340,12 +340,13 @@ where
         input.expect_arguments(2)?;
 
         let to: H160 = input.read::<Address>()?.into();
-        let amount = input.read::<BalanceOf<Runtime, Instance>>()?;
+        let amount: U256 = input.read()?;
 
         // Build call with origin.
         {
             let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
             let to = Runtime::AddressMapping::into_account_id(to);
+            let amount = Self::u256_to_amount(amount)?;
 
             // Dispatch call (if enough gas).
             RuntimeHelper::<Runtime>::try_dispatch(
@@ -382,13 +383,14 @@ where
 
         let from: H160 = input.read::<Address>()?.into();
         let to: H160 = input.read::<Address>()?.into();
-        let amount = input.read::<BalanceOf<Runtime, Instance>>()?;
+        let amount: U256 = input.read()?;
 
         {
             let caller: Runtime::AccountId =
                 Runtime::AddressMapping::into_account_id(handle.context().caller);
             let from: Runtime::AccountId = Runtime::AddressMapping::into_account_id(from);
             let to: Runtime::AccountId = Runtime::AddressMapping::into_account_id(to);
+            let amount = Self::u256_to_amount(amount)?;
 
             // If caller is "from", it can spend as much as it wants from its own balance.
             if caller != from {
@@ -500,7 +502,7 @@ where
         input.expect_arguments(2)?;
 
         let beneficiary: H160 = input.read::<Address>()?.into();
-        let amount = input.read::<BalanceOf<Runtime, Instance>>()?;
+        let amount = Self::u256_to_amount(input.read::<U256>()?)?;
 
         let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
         let beneficiary = Runtime::AddressMapping::into_account_id(beneficiary);
@@ -527,7 +529,7 @@ where
         input.expect_arguments(2)?;
 
         let who: H160 = input.read::<Address>()?.into();
-        let amount = input.read::<BalanceOf<Runtime, Instance>>()?;
+        let amount = Self::u256_to_amount(input.read::<U256>()?)?;
 
         let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
         let who = Runtime::AddressMapping::into_account_id(who);
@@ -544,5 +546,11 @@ where
         )?;
 
         Ok(succeed(EvmDataWriter::new().write(true).build()))
+    }
+
+    fn u256_to_amount(value: U256) -> Result<BalanceOf<Runtime, Instance>, PrecompileFailure> {
+        value
+            .try_into()
+            .map_err(|_| revert("Error processing amount"))
     }
 }
