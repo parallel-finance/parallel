@@ -26,8 +26,8 @@ use frame_support::{
 };
 use pallet_evm::{AddressMapping, PrecompileSet};
 use precompile_utils::{
-    keccak256, succeed, Address, Bytes, EvmData, EvmDataWriter, EvmResult, FunctionModifier,
-    LogExt, LogsBuilder, PrecompileHandleExt, RuntimeHelper,
+    keccak256, revert, succeed, Address, Bytes, EvmData, EvmDataWriter, EvmResult,
+    FunctionModifier, LogExt, LogsBuilder, PrecompileHandleExt, RuntimeHelper,
 };
 use sp_runtime::traits::Bounded;
 
