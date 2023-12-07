@@ -237,10 +237,10 @@ pub mod pallet {
         ) -> Result<AssetBalanceOf<T>, DispatchError> {
             if asset == T::GetNativeCurrencyId::get() {
                 <<T as pallet::Config>::Currency as Transfer<T::AccountId>>::transfer(
-                    source, dest, amount, true,
+                    source, dest, amount, false,
                 )
             } else {
-                T::Assets::transfer(asset, source, dest, amount, true)
+                T::Assets::transfer(asset, source, dest, amount, false)
             }
         }
     }
