@@ -292,6 +292,11 @@ pub mod pallet {
         IncentiveUpdated(BalanceOf<T>),
         /// Not the ideal staking ledger
         NonIdealStakingLedger(DerivativeIndex),
+        /// Unstake_reserve_factor was updated
+        UnstakeReserveFactorUpdated(Ratio),
+        /// Event emitted when the unstake reserves are reduced
+        /// [receiver, reduced_amount]
+        UnstakeReservesReduced(T::AccountId, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -366,6 +371,15 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn total_reserves)]
     pub type TotalReserves<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    /// Fraction of reward currently set aside for unstake reserves.
+    #[pallet::storage]
+    #[pallet::getter(fn unstake_reserve_factor)]
+    pub type UnstakeReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn total_unstake_reserves)]
+    pub type TotalUnstakeReserves<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     /// Store total stake amount and unstake amount in each era,
     /// And will update when stake/unstake occurred.
@@ -541,6 +555,18 @@ pub mod pallet {
                 Error::<T>::UnstakeTooSmall
             );
 
+            let reserves = Self::unstake_reserve_factor().mul_floor(liquid_amount);
+
+            TotalUnstakeReserves::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+
+            let origin_liquid_amount = liquid_amount;
+            let liquid_amount = liquid_amount
+                .checked_sub(reserves)
+                .ok_or(ArithmeticError::Underflow)?;
+
             if unstake_provider.is_matching_pool() {
                 FastUnstakeRequests::<T>::try_mutate(&who, |b| -> DispatchResult {
                     let balance =
@@ -578,7 +604,8 @@ pub mod pallet {
                 Ok(())
             })?;
 
-            T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
+            T::Assets::burn_from(Self::liquid_currency()?, &who, origin_liquid_amount)?;
+            T::Assets::mint_into(Self::liquid_currency()?, &Self::account_id(), reserves)?;
 
             if unstake_provider.is_loans() {
                 Self::do_loans_instant_unstake(&who, amount)?;
@@ -588,12 +615,13 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::unstake",
-                "unstake_amount: {:?}, liquid_amount: {:?}",
+                "unstake_amount: {:?}, liquid_amount: {:?}, reserved: {:?}",
                 &amount,
                 &liquid_amount,
+                &reserves
             );
 
-            Self::deposit_event(Event::<T>::Unstaked(who, liquid_amount, amount));
+            Self::deposit_event(Event::<T>::Unstaked(who, origin_liquid_amount, amount));
             Ok(().into())
         }
 
@@ -1096,6 +1124,64 @@ pub mod pallet {
             Incentive::<T>::put(amount);
             Self::deposit_event(Event::<T>::IncentiveUpdated(amount));
             Ok(())
+        }
+
+        /// Update insurance pool's unstake_reserve_factor
+        #[pallet::call_index(24)]
+        #[pallet::weight(<T as Config>::WeightInfo::update_reserve_factor())]
+        #[transactional]
+        pub fn update_unstake_reserve_factor(
+            origin: OriginFor<T>,
+            reserve_factor: Ratio,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+
+            ensure!(
+                reserve_factor >= Ratio::zero() && reserve_factor < Ratio::one(),
+                Error::<T>::InvalidFactor,
+            );
+
+            log::trace!(
+                target: "liquidStaking::update_unstake_reserve_factor",
+                 "reserve_factor: {:?}",
+                &reserve_factor,
+            );
+
+            UnstakeReserveFactor::<T>::mutate(|v| *v = reserve_factor);
+            Self::deposit_event(Event::<T>::UnstakeReserveFactorUpdated(reserve_factor));
+            Ok(().into())
+        }
+
+        /// Reduces unstake reserves by transferring to receiver.
+        #[pallet::call_index(25)]
+        #[pallet::weight(<T as Config>::WeightInfo::reduce_reserves())]
+        #[transactional]
+        pub fn reduce_unstake_reserves(
+            origin: OriginFor<T>,
+            receiver: <T::Lookup as StaticLookup>::Source,
+            #[pallet::compact] reduce_amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            let receiver = T::Lookup::lookup(receiver)?;
+
+            TotalUnstakeReserves::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b
+                    .checked_sub(reduce_amount)
+                    .ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+
+            T::Assets::transfer(
+                Self::liquid_currency()?,
+                &Self::account_id(),
+                &receiver,
+                reduce_amount,
+                false,
+            )?;
+
+            Self::deposit_event(Event::<T>::UnstakeReservesReduced(receiver, reduce_amount));
+
+            Ok(().into())
         }
     }
 
