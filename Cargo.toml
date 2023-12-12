@@ -16,7 +16,7 @@ members = ['node/*', 'pallets/*', 'runtime/*', 'support', 'precompiles/*','integ
 [workspace.package]
 authors     = ['Parallel Team']
 repository  = 'https://github.com/parallel-finance/parallel'
-version     = '2.0.2'
+version     = '2.0.3'
 
 [workspace.dependencies]
 # Substrate dependencies
