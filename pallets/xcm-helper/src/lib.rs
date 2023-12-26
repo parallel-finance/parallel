@@ -268,7 +268,7 @@ impl<T: Config> Pallet<T> {
         let notify: <T as pallet_xcm::Config>::RuntimeCall = notify.into();
         let max_weight = notify.get_dispatch_info().weight;
         let query_id = pallet_xcm::Pallet::<T>::new_notify_query(responder, notify, timeout, Here);
-        let report_error = Xcm(vec![ReportError(QueryResponseInfo {
+        let report_error = Xcm(vec![ReportTransactStatus(QueryResponseInfo {
             destination,
             query_id,
             max_weight,
