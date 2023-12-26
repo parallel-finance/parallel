@@ -1799,7 +1799,7 @@ pub mod pallet {
                 }
                 Nominate { targets: _, .. } => {}
             }
-            XcmRequests::<T>::remove(query_id);
+
             Ok(())
         }
 
