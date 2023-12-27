@@ -125,10 +125,8 @@ impl pallet_assets::Config for Runtime {
     type Freezer = ();
     type Extra = ();
     type WeightInfo = ();
-    type BenchmarkHelper = ();
     type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
     type CallbackHandle = ();
-    #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = ();
 }
 
