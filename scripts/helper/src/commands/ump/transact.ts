@@ -6,7 +6,7 @@ import { u32 } from '@polkadot/types'
 export default function ({ createCommand }: CreateCommandParameters): Command {
   return createCommand('open hrmp channel to specific chain')
     .option('-p, --para-ws [url]', 'the parachain API endpoint', {
-      default: 'wss://rpc.parallel.fi'
+      default: 'wss://polkadot-parallel-rpc.parallel.fi'
     })
     .option('-e, --encoded-call-data [hex]', 'the hex encoded call data', {
       default: '0x0001081234'
