@@ -180,7 +180,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("heiko"),
     impl_name: create_runtime_str!("heiko"),
     authoring_version: 1,
-    spec_version: 203,
+    spec_version: 204,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -524,7 +524,7 @@ impl pallet_loans::Config for Runtime {
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const EraLength: BlockNumber = 6 * 1 * 3600 / 6; // 6HOURS
-    pub const MinStake: Balance = 100_000_000_000; // 0.1KSM
+    pub const MinStake: Balance = 1_100_000_000_000; // 1.1KSM
     pub const MinUnstake: Balance = 50_000_000_000; // 0.05sKSM
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = SKSM;

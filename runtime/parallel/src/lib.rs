@@ -184,7 +184,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 203,
+    spec_version: 204,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -538,7 +538,7 @@ parameter_types! {
     pub LoansInstantUnstakeFee: Rate = Rate::saturating_from_rational(38u32, 1000u32); // (1.45 ** (3600 * 4 * 36 / 5256000) - 1) * 100% ~= 3.732%
     pub MatchingPoolFastUnstakeFee: Rate = Rate::saturating_from_rational(1u32, 100u32);
     pub const BondingDuration: EraIndex = 28; // 28Days
-    pub const MinNominatorBond: Balance = 100_000_000_000; // 10DOT
+    pub const MinNominatorBond: Balance = 10_010_000_000_000; // 1001DOT
     pub const NumSlashingSpans: u32 = 0;
     pub DerivativeIndexList: Vec<u16> = vec![0, 1, 2, 3, 4, 5];
     pub const ElectionSolutionStoredOffset: BlockNumber = 12600;
