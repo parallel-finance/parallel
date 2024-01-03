@@ -46,10 +46,10 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       const encoded = api.tx.parachainSystem.authorizeUpgrade(codeHash).method.toHex()
       const encodedHash = blake2AsHex(encoded)
 
-      const external = api.tx.democracy.externalProposeMajority(encodedHash)
+      const external = api.tx.democracy.externalProposeMajority({ Legacy: encodedHash })
 
       const tx = api.tx.utility.batchAll([
-        api.tx.democracy.notePreimage(encoded),
+        api.tx.preimage.notePreimage(encoded),
         api.tx.generalCouncil.propose(await getCouncilThreshold(api), external, external.length)
       ])
       if (dryRun) {
