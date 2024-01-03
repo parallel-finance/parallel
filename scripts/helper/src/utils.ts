@@ -40,18 +40,26 @@ export const createAddress = (id: string): string =>
 
 export const sovereignRelayOf = (paraId: number): string =>
   encodeAddress(
-    u8aConcat(stringToU8a('para'), bnToU8a(paraId, 32, true), EMPTY_U8A_32).subarray(0, 32)
+    u8aConcat(
+      stringToU8a('para'),
+      bnToU8a(paraId, { bitLength: 32, isLe: true }),
+      EMPTY_U8A_32
+    ).subarray(0, 32)
   )
 
 export const sovereignParaOf = (paraId: number): string =>
   encodeAddress(
-    u8aConcat(stringToU8a('sibl'), bnToU8a(paraId, 32, true), EMPTY_U8A_32).subarray(0, 32)
+    u8aConcat(
+      stringToU8a('sibl'),
+      bnToU8a(paraId, { bitLength: 32, isLe: true }),
+      EMPTY_U8A_32
+    ).subarray(0, 32)
   )
 
 export const subAccountId = (address: string, index: number): string => {
   const seedBytes = stringToU8a('modlpy/utilisuba')
   const whoBytes = decodeAddress(address)
-  const indexBytes = bnToU8a(index, 16).reverse()
+  const indexBytes = bnToU8a(index, { bitLength: 16 }).reverse()
   const combinedBytes = new Uint8Array(seedBytes.length + whoBytes.length + indexBytes.length)
   combinedBytes.set(seedBytes)
   combinedBytes.set(whoBytes, seedBytes.length)
