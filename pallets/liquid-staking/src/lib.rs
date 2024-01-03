@@ -266,7 +266,7 @@ pub mod pallet {
         ExchangeRateUpdated(Rate),
         /// Notification received
         /// [multi_location, query_id, res]
-        NotificationReceived(Box<MultiLocation>, QueryId, Option<(u32, XcmError)>),
+        NotificationReceived(Box<MultiLocation>, QueryId, MaybeErrorCode),
         /// Claim user's unbonded staking assets
         /// [account_id, amount]
         ClaimedFor(T::AccountId, BalanceOf<T>),
@@ -771,9 +771,9 @@ pub mod pallet {
                 .or_else(|_| {
                     T::UpdateOrigin::ensure_origin(origin).map(|_| MultiLocation::here())
                 })?;
-            if let Response::ExecutionResult(res) = response {
+            if let Response::DispatchResult(res) = response {
                 if let Some(request) = Self::xcm_request(query_id) {
-                    Self::do_notification_received(query_id, request, res)?;
+                    Self::do_notification_received(query_id, request, res.clone())?;
                 }
 
                 Self::deposit_event(Event::<T>::NotificationReceived(
@@ -1708,7 +1708,7 @@ pub mod pallet {
         fn do_notification_received(
             query_id: QueryId,
             req: XcmRequest<T>,
-            res: Option<(u32, XcmError)>,
+            res: MaybeErrorCode,
         ) -> DispatchResult {
             use XcmRequest::*;
 
@@ -1719,8 +1719,9 @@ pub mod pallet {
                 &res
             );
 
-            let executed = res.is_none();
-            if !executed {
+            XcmRequests::<T>::remove(query_id);
+
+            if !matches!(res, MaybeErrorCode::Success) {
                 return Ok(());
             }
 
@@ -1798,7 +1799,7 @@ pub mod pallet {
                 }
                 Nominate { targets: _, .. } => {}
             }
-            XcmRequests::<T>::remove(query_id);
+
             Ok(())
         }
 

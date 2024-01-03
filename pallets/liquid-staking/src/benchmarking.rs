@@ -289,7 +289,7 @@ benchmarks! {
         Response::ExecutionResult(None)
     )
     verify {
-        assert_last_event::<T>(Event::<T>::NotificationReceived(Box::new(MultiLocation::parent()), 0u64, None).into());
+        assert_last_event::<T>(Event::<T>::NotificationReceived(Box::new(MultiLocation::parent()), 0u64, MaybeErrorCode::Success).into());
     }
 
     claim_for {
