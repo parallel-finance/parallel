@@ -226,10 +226,6 @@ pub mod pallet {
 
         /// Decimal provider.
         type Decimal: DecimalProvider<CurrencyId>;
-
-        /// The asset id for native currency.
-        #[pallet::constant]
-        type NativeCurrency: Get<AssetIdOf<Self>>;
     }
 
     #[pallet::event]
@@ -937,16 +933,6 @@ pub mod pallet {
             );
 
             Self::do_advance_era(offset)?;
-            if !offset.is_zero() {
-                let _ = T::Assets::transfer(
-                    T::NativeCurrency::get(),
-                    &Self::account_id(),
-                    &who,
-                    Self::incentive(),
-                    false,
-                );
-            }
-
             Ok(().into())
         }
 
@@ -960,7 +946,7 @@ pub mod pallet {
             staking_ledger: StakingLedger<T::AccountId, BalanceOf<T>>,
             proof: Vec<Vec<u8>>,
         ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
+            Self::ensure_origin(origin)?;
 
             Self::do_update_ledger(derivative_index, |ledger| {
                 ensure!(
@@ -1003,13 +989,6 @@ pub mod pallet {
                     &derivative_index,
                     &staking_ledger,
                     inflate_liquid_amount,
-                );
-                let _ = T::Assets::transfer(
-                    T::NativeCurrency::get(),
-                    &Self::account_id(),
-                    &who,
-                    Self::incentive(),
-                    false,
                 );
                 *ledger = staking_ledger;
                 Ok(())
