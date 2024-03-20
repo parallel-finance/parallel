@@ -288,7 +288,7 @@ try-heiko-live-upgrade:
 
 .PHONY: try-parallel-live-upgrade
 try-parallel-live-upgrade:
-	make CHAIN=parallel URL=wss://polkadot-parallel-rpc.parallel.fi:443 try-live-upgrade
+	make CHAIN=parallel URL=wss://parallel-rpc.dwellir.com:443 try-live-upgrade
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort

@@ -21,7 +21,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       default: 'wss://rpc.polkadot.io'
     })
     .option('-p, --para-ws [url]', 'the parachain API endpoint', {
-      default: 'wss://polkadot-parallel-rpc.parallel.fi'
+      default: 'wss://parallel-rpc.dwellir.com'
     })
     .option('-d, --dry-run [boolean]', 'whether to execute using PARA_CHAIN_SUDO_KEY', {
       validator: program.BOOLEAN,
