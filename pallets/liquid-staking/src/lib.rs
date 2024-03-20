@@ -286,8 +286,6 @@ pub mod pallet {
         FastUnstakeMatched(T::AccountId, BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
         /// Incentive amount was updated
         IncentiveUpdated(BalanceOf<T>),
-        /// Not the ideal staking ledger
-        NonIdealStakingLedger(DerivativeIndex),
         /// Unstake_reserve_factor was updated
         UnstakeReserveFactorUpdated(Ratio),
         /// Event emitted when the unstake reserves are reduced
@@ -954,18 +952,12 @@ pub mod pallet {
                         && XcmRequests::<T>::iter().count().is_zero(),
                     Error::<T>::StakingLedgerLocked
                 );
-                if staking_ledger.total < ledger.total
-                    || staking_ledger.active < ledger.active
-                    || staking_ledger.unlocking != ledger.unlocking
-                {
-                    log::trace!(
-                        target: "liquidStaking::set_staking_ledger::invalidStakingLedger",
-                        "index: {:?}, staking_ledger: {:?}",
-                        &derivative_index,
-                        &staking_ledger,
-                    );
-                    Self::deposit_event(Event::<T>::NonIdealStakingLedger(derivative_index));
-                }
+                ensure!(
+                    staking_ledger.total > ledger.total
+                        && staking_ledger.active > ledger.active
+                        && staking_ledger.unlocking == ledger.unlocking,
+                    Error::<T>::InvalidStakingLedger
+                );
                 let key = Self::get_staking_ledger_key(derivative_index);
                 let value = staking_ledger.encode();
                 ensure!(
