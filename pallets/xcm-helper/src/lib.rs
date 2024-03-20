@@ -275,7 +275,7 @@ impl<T: Config> Pallet<T> {
         })]);
         // Prepend SetAppendix(Xcm(vec![ReportError])) wont be able to pass barrier check
         // so we need to insert it after Withdraw, BuyExecution
-        message.0.insert(2, report_error);
+        message.0.insert(2, SetAppendix(report_error));
         Ok(query_id)
     }
 
