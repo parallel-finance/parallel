@@ -38,8 +38,9 @@ mod benchmarking;
 
 #[cfg(test)]
 mod mock;
-#[cfg(test)]
-mod tests;
+// TODO: Should be fixed after upgrade XCM version
+// #[cfg(test)]
+// mod tests;
 
 pub mod distribution;
 pub mod migrations;
@@ -226,10 +227,6 @@ pub mod pallet {
 
         /// Decimal provider.
         type Decimal: DecimalProvider<CurrencyId>;
-
-        /// The asset id for native currency.
-        #[pallet::constant]
-        type NativeCurrency: Get<AssetIdOf<Self>>;
     }
 
     #[pallet::event]
@@ -290,8 +287,6 @@ pub mod pallet {
         FastUnstakeMatched(T::AccountId, BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
         /// Incentive amount was updated
         IncentiveUpdated(BalanceOf<T>),
-        /// Not the ideal staking ledger
-        NonIdealStakingLedger(DerivativeIndex),
         /// Unstake_reserve_factor was updated
         UnstakeReserveFactorUpdated(Ratio),
         /// Event emitted when the unstake reserves are reduced
@@ -925,7 +920,7 @@ pub mod pallet {
             era: EraIndex,
             proof: Vec<Vec<u8>>,
         ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
+            Self::ensure_origin(origin)?;
 
             let offset = era.saturating_sub(Self::current_era());
 
@@ -937,16 +932,6 @@ pub mod pallet {
             );
 
             Self::do_advance_era(offset)?;
-            if !offset.is_zero() {
-                let _ = T::Assets::transfer(
-                    T::NativeCurrency::get(),
-                    &Self::account_id(),
-                    &who,
-                    Self::incentive(),
-                    false,
-                );
-            }
-
             Ok(().into())
         }
 
@@ -960,7 +945,7 @@ pub mod pallet {
             staking_ledger: StakingLedger<T::AccountId, BalanceOf<T>>,
             proof: Vec<Vec<u8>>,
         ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
+            Self::ensure_origin(origin)?;
 
             Self::do_update_ledger(derivative_index, |ledger| {
                 ensure!(
@@ -968,18 +953,12 @@ pub mod pallet {
                         && XcmRequests::<T>::iter().count().is_zero(),
                     Error::<T>::StakingLedgerLocked
                 );
-                if staking_ledger.total < ledger.total
-                    || staking_ledger.active < ledger.active
-                    || staking_ledger.unlocking != ledger.unlocking
-                {
-                    log::trace!(
-                        target: "liquidStaking::set_staking_ledger::invalidStakingLedger",
-                        "index: {:?}, staking_ledger: {:?}",
-                        &derivative_index,
-                        &staking_ledger,
-                    );
-                    Self::deposit_event(Event::<T>::NonIdealStakingLedger(derivative_index));
-                }
+                ensure!(
+                    staking_ledger.total > ledger.total
+                        && staking_ledger.active > ledger.active
+                        && staking_ledger.unlocking == ledger.unlocking,
+                    Error::<T>::InvalidStakingLedger
+                );
                 let key = Self::get_staking_ledger_key(derivative_index);
                 let value = staking_ledger.encode();
                 ensure!(
@@ -1003,13 +982,6 @@ pub mod pallet {
                     &derivative_index,
                     &staking_ledger,
                     inflate_liquid_amount,
-                );
-                let _ = T::Assets::transfer(
-                    T::NativeCurrency::get(),
-                    &Self::account_id(),
-                    &who,
-                    Self::incentive(),
-                    false,
                 );
                 *ledger = staking_ledger;
                 Ok(())

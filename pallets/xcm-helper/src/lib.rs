@@ -268,14 +268,14 @@ impl<T: Config> Pallet<T> {
         let notify: <T as pallet_xcm::Config>::RuntimeCall = notify.into();
         let max_weight = notify.get_dispatch_info().weight;
         let query_id = pallet_xcm::Pallet::<T>::new_notify_query(responder, notify, timeout, Here);
-        let report_error = Xcm(vec![ReportError(QueryResponseInfo {
+        let report_error = ReportError(QueryResponseInfo {
             destination,
             query_id,
             max_weight,
-        })]);
+        });
         // Prepend SetAppendix(Xcm(vec![ReportError])) wont be able to pass barrier check
         // so we need to insert it after Withdraw, BuyExecution
-        message.0.insert(2, SetAppendix(report_error));
+        message.0.insert(3, report_error);
         Ok(query_id)
     }
 
