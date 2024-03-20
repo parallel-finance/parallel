@@ -45,7 +45,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --default-toolchain ${RUST_TOOLCHAIN} --component rust-src --target wasm32-unknown-unknown
 ```
 
-4. initialize submodules
+4. Initialize submodules
 
 ```
 make init
@@ -53,9 +53,9 @@ make init
 
 ### Create .env file with relaychain sudo key
 
-Saying relaychain sudo key is `//Alice`, we need to put the following content in `scripts/helper/.env` file
+Suppose the relaychain sudo key is `//Alice`, we need to put the following content in `scripts/helper/.env` file
 
-**NOTE**: Pls contact parallel team member to have relaychain's sudo key
+**NOTE**: Please contact a Parallel team member for the relaychain sudo key.
 
 ```
 RELAY_CHAIN_SUDO_KEY="//Alice"
@@ -75,8 +75,8 @@ make launch
 
 ### Port forwarding (optional)
 
-If you are running `make launch` on remote server, you can forward to local, here the bash script
-for saving life
+If you are running `make launch` on remote server, you can forward to local. Here is
+the bash script to save you time:
 
 ```
 function forward-port-to-local {
@@ -86,13 +86,13 @@ function forward-port-to-local {
 }
 ```
 
-eg. forward ubuntu@192.168.1.11's 9944 port to local:
+e.g. forward ubuntu@192.168.1.11's 9944 port to local:
 
 ```
 forward-port-to-local ubuntu@192.168.1.11 9944
 ```
 
-Then access everything locally
+Then access everything locally:
 
 - [Relaychain](https://polkadot.js.org/apps/?rpc=ws%3A%2F%2F127.0.0.1%3A9944#/explorer)
 - [Parachain](https://polkadot.js.org/apps/?rpc=ws%3A%2F%2F127.0.0.1%3A9948#/explorer)
