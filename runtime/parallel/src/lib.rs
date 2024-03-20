@@ -576,7 +576,6 @@ impl pallet_liquid_staking::Config for Runtime {
     type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
     type Decimal = Decimal;
-    type NativeCurrency = NativeCurrencyId;
 }
 
 parameter_types! {

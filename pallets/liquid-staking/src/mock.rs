@@ -606,7 +606,6 @@ impl crate::Config for Test {
     type ElectionSolutionStoredOffset = ElectionSolutionStoredOffset;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
     type Decimal = Decimal;
-    type NativeCurrency = NativeCurrencyId;
 }
 
 pub struct Decimal;

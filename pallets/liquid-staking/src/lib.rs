@@ -919,7 +919,7 @@ pub mod pallet {
             era: EraIndex,
             proof: Vec<Vec<u8>>,
         ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
+            Self::ensure_origin(origin)?;
 
             let offset = era.saturating_sub(Self::current_era());
 
