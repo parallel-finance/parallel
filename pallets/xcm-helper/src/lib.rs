@@ -273,8 +273,19 @@ impl<T: Config> Pallet<T> {
             query_id,
             max_weight,
         });
-        // Prepend SetAppendix(Xcm(vec![ReportError])) wont be able to pass barrier check
-        // so we need to insert it after Withdraw, BuyExecution
+        // Before insertion is:
+        // 0: WithdrawAsset
+        // 1: BuyExecution
+        // 2: Transact
+        // 3: RefundSurplus
+        // 4: DepositAsset
+        // After insertion is:
+        // 0: WithdrawAsset
+        // 1: BuyExecution
+        // 2: Transact
+        // 3: ReportError
+        // 4: RefundSurplus
+        // 5: DepositAsset
         message.0.insert(3, report_error);
         Ok(query_id)
     }
@@ -288,9 +299,25 @@ impl<T: Config> Pallet<T> {
 
     // Since xcm v3 doesn't support utility.batch_all
     // instead, here append one more transact msg
-    //
-    // NOTE: index here is 3,
-    // must append before 'report_outcome_notify' that index is 2
+
+    // A new bug occured due to XCM version incompatiable,
+    // here is a temp solutin which is ugly:
+    // ***`append_transact` MUST invoke after `report_outcome_notify`***
+    // Before insertion is:
+    // 0: WithdrawAsset
+    // 1: BuyExecution
+    // 2: Transact
+    // 3: ReportError
+    // 4: RefundSurplus
+    // 5: DepositAsset
+    // After insertion is:
+    // 0: WithdrawAsset
+    // 1: BuyExecution
+    // 2: Transact
+    // 3: Transact
+    // 4: ReportError
+    // 5: RefundSurplus
+    // 6: DepositAsset
     pub fn append_transact(message: &mut Xcm<()>, call: DoubleEncoded<()>, weight: Weight) {
         message.0.insert(
             3,
@@ -527,7 +554,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                     },
                 )),
             })));
-            Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             let query_id = Self::report_outcome_notify(
                 &mut msg,
@@ -535,6 +561,8 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 notify,
                 T::NotifyTimeout::get(),
             )?;
+
+            Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             if let Err(_e) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
@@ -577,14 +605,14 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 },
             )));
 
-            Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
-
             let query_id = Self::report_outcome_notify(
                 &mut msg,
                 MultiLocation::parent(),
                 notify,
                 T::NotifyTimeout::get(),
             )?;
+
+            Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             if let Err(_err) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
@@ -624,7 +652,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                     )),
                 },
             )));
-            Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             let query_id = Self::report_outcome_notify(
                 &mut msg,
@@ -632,6 +659,8 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 notify,
                 T::NotifyTimeout::get(),
             )?;
+
+            Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             if let Err(_err) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
@@ -752,7 +781,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                     )),
                 },
             )));
-            Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             let query_id = Self::report_outcome_notify(
                 &mut msg,
@@ -760,6 +788,8 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 notify,
                 T::NotifyTimeout::get(),
             )?;
+
+            Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             if let Err(_err) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendFailure.into());
