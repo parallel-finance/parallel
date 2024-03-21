@@ -300,7 +300,7 @@ impl<T: Config> Pallet<T> {
     // Since xcm v3 doesn't support utility.batch_all
     // instead, here append one more transact msg
 
-    // A new bug occured due to XCM version incompatiable,
+    // A new bug occurred due to XCM version incompatible,
     // here is a temp solutin which is ugly:
     // ***`append_transact` MUST invoke after `report_outcome_notify`***
     // Before insertion is:
