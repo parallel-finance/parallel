@@ -23,7 +23,7 @@ members = [
 [workspace.package]
 authors    = ['Parallel Team']
 repository = 'https://github.com/parallel-finance/parallel'
-version    = '2.0.4'
+version    = '2.0.5'
 
 [workspace.dependencies]
 # Substrate dependencies

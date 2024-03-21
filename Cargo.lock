@@ -3747,7 +3747,7 @@ checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 
 [[package]]
 name = "heiko-runtime"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -4472,7 +4472,7 @@ dependencies = [
 
 [[package]]
 name = "kerria-runtime"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -6285,7 +6285,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-amm"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6308,7 +6308,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-asset-registry"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6537,7 +6537,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-bridge"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6629,7 +6629,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-crowdloans"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "bytes",
  "cumulus-pallet-dmp-queue",
@@ -6675,7 +6675,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-currency-adapter"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6759,7 +6759,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-emergency-shutdown"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6824,7 +6824,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-assets-erc20"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "derive_more",
  "fp-evm",
@@ -6851,7 +6851,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-precompile-balances-erc20"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "derive_more",
  "fp-evm",
@@ -6944,7 +6944,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-evm-signatures"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6966,7 +6966,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-farming"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7082,7 +7082,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-liquid-staking"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -7130,7 +7130,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7157,7 +7157,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans-rpc"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "jsonrpsee",
  "pallet-loans-rpc-runtime-api",
@@ -7173,7 +7173,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans-rpc-runtime-api"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
@@ -7354,7 +7354,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-prices"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -7445,7 +7445,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7466,7 +7466,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router-rpc"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "jsonrpsee",
  "pallet-router-rpc-runtime-api",
@@ -7483,7 +7483,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router-rpc-runtime-api"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
@@ -7562,7 +7562,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-stableswap"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7645,7 +7645,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-streaming"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7720,7 +7720,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-traits"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -7903,7 +7903,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-xcm-helper"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -7981,7 +7981,7 @@ dependencies = [
 
 [[package]]
 name = "parallel"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "async-trait",
  "clap",
@@ -8081,7 +8081,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-primitives"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -8100,7 +8100,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-runtime"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -8194,7 +8194,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-support"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "frame-support",
  "log",
@@ -9693,7 +9693,7 @@ checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
 name = "precompile-utils"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "evm",
  "fp-evm",
@@ -9717,7 +9717,7 @@ dependencies = [
 
 [[package]]
 name = "precompile-utils-macro"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "num_enum",
  "proc-macro2",
@@ -10500,7 +10500,7 @@ dependencies = [
 
 [[package]]
 name = "runtime-common"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "fp-rpc",
  "fp-self-contained",
@@ -10531,7 +10531,7 @@ dependencies = [
 
 [[package]]
 name = "runtime-integration-tests"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -14283,7 +14283,7 @@ checksum = "830b7e5d4d90034032940e4ace0d9a9a057e7a45cd94e6c007832e39edb82f6d"
 
 [[package]]
 name = "vanilla-runtime"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
