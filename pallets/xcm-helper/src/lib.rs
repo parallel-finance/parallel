@@ -543,6 +543,13 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 xcm_weight_fee_misc.fee,
             )?;
 
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
             let call = RelaychainCall::<T>::Proxy(Box::new(ProxyCall::Proxy(ProxyProxyCall {
                 real,
                 force_proxy_type: None,
@@ -554,14 +561,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                     },
                 )),
             })));
-
-            let query_id = Self::report_outcome_notify(
-                &mut msg,
-                MultiLocation::parent(),
-                notify,
-                T::NotifyTimeout::get(),
-            )?;
-
             Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             if let Err(_e) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
@@ -594,6 +593,14 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 Self::refund_location(),
                 xcm_weight_fee_misc.fee,
             )?;
+
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
             let call = RelaychainCall::<T>::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
                     index,
@@ -604,14 +611,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                     })),
                 },
             )));
-
-            let query_id = Self::report_outcome_notify(
-                &mut msg,
-                MultiLocation::parent(),
-                notify,
-                T::NotifyTimeout::get(),
-            )?;
-
             Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             if let Err(_err) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
@@ -644,6 +643,13 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 xcm_weight_fee_misc.fee,
             )?;
 
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
             let call = RelaychainCall::<T>::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
                     index,
@@ -652,14 +658,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                     )),
                 },
             )));
-
-            let query_id = Self::report_outcome_notify(
-                &mut msg,
-                MultiLocation::parent(),
-                notify,
-                T::NotifyTimeout::get(),
-            )?;
-
             Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             if let Err(_err) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
@@ -770,6 +768,13 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                 xcm_weight_fee_misc.fee,
             )?;
 
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
                     index,
@@ -781,14 +786,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AccountIdOf<T>> for Pallet<T> {
                     )),
                 },
             )));
-
-            let query_id = Self::report_outcome_notify(
-                &mut msg,
-                MultiLocation::parent(),
-                notify,
-                T::NotifyTimeout::get(),
-            )?;
-
             Self::append_transact(&mut msg, call.encode().into(), xcm_weight_fee_misc.weight);
 
             if let Err(_err) = send_xcm::<T::XcmSender>(MultiLocation::parent(), msg) {
