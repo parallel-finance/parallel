@@ -201,12 +201,6 @@ impl<T: frame_system::Config> pallet_liquid_staking::WeightInfo for WeightInfo<T
 		Weight::from_ref_time(25_664_000)
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	// Storage: LiquidStaking Incentive (r:0 w:1)
-	fn update_incentive() -> Weight {
-		// Minimum execution time: 25_110 nanoseconds.
-		Weight::from_ref_time(25_596_000)
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
 	// Storage: LiquidStaking StakingLedgerCap (r:1 w:1)
 	fn update_staking_ledger_cap() -> Weight {
 		// Minimum execution time: 28_073 nanoseconds.

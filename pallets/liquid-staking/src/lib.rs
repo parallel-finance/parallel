@@ -285,8 +285,6 @@ pub mod pallet {
         /// Fast Unstake Matched
         /// [unstaker, received_staking_amount, matched_liquid_amount, fee_in_liquid_currency]
         FastUnstakeMatched(T::AccountId, BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
-        /// Incentive amount was updated
-        IncentiveUpdated(BalanceOf<T>),
         /// Unstake_reserve_factor was updated
         UnstakeReserveFactorUpdated(Ratio),
         /// Event emitted when the unstake reserves are reduced
@@ -448,11 +446,6 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn is_matched)]
     pub type IsMatched<T: Config> = StorageValue<_, bool, ValueQuery>;
-
-    /// Incentive for users who successfully update era/ledger
-    #[pallet::storage]
-    #[pallet::getter(fn incentive)]
-    pub type Incentive<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[derive(Default)]
     #[pallet::genesis_config]
@@ -1084,22 +1077,8 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Update incentive amount
-        #[pallet::call_index(23)]
-        #[pallet::weight(<T as Config>::WeightInfo::update_incentive())]
-        #[transactional]
-        pub fn update_incentive(
-            origin: OriginFor<T>,
-            #[pallet::compact] amount: BalanceOf<T>,
-        ) -> DispatchResult {
-            T::UpdateOrigin::ensure_origin(origin)?;
-            Incentive::<T>::put(amount);
-            Self::deposit_event(Event::<T>::IncentiveUpdated(amount));
-            Ok(())
-        }
-
         /// Update insurance pool's unstake_reserve_factor
-        #[pallet::call_index(24)]
+        #[pallet::call_index(23)]
         #[pallet::weight(<T as Config>::WeightInfo::update_reserve_factor())]
         #[transactional]
         pub fn update_unstake_reserve_factor(
@@ -1125,7 +1104,7 @@ pub mod pallet {
         }
 
         /// Reduces unstake reserves by transferring to receiver.
-        #[pallet::call_index(25)]
+        #[pallet::call_index(24)]
         #[pallet::weight(<T as Config>::WeightInfo::reduce_reserves())]
         #[transactional]
         pub fn reduce_unstake_reserves(

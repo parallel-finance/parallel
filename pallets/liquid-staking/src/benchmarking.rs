@@ -267,12 +267,6 @@ benchmarks! {
         assert_eq!(CommissionRate::<T>::get(), COMMISSION_RATE);
     }
 
-    update_incentive {
-    }: _(SystemOrigin::Root, BalanceOf::<T>::one())
-    verify {
-        assert_eq!(Incentive::<T>::get(), BalanceOf::<T>::one());
-    }
-
     update_staking_ledger_cap {
     }: _(SystemOrigin::Root, STAKING_LEDGER_CAP)
     verify {
