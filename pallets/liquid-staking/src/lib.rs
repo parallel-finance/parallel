@@ -1648,8 +1648,10 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_multi_withdraw_unbonded(num_slashing_spans: u32) -> DispatchResult {
-            for derivative_index in StakingLedgers::<T>::iter_keys() {
-                Self::do_withdraw_unbonded(derivative_index, num_slashing_spans)?;
+            if XcmRequests::<T>::iter().count().is_zero() {
+                for derivative_index in StakingLedgers::<T>::iter_keys() {
+                    Self::do_withdraw_unbonded(derivative_index, num_slashing_spans)?;
+                }
             }
 
             Ok(())
