@@ -576,7 +576,7 @@ pub mod pallet {
             Unlockings::<T>::try_mutate(&unlockings_key, |b| -> DispatchResult {
                 let mut chunks = b.take().unwrap_or_default();
                 let target_era = Self::target_era();
-                if let Some(mut chunk) = chunks.last_mut().filter(|chunk| chunk.era == target_era) {
+                if let Some(chunk) = chunks.last_mut().filter(|chunk| chunk.era == target_era) {
                     chunk.value = chunk.value.saturating_add(amount);
                 } else {
                     chunks.push(UnlockChunk {

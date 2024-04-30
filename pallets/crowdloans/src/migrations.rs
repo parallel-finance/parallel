@@ -232,3 +232,153 @@ pub mod v2 {
         Ok(())
     }
 }
+
+pub mod v3 {
+    use super::*;
+    use frame_support::{log, traits::Get};
+    use primitives::ParaId;
+    use sp_runtime::traits::Zero;
+    use sp_std::{vec, vec::Vec};
+    use types::*;
+
+    pub fn pre_migrate<T: Config>() -> Result<Vec<u8>, &'static str> {
+        frame_support::ensure!(
+            StorageVersion::<T>::get() == Releases::V2_0_0,
+            "must be V2_0_0"
+        );
+        frame_support::ensure!(NextTrieIndex::<T>::get() == 24, "must be 24");
+        Ok(Vec::new())
+    }
+
+    pub fn migrate<T: Config>() -> frame_support::weights::Weight {
+        if StorageVersion::<T>::get() == Releases::V2_0_0 {
+            log::info!(
+                target: "crowdloans::migrate",
+                "migrating crowdloan to Releases::V3_0_0"
+            );
+            // paraId, ctoken, contributed, cap, end_block, trie_index, lease_start, lease_end
+            let batch: Vec<(u32, u32, u128, u128, u32, u32, u32, u32)> = vec![
+                // 2040,8-15,5058525762400000,150000000000000000,10881401
+                // Polkadex
+                // 5058525762400000
+                (
+                    2040,
+                    200080015,
+                    5058525762400000,
+                    150_000_000_000_000_000,
+                    10881401,
+                    25,
+                    8,
+                    15,
+                ),
+                // 2013,8-15,1891535952620463,150000000000000000,10881401
+                // Litentry
+                // 1891535952620463
+                (
+                    2013,
+                    200080015,
+                    1891535952620463,
+                    150_000_000_000_000_000,
+                    10881401,
+                    26,
+                    8,
+                    15,
+                ),
+                // 2030,8-15,222383369000000,150000000000000000,10881401
+                // Bifrost
+                // 222383369000000
+                (
+                    2030,
+                    200080015,
+                    222383369000000,
+                    150_000_000_000_000_000,
+                    10881401,
+                    27,
+                    8,
+                    15,
+                ),
+                // 2027,8-15,574831000000000,150000000000000000,10881401
+                // Coinversation
+                // 574831000000000
+                (
+                    2027,
+                    200080015,
+                    574831000000000,
+                    150_000_000_000_000_000,
+                    10881401,
+                    28,
+                    8,
+                    15,
+                ),
+                // 2043,8-15,2599910262000000,150000000000000000,10881401
+                // NeuroWeb
+                // 2599910262000000
+                (
+                    2043,
+                    200080015,
+                    2599910262000000,
+                    150_000_000_000_000_000,
+                    10881401,
+                    29,
+                    8,
+                    15,
+                ),
+                // 2007,8-15,320506980000000,150000000000000000,10881401
+                // Kapex
+                // 320506980000000
+                (
+                    2007,
+                    200080015,
+                    320506980000000,
+                    150_000_000_000_000_000,
+                    10881401,
+                    30,
+                    8,
+                    15,
+                ),
+            ];
+            let length = batch.len() as u64;
+            for (para_id, ctoken, raised, cap, end_block, trie_index, lease_start, lease_end) in
+                batch.into_iter()
+            {
+                let vault = Vault::<T> {
+                    ctoken,
+                    phase: VaultPhase::Expired,
+                    contributed: raised,
+                    pending: Zero::zero(),
+                    flying: Zero::zero(),
+                    contribution_strategy: ContributionStrategy::XCM,
+                    cap,
+                    end_block: end_block.into(),
+                    trie_index,
+                    lease_start,
+                    lease_end,
+                };
+
+                Vaults::<T>::insert((&ParaId::from(para_id), &lease_start, &lease_end), vault);
+                CTokensRegistry::<T>::insert((&lease_start, &lease_end), ctoken);
+                LeasesRegistry::<T>::insert(ParaId::from(para_id), (lease_start, lease_end));
+            }
+            NextTrieIndex::<T>::put(31);
+            StorageVersion::<T>::put(Releases::V3_0_0);
+            log::info!(
+                target: "crowdloans::migrate",
+                "completed crowdloans migration to Releases::V3_0_0"
+            );
+            <T as frame_system::Config>::DbWeight::get().writes(length * 3 + 1u64)
+        } else {
+            T::DbWeight::get().reads(1)
+        }
+    }
+
+    pub fn post_migrate<T: Config>() -> Result<(), &'static str> {
+        frame_support::ensure!(
+            StorageVersion::<T>::get() == Releases::V3_0_0,
+            "must be V3_0_0"
+        );
+        frame_support::ensure!(NextTrieIndex::<T>::get() == 31, "must be 31");
+        log::info!("👜 crowdloan migration passes POST migrate checks ✅",);
+
+        Ok(())
+    }
+}

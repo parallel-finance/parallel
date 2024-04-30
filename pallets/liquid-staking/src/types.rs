@@ -315,7 +315,7 @@ impl<AccountId, Balance: BalanceT + FixedPointOperand> StakingLedger<AccountId, 
     /// Schedule a portion of the stash to be unlocked ready for transfer out after the bond
     /// period ends. If this leaves an amount actively bonded less than
     pub fn unbond(&mut self, value: Balance, target_era: EraIndex) {
-        if let Some(mut chunk) = self
+        if let Some(chunk) = self
             .unlocking
             .last_mut()
             .filter(|chunk| chunk.era == target_era)
