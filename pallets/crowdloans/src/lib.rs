@@ -1810,7 +1810,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let ctoken = Self::ctoken_of((&lease_start, &lease_end))
                 .ok_or(Error::<T>::CTokenDoesNotExist)?;
-            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
@@ -1832,10 +1832,11 @@ pub mod pallet {
             let ctoken_balance = T::Assets::reducible_balance(ctoken, &who, false);
             ensure!(ctoken_balance >= amount, Error::<T>::InsufficientBalance);
 
-            vault.contributed = vault
-                .contributed
-                .checked_sub(amount)
-                .ok_or(ArithmeticError::Underflow)?;
+            // NOTE: skipping the vault contribution check
+            // vault.contributed = vault
+            //     .contributed
+            //     .checked_sub(amount)
+            //     .ok_or(ArithmeticError::Underflow)?;
 
             T::Assets::burn_from(ctoken, &who, amount)?;
             // SovereignAccount on relaychain must have
