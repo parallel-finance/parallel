@@ -185,7 +185,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 206,
+    spec_version: 207,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -2131,23 +2131,6 @@ impl fp_self_contained::SelfContainedCall for RuntimeCall {
             }
             _ => None,
         }
-    }
-}
-
-pub struct CrowdloansMigrationV3;
-impl OnRuntimeUpgrade for CrowdloansMigrationV3 {
-    fn on_runtime_upgrade() -> frame_support::weights::Weight {
-        pallet_crowdloans::migrations::v3::migrate::<Runtime>()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
-        pallet_crowdloans::migrations::v3::pre_migrate::<Runtime>()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn post_upgrade(_: Vec<u8>) -> Result<(), &'static str> {
-        pallet_crowdloans::migrations::v3::post_migrate::<Runtime>()
     }
 }
 
