@@ -16,7 +16,7 @@ RELAY_DOCKER_TAG										:= v0.9.42
 init: submodules
 	git config advice.ignoredHook false
 	git config core.hooksPath .githooks
-	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly-2022-11-15 --component rust-src --component rustfmt --component clippy --target wasm32-unknown-unknown
+	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly-2024-02-04 --component rust-src --component rustfmt --component clippy --target wasm32-unknown-unknown
 	cargo install cargo-udeps --locked
 	cd scripts/helper && yarn
 	cd scripts/polkadot-launch && yarn
