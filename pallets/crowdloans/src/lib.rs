@@ -1843,7 +1843,7 @@ pub mod pallet {
             // withdrawn the contribution
             T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
 
-            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
+            // Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
 
             Self::deposit_event(Event::<T>::VaultRedeemed(
                 crowdloan,
