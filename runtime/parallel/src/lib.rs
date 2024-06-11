@@ -2073,7 +2073,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    CrowdloansMigrationV3,
+    CrowdloansMigrationV4,
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
@@ -2131,6 +2131,23 @@ impl fp_self_contained::SelfContainedCall for RuntimeCall {
             }
             _ => None,
         }
+    }
+}
+
+pub struct CrowdloansMigrationV4;
+impl OnRuntimeUpgrade for CrowdloansMigrationV4 {
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        pallet_crowdloans::migrations::v4::migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+        pallet_crowdloans::migrations::v4::pre_migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn post_upgrade(_: Vec<u8>) -> Result<(), &'static str> {
+        pallet_crowdloans::migrations::v4::post_migrate::<Runtime>()
     }
 }
 

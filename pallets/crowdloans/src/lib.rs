@@ -1810,7 +1810,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let ctoken = Self::ctoken_of((&lease_start, &lease_end))
                 .ok_or(Error::<T>::CTokenDoesNotExist)?;
-            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
@@ -1832,18 +1832,17 @@ pub mod pallet {
             let ctoken_balance = T::Assets::reducible_balance(ctoken, &who, false);
             ensure!(ctoken_balance >= amount, Error::<T>::InsufficientBalance);
 
-            // NOTE: skipping the vault contribution check
-            // vault.contributed = vault
-            //     .contributed
-            //     .checked_sub(amount)
-            //     .ok_or(ArithmeticError::Underflow)?;
+            vault.contributed = vault
+                .contributed
+                .checked_sub(amount)
+                .ok_or(ArithmeticError::Underflow)?;
 
             T::Assets::burn_from(ctoken, &who, amount)?;
             // SovereignAccount on relaychain must have
             // withdrawn the contribution
             T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
 
-            // Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
+            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
 
             Self::deposit_event(Event::<T>::VaultRedeemed(
                 crowdloan,
