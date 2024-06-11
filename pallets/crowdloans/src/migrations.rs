@@ -382,3 +382,86 @@ pub mod v3 {
         Ok(())
     }
 }
+
+pub mod v4 {
+    use super::*;
+    use frame_support::{log, traits::Get};
+    use primitives::ParaId;
+    use sp_std::{vec, vec::Vec};
+    use types::*;
+
+    pub fn pre_migrate<T: Config>() -> Result<Vec<u8>, &'static str> {
+        frame_support::ensure!(
+            StorageVersion::<T>::get() == Releases::V3_0_0,
+            "must be V3_0_0"
+        );
+        frame_support::ensure!(NextTrieIndex::<T>::get() == 31, "must be 31");
+        Ok(Vec::new())
+    }
+
+    pub fn migrate<T: Config>() -> frame_support::weights::Weight {
+        if StorageVersion::<T>::get() == Releases::V3_0_0 {
+            log::info!(
+                target: "crowdloans::migrate",
+                "migrating crowdloan storage"
+            );
+            // paraId, ctoken, contributed, cap, end_block, trie_index, lease_start, lease_end
+            let batch: Vec<(u32, u32, u128, u128, u32, u32, u32, u32)> = vec![
+                // 2040,8-15,3000000000000000,150000000000000000,10881401
+                (
+                    2040,
+                    200080015,
+                    3000000000000000,
+                    150_000_000_000_000_000,
+                    10881401,
+                    25,
+                    8,
+                    15,
+                ),
+            ];
+            let length = batch.len() as u64;
+            for (para_id, _, raised, _, _, _, lease_start, lease_end) in batch.into_iter() {
+                match Vaults::<T>::get((&ParaId::from(para_id), &lease_start, &lease_end)) {
+                    Some(vault) if vault.phase == VaultPhase::Expired => {
+                        Vaults::<T>::insert(
+                            (&ParaId::from(para_id), &lease_start, &lease_end),
+                            Vault {
+                                contributed: raised,
+                                ..vault
+                            },
+                        );
+                    }
+                    Some(_) => {
+                        log::error!("Vault for para_id {} is not in Expired phase", para_id);
+                    }
+                    None => {
+                        log::error!(
+                            "No vault found for para_id {} ({}, {})",
+                            para_id,
+                            lease_start,
+                            lease_end
+                        );
+                    }
+                }
+            }
+            log::info!(
+                target: "crowdloans::migrate",
+                "completed crowdloans storage migration"
+            );
+            <T as frame_system::Config>::DbWeight::get().writes(length * 3 + 1u64)
+        } else {
+            T::DbWeight::get().reads(1)
+        }
+    }
+
+    pub fn post_migrate<T: Config>() -> Result<(), &'static str> {
+        frame_support::ensure!(
+            StorageVersion::<T>::get() == Releases::V3_0_0,
+            "must be V3_0_0"
+        );
+        frame_support::ensure!(NextTrieIndex::<T>::get() == 31, "must be 31");
+        log::info!("👜 crowdloan migration passes POST migrate checks ✅",);
+
+        Ok(())
+    }
+}

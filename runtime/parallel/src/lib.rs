@@ -185,7 +185,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 206,
+    spec_version: 207,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -2073,7 +2073,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    CrowdloansMigrationV3,
+    CrowdloansMigrationV4,
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
@@ -2134,20 +2134,20 @@ impl fp_self_contained::SelfContainedCall for RuntimeCall {
     }
 }
 
-pub struct CrowdloansMigrationV3;
-impl OnRuntimeUpgrade for CrowdloansMigrationV3 {
+pub struct CrowdloansMigrationV4;
+impl OnRuntimeUpgrade for CrowdloansMigrationV4 {
     fn on_runtime_upgrade() -> frame_support::weights::Weight {
-        pallet_crowdloans::migrations::v3::migrate::<Runtime>()
+        pallet_crowdloans::migrations::v4::migrate::<Runtime>()
     }
 
     #[cfg(feature = "try-runtime")]
     fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
-        pallet_crowdloans::migrations::v3::pre_migrate::<Runtime>()
+        pallet_crowdloans::migrations::v4::pre_migrate::<Runtime>()
     }
 
     #[cfg(feature = "try-runtime")]
     fn post_upgrade(_: Vec<u8>) -> Result<(), &'static str> {
-        pallet_crowdloans::migrations::v3::post_migrate::<Runtime>()
+        pallet_crowdloans::migrations::v4::post_migrate::<Runtime>()
     }
 }
 
