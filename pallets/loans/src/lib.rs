@@ -1425,7 +1425,7 @@ impl<T: Config> Pallet<T> {
         Self::update_reward_supply_index(asset_id)?;
         Self::distribute_supplier_reward(asset_id, who)?;
 
-        let exchange_rate = Self::exchange_rate_stored(asset_id)?;
+        let exchange_rate: FixedU128 = Self::exchange_rate_stored(asset_id)?;
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
 
         AccountDeposits::<T>::try_mutate_exists(asset_id, who, |deposits| -> DispatchResult {
@@ -1538,11 +1538,16 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let deposits = AccountDeposits::<T>::get(asset_id, who);
         let account_earned = AccountEarned::<T>::get(asset_id, who);
-        let total_earned_prior_new = exchange_rate
-            .checked_sub(&account_earned.exchange_rate_prior)
-            .and_then(|r| r.checked_mul_int(deposits.voucher_balance))
-            .and_then(|r| r.checked_add(account_earned.total_earned_prior))
-            .ok_or(ArithmeticError::Overflow)?;
+
+        let total_earned_prior_new = if exchange_rate >= account_earned.exchange_rate_prior {
+            exchange_rate
+                .checked_sub(&account_earned.exchange_rate_prior)
+                .and_then(|delta| delta.checked_mul_int(deposits.voucher_balance))
+                .and_then(|result| result.checked_add(account_earned.total_earned_prior))
+                .ok_or(ArithmeticError::Overflow)?
+        } else {
+            account_earned.total_earned_prior
+        };
 
         AccountEarned::<T>::insert(
             asset_id,
