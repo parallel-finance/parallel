@@ -55,9 +55,9 @@ jobs:
           subwasm get wss://parallel-rpc.dwellir.com:443 --output parallel-live.wasm
           subwasm diff ${{ steps.srtool_build.outputs.wasm_compressed }} parallel-live.wasm | tee ${{ matrix.chain }}-diff.txt
       - name: Archive Runtime
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.chain }}-runtime-${{ github.sha }}
+          name: ${{ matrix.chain }}-runtime-${{ github.sha }}-${{ matrix.runs-on }}
           path: |
             ${{ matrix.chain }}-info.json
             ${{ matrix.chain }}-info_compressed.json
