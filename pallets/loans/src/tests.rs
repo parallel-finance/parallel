@@ -272,6 +272,27 @@ fn redeem_works() {
     })
 }
 
+fn force_redeem_works() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::force_redeem(
+            RuntimeOrigin::root(),
+            ALICE,
+            DOT,
+            unit(20)
+        ));
+
+        // DOT collateral: deposit - redeem = 100 - 20 = 80
+        // DOT: cash - deposit + redeem = 1000 - 100 + 20 = 920
+        assert_eq!(
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
+            unit(80)
+        );
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), unit(920),);
+    })
+}
+
 #[test]
 fn redeem_fails() {
     new_test_ext().execute_with(|| {
@@ -355,6 +376,24 @@ fn redeem_all_works() {
     new_test_ext().execute_with(|| {
         assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
         assert_ok!(Loans::redeem_all(RuntimeOrigin::signed(ALICE), DOT));
+
+        // DOT: cash - deposit + redeem = 1000 - 100 + 100 = 1000
+        // DOT collateral: deposit - redeem = 100 - 100 = 0
+        assert_eq!(
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
+            0,
+        );
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), unit(1000),);
+        assert!(!AccountDeposits::<Test>::contains_key(DOT, &ALICE))
+    })
+}
+
+#[test]
+fn force_redeem_all_works() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
+        assert_ok!(Loans::force_redeem_all(RuntimeOrigin::root(), ALICE, DOT));
 
         // DOT: cash - deposit + redeem = 1000 - 100 + 100 = 1000
         // DOT collateral: deposit - redeem = 100 - 100 = 0

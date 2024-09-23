@@ -1136,6 +1136,51 @@ pub mod pallet {
             Self::deposit_event(Event::<T>::LiquidationFreeCollateralsUpdated(collaterals));
             Ok(().into())
         }
+
+        /// Force redeems some of account internal supplies in exchange for the underlying asset.
+        ///
+        /// - `asset_id`: the asset to be redeemed.
+        /// - `who`: the account to be redeemed.
+        /// - `redeem_amount`: the amount to be redeemed.
+        #[pallet::call_index(22)]
+        #[pallet::weight(T::WeightInfo::redeem())]
+        #[transactional]
+        pub fn force_redeem(
+            origin: OriginFor<T>,
+            who: T::AccountId,
+            asset_id: AssetIdOf<T>,
+            #[pallet::compact] redeem_amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            ensure!(!redeem_amount.is_zero(), Error::<T>::InvalidAmount);
+            Self::do_redeem(&who, asset_id, redeem_amount)?;
+
+            Ok(().into())
+        }
+
+        /// Force redeems all of account internal supplies in exchange for the underlying asset.
+        ///
+        /// - `asset_id`: the asset to be redeemed.
+        /// - `who`: the account to be redeemed.
+        #[pallet::call_index(23)]
+        #[pallet::weight(T::WeightInfo::redeem_all())]
+        #[transactional]
+        pub fn force_redeem_all(
+            origin: OriginFor<T>,
+            who: T::AccountId,
+            asset_id: AssetIdOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            Self::ensure_active_market(asset_id)?;
+            Self::accrue_interest(asset_id)?;
+            let exchange_rate = Self::exchange_rate_stored(asset_id)?;
+            Self::update_earned_stored(&who, asset_id, exchange_rate)?;
+            let deposits = AccountDeposits::<T>::get(asset_id, &who);
+            let redeem_amount = Self::do_redeem_voucher(&who, asset_id, deposits.voucher_balance)?;
+            Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
+
+            Ok(().into())
+        }
     }
 }
 
@@ -1586,7 +1631,8 @@ impl<T: Config> Pallet<T> {
 
         // The liquidator may not repay more than 50%(close_factor) of the borrower's borrow balance.
         let account_borrows = Self::current_borrow_balance(borrower, liquidation_asset_id)?;
-        let account_borrows_value = Self::get_asset_value(liquidation_asset_id, account_borrows)?;
+        let account_borrows_value: FixedU128 =
+            Self::get_asset_value(liquidation_asset_id, account_borrows)?;
         let repay_value = Self::get_asset_value(liquidation_asset_id, repay_amount)?;
         let effects_borrows_value = if liquidation_asset_id == T::LiquidationFreeAssetId::get() {
             let base_position = Self::get_lf_base_position(borrower)?;
@@ -1665,7 +1711,7 @@ impl<T: Config> Pallet<T> {
         // if liquidate_value >= 340282366920938463463.374607431768211455,
         // FixedU128::saturating_from_integer(liquidate_value) will overflow, so we use from_inner
         // instead of saturating_from_integer, and after calculation use into_inner to get final value.
-        let collateral_token_price = Self::get_price(collateral_asset_id)?;
+        let collateral_token_price: FixedU128 = Self::get_price(collateral_asset_id)?;
         let real_collateral_underlying_amount = liquidate_value
             .checked_div(&collateral_token_price)
             .ok_or(ArithmeticError::Underflow)?
