@@ -185,7 +185,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 211,
+    spec_version: 312,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -1695,7 +1695,7 @@ impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
 }
 
 parameter_types! {
-    pub const BridgeMaxMembers: u32 = 100;
+    pub const BridgeMaxMembers: u32 = 10;
 }
 
 pub struct ChangeBridgeMembers;
