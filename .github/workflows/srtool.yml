@@ -52,7 +52,7 @@ jobs:
       - name: Diff with parallel live runtime
         if: matrix.chain == 'parallel'
         run: |
-          subwasm get wss://parallel-rpc.dwellir.com:443 --output parallel-live.wasm
+          subwasm get wss://polkadot-parallel-rpc.parallel.fi:443 --output parallel-live.wasm
           subwasm diff ${{ steps.srtool_build.outputs.wasm_compressed }} parallel-live.wasm | tee ${{ matrix.chain }}-diff.txt
       - name: Archive Runtime
         uses: actions/upload-artifact@v4

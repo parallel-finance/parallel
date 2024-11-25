@@ -188,7 +188,7 @@ export const getDefaultRelayChainWsUrl = (): string => {
 export const getDefaultParachainWsUrl = (): string => {
   return process.env['RELAY_CHAIN_TYPE'] === 'kusama'
     ? 'wss://heiko-rpc.parallel.fi'
-    : 'wss://parallel-rpc.dwellir.com'
+    : 'wss://polkadot-parallel-rpc.parallel.fi'
 }
 
 export const getDefaultXcmFee = (): number => {
