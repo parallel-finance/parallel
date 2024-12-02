@@ -39,6 +39,7 @@ pallet-preimage                            = { workspace = true }
 pallet-proxy                               = { workspace = true }
 pallet-scheduler                           = { workspace = true }
 pallet-session                             = { workspace = true }
+pallet-sudo                                = { workspace = true }
 pallet-timestamp                           = { workspace = true }
 pallet-transaction-payment                 = { workspace = true }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true }
@@ -180,6 +181,7 @@ std                = [
   'pallet-balances/std',
   'pallet-xcm/std',
   'pallet-timestamp/std',
+  'pallet-sudo/std',
   'pallet-transaction-payment/std',
   'pallet-transaction-payment-rpc-runtime-api/std',
   'parachain-info/std',
@@ -246,6 +248,7 @@ try-runtime        = [
   'frame-system/try-runtime',
   'pallet-balances/try-runtime',
   'pallet-timestamp/try-runtime',
+  'pallet-sudo/try-runtime',
   'pallet-transaction-payment/try-runtime',
   'pallet-multisig/try-runtime',
   'pallet-utility/try-runtime',

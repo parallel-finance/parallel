@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use heiko_runtime::SudoConfig;
 use heiko_runtime::{
     opaque::SessionKeys, BalancesConfig, BaseFeeConfig, BridgeMembershipConfig,
     CollatorSelectionConfig, CrowdloansAutomatorsMembershipConfig, DemocracyConfig, EVMConfig,
@@ -20,7 +21,6 @@ use heiko_runtime::{
     ParachainInfoConfig, ParallelPrecompilesType, PolkadotXcmConfig, SessionConfig, SystemConfig,
     TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
 };
-// use heiko_runtime::SudoConfig;
 use primitives::*;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
@@ -74,7 +74,7 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ]
                 .iter()
-                .flat_map(|x| {
+                .flat_map(|x: &sp_runtime::AccountId32| {
                     if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
                         .unwrap()
@@ -128,7 +128,7 @@ pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
 }
 
 fn heiko_genesis(
-    _root_key: AccountId,
+    root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     initial_allocation: Vec<(AccountId, Balance)>,
     vesting_list: Vec<(AccountId, BlockNumber, BlockNumber, u32, Balance)>,
@@ -175,9 +175,9 @@ fn heiko_genesis(
         aura: Default::default(),
         aura_ext: Default::default(),
         parachain_system: Default::default(),
-        // sudo: SudoConfig {
-        //     key: Some(root_key),
-        // },
+        sudo: SudoConfig {
+            key: Some(root_key),
+        },
         parachain_info: ParachainInfoConfig { parachain_id: id },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100_u32, 100_u32), // 1
