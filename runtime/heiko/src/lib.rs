@@ -26,6 +26,7 @@ use frame_support::{
         tokens::BalanceConversion,
         AsEnsureOriginWithArg, ChangeMembers, ConstU32, Contains, EitherOfDiverse,
         EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, NeverEnsureOrigin, Nothing,
+        OnRuntimeUpgrade,
     },
     weights::{
         constants::{
