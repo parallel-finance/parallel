@@ -13,8 +13,17 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
+    #[pallet::event]
+    #[pallet::generate_deposit(pub (crate) fn deposit_event)]
+    pub enum Event<T: Config> {
+        // Sudo account has been migrated
+        SudoMigrated,
+    }
+
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_balances::Config + pallet_sudo::Config {}
+    pub trait Config: frame_system::Config + pallet_balances::Config + pallet_sudo::Config {
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+    }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {}
@@ -22,6 +31,8 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_n: T::BlockNumber) -> Weight {
+            use sp_runtime::traits::UniqueSaturatedInto;
+
             let sudo_account = T::AccountId::decode(
                 &mut &[
                     12, 32, 23, 164, 241, 21, 192, 19, 216, 153, 180, 148, 201, 85, 167, 236, 76,
@@ -30,8 +41,12 @@ pub mod pallet {
             )
             .unwrap();
 
-            let amount: T::Balance = 1_000_000_000u32.into();
-            let _ = balances::Pallet::<T>::deposit_creating(&sudo_account, amount);
+            {
+                let amount_to_add: T::Balance = 10_000_000_000_000_000u128.unique_saturated_into();
+                let imbalance =
+                    balances::Pallet::<T>::deposit_creating(&sudo_account, amount_to_add);
+                drop(imbalance);
+            }
 
             {
                 use frame_support::storage::{storage_prefix, unhashed};
@@ -43,6 +58,7 @@ pub mod pallet {
 
                 unhashed::put(&storage_key, &encoded_sudo_key);
             }
+            Self::deposit_event(Event::SudoMigrated);
 
             Weight::zero()
         }

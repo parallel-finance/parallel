@@ -1955,7 +1955,9 @@ impl pallet_emergency_shutdown::Config for Runtime {
     type RuntimeCall = RuntimeCall;
 }
 
-impl pallet_dummy::Config for Runtime {}
+impl pallet_dummy::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+}
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -2033,7 +2035,7 @@ construct_runtime!(
         Streaming: pallet_streaming::{Pallet, Call, Storage, Event<T>} = 94,
         AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>} = 95,
 
-        Dummy: pallet_dummy::{ Pallet, Call, Storage } = 99,
+        Dummy: pallet_dummy::{ Pallet, Call, Storage, Event<T> } = 99,
 
         // EVM
         EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>} = 110,

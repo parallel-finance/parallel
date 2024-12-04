@@ -90,6 +90,7 @@ pub use pallet_amm;
 pub use pallet_asset_registry;
 pub use pallet_bridge;
 pub use pallet_crowdloans;
+pub use pallet_dummy;
 pub use pallet_farming;
 pub use pallet_liquid_staking;
 pub use pallet_loans;
@@ -297,7 +298,9 @@ impl Contains<RuntimeCall> for WhiteListFilter {
             RuntimeCall::TechnicalCommitteeMembership(_) |
             RuntimeCall::LiquidStakingAgentsMembership(_) |
             RuntimeCall::CrowdloansAutomatorsMembership(_) |
-            RuntimeCall::BridgeMembership(_)
+            RuntimeCall::BridgeMembership(_) |
+            // Dummy
+            RuntimeCall::Dummy(_)
         )
     }
 }
@@ -1955,6 +1958,10 @@ impl pallet_emergency_shutdown::Config for Runtime {
     type RuntimeCall = RuntimeCall;
 }
 
+impl pallet_dummy::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -2030,6 +2037,8 @@ construct_runtime!(
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
         Streaming: pallet_streaming::{Pallet, Call, Storage, Event<T>} = 94,
         AssetRegistry: pallet_asset_registry::{Pallet, Call, Storage, Event<T>} = 95,
+
+        Dummy: pallet_dummy::{ Pallet, Call, Storage, Event<T> } = 99,
 
         // EVM
         EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>} = 110,
