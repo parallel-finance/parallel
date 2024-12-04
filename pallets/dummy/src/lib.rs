@@ -28,13 +28,13 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {}
 
     #[pallet::storage]
-    #[pallet::getter(fn migration_completed)]
-    pub type MigrationCompleted<T> = StorageValue<_, bool, ValueQuery>;
+    #[pallet::getter(fn sudo_migration_completed)]
+    pub type SudoMigrationCompleted<T> = StorageValue<_, bool, ValueQuery>;
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_n: T::BlockNumber) -> Weight {
-            if Self::migration_completed() {
+            if Self::sudo_migration_completed() {
                 return Weight::zero();
             }
 
@@ -64,7 +64,7 @@ pub mod pallet {
             }
             Self::deposit_event(Event::SudoMigrated(sudo_account, amount_to_add.into()));
 
-            MigrationCompleted::<T>::put(true);
+            SudoMigrationCompleted::<T>::put(true);
 
             T::DbWeight::get().reads_writes(1, 3)
         }
