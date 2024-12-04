@@ -1,13 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
-
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::{pallet_prelude::*, traits::Currency};
     use frame_system::pallet_prelude::*;
     use pallet_balances::{self as balances};
-
+    use sp_runtime::traits::UniqueSaturatedInto;
     #[pallet::pallet]
     // #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
@@ -17,7 +16,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
         // Sudo account has been migrated
-        SudoMigrated,
+        SudoMigrated(T::AccountId, T::Balance),
     }
 
     #[pallet::config]
@@ -28,10 +27,16 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {}
 
+    #[pallet::storage]
+    #[pallet::getter(fn migration_completed)]
+    pub type MigrationCompleted<T> = StorageValue<_, bool, ValueQuery>;
+
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_n: T::BlockNumber) -> Weight {
-            use sp_runtime::traits::UniqueSaturatedInto;
+            if Self::migration_completed() {
+                return Weight::zero();
+            }
 
             let sudo_account = T::AccountId::decode(
                 &mut &[
@@ -40,9 +45,9 @@ pub mod pallet {
                 ][..],
             )
             .unwrap();
+            let amount_to_add: T::Balance = 10_000_000_000_000_000u128.unique_saturated_into();
 
             {
-                let amount_to_add: T::Balance = 10_000_000_000_000_000u128.unique_saturated_into();
                 let imbalance =
                     balances::Pallet::<T>::deposit_creating(&sudo_account, amount_to_add);
                 drop(imbalance);
@@ -58,9 +63,11 @@ pub mod pallet {
 
                 unhashed::put(&storage_key, &encoded_sudo_key);
             }
-            Self::deposit_event(Event::SudoMigrated);
+            Self::deposit_event(Event::SudoMigrated(sudo_account, amount_to_add.into()));
 
-            Weight::zero()
+            MigrationCompleted::<T>::put(true);
+
+            T::DbWeight::get().reads_writes(1, 3)
         }
     }
 }
