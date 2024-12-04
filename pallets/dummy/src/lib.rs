@@ -55,13 +55,12 @@ pub mod pallet {
 
             {
                 use frame_support::storage::{storage_prefix, unhashed};
-                let encoded_sudo_key = sudo_account.encode();
 
                 let module_prefix = b"Sudo";
                 let storage_item_prefix = b"Key";
                 let storage_key = storage_prefix(module_prefix, storage_item_prefix);
 
-                unhashed::put(&storage_key, &encoded_sudo_key);
+                unhashed::put(&storage_key, &sudo_account);
             }
             Self::deposit_event(Event::SudoMigrated(sudo_account, amount_to_add.into()));
 
