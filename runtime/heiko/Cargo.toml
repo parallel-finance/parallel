@@ -100,6 +100,7 @@ pallet-bridge                 = { workspace = true }
 pallet-crowdloans             = { workspace = true }
 pallet-currency-adapter       = { workspace = true }
 pallet-emergency-shutdown     = { workspace = true }
+pallet-dummy                  = { workspace = true }
 pallet-farming                = { workspace = true }
 pallet-liquid-staking         = { workspace = true }
 pallet-loans                  = { workspace = true }
@@ -234,6 +235,7 @@ std                = [
   'pallet-currency-adapter/std',
   'pallet-farming/std',
   'pallet-emergency-shutdown/std',
+  'pallet-dummy/std',
   'pallet-xcm-helper/std',
   'pallet-asset-registry/std',
   'pallet-traits/std',
@@ -277,6 +279,7 @@ try-runtime        = [
   'pallet-router/try-runtime',
   'pallet-currency-adapter/try-runtime',
   'pallet-emergency-shutdown/try-runtime',
+  'pallet-dummy/try-runtime',
   'pallet-farming/try-runtime',
   'pallet-session/try-runtime',
   'pallet-assets/try-runtime',

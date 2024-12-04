@@ -27,7 +27,6 @@ use frame_support::{
         tokens::BalanceConversion,
         AsEnsureOriginWithArg, ChangeMembers, ConstU32, Contains, EitherOfDiverse,
         EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, NeverEnsureOrigin, Nothing,
-        OnRuntimeUpgrade,
     },
     weights::{
         constants::{
@@ -185,7 +184,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 313,
+    spec_version: 311,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -2079,7 +2078,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    SudoMigrationV1<Runtime>,
+    (),
 >;
 
 impl fp_self_contained::SelfContainedCall for RuntimeCall {
@@ -2156,66 +2155,6 @@ impl fp_self_contained::SelfContainedCall for RuntimeCall {
 //         pallet_crowdloans::migrations::v4::post_migrate::<Runtime>()
 //     }
 // }
-
-pub struct SudoMigrationV1<T>(sp_std::marker::PhantomData<T>);
-impl<T: frame_system::Config> OnRuntimeUpgrade for SudoMigrationV1<T>
-where
-    T: pallet_balances::Config + pallet_sudo::Config,
-    T::AccountId: Decode + Encode + Clone + sp_std::fmt::Debug,
-{
-    fn on_runtime_upgrade() -> frame_support::weights::Weight
-// where <T as pallet_balances::Config>::Balance: From<u128>, <T as frame_system::Config>::AccountId: From<sp_runtime::AccountId32>
-    {
-        use sp_core::Get;
-        let mut weight = Weight::zero();
-
-        let account_id = T::AccountId::decode(
-            &mut &[
-                12, 32, 23, 164, 241, 21, 192, 19, 216, 153, 180, 148, 201, 85, 167, 236, 76, 201,
-                120, 106, 57, 151, 241, 130, 59, 170, 204, 33, 56, 150, 163, 90,
-            ][..],
-        )
-        .unwrap();
-
-        {
-            use frame_support::traits::Currency;
-
-            type BalanceOf<T> = <pallet_balances::Pallet<T> as Currency<
-                <T as frame_system::Config>::AccountId,
-            >>::Balance;
-
-            let amount_to_add: BalanceOf<T> = 10_000_000_000_000_000u128.unique_saturated_into();
-
-            let imbalance =
-                pallet_balances::Pallet::<T>::deposit_creating(&account_id, amount_to_add);
-            drop(imbalance);
-            weight = weight.saturating_add(T::DbWeight::get().writes(1));
-        }
-
-        {
-            use frame_support::storage::{storage_prefix, unhashed};
-            let encoded_sudo_key = account_id.encode();
-
-            let module_prefix = b"Sudo";
-            let storage_item_prefix = b"Key";
-            let storage_key = storage_prefix(module_prefix, storage_item_prefix);
-
-            unhashed::put(&storage_key, &encoded_sudo_key);
-            weight = weight.saturating_add(T::DbWeight::get().writes(1));
-            // pallet_sudo::Pallet::<T>::Key::put(target_account);
-        }
-
-        weight
-    }
-
-    // #[cfg(feature = "try-runtime")]
-    // fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
-    // }
-
-    // #[cfg(feature = "try-runtime")]
-    // fn post_upgrade(_: Vec<u8>) -> Result<(), &'static str> {
-    // }
-}
 
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {

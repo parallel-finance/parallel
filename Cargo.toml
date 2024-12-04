@@ -23,7 +23,7 @@ members = [
 [workspace.package]
 authors    = ['Parallel Team']
 repository = 'https://github.com/parallel-finance/parallel'
-version    = '3.1.3'
+version    = '3.1.1'
 
 [workspace.dependencies]
 # Substrate dependencies
@@ -201,6 +201,7 @@ pallet-bridge                        = { path = './pallets/bridge', default-feat
 pallet-crowdloans                    = { path = './pallets/crowdloans', default-features = false }
 pallet-currency-adapter              = { path = './pallets/currency-adapter', default-features = false }
 pallet-emergency-shutdown            = { path = './pallets/emergency-shutdown', default-features = false }
+pallet-dummy                         = { path = './pallets/dummy', default-features = false }
 pallet-evm-precompile-assets-erc20   = { path = './precompiles/assets-erc20', default-features = false }
 pallet-evm-precompile-balances-erc20 = { path = './precompiles/balances-erc20', default-features = false }
 pallet-evm-signatures                = { path = './pallets/evm-signatures', default-features = false }
