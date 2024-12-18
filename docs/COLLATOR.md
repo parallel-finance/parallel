@@ -5,12 +5,12 @@ using the following methods.
 
 ## Method One - Governance (not advised, mostly for Parallel Team)
 
-You'll need to submit a motion first to increase the default invulerables set. If the council agreed on this motion, you can then
+You'll need to submit a motion first to increase the default invulnerables set. If the council agreed on this motion, you can then
 start to run your collators.
 
 The steps are as following:
 
-1. Submit motion, `collatorSelection -> setInvulerables` and add your collator's account id.
+1. Submit motion, `collatorSelection -> setinvulnerables` and add your collator's account id.
 
 2. Generate collator's keystore using key command
 
