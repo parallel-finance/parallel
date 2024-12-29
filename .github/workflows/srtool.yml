@@ -102,19 +102,19 @@ jobs:
           fields: repo,message,commit,author,eventName,ref,workflow
         if: always()
 
-  postrelease:
-    needs: srtool
-    runs-on: ${{ needs.start-runner.outputs.label }}
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - name: Get GIT Tag
-        id: git_tag
-        run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
-      - name: Discord notification
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          DISCORD_USERNAME: parallel-release-bot
-          DISCORD_AVATAR: https://avatars.githubusercontent.com/u/79623569
-        uses: Ilshidur/action-discord@master
-        with:
-          args: "Parallel ${{ steps.git_tag.outputs.tag }} has just been released! Go check it out: https://github.com/${{ github.repository }}/releases/tag/${{ steps.git_tag.outputs.tag }}"
+  # postrelease:
+  #   needs: srtool
+  #   runs-on: ${{ needs.start-runner.outputs.label }}
+  #   if: startsWith(github.ref, 'refs/tags/')
+  #   steps:
+  #     - name: Get GIT Tag
+  #       id: git_tag
+  #       run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
+  #     - name: Discord notification
+  #       env:
+  #         DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+  #         DISCORD_USERNAME: parallel-release-bot
+  #         DISCORD_AVATAR: https://avatars.githubusercontent.com/u/79623569
+  #       uses: Ilshidur/action-discord@master
+  #       with:
+  #         args: "Parallel ${{ steps.git_tag.outputs.tag }} has just been released! Go check it out: https://github.com/${{ github.repository }}/releases/tag/${{ steps.git_tag.outputs.tag }}"

@@ -14,11 +14,11 @@
 
 use kerria_runtime::{
     opaque::SessionKeys, BalancesConfig, BaseFeeConfig, BridgeMembershipConfig,
-    CollatorSelectionConfig, CrowdloansAutomatorsMembershipConfig, DemocracyConfig, EVMConfig,
-    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
-    LiquidStakingAgentsMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
-    ParachainInfoConfig, ParallelPrecompilesType, PolkadotXcmConfig, SessionConfig, SudoConfig,
-    SystemConfig, TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
+    CollatorSelectionConfig, CrowdloansAutomatorsMembershipConfig, EVMConfig, GeneralCouncilConfig,
+    GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingAgentsMembershipConfig,
+    LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig, ParallelPrecompilesType,
+    PolkadotXcmConfig, SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
+    VestingConfig, WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
@@ -203,7 +203,7 @@ fn kerria_genesis(
             exchange_rate: Rate::saturating_from_rational(100u32, 100u32), // 1
             reserve_factor: Ratio::from_rational(5u32, 10_000u32),         // 0.05%
         },
-        democracy: DemocracyConfig::default(),
+        // democracy: DemocracyConfig::default(),
         general_council: GeneralCouncilConfig::default(),
         general_council_membership: GeneralCouncilMembershipConfig {
             members: council.try_into().unwrap(),

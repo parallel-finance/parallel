@@ -181,7 +181,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("heiko"),
     impl_name: create_runtime_str!("heiko"),
     authoring_version: 1,
-    spec_version: 209,
+    spec_version: 312,
     impl_version: 33,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -262,7 +262,7 @@ impl Contains<RuntimeCall> for WhiteListFilter {
             RuntimeCall::Assets(pallet_assets::Call::force_transfer { .. }) |
             // Governance
             RuntimeCall::Sudo(_) |
-            RuntimeCall::Democracy(_) |
+            // RuntimeCall::Democracy(_) |
             RuntimeCall::GeneralCouncil(_) |
             RuntimeCall::TechnicalCommittee(_) |
             RuntimeCall::Treasury(_) |
@@ -994,8 +994,8 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
             ProxyType::Governance => {
                 matches!(
                     c,
-                    RuntimeCall::Democracy(..)
-                        | RuntimeCall::Preimage(..)
+                    // RuntimeCall::Democracy(..) |
+                    RuntimeCall::Preimage(..)
                         | RuntimeCall::GeneralCouncil(..)
                         | RuntimeCall::TechnicalCommittee(..)
                         | RuntimeCall::Treasury(..)
@@ -1490,71 +1490,71 @@ type EnsureRootOrMoreThanHalfGeneralCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionMoreThan<AccountId, GeneralCouncilCollective, 1, 2>,
 >;
-type EnsureRootOrAllTechnicalCommittee = EitherOfDiverse<
-    EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
->;
+// type EnsureRootOrAllTechnicalCommittee = EitherOfDiverse<
+//     EnsureRoot<AccountId>,
+//     pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>,
+// >;
 
-parameter_types! {
-    pub const LaunchPeriod: BlockNumber = 1 * DAYS;
-    pub const VotingPeriod: BlockNumber = 5 * DAYS;
-    pub const FastTrackVotingPeriod: BlockNumber = 3 * HOURS;
-    pub const InstantAllowed: bool = true;
-    pub const MinimumDeposit: Balance = 20_000 * DOLLARS;
-    pub const EnactmentPeriod: BlockNumber = 1 * DAYS;
-    pub const CooloffPeriod: BlockNumber = 7 * DAYS;
-    // One cent: $10,000 / MB
-    pub const MaxVotes: u32 = 100;
-    pub const MaxProposals: u32 = 100;
-}
+// parameter_types! {
+//     pub const LaunchPeriod: BlockNumber = 1 * DAYS;
+//     pub const VotingPeriod: BlockNumber = 5 * DAYS;
+//     pub const FastTrackVotingPeriod: BlockNumber = 3 * HOURS;
+//     pub const InstantAllowed: bool = true;
+//     pub const MinimumDeposit: Balance = 20_000 * DOLLARS;
+//     pub const EnactmentPeriod: BlockNumber = 1 * DAYS;
+//     pub const CooloffPeriod: BlockNumber = 7 * DAYS;
+//     // One cent: $10,000 / MB
+//     pub const MaxVotes: u32 = 100;
+//     pub const MaxProposals: u32 = 100;
+// }
 
-impl pallet_democracy::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type Currency = Balances;
-    type EnactmentPeriod = EnactmentPeriod;
-    type LaunchPeriod = LaunchPeriod;
-    type VotingPeriod = VotingPeriod;
-    type MinimumDeposit = MinimumDeposit;
-    /// A straight majority of the council can decide what their next motion is.
-    type ExternalOrigin =
-        pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 1, 2>;
-    /// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
-    type ExternalMajorityOrigin =
-        pallet_collective::EnsureProportionMoreThan<AccountId, GeneralCouncilCollective, 1, 2>;
-    /// A unanimous council can have the next scheduled referendum be a straight default-carries
-    /// (NTB) vote.
-    type ExternalDefaultOrigin =
-        pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 1, 1>;
-    /// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
-    /// be tabled immediately and with a shorter voting/enactment period.
-    type FastTrackOrigin =
-        pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 2, 3>;
-    type InstantOrigin =
-        pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>;
-    type InstantAllowed = InstantAllowed;
-    type FastTrackVotingPeriod = FastTrackVotingPeriod;
-    // To cancel a proposal which has been passed, 2/3 of the council must agree to it.
-    type CancellationOrigin =
-        pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 2, 3>;
-    // To cancel a proposal before it has been passed, the technical committee must be unanimous or
-    // Root must agree.
-    type CancelProposalOrigin = EnsureRootOrAllTechnicalCommittee;
-    type BlacklistOrigin = EnsureRoot<AccountId>;
-    // Any single technical committee member may veto a coming council proposal, however they can
-    // only do it once and it lasts only for the cool-off period.
-    type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCollective>;
-    type CooloffPeriod = CooloffPeriod;
-    type Slash = Treasury;
-    type Scheduler = Scheduler;
-    type PalletsOrigin = OriginCaller;
-    type MaxVotes = MaxVotes;
-    type WeightInfo = weights::pallet_democracy::WeightInfo<Runtime>;
-    type MaxProposals = MaxProposals;
-    type VoteLockingPeriod = EnactmentPeriod;
-    type Preimages = Preimage;
-    type MaxDeposits = ConstU32<100>;
-    type MaxBlacklisted = ConstU32<100>;
-}
+// impl pallet_democracy::Config for Runtime {
+//     type RuntimeEvent = RuntimeEvent;
+//     type Currency = Balances;
+//     type EnactmentPeriod = EnactmentPeriod;
+//     type LaunchPeriod = LaunchPeriod;
+//     type VotingPeriod = VotingPeriod;
+//     type MinimumDeposit = MinimumDeposit;
+//     /// A straight majority of the council can decide what their next motion is.
+//     type ExternalOrigin =
+//         pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 1, 2>;
+//     /// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
+//     type ExternalMajorityOrigin =
+//         pallet_collective::EnsureProportionMoreThan<AccountId, GeneralCouncilCollective, 1, 2>;
+//     /// A unanimous council can have the next scheduled referendum be a straight default-carries
+//     /// (NTB) vote.
+//     type ExternalDefaultOrigin =
+//         pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 1, 1>;
+//     /// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
+//     /// be tabled immediately and with a shorter voting/enactment period.
+//     type FastTrackOrigin =
+//         pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 2, 3>;
+//     type InstantOrigin =
+//         pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCollective, 1, 1>;
+//     type InstantAllowed = InstantAllowed;
+//     type FastTrackVotingPeriod = FastTrackVotingPeriod;
+//     // To cancel a proposal which has been passed, 2/3 of the council must agree to it.
+//     type CancellationOrigin =
+//         pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilCollective, 2, 3>;
+//     // To cancel a proposal before it has been passed, the technical committee must be unanimous or
+//     // Root must agree.
+//     type CancelProposalOrigin = EnsureRootOrAllTechnicalCommittee;
+//     type BlacklistOrigin = EnsureRoot<AccountId>;
+//     // Any single technical committee member may veto a coming council proposal, however they can
+//     // only do it once and it lasts only for the cool-off period.
+//     type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCollective>;
+//     type CooloffPeriod = CooloffPeriod;
+//     type Slash = Treasury;
+//     type Scheduler = Scheduler;
+//     type PalletsOrigin = OriginCaller;
+//     type MaxVotes = MaxVotes;
+//     type WeightInfo = weights::pallet_democracy::WeightInfo<Runtime>;
+//     type MaxProposals = MaxProposals;
+//     type VoteLockingPeriod = EnactmentPeriod;
+//     type Preimages = Preimage;
+//     type MaxDeposits = ConstU32<100>;
+//     type MaxBlacklisted = ConstU32<100>;
+// }
 
 parameter_types! {
     pub const GeneralCouncilMotionDuration: BlockNumber = 3 * DAYS;
@@ -1979,7 +1979,7 @@ construct_runtime!(
 
         // Governance
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
-        Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>} = 11,
+        // Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>} = 11,
         GeneralCouncil: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 12,
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 13,
         Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 14,
@@ -2499,7 +2499,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_utility, Utility);
             list_benchmark!(list, extra, cumulus_pallet_xcmp_queue, XcmpQueue);
             list_benchmark!(list, extra, pallet_identity, Identity);
-            list_benchmark!(list, extra, pallet_democracy, Democracy);
+            // list_benchmark!(list, extra, pallet_democracy, Democracy);
             list_benchmark!(list, extra, pallet_collective, TechnicalCommittee);
             list_benchmark!(list, extra, pallet_preimage, Preimage);
             list_benchmark!(list, extra, pallet_scheduler, Scheduler);
@@ -2558,7 +2558,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_utility, Utility);
             add_benchmark!(params, batches, cumulus_pallet_xcmp_queue, XcmpQueue);
             add_benchmark!(params, batches, pallet_identity, Identity);
-            add_benchmark!(params, batches, pallet_democracy, Democracy);
+            // add_benchmark!(params, batches, pallet_democracy, Democracy);
             add_benchmark!(params, batches, pallet_collective, TechnicalCommittee);
             add_benchmark!(params, batches, pallet_preimage, Preimage);
             add_benchmark!(params, batches, pallet_scheduler, Scheduler);
