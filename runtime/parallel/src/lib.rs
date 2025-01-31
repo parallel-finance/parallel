@@ -25,8 +25,8 @@ use frame_support::{
     traits::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
-        AsEnsureOriginWithArg, ChangeMembers, ConstU32, Contains, EitherOfDiverse,
-        EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, NeverEnsureOrigin, Nothing,
+        AsEnsureOriginWithArg, ChangeMembers, ConstU32, Contains, EitherOfDiverse, Everything,
+        FindAuthor, InstanceFilter, NeverEnsureOrigin, Nothing,
     },
     weights::{
         constants::{
@@ -270,7 +270,7 @@ impl Contains<RuntimeCall> for WhiteListFilter {
             RuntimeCall::GeneralCouncil(_) |
             RuntimeCall::TechnicalCommittee(_) |
             RuntimeCall::Treasury(_) |
-            RuntimeCall::Scheduler(_) |
+            // RuntimeCall::Scheduler(_) |
             RuntimeCall::Preimage(_) |
             // Parachain
             RuntimeCall::ParachainSystem(_) |
@@ -1545,7 +1545,7 @@ impl pallet_democracy::Config for Runtime {
     type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCollective>;
     type CooloffPeriod = CooloffPeriod;
     type Slash = Treasury;
-    type Scheduler = Scheduler;
+    // type Scheduler = Scheduler;
     type PalletsOrigin = OriginCaller;
     type MaxVotes = MaxVotes;
     type WeightInfo = weights::pallet_democracy::WeightInfo<Runtime>;
@@ -1634,25 +1634,25 @@ impl pallet_preimage::Config for Runtime {
     type ByteDeposit = PreimageByteDeposit;
 }
 
-parameter_types! {
-    pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
-        RuntimeBlockWeights::get().max_block;
-    pub const MaxScheduledPerBlock: u32 = 50;
-    pub const NoPreimagePostponement: Option<u32> = Some(10);
-}
+// parameter_types! {
+//     pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
+//         RuntimeBlockWeights::get().max_block;
+//     pub const MaxScheduledPerBlock: u32 = 50;
+//     pub const NoPreimagePostponement: Option<u32> = Some(10);
+// }
 
-impl pallet_scheduler::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type RuntimeOrigin = RuntimeOrigin;
-    type PalletsOrigin = OriginCaller;
-    type RuntimeCall = RuntimeCall;
-    type MaximumWeight = MaximumSchedulerWeight;
-    type ScheduleOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type MaxScheduledPerBlock = MaxScheduledPerBlock;
-    type OriginPrivilegeCmp = EqualPrivilegeOnly;
-    type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
-    type Preimages = Preimage;
-}
+// impl pallet_scheduler::Config for Runtime {
+//     type RuntimeEvent = RuntimeEvent;
+//     type RuntimeOrigin = RuntimeOrigin;
+//     type PalletsOrigin = OriginCaller;
+//     type RuntimeCall = RuntimeCall;
+//     type MaximumWeight = MaximumSchedulerWeight;
+//     type ScheduleOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+//     type MaxScheduledPerBlock = MaxScheduledPerBlock;
+//     type OriginPrivilegeCmp = EqualPrivilegeOnly;
+//     type WeightInfo = weights::pallet_scheduler::WeightInfo<Runtime>;
+//     type Preimages = Preimage;
+// }
 
 parameter_types! {
     pub const ProposalBond: Permill = Permill::from_percent(5);
@@ -2526,7 +2526,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_democracy, Democracy);
             list_benchmark!(list, extra, pallet_collective, TechnicalCommittee);
             list_benchmark!(list, extra, pallet_preimage, Preimage);
-            list_benchmark!(list, extra, pallet_scheduler, Scheduler);
+            // list_benchmark!(list, extra, pallet_scheduler, Scheduler);
             list_benchmark!(list, extra, pallet_treasury, Treasury);
 
             let storage_info = AllPalletsWithSystem::storage_info();
@@ -2585,7 +2585,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_democracy, Democracy);
             add_benchmark!(params, batches, pallet_collective, TechnicalCommittee);
             add_benchmark!(params, batches, pallet_preimage, Preimage);
-            add_benchmark!(params, batches, pallet_scheduler, Scheduler);
+            // add_benchmark!(params, batches, pallet_scheduler, Scheduler);
             add_benchmark!(params, batches, pallet_treasury, Treasury);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
