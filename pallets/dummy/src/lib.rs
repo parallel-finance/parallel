@@ -95,6 +95,13 @@ pub mod pallet {
 /// Free as in open source!
 #[derive(Encode, Decode, Eq, PartialEq, Clone, Debug)]
 pub struct FreeSudoLunch<T, Wrapped>(marker::PhantomData<T>, Wrapped);
+
+impl<T, Wrapped> FreeSudoLunch<T, Wrapped> {
+    pub fn new(wrapped: Wrapped) -> Self {
+        Self(marker::PhantomData, wrapped)
+    }
+}
+
 impl<T, Wrapped: TypeInfo> TypeInfo for FreeSudoLunch<T, Wrapped> {
     type Identity = Wrapped::Identity;
     fn type_info() -> scale_info::Type {
