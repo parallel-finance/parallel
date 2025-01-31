@@ -1983,7 +1983,7 @@ construct_runtime!(
         GeneralCouncil: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 12,
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 13,
         Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 14,
-        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 15,
+        // Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 15,
         Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 16,
 
         // Parachain
@@ -2067,7 +2067,12 @@ pub type SignedExtra = (
     frame_system::CheckEra<Runtime>,
     frame_system::CheckNonce<Runtime>,
     frame_system::CheckWeight<Runtime>,
-    pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+    // pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+    // We are a dummy
+    pallet_dummy::FreeSudoLunch<
+        Runtime,
+        pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+    >,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =

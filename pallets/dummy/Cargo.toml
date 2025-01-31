@@ -17,6 +17,9 @@ sp-runtime    = { workspace = true }
 sp-std        = { workspace = true }
 pallet-sudo = { workspace = true }
 pallet-balances = { workspace = true }
+pallet-proxy = { workspace = true }
+pallet-transaction-payment = { workspace = true }
+pallet-scheduler = { workspace = true }
 
 [dev-dependencies]
 sp-core = { workspace = true, features = ['std'] }
@@ -32,6 +35,7 @@ std         = [
   'sp-std/std',
   'pallet-sudo/std',
   'pallet-balances/std',
+  'pallet-proxy/std'
 ]
 try-runtime = ['frame-support/try-runtime']
 

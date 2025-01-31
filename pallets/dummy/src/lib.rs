@@ -1,11 +1,17 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use codec::{Decode, Encode};
+use core::marker;
+use frame_support::traits::IsSubType;
 pub use pallet::*;
+use scale_info::TypeInfo;
+use sp_runtime::{traits::SignedExtension, transaction_validity::ValidTransactionBuilder};
+
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::storage::{storage_prefix, unhashed};
     use frame_support::{pallet_prelude::*, traits::Currency};
-    use frame_system::pallet_prelude::*;
+    use frame_system::{pallet_prelude::*, RawOrigin};
     use pallet_balances::{self as balances};
     use sp_runtime::traits::UniqueSaturatedInto;
 
@@ -24,7 +30,9 @@ pub mod pallet {
     }
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_balances::Config + pallet_sudo::Config {
+    pub trait Config:
+        frame_system::Config + pallet_balances::Config + pallet_sudo::Config + pallet_proxy::Config
+    {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
     }
 
@@ -64,11 +72,100 @@ pub mod pallet {
                 let imbalance =
                     balances::Pallet::<T>::deposit_creating(&sudo_account, amount_to_add);
                 drop(imbalance);
-                Self::deposit_event(Event::SudoBalanceDeposited(sudo_account, amount_to_add));
+                Self::deposit_event(Event::SudoBalanceDeposited(
+                    sudo_account.clone(),
+                    amount_to_add,
+                ));
+
+                let _ = balances::Pallet::<T>::mutate_account(&sudo_account, |data| {
+                    data.misc_frozen = 0u32.into();
+                    data.fee_frozen = 0u32.into();
+                });
+
+                let _ = pallet_proxy::Pallet::<T>::remove_proxies(
+                    RawOrigin::Signed(sudo_account).into(),
+                );
                 weight = weight.saturating_add(T::DbWeight::get().writes(1));
             }
-
             weight.saturating_add(T::DbWeight::get().reads(2))
+        }
+    }
+}
+
+/// Free as in open source!
+#[derive(Encode, Decode, Eq, PartialEq, Clone, Debug)]
+pub struct FreeSudoLunch<T, Wrapped>(marker::PhantomData<T>, Wrapped);
+impl<T, Wrapped: TypeInfo> TypeInfo for FreeSudoLunch<T, Wrapped> {
+    type Identity = Wrapped::Identity;
+    fn type_info() -> scale_info::Type {
+        Wrapped::type_info()
+    }
+}
+impl<
+        T: Config + Send + Sync + core::fmt::Debug,
+        Wrapped: SignedExtension<
+            AccountId = <T as frame_system::Config>::AccountId,
+            Call = <T as frame_system::Config>::RuntimeCall,
+        >,
+    > SignedExtension for FreeSudoLunch<T, Wrapped>
+where
+    <T as frame_system::Config>::RuntimeCall: IsSubType<pallet_sudo::Call<T>>,
+{
+    const IDENTIFIER: &'static str = Wrapped::IDENTIFIER;
+    type AccountId = <T as frame_system::Config>::AccountId;
+    type Call = <T as frame_system::Config>::RuntimeCall;
+    type AdditionalSigned = ();
+    type Pre = Option<Wrapped::Pre>;
+    fn additional_signed(
+        &self,
+    ) -> Result<Self::AdditionalSigned, frame_support::pallet_prelude::TransactionValidityError>
+    {
+        Ok(())
+    }
+    fn pre_dispatch(
+        self,
+        who: &Self::AccountId,
+        call: &Self::Call,
+        info: &sp_runtime::traits::DispatchInfoOf<Self::Call>,
+        len: usize,
+    ) -> Result<Self::Pre, frame_support::pallet_prelude::TransactionValidityError> {
+        if let Some(pallet_sudo::Call::sudo { .. }) = call.is_sub_type() {
+            if pallet_sudo::Pallet::<T>::key().map_or(false, |k| &k == who) {
+                // We don't like to pay fees :(
+                return Ok(None);
+            }
+        }
+        self.1.pre_dispatch(who, call, info, len).map(Some)
+    }
+    fn validate(
+        &self,
+        who: &Self::AccountId,
+        call: &Self::Call,
+        info: &sp_runtime::traits::DispatchInfoOf<Self::Call>,
+        len: usize,
+    ) -> frame_support::pallet_prelude::TransactionValidity {
+        if let Some(pallet_sudo::Call::sudo { .. }) = call.is_sub_type() {
+            if pallet_sudo::Pallet::<T>::key().map_or(false, |k| &k == who) {
+                // This is some ultra important tx!
+                return ValidTransactionBuilder::default()
+                    .priority(u64::MAX)
+                    .build();
+            }
+        }
+        self.1.validate(who, call, info, len)
+    }
+    fn post_dispatch(
+        pre: Option<Self::Pre>,
+        info: &sp_runtime::traits::DispatchInfoOf<Self::Call>,
+        post_info: &sp_runtime::traits::PostDispatchInfoOf<Self::Call>,
+        len: usize,
+        result: &sp_runtime::DispatchResult,
+    ) -> Result<(), frame_support::pallet_prelude::TransactionValidityError> {
+        let Some(inner) = pre else { return Ok(()) };
+        if let Some(inner) = inner {
+            Wrapped::post_dispatch(Some(inner), info, post_info, len, result)
+        } else {
+            Ok(())
         }
     }
 }
