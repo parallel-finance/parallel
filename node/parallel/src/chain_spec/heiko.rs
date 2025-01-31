@@ -15,11 +15,11 @@
 use heiko_runtime::SudoConfig;
 use heiko_runtime::{
     opaque::SessionKeys, BalancesConfig, BaseFeeConfig, BridgeMembershipConfig,
-    CollatorSelectionConfig, CrowdloansAutomatorsMembershipConfig, DemocracyConfig, EVMConfig,
-    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
-    LiquidStakingAgentsMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
-    ParachainInfoConfig, ParallelPrecompilesType, PolkadotXcmConfig, SessionConfig, SystemConfig,
-    TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
+    CollatorSelectionConfig, CrowdloansAutomatorsMembershipConfig, EVMConfig, GeneralCouncilConfig,
+    GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingAgentsMembershipConfig,
+    LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig, ParallelPrecompilesType,
+    PolkadotXcmConfig, SessionConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
+    VestingConfig, WASM_BINARY,
 };
 use primitives::*;
 use sc_service::ChainType;
@@ -183,7 +183,7 @@ fn heiko_genesis(
             exchange_rate: Rate::saturating_from_rational(100_u32, 100_u32), // 1
             reserve_factor: Ratio::from_rational(1u32, 10_000u32),           // 0.01%
         },
-        democracy: DemocracyConfig::default(),
+        // democracy: DemocracyConfig::default(),
         general_council: GeneralCouncilConfig::default(),
         general_council_membership: GeneralCouncilMembershipConfig {
             members: council.try_into().unwrap(),
