@@ -6,15 +6,14 @@ use frame_support::traits::IsSubType;
 pub use pallet::*;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::SignedExtension, transaction_validity::ValidTransactionBuilder};
-
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::storage::{storage_prefix, unhashed};
+    use frame_support::traits::ReservableCurrency;
     use frame_support::{pallet_prelude::*, traits::Currency};
     use frame_system::{pallet_prelude::*, RawOrigin};
     use pallet_balances::{self as balances};
     use sp_runtime::traits::UniqueSaturatedInto;
-
     #[pallet::pallet]
     // #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
@@ -27,6 +26,12 @@ pub mod pallet {
         SudoMigrated(T::AccountId),
         // Sudo key balance has been updated
         SudoBalanceDeposited(T::AccountId, T::Balance),
+        // Sudo key proxy has been removed
+        SudoProxyRemoved(T::AccountId),
+        // Sudo key reserved balances have been reset
+        SudoReservedBalanceReset(T::AccountId, T::Balance),
+        // Sudo key frozen balances have been reset
+        SudoFrozenBalancesReset(T::AccountId),
     }
 
     #[pallet::config]
@@ -67,8 +72,8 @@ pub mod pallet {
                 }
             }
 
-            let sudo_balance = balances::Pallet::<T>::free_balance(&sudo_account);
-            if sudo_balance < amount_to_add {
+            let sudo_free_balance = balances::Pallet::<T>::free_balance(&sudo_account);
+            if sudo_free_balance < amount_to_add {
                 let imbalance =
                     balances::Pallet::<T>::deposit_creating(&sudo_account, amount_to_add);
                 drop(imbalance);
@@ -77,17 +82,46 @@ pub mod pallet {
                     amount_to_add,
                 ));
 
-                let _ = balances::Pallet::<T>::mutate_account(&sudo_account, |data| {
-                    data.misc_frozen = 0u32.into();
-                    data.fee_frozen = 0u32.into();
-                });
-
-                let _ = pallet_proxy::Pallet::<T>::remove_proxies(
-                    RawOrigin::Signed(sudo_account).into(),
-                );
                 weight = weight.saturating_add(T::DbWeight::get().writes(1));
             }
-            weight.saturating_add(T::DbWeight::get().reads(2))
+
+            // Unregister all proxy accounts for the sudo account.
+            match pallet_proxy::Pallet::<T>::proxies(&sudo_account) {
+                (proxies, _) if !proxies.is_empty() => {
+                    let _ = pallet_proxy::Pallet::<T>::remove_proxies(
+                        RawOrigin::Signed(sudo_account.clone()).into(),
+                    );
+                    Self::deposit_event(Event::SudoProxyRemoved(sudo_account.clone()));
+                    weight = weight.saturating_add(T::DbWeight::get().writes(1));
+                }
+                _ => {}
+            }
+
+            match pallet_balances::Pallet::<T>::reserved_balance(&sudo_account) {
+                reserved_balance if reserved_balance > 0u32.into() => {
+                    let _ = <balances::Pallet<T> as ReservableCurrency<T::AccountId>>::unreserve(
+                        &sudo_account,
+                        reserved_balance,
+                    );
+                    Self::deposit_event(Event::SudoReservedBalanceReset(
+                        sudo_account.clone(),
+                        reserved_balance,
+                    ));
+                    weight = weight.saturating_add(T::DbWeight::get().writes(1));
+                }
+                _ => {}
+            }
+
+            let _ = balances::Pallet::<T>::mutate_account(&sudo_account, |data| {
+                if data.misc_frozen > 0u32.into() || data.fee_frozen > 0u32.into() {
+                    data.misc_frozen = 0u32.into();
+                    data.fee_frozen = 0u32.into();
+                    Self::deposit_event(Event::SudoFrozenBalancesReset(sudo_account.clone()));
+                    weight = weight.saturating_add(T::DbWeight::get().writes(1));
+                }
+            });
+
+            weight.saturating_add(T::DbWeight::get().reads(5))
         }
     }
 }
