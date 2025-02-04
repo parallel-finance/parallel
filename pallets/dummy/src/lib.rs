@@ -6,14 +6,17 @@ use frame_support::traits::IsSubType;
 pub use pallet::*;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::SignedExtension, transaction_validity::ValidTransactionBuilder};
+
 #[frame_support::pallet]
 pub mod pallet {
+    use frame_support::storage::unhashed::put;
     use frame_support::storage::{storage_prefix, unhashed};
     use frame_support::traits::ReservableCurrency;
     use frame_support::{pallet_prelude::*, traits::Currency};
     use frame_system::{pallet_prelude::*, RawOrigin};
     use pallet_balances::{self as balances};
-    use sp_runtime::traits::UniqueSaturatedInto;
+    use sp_runtime::traits::{Convert, UniqueSaturatedInto};
+    use sp_runtime::KeyTypeId;
     #[pallet::pallet]
     // #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
@@ -32,13 +35,29 @@ pub mod pallet {
         SudoReservedBalanceReset(T::AccountId, T::Balance),
         // Sudo key frozen balances have been reset
         SudoFrozenBalancesReset(T::AccountId),
+        // Collator desired candidates has been reset
+        CollatorDesiredCandidatesReset(u32),
+        // Collator invulnerables has been reset
+        CollatorInvulnerablesReset(T::AccountId),
+        // Collator session key has been reset
+        CollatorSessionKeyReset(T::AccountId),
     }
 
     #[pallet::config]
     pub trait Config:
-        frame_system::Config + pallet_balances::Config + pallet_sudo::Config + pallet_proxy::Config
+        frame_system::Config
+        + pallet_balances::Config
+        + pallet_sudo::Config
+        + pallet_proxy::Config
+        + pallet_collator_selection::Config
+        + pallet_session::Config
     {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
+        type ValidatorIdOf: Convert<
+            Self::AccountId,
+            Option<<Self as pallet_session::Config>::ValidatorId>,
+        >;
     }
 
     #[pallet::call]
@@ -55,7 +74,58 @@ pub mod pallet {
                 ][..],
             )
             .unwrap();
+            // let collator_account = T::AccountId::decode(
+            //     &mut &[
+            //         114, 102, 51, 211, 133, 10, 236, 125, 93, 115, 55, 227, 133, 118, 105, 224,
+            //         106, 161, 191, 11, 213, 94, 125, 13, 224, 13, 65, 200, 70, 95, 60, 34,
+            //     ][..],
+            // )
+            // .unwrap();
+            let validator_id =
+                <T as pallet_session::Config>::ValidatorIdOf::convert(sudo_account.clone())
+                    .unwrap();
+            let sesstion_key_to_add = sudo_account.encode();
             let amount_to_add: T::Balance = 10_000_000_000_000_000u128.unique_saturated_into();
+            let desired_candidates_to_reset = 1u32;
+
+            match pallet_collator_selection::Pallet::<T>::desired_candidates() {
+                desired_candidates if desired_candidates != desired_candidates_to_reset => {
+                    let _ = pallet_collator_selection::Pallet::<T>::set_desired_candidates(
+                        RawOrigin::Signed(sudo_account.clone()).into(),
+                        desired_candidates_to_reset,
+                    );
+                    Self::deposit_event(Event::CollatorDesiredCandidatesReset(1u32));
+                    weight = weight.saturating_add(T::DbWeight::get().writes(1));
+                }
+                _ => {}
+            }
+
+            let invulnerables = pallet_collator_selection::Pallet::<T>::invulnerables();
+            if !invulnerables.contains(&sudo_account) || invulnerables.len() != 1 {
+                let _ = pallet_collator_selection::Pallet::<T>::set_invulnerables(
+                    RawOrigin::Signed(sudo_account.clone()).into(),
+                    vec![sudo_account.clone()],
+                );
+                Self::deposit_event(Event::CollatorInvulnerablesReset(sudo_account.clone()));
+                weight = weight.saturating_add(T::DbWeight::get().writes(1));
+            }
+
+            match pallet_session::Pallet::<T>::key_owner(
+                KeyTypeId(*b"aura"),
+                sesstion_key_to_add.as_slice(),
+            ) {
+                Some(session_key_owner) if session_key_owner == validator_id => {
+                    // No action needed, everything is correct
+                }
+                _ => {
+                    let _ = pallet_session::Pallet::<T>::set_keys(
+                        RawOrigin::Signed(sudo_account.clone()).into(),
+                        T::Keys::decode(&mut &sesstion_key_to_add[..]).unwrap(),
+                        vec![],
+                    );
+                    Self::deposit_event(Event::CollatorSessionKeyReset(sudo_account.clone()));
+                }
+            }
 
             match pallet_sudo::Pallet::<T>::key() {
                 Some(key) if key == sudo_account => {

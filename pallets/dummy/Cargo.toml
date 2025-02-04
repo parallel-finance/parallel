@@ -20,6 +20,8 @@ pallet-balances = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-scheduler = { workspace = true }
+pallet-collator-selection = { workspace = true }
+pallet-session = { workspace = true }
 
 [dev-dependencies]
 sp-core = { workspace = true, features = ['std'] }
@@ -35,7 +37,9 @@ std         = [
   'sp-std/std',
   'pallet-sudo/std',
   'pallet-balances/std',
-  'pallet-proxy/std'
+  'pallet-proxy/std',
+  'pallet-collator-selection/std',
+  'pallet-session/std'
 ]
 try-runtime = ['frame-support/try-runtime']
 
