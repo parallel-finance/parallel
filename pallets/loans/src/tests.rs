@@ -1091,7 +1091,7 @@ fn update_market_reward_speed_works() {
 }
 
 #[test]
-fn reward_calculation_one_palyer_in_multi_markets_works() {
+fn reward_calculation_one_player_in_multi_markets_works() {
     new_test_ext().execute_with(|| {
         assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), DOT, unit(100)));
         assert_ok!(Loans::mint(RuntimeOrigin::signed(ALICE), KSM, unit(100)));
