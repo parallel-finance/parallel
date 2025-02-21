@@ -4,7 +4,7 @@
 
 [![GitHub last commit](https://img.shields.io/github/last-commit/parallel-finance/parallel)](https://github.com/parallel-finance/parallel/commits/master)
 [![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/parallel-finance/parallel)](https://github.com/parallel-finance/parallel/tags)
-[![Substrate version](https://img.shields.io/badge/Substrate-3.0.0-brightgreen?logo=Parity%20Substrate)](https://substrate.io/)
+[![Substrate version](https://img.shields.io/badge/Substrate-3.0.0-brightgreen?logo=Parity%20Substrate)](https://polkadot.com/platform/sdk)
 [![CI](https://github.com/parallel-finance/parallel/workflows/CI/badge.svg)](https://github.com/parallel-finance/parallel/actions)
 [![Codecov](https://codecov.io/gh/parallel-finance/parallel/branch/master/graph/badge.svg)](https://codecov.io/gh/parallel-finance/parallel)
 [![Docker](https://img.shields.io/docker/pulls/parallelfinance/parallel?logo=docker)](https://hub.docker.com/r/parallelfinance/parallel)
