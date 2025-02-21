@@ -38,7 +38,7 @@ Refer to the upstream
 [Substrate Developer Hub Node Template](https://github.com/substrate-developer-hub/substrate-node-template)
 to learn more about the structure of this project, the capabilities it encapsulates and the way in
 which those capabilities are implemented. You can learn more about
-[The Path of Parachain Block](https://polkadot.network/the-path-of-a-parachain-block/) on the
+[The Path of Parachain Block](https://polkadot.com/) on the
 official Polkadot Blog.
 
 Click the following guides for more details:
