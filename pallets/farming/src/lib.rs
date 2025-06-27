@@ -104,7 +104,7 @@ pub mod pallet {
     pub enum Error<T> {
         /// Pool does not exist
         PoolDoesNotExist,
-        /// Pool associacted with asset already exists
+        /// Pool associated with asset already exists
         PoolAlreadyExists,
         /// Pool is not active
         PoolIsNotActive,
